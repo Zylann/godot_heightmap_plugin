@@ -10,6 +10,7 @@ config_version=3
 
 [application]
 
+run/main_scene="res://addons/zylann.heightmap/demo/demo.tscn"
 name="Heightmap GDNative"
 icon="res://icon.png"
 
