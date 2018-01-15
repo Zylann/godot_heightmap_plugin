@@ -1,0 +1,76 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import os
+
+# `scons p=linux` to compile for linux
+# `scons p=windows` to compile for windows
+
+# on linux you can optionally use `use_llvm=yes` to use clang instead of gcc
+
+project_name = "godot_heightmap"
+output_folder = "../bin/"
+
+#------------------------------------------------------------------------------
+# Dependencies: modify for your own local setup
+
+godot_headers_path = "D:/PROJETS/INFO/GODOT/ENGINE/godot_fork/modules/gdnative/include"
+
+godot_cpp_headers_path = "D:/PROJETS/INFO/GODOT/ENGINE/cpp_bindings/include"
+godot_cpp_lib_path = "D:/PROJETS/INFO/GODOT/ENGINE/cpp_bindings/bin"
+
+#------------------------------------------------------------------------------
+env = Environment()
+
+if ARGUMENTS.get('use_llvm', 'no') == 'yes':
+	env['CXX'] = 'clang++'
+
+target = ARGUMENTS.get('target', 'release')
+platform = ARGUMENTS.get('p', 'linux')
+
+#------------------------------------------------------------------------------
+if platform == 'linux':
+	env.Append(CCFLAGS = ['-g','-O3', '-std=c++14'])
+	env.Append(LINKFLAGS = ['-Wl,-R,\'$$ORIGIN\''])
+
+if platform == "osx":
+    platform_dir = 'osx'
+    env.Append(CCFLAGS = ['-g','-O3', '-arch', 'x86_64'])
+    env.Append(LINKFLAGS = ['-arch', 'x86_64'])
+
+if platform == 'windows':
+	# TODO Non-tool build!
+	if target == 'debug':
+		env.Append(CPPDEFINES = ['DEBUG', '_DEBUG'])
+		env.Append(CCFLAGS='/MDd')
+		env.Append(CCFLAGS=Split('/Zi /Fd${TARGET}.pdb'))
+		env.Append(LINKFLAGS = ['/DEBUG'])
+
+env.Append(CPPPATH=[
+    godot_headers_path,
+	godot_cpp_headers_path
+])
+
+env.Append(LIBPATH=[
+    godot_cpp_lib_path
+])
+
+env.Append(LIBS=[
+    'godot_cpp_bindings'
+])
+
+#------------------------------------------------------------------------------
+sources = []
+
+def add_sources(sources, dir):
+	for f in os.listdir(dir):
+		if f.endswith('.cpp') or f.endswith('.c'):
+			sources.append(dir + '/' + f)
+
+add_sources(sources, '.')
+
+#------------------------------------------------------------------------------
+library = env.SharedLibrary(target=(output_folder + project_name), source=sources)
+Default(library)
+
+

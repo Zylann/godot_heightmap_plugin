@@ -1,0 +1,9 @@
+[gd_resource type="NativeScript" load_steps=2 format=2]
+
+[ext_resource path="res://addons/zylann.heightmap/heightmap_library.gdnlib" type="GDNativeLibrary" id=1]
+
+[resource]
+
+class_name = "HeightMap"
+library = ExtResource( 1 )
+

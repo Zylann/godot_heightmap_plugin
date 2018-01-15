@@ -1,0 +1,21 @@
+# Build
+*.obj
+*.exp
+*.ilk
+*.lib
+*.pdb
+*.dll
+
+# SCons
+*.dblite
+
+# QtCreator
+*.config
+*.creator
+*.user
+*.files
+*.includes
+
+# Godot
+.import/
+logs/
