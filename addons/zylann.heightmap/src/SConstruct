@@ -16,8 +16,8 @@ output_folder = "../bin/"
 
 godot_headers_path = "D:/PROJETS/INFO/GODOT/ENGINE/godot_fork/modules/gdnative/include"
 
-godot_cpp_headers_path = "D:/PROJETS/INFO/GODOT/ENGINE/cpp_bindings/include"
-godot_cpp_lib_path = "D:/PROJETS/INFO/GODOT/ENGINE/cpp_bindings/bin"
+godot_cpp_headers_path = "D:/PROJETS/INFO/GODOT/ENGINE/cpp_bindings_fork/include"
+godot_cpp_lib_path = "D:/PROJETS/INFO/GODOT/ENGINE/cpp_bindings_fork/bin"
 
 #------------------------------------------------------------------------------
 env = Environment()
@@ -68,6 +68,7 @@ def add_sources(sources, dir):
 			sources.append(dir + '/' + f)
 
 add_sources(sources, '.')
+add_sources(sources, 'util')
 
 #------------------------------------------------------------------------------
 library = env.SharedLibrary(target=(output_folder + project_name), source=sources)
