@@ -1,4 +1,4 @@
-OpenSimplex for Godot Engine
+HeightMap for Godot Engine (GDNative version)
 --------------------------------
 
 Copyright (c) 2016 Marc Gilleron
