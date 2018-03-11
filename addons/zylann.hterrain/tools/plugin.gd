@@ -26,7 +26,7 @@ var _import_file_path = ""
 
 
 static func get_icon(name):
-	return load("res://addons/zylann.heightmap/tools/icons/icon_" + name + ".svg")
+	return load("res://addons/zylann.hterrain/tools/icons/icon_" + name + ".svg")
 
 
 func _enter_tree():

@@ -2,7 +2,7 @@ tool
 extends Resource
 
 const Grid = preload("grid.gd")
-var HTerrain = load("res://addons/zylann.heightmap/hterrain.gd")
+var HTerrain = load("res://addons/zylann.hterrain/hterrain.gd")
 const Util = preload("util.gd")
 
 const CHANNEL_HEIGHT = 0

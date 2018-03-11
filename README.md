@@ -11,7 +11,7 @@ Installation
 --------------
 
 This is a regular editor plugin.
-Copy the contents of `addons/zylann.heightmap` into the same folder in your project, and activate it in your project settings.
+Copy the contents of `addons/zylann.hterrain` into the same folder in your project, and activate it in your project settings.
 
 
 Language notes

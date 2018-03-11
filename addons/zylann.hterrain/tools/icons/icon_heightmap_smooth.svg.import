@@ -6,7 +6,7 @@ path="res://.import/icon_heightmap_smooth.svg-d904c10107ad5e4807407e0fc9c294df.s
 
 [deps]
 
-source_file="res://addons/zylann.heightmap/tools/icons/icon_heightmap_smooth.svg"
+source_file="res://addons/zylann.hterrain/tools/icons/icon_heightmap_smooth.svg"
 source_md5="1ec0dccafaf992d107883c6065ae2137"
 
 dest_files=[ "res://.import/icon_heightmap_smooth.svg-d904c10107ad5e4807407e0fc9c294df.stex" ]

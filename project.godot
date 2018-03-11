@@ -20,7 +20,7 @@ stretch/mode="viewport"
 
 [editor_plugins]
 
-enabled=PoolStringArray( "zylann.heightmap" )
+enabled=PoolStringArray( "zylann.hterrain" )
 
 [gdnative]
 

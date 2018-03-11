@@ -4,7 +4,7 @@ extends Spatial
 const QuadTreeLod = preload("quad_tree_lod.gd")
 const Mesher = preload("hterrain_mesher.gd")
 const Grid = preload("grid.gd")
-var HTerrainData = load("res://addons/zylann.heightmap/hterrain_data.gd")
+var HTerrainData = load("res://addons/zylann.hterrain/hterrain_data.gd")
 const HTerrainChunk = preload("hterrain_chunk.gd")
 const Util = preload("util.gd")
 

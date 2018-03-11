@@ -1,7 +1,7 @@
 extends Node
 
-#const HeightMap2 = preload("res://addons/zylann.heightmap/height_map.gdns")
-#const HeightMapData2 = preload("res://addons/zylann.heightmap/height_map_data.gdns")
+#const HeightMap2 = preload("res://addons/zylann.hterrain/height_map.gdns")
+#const HeightMapData2 = preload("res://addons/zylann.hterrain/height_map_data.gdns")
 #
 #var _terrain = null
 #
@@ -12,7 +12,7 @@ extends Node
 #
 #
 #func test2():
-#	var t = preload("res://addons/zylann.heightmap/test.gdns").new()
+#	var t = preload("res://addons/zylann.hterrain/test.gdns").new()
 #
 #
 #func test():
