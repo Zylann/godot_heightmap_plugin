@@ -399,7 +399,7 @@ func paint_splat(data, origin_x, origin_y):
 
 func paint_color(data, origin_x, origin_y):
 
-	var im = data.get_image(HTerrain.CHANNEL_COLOR)
+	var im = data.get_image(HTerrainData.CHANNEL_COLOR)
 	assert(im != null)
 
 	backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
@@ -412,7 +412,7 @@ func paint_color(data, origin_x, origin_y):
 
 func paint_mask(data, origin_x, origin_y):
 
-	var im = data.get_image(HTerrain.CHANNEL_MASK)
+	var im = data.get_image(HTerrainData.CHANNEL_MASK)
 	assert(im != null)
 	
 	backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size);
