@@ -24,6 +24,7 @@ class VerticalBounds:
 	var maxv = 0
 
 
+# TODO Only allow predefined resolutions, because that's currently the case
 export(int) var resolution setget set_resolution, get_resolution
 
 
@@ -52,7 +53,12 @@ func get_resolution():
 
 
 func set_resolution(p_res):
+	set_resolution2(p_res, true)
+
+
+func set_resolution2(p_res, update_normals):
 	assert(typeof(p_res) == TYPE_INT)
+	assert(typeof(update_normals) == TYPE_BOOL)
 	
 	print("HeightMapData::set_resolution ", p_res)
 
@@ -71,6 +77,7 @@ func set_resolution(p_res):
 	_resolution = p_res;
 
 	# Resize heights
+	print("Resizing heights...")
 	if _images[CHANNEL_HEIGHT] == null:
 		var im = Image.new()
 		im.create(_resolution, _resolution, false, get_channel_format(CHANNEL_HEIGHT))
@@ -79,14 +86,17 @@ func set_resolution(p_res):
 		_images[CHANNEL_HEIGHT].resize(_resolution, _resolution)
 
 	# Resize normals
+	print("Resizing normals...")
 	if _images[CHANNEL_NORMAL] == null:
 		var im = Image.new()
 		_images[CHANNEL_NORMAL] = im
 	
 	_images[CHANNEL_NORMAL].create(_resolution, _resolution, false, get_channel_format(CHANNEL_NORMAL))
-	update_all_normals()
+	if update_normals:
+		update_all_normals()
 
 	# Resize colors
+	print("Resizing colors...")
 	if _images[CHANNEL_COLOR] == null:
 		var im = Image.new()
 		im.create(_resolution, _resolution, false, get_channel_format(CHANNEL_COLOR))
@@ -96,6 +106,7 @@ func set_resolution(p_res):
 		_images[CHANNEL_COLOR].resize(_resolution, _resolution)
 
 	# Resize splats
+	print("Resizing splats...")
 	if _images[CHANNEL_SPLAT] == null:
 		var im = Image.new()
 		im.create(_resolution, _resolution, false, get_channel_format(CHANNEL_SPLAT))
@@ -107,6 +118,7 @@ func set_resolution(p_res):
 		_images[CHANNEL_SPLAT].resize(_resolution, _resolution)
 
 	# Resize mask
+	print("Resizing mask...")
 	if _images[CHANNEL_MASK] == null:
 		var im = Image.new()
 		im.create(_resolution, _resolution, false, get_channel_format(CHANNEL_MASK))
@@ -117,6 +129,7 @@ func set_resolution(p_res):
 	else:
 		_images[CHANNEL_SPLAT].resize(_resolution, _resolution)
 
+	print("Updating vertical bounds...")
 	var csize_x = p_res / HTerrain.CHUNK_SIZE
 	var csize_y = p_res / HTerrain.CHUNK_SIZE
 	# TODO Could set `preserve_data` to true, but would require callback to construct new cells

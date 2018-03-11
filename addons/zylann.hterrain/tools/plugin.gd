@@ -9,7 +9,7 @@ const Util = preload("../util.gd")
 
 const EditPanel = preload("panel.tscn")
 
-const MENU_IMPORT_RAW = 0
+const MENU_IMPORT_IMAGE = 0
 
 
 var _node = null
@@ -23,6 +23,7 @@ var _import_dialog = null
 var _import_confirmation_dialog = null
 var _accept_dialog = null
 var _import_file_path = ""
+var _import_preloaded_image = null
 
 
 static func get_icon(name):
@@ -62,7 +63,7 @@ func _enter_tree():
 	
 	var menu = MenuButton.new()
 	menu.set_text("HeightMap")
-	menu.get_popup().add_item("Import RAW", MENU_IMPORT_RAW)
+	menu.get_popup().add_item("Import image...", MENU_IMPORT_IMAGE)
 	menu.get_popup().connect("id_pressed", self, "_menu_item_selected")
 	_toolbar.add_child(menu)
 	
@@ -105,16 +106,20 @@ func _enter_tree():
 	var base_control = editor_interface.get_base_control()
 	
 	_import_dialog = FileDialog.new()
-	_import_dialog.connect("file_selected", self, "_import_raw_file_selected")
+	_import_dialog.connect("file_selected", self, "_import_file_selected")
 	_import_dialog.mode = FileDialog.MODE_OPEN_FILE
 	_import_dialog.add_filter("*.raw ; RAW files")
+	_import_dialog.add_filter("*.png ; PNG files")
 	_import_dialog.resizable = true
 	_import_dialog.access = FileDialog.ACCESS_FILESYSTEM
 	base_control.add_child(_import_dialog)
 	
 	_import_confirmation_dialog = ConfirmationDialog.new()
 	_import_confirmation_dialog.get_ok().text = "Import anyways"
-	_import_confirmation_dialog.connect("confirmed", self, "_import_raw_file");
+	_import_confirmation_dialog.connect("confirmed", self, "_import_file_confirmed")
+	# TODO I need a "cancel" signal!
+	# Defer the call so it gets executed after the choice
+	_import_confirmation_dialog.connect("popup_hide", self, "call_deferred", ["_import_file_cancelled"])
 	base_control.add_child(_import_confirmation_dialog)
 	
 	_accept_dialog = AcceptDialog.new()
@@ -259,7 +264,7 @@ func _height_map_exited_scene():
 
 func _menu_item_selected(id):
 	print("Menu item selected ", id)
-	if id == MENU_IMPORT_RAW:
+	if id == MENU_IMPORT_IMAGE:
 		_import_dialog.popup_centered_minsize(Vector2(800, 600))
 
 
@@ -273,13 +278,25 @@ static func get_size_from_raw_length(flen):
 	return int(side_len)
 
 
-func _import_raw_file_selected(path):
-	print("Import raw file selected ", path)
+func _import_file_selected(path):
+	print("Import file selected ", path)
 	
 	assert(_node != null)
 	var data = _node.get_data()
 	assert(data != null)
+	
+	var file_ext = path.get_extension()
+	
+	if file_ext == "raw":
+		_import_raw_file_selected(path)
+	elif file_ext == "png":
+		_import_png_file_selected(path)
 
+
+func _import_raw_file_selected(path):
+	
+	print("Importing RAW file")
+	
 	var f = File.new()
 	var err = f.open(path, File.READ)
 	if err != OK:
@@ -297,10 +314,11 @@ func _import_raw_file_selected(path):
 		_accept_dialog.window_title = "Import RAW heightmap error"
 		_accept_dialog.dialog_text = "The square resolution deducted from file size is not square."
 		_accept_dialog.popup_centered_minsize()
+		return
 	
 	_import_file_path = path
 	
-	if Util.next_power_of_two(size) + 1 != size:
+	if Util.next_power_of_two(size - 1) != size - 1:
 		_import_confirmation_dialog.window_title = "Import RAW heightmap"
 		_import_confirmation_dialog.dialog_text = \
 			"The square resolution deduced from file size is not power of two + 1.\n" + \
@@ -308,10 +326,105 @@ func _import_raw_file_selected(path):
 		_import_confirmation_dialog.popup_centered_minsize()
 	else:
 		# Go!
-		_import_raw_file()
+		_import_raw_file(path)
 
 
-func _import_raw_file():
-	print("Import raw file ", _import_path)
+func _import_png_file_selected(path):
+	var im = Image.new()
+	var err = im.load(path)
+	if err != OK:
+		print("An error occurred loading image ", path, ", code ", err)
+		return
+	
+	if im.get_width() != im.get_height():
+		_accept_dialog.window_title = "Import PNG heightmap error"
+		_accept_dialog.dialog_text = "The image must be square."
+		_accept_dialog.popup_centered_minsize()
+		return
+	
+	_import_file_path = path
+	_import_preloaded_image = im
+
+	var size = im.get_width()
+	
+	if Util.next_power_of_two(size - 1) != size - 1:
+		_import_confirmation_dialog.window_title = "Import PNG heightmap"
+		_import_confirmation_dialog.dialog_text = \
+			"The square resolution deduced from file size is not power of two + 1.\n" + \
+			"The heightmap will be cropped.\n Continue?"
+		_import_confirmation_dialog.popup_centered_minsize()
+	else:
+		# Go!
+		_import_png_file(path)
+
+
+func _import_file_cancelled():
+	# Cleanup image from memory, these can be really big
+	_import_preloaded_image = null
+
+
+func _import_file_confirmed():
+	var ext = _import_file_path.get_extension()
+	
+	if ext == "raw":
+		_import_raw_file(_import_file_path)
+	elif ext == "png":
+		_import_png_file(_import_file_path)
+
+
+func _import_raw_file(path):
+	print("Import raw file ", path)
+	print("NOT IMPLEMENTED YET")
+	# TODO
+
+
+func _import_png_file(path):
+	print("Import png file ", path)
+	
+	var src_image = _import_preloaded_image
+	_import_preloaded_image = null
+	
+	assert(src_image != null)
+		
+	assert(_node != null)
+	var data = _node.get_data()
+	assert(data != null)
+	
+	print("Resizing terrain...")
+	data.set_resolution2(src_image.get_width(), false)
+	
+	var im = data.get_image(HTerrainData.CHANNEL_HEIGHT)
+	assert(im != null)
+	
+	# TODO Have these configurable in shader
+	var min_y = 0.0
+	var max_y = 100.0
+	var hrange = max_y - min_y
+	
+	var width = Util.min_int(im.get_width(), src_image.get_width())
+	var height = Util.min_int(im.get_height(), src_image.get_height())
+	
+	print("Converting to internal format...")
+	
+	im.lock()
+	src_image.lock()
+	
+	# Convert to internal format (from RGBA8 to RH16)
+	for y in range(0, width):
+		for x in range(0, height):
+			var gs = src_image.get_pixel(x, y).r
+			var h = min_y + hrange * gs
+			im.set_pixel(x, y, Color(h, 0, 0))
+	
+	src_image.unlock()
+	im.unlock()
+	
+	print("Updating normals...")
+	data.update_all_normals()
+	
+	print("Notify region change...")
+	data.notify_region_change([0, 0], [im.get_width(), im.get_height()], HTerrainData.CHANNEL_HEIGHT)
+	
+	print("Done")
 
 

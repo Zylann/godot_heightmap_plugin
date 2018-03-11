@@ -47,3 +47,11 @@ static func decode_v2i(k):
 		(k >> 16) & 0xffff
 	]
 
+
+static func min_int(a, b):
+	return a if a < b else b
+
+
+static func max_int(a, b):
+	return a if a > b else b
+
