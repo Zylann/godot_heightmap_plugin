@@ -10,13 +10,17 @@ config_version=3
 
 [application]
 
-run/main_scene="res://addons/zylann.heightmap/demo/demo.tscn"
+config/name="Heightmap Terrain"
 name="Heightmap GDNative"
 icon="res://icon.png"
 
 [display]
 
 stretch/mode="viewport"
+
+[editor_plugins]
+
+enabled=PoolStringArray( "zylann.heightmap" )
 
 [gdnative]
 
