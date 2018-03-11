@@ -41,6 +41,8 @@ func _enter_tree():
 	_panel = EditPanel.instance()
 	_panel.hide()
 	add_control_to_container(EditorPlugin.CONTAINER_SPATIAL_EDITOR_BOTTOM, _panel)
+	# Apparently _ready() still isn't called at this point...
+	_panel.call_deferred("set_brush", _brush)
 	
 #	_panel = memnew(HeightMapEditorPanel);
 #	_panel->connect(HeightMapEditorPanel::SIGNAL_TEXTURE_INDEX_SELECTED, this, "_on_texture_index_selected");
