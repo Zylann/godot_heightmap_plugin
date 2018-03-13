@@ -100,7 +100,7 @@ func _set(key, value):
 		set_data(value)
 	
 	elif key.begins_with("detail/albedo_"):
-		var i = key.righ(len(key) - 1).to_int()
+		var i = key.right(len(key) - 1).to_int()
 		set_detail_texture(i, DETAIL_ALBEDO, value)
 
 
