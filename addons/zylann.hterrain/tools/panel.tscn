@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=2]
+[gd_scene load_steps=6 format=2]
 
 [ext_resource path="res://addons/zylann.hterrain/tools/panel.gd" type="Script" id=1]
 [ext_resource path="res://addons/zylann.hterrain/tools/brush_editor.gd" type="Script" id=2]
-[ext_resource path="res://icon.png" type="Texture" id=3]
-[ext_resource path="res://addons/zylann.hterrain/tools/minimap.gd" type="Script" id=4]
+[ext_resource path="res://addons/zylann.hterrain/tools/texture_editor.gd" type="Script" id=3]
+[ext_resource path="res://icon.png" type="Texture" id=4]
+[ext_resource path="res://addons/zylann.hterrain/tools/minimap.gd" type="Script" id=5]
 
 [node name="Panel" type="Control" index="0"]
 
@@ -369,9 +370,8 @@ split_offset = 0
 collapsed = false
 dragger_visibility = 0
 
-[node name="SplatEditor" type="Control" parent="HSplitContainer/HSplitContainer" index="0"]
+[node name="TextureEditor" type="Control" parent="HSplitContainer/HSplitContainer" index="0"]
 
-editor/display_folded = true
 anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
@@ -385,9 +385,10 @@ mouse_filter = 0
 mouse_default_cursor_shape = 0
 size_flags_horizontal = 3
 size_flags_vertical = 1
+script = ExtResource( 3 )
 _sections_unfolded = [ "Margin", "Rect", "Size Flags" ]
 
-[node name="TexturesContainer" type="ItemList" parent="HSplitContainer/HSplitContainer/SplatEditor" index="0"]
+[node name="TexturesContainer" type="ItemList" parent="HSplitContainer/HSplitContainer/TextureEditor" index="0"]
 
 anchor_left = 0.0
 anchor_top = 0.0
@@ -401,7 +402,7 @@ mouse_filter = 0
 mouse_default_cursor_shape = 0
 size_flags_horizontal = 1
 size_flags_vertical = 1
-items = [ "0", ExtResource( 3 ), false, "1", ExtResource( 3 ), false, "2", ExtResource( 3 ), false, "3", ExtResource( 3 ), false ]
+items = [ "0", ExtResource( 4 ), false, "1", ExtResource( 4 ), false, "2", ExtResource( 4 ), false, "3", ExtResource( 4 ), false, "4", ExtResource( 4 ), false ]
 select_mode = 0
 allow_reselect = false
 max_columns = 0
@@ -410,9 +411,8 @@ icon_mode = 0
 fixed_icon_size = Vector2( 32, 32 )
 _sections_unfolded = [ "Anchor", "Columns", "Icon", "Margin" ]
 
-[node name="HBoxContainer" type="HBoxContainer" parent="HSplitContainer/HSplitContainer/SplatEditor" index="1"]
+[node name="HBoxContainer" type="HBoxContainer" parent="HSplitContainer/HSplitContainer/TextureEditor" index="1"]
 
-editor/display_folded = true
 anchor_left = 0.0
 anchor_top = 1.0
 anchor_right = 1.0
@@ -427,7 +427,7 @@ size_flags_vertical = 1
 alignment = 0
 _sections_unfolded = [ "Anchor", "Margin" ]
 
-[node name="LoadButton" type="Button" parent="HSplitContainer/HSplitContainer/SplatEditor/HBoxContainer" index="0"]
+[node name="ClearButton" type="Button" parent="HSplitContainer/HSplitContainer/TextureEditor/HBoxContainer" index="0"]
 
 anchor_left = 0.0
 anchor_top = 0.0
@@ -450,7 +450,7 @@ text = "Clear"
 flat = false
 align = 1
 
-[node name="LoadButton2" type="Button" parent="HSplitContainer/HSplitContainer/SplatEditor/HBoxContainer" index="1"]
+[node name="LoadButton" type="Button" parent="HSplitContainer/HSplitContainer/TextureEditor/HBoxContainer" index="1"]
 
 anchor_left = 0.0
 anchor_top = 0.0
@@ -491,7 +491,13 @@ mouse_default_cursor_shape = 0
 size_flags_horizontal = 1
 size_flags_vertical = 1
 color = Color( 0, 0, 0, 1 )
-script = ExtResource( 4 )
+script = ExtResource( 5 )
 _sections_unfolded = [ "Rect" ]
+
+[connection signal="item_selected" from="HSplitContainer/HSplitContainer/TextureEditor/TexturesContainer" to="HSplitContainer/HSplitContainer/TextureEditor" method="_on_TexturesContainer_item_selected"]
+
+[connection signal="pressed" from="HSplitContainer/HSplitContainer/TextureEditor/HBoxContainer/ClearButton" to="HSplitContainer/HSplitContainer/TextureEditor" method="_on_ClearButton_pressed"]
+
+[connection signal="pressed" from="HSplitContainer/HSplitContainer/TextureEditor/HBoxContainer/LoadButton" to="HSplitContainer/HSplitContainer/TextureEditor" method="_on_LoadButton_pressed"]
 
 

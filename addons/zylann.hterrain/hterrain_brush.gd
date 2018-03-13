@@ -14,7 +14,6 @@ const MODE_COLOR = 5
 const MODE_MASK = 6
 const MODE_COUNT = 7
 
-
 var _radius = 0
 var _opacity = 1.0
 var _shape = [] #Grid2D<float> _shape;
@@ -23,6 +22,7 @@ var _shape_size = 0
 var _mode = MODE_ADD
 var _flatten_height = 0.0
 var _texture_index = 0
+var _texture_mode = HTerrain.SHADER_SIMPLE4
 var _color = Color(1, 1, 1)
 var _undo_cache = {}
 
@@ -70,7 +70,8 @@ func get_flatten_height():
 
 func set_texture_index(tid):
 	assert(tid >= 0)
-	assert(tid < 256)
+	var slot_count = HTerrain.get_detail_texture_slot_count_for_shader(_texture_mode)
+	assert(tid < slot_count)
 	_texture_index = tid
 
 
@@ -197,10 +198,10 @@ static func foreach_xy(op, data, origin_x, origin_y, speed, opacity, shape):
 	max_y = pmax[1]
 
 	for y in range(min_y, max_y):
+		var py = y - min_noclamp_y
+		
 		for x in range(min_x, max_x):
-			
 			var px = x - min_noclamp_x
-			var py = y - min_noclamp_y
 
 			var shape_value = shape[py][px]
 			op.exec(data, x, y, s * shape_value)
@@ -271,6 +272,9 @@ func backup_for_undo(im, undo_cache, rect_origin_x, rect_origin_y, rect_size_x, 
 	var cmax_y = (rect_origin_y + rect_size_y - 1) / HTerrain.CHUNK_SIZE + 1
 
 	for cpos_y in range(cmin_y, cmax_y):
+		var min_y = cpos_y * HTerrain.CHUNK_SIZE
+		var max_y = min_y + HTerrain.CHUNK_SIZE
+			
 		for cpos_x in range(cmin_x, cmax_x):
 		
 			var k = Util.encode_v2i(cpos_x, cpos_y)
@@ -279,9 +283,7 @@ func backup_for_undo(im, undo_cache, rect_origin_x, rect_origin_y, rect_size_x, 
 				continue
 
 			var min_x = cpos_x * HTerrain.CHUNK_SIZE
-			var min_y = cpos_y * HTerrain.CHUNK_SIZE
 			var max_x = min_x + HTerrain.CHUNK_SIZE
-			var max_y = min_y + HTerrain.CHUNK_SIZE
 
 			var invalid_min = not is_valid_pos(min_x, min_y, im)
 			var invalid_max = not is_valid_pos(max_x - 1, max_y - 1, im) # Note: max is excluded
@@ -356,9 +358,9 @@ func paint_splat(data, origin_x, origin_y):
 	var im = data.get_image(HTerrainData.CHANNEL_SPLAT)
 	assert(im != null)
 
-	backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape.size());
-
 	var shape_size = _shape_size
+
+	backup_for_undo(im, _undo_cache, origin_x, origin_y, shape_size, shape_size)
 
 	var min_x = origin_x
 	var min_y = origin_y
@@ -374,25 +376,56 @@ func paint_splat(data, origin_x, origin_y):
 	min_y = pmin[1]
 	max_x = pmax[0]
 	max_y = pmax[1]
-
-	var shape_threshold = 0.1
-
+		
 	im.lock()
-
-	for y in range(min_y, max_y):
-		for x in range(min_x, max_x):
-			
-			var px = x - min_noclamp_x
+	
+	if _texture_mode == HTerrain.SHADER_SIMPLE4:
+		
+		var target_color = Color()
+		match _texture_index:
+			0:
+				target_color = Color(0, 0, 0, 0)
+			1:
+				target_color = Color(1, 0, 0, 0)
+			2:
+				target_color = Color(0, 1, 0, 0)
+			3:
+				target_color = Color(0, 0, 1, 0)
+			4:
+				target_color = Color(0, 0, 0, 1)
+		
+		for y in range(min_y, max_y):
 			var py = y - min_noclamp_y
 			
-			var shape_value = _shape[py][px]
-
-			if shape_value > shape_threshold:
-				# TODO Improve weight blending, it looks meh
-				var c = Color()
-				c.r = float(_texture_index) / 256.0
-				c.g = clamp(_opacity, 0.0, 1.0)
+			for x in range(min_x, max_x):
+				var px = x - min_noclamp_x
+				
+				var shape_value = _shape[py][px]
+	
+				var c = im.get_pixel(x, y)
+				c = c.linear_interpolate(target_color, shape_value * _opacity)
 				im.set_pixel(x, y, c)
+
+	
+#	elif _texture_mode == HTerrain.SHADER_ARRAY:
+#		var shape_threshold = 0.1
+#
+#		for y in range(min_y, max_y):
+#			var py = y - min_noclamp_y
+#
+#			for x in range(min_x, max_x):
+#				var px = x - min_noclamp_x
+#
+#				var shape_value = _shape[py][px]
+#
+#				if shape_value > shape_threshold:
+#					# TODO Improve weight blending, it looks meh
+#					var c = Color()
+#					c.r = float(_texture_index) / 256.0
+#					c.g = clamp(_opacity, 0.0, 1.0)
+#					im.set_pixel(x, y, c)
+	else:
+		print("Unknown texture mode ", _texture_mode)
 
 	im.unlock()
 

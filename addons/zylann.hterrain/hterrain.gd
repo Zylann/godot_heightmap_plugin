@@ -19,6 +19,12 @@ const SHADER_PARAM_SPLAT_TEXTURE = "splat_texture"
 const SHADER_PARAM_MASK_TEXTURE = "mask_texture"
 const SHADER_PARAM_RESOLUTION = "heightmap_resolution"
 const SHADER_PARAM_INVERSE_TRANSFORM = "heightmap_inverse_transform"
+const SHADER_PARAM_DETAIL_ALBEDO = "detail_albedo_" # 0, 1, 2, 3, 4
+
+const SHADER_SIMPLE4 = 0
+#const SHADER_ARRAY = 1
+
+const DETAIL_ALBEDO = 0
 
 
 var _custom_material = null
@@ -54,7 +60,7 @@ func _ready():
 
 
 func _get_property_list():
-	return [
+	var props = [
 		{
 			# Must do this to export a custom resource type
 			"name": "data",
@@ -64,11 +70,27 @@ func _get_property_list():
 			"hint_string": "HTerrainData"
 		}
 	]
+	
+	for i in range(get_detail_texture_slot_count()):
+		props.append({
+			"name": "detail/albedo_" + str(i),
+			"type": TYPE_OBJECT,
+			"usage": PROPERTY_USAGE_STORAGE,
+			"hint": PROPERTY_HINT_RESOURCE_TYPE,
+			"hint_string": "Texture"
+		})
+	
+	return props
 
 
 func _get(key):
+	
 	if key == "data":
 		return get_data()
+		
+	elif key.begins_with("detail/albedo_"):
+		var i = key.right(len(key) - 1).to_int()
+		return get_detail_texture(i, DETAIL_ALBEDO)
 
 
 func _set(key, value):
@@ -76,6 +98,10 @@ func _set(key, value):
 	# because we were also are forced to use _get_property_list...
 	if key == "data":
 		set_data(value)
+	
+	elif key.begins_with("detail/albedo_"):
+		var i = key.righ(len(key) - 1).to_int()
+		set_detail_texture(i, DETAIL_ALBEDO, value)
 
 
 func get_custom_material():
@@ -644,7 +670,40 @@ func cell_raycast(origin_world, dir_world, out_cell_pos):
 		
 		d += unit
 
-	return false;
+	return false
+
+
+func get_detail_texture(slot, type):
+	assert(slot >= 0 and slot < get_detail_texture_slot_count())
+	match type:
+		DETAIL_ALBEDO:
+			return _material.get_shader_param(SHADER_PARAM_DETAIL_ALBEDO + str(slot))
+		_:
+			print("Unknown texture type ", type)
+	return null
+
+
+func set_detail_texture(slot, type, tex):
+	assert(slot >= 0 and slot < get_detail_texture_slot_count())
+	match type:
+		DETAIL_ALBEDO:
+			_material.set_shader_param(SHADER_PARAM_DETAIL_ALBEDO + str(slot), tex)
+		_:
+			print("Unknown texture type ", type)
+
+
+static func get_detail_texture_slot_count_for_shader(mode):
+	match mode:
+		SHADER_SIMPLE4:
+			return 5
+#		SHADER_ARRAY:
+#			return 256
+	print("Invalid shader type specified ", mode)
+	return 0
+
+
+func get_detail_texture_slot_count():
+	return get_detail_texture_slot_count_for_shader(SHADER_SIMPLE4)
 
 
 func _edit_set_manual_viewer_pos(pos):

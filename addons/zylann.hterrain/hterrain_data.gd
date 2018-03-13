@@ -110,8 +110,9 @@ func set_resolution2(p_res, update_normals):
 	if _images[CHANNEL_SPLAT] == null:
 		var im = Image.new()
 		im.create(_resolution, _resolution, false, get_channel_format(CHANNEL_SPLAT))
+		im.fill(Color(0, 0, 0, 0))
 		# Initialize weights so we can see the default texture
-		im.fill(Color8(0, 128, 0, 0))
+		#im.fill(Color8(0, 128, 0, 0))
 		_images[CHANNEL_SPLAT] = im
 		
 	else:
@@ -320,7 +321,6 @@ func _edit_apply_undo(undo_data):
 				_images[channel].blit_rect(data, data_rect, Vector2(min_x, min_y))
 				# Padding is needed because normals are calculated using neighboring,
 				# so a change in height X also requires normals in X-1 and X+1 to be updated
-				# TODO HEY, second parameter is a size! FIXIT
 				update_normals(min_x - 1, min_y - 1, max_x - min_x + 2, max_y - min_y + 2)
 
 			CHANNEL_SPLAT, \
@@ -356,7 +356,7 @@ func upload_region(channel, min_x, min_y, max_x, max_y):
 
 	var flags = 0;
 
-	if channel == CHANNEL_NORMAL or channel == CHANNEL_COLOR:
+	if channel == CHANNEL_NORMAL or channel == CHANNEL_COLOR or channel == CHANNEL_SPLAT:
 		# To allow smooth shading in fragment shader
 		flags |= Texture.FLAG_FILTER
 
@@ -409,10 +409,8 @@ func get_region_aabb(origin_in_cells_x, origin_in_cells_y, size_in_cells_x, size
 	var min_height = _chunked_vertical_bounds[0][0].minv
 	var max_height = min_height
 	
-	var y = cmin_y
-	while y < cmax_y:
-		var x = cmin_x
-		while x < cmax_x:
+	for y in range(cmin_y, cmax_y):
+		for x in range(cmin_x, cmax_x):
 			
 			var b = _chunked_vertical_bounds[y][x]
 
@@ -420,11 +418,7 @@ func get_region_aabb(origin_in_cells_x, origin_in_cells_y, size_in_cells_x, size
 				min_height = b.minv
 
 			if b.maxv > max_height:
-				max_height = b.maxv
-			
-			x += 1
-		y += 1
-	
+				max_height = b.maxv	
 
 	var aabb = AABB()
 	aabb.position = Vector3(origin_in_cells_x, min_height, origin_in_cells_y)
@@ -457,10 +451,10 @@ func update_vertical_bounds(origin_in_cells_x, origin_in_cells_y, size_in_cells_
 	var chunk_size_x = HTerrain.CHUNK_SIZE + 1
 	var chunk_size_y = HTerrain.CHUNK_SIZE + 1
 
-	var y = cmin_y
-	while y < cmax_y:
-		var x = cmin_x
-		while x < cmax_x:
+	for y in range(cmin_y, cmax_y):
+		var pmin_y = y * HTerrain.CHUNK_SIZE
+		
+		for x in range(cmin_x, cmax_y):
 			
 			var b = _chunked_vertical_bounds[y][x]
 			if b == null:
@@ -468,11 +462,7 @@ func update_vertical_bounds(origin_in_cells_x, origin_in_cells_y, size_in_cells_
 				_chunked_vertical_bounds[y][x] = b
 
 			var pmin_x = x * HTerrain.CHUNK_SIZE
-			var pmin_y = y * HTerrain.CHUNK_SIZE
 			compute_vertical_bounds_at(pmin_x, pmin_y, chunk_size_x, chunk_size_y, b);
-			
-			x += 1
-		y += 1
 
 
 func compute_vertical_bounds_at(origin_x, origin_y, size_x, size_y, out_b):
@@ -526,7 +516,8 @@ static func get_channel_format(channel):
 		CHANNEL_NORMAL:
 			return Image.FORMAT_RGB8
 		CHANNEL_SPLAT:
-			return Image.FORMAT_RG8
+			#return Image.FORMAT_RG8
+			return Image.FORMAT_RGBA8
 		CHANNEL_COLOR:
 			return Image.FORMAT_RGBA8
 		CHANNEL_MASK:
