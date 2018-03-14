@@ -188,8 +188,7 @@ func forward_spatial_gui_input(p_camera, p_event):
 		var mm = p_event
 		
 		if Input.is_mouse_button_pressed(BUTTON_LEFT):
-			paint(p_camera, mm.position)
-			captured_event = true
+			captured_event = paint(p_camera, mm.position)
 
 	return captured_event
 
@@ -204,6 +203,9 @@ func paint(camera, screen_pos):
 	if _node.cell_raycast(origin, dir, hit_pos_in_cells):
 		var override_mode = -1
 		_brush.paint(_node, hit_pos_in_cells[0], hit_pos_in_cells[1], override_mode)
+		return true
+	
+	return false
 
 
 func paint_completed():
