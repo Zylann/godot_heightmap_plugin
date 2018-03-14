@@ -627,7 +627,7 @@ func local_pos_to_cell(local_pos):
 
 
 static func get_height_or_default(im, pos_x, pos_y):
-	if pos_x < 0 or pos_y < 0 or pos_x >= im.get_width() or pos_y or im.get_height():
+	if pos_x < 0 or pos_y < 0 or pos_x >= im.get_width() or pos_y >= im.get_height():
 		return 0
 	return im.get_pixel(pos_x, pos_y).r
 
