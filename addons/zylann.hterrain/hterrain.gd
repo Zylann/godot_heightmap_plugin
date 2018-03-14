@@ -27,6 +27,8 @@ const SHADER_SIMPLE4 = 0
 const DETAIL_ALBEDO = 0
 
 
+export var depth_blending = false
+
 var _custom_material = null
 var _material = null
 var _collision_enabled = false
@@ -363,6 +365,7 @@ func update_material_params():
 	material.set_shader_param(SHADER_PARAM_SPLAT_TEXTURE, splat_texture)
 	material.set_shader_param(SHADER_PARAM_MASK_TEXTURE, mask_texture)
 	material.set_shader_param(SHADER_PARAM_RESOLUTION, res)
+	material.set_shader_param("depth_blending", depth_blending)
 
 
 func set_lod_scale(lod_scale):

@@ -15,8 +15,16 @@ uniform sampler2D detail_albedo_3 : hint_albedo;
 uniform sampler2D detail_albedo_4 : hint_albedo;
 uniform float detail_scale = 20.0;
 
+uniform bool depth_blending = true;
+
+
 vec3 unpack_normal(vec3 rgb) {
 	return rgb * 2.0 - vec3(1.0);
+}
+
+float brightness(vec3 rgb) {
+	// TODO Hey dude, you lazy
+	return 0.33 * (rgb.r + rgb.g + rgb.b);
 }
 
 void vertex() {
@@ -53,13 +61,41 @@ void fragment() {
 	
 	float base_amount = 1.0 - (splat.r + splat.g + splat.b + splat.a);
 	
-	/*float s = 0.1;
-	float h0 = col0.r * base_amount;
-	float h1 = col1.r * col0.r;
-	float w0 = smoothstep(h1, h1+s, h0);
-	float w1 = smoothstep(h0-s, h0, h1);
-	vec3 hc = w0 * col0.rgb + w1 * col1.rgb;*/
+	float w0, w1, w2, w3, w4;
 	
-	ALBEDO = (base_amount * col0.rgb + (col1.rgb * splat.r + col2.rgb * splat.g + col3.rgb * splat.b + col4.rgb * splat.a));
+	// TODO An #ifdef macro would be nice!
+	if (depth_blending) {
+	
+		float h0 = brightness(col0.rgb) * base_amount;// - 0.8;
+	    float h1 = brightness(col1.rgb) * splat.r;
+	    float h2 = brightness(col2.rgb) * splat.g;
+	    float h3 = brightness(col3.rgb) * splat.b;
+	    float h4 = brightness(col4.rgb) * splat.a;
+	
+		// Doesn't look great with more than 2 textures,
+		// so had to nullify this parameter for now...
+		// TODO Improve multi-texture depth blending
+	    float d = 0.001;
+	
+		float ma = max(h0, max(max(h1, h2), max(h3, h4))) - d;
+		
+		w0 = max(h0 - ma, 0.0);
+		w1 = max(h1 - ma, 0.0);
+		w2 = max(h2 - ma, 0.0);
+		w3 = max(h3 - ma, 0.0);
+		w4 = max(h4 - ma, 0.0);
+		
+	} else {
+		
+		w0 = base_amount;
+		w1 = splat.r;
+		w2 = splat.g;
+		w3 = splat.b;
+		w4 = splat.a;
+	}
+	
+    vec3 hc = (w0 * col0.rgb + w1 * col1.rgb + w2 * col2.rgb + w3 * col3.rgb + w4 * col4.rgb) / (w0 + w1 + w2 + w3 + w4); 
+	
+	ALBEDO = hc;
 }
 
