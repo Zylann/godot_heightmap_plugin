@@ -376,23 +376,13 @@ func paint_splat(data, origin_x, origin_y):
 	min_y = pmin[1]
 	max_x = pmax[0]
 	max_y = pmax[1]
-		
+	
 	im.lock()
 	
 	if _texture_mode == HTerrain.SHADER_SIMPLE4:
 		
-		var target_color = Color()
-		match _texture_index:
-			0:
-				target_color = Color(0, 0, 0, 0)
-			1:
-				target_color = Color(1, 0, 0, 0)
-			2:
-				target_color = Color(0, 1, 0, 0)
-			3:
-				target_color = Color(0, 0, 1, 0)
-			4:
-				target_color = Color(0, 0, 0, 1)
+		var target_color = Color(0, 0, 0, 0)
+		target_color[_texture_index] = 1.0
 		
 		for y in range(min_y, max_y):
 			var py = y - min_noclamp_y

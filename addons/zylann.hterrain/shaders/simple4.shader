@@ -12,7 +12,6 @@ uniform sampler2D detail_albedo_0 : hint_albedo;
 uniform sampler2D detail_albedo_1 : hint_albedo;
 uniform sampler2D detail_albedo_2 : hint_albedo;
 uniform sampler2D detail_albedo_3 : hint_albedo;
-uniform sampler2D detail_albedo_4 : hint_albedo;
 uniform float detail_scale = 20.0;
 
 uniform bool depth_blending = true;
@@ -55,47 +54,49 @@ void fragment() {
 	vec4 col1 = texture(detail_albedo_1, detail_uv);
 	vec4 col2 = texture(detail_albedo_2, detail_uv);
 	vec4 col3 = texture(detail_albedo_3, detail_uv);
-	vec4 col4 = texture(detail_albedo_4, detail_uv);
 	
 	vec3 tint = texture(color_texture, UV).rgb;
-	
-	float base_amount = 1.0 - (splat.r + splat.g + splat.b + splat.a);
-	
-	float w0, w1, w2, w3, w4;
-	
-	// TODO An #ifdef macro would be nice!
-	if (depth_blending) {
-	
-		float h0 = brightness(col0.rgb) * base_amount;// - 0.8;
-	    float h1 = brightness(col1.rgb) * splat.r;
-	    float h2 = brightness(col2.rgb) * splat.g;
-	    float h3 = brightness(col3.rgb) * splat.b;
-	    float h4 = brightness(col4.rgb) * splat.a;
-	
-		// Doesn't look great with more than 2 textures,
-		// so had to nullify this parameter for now...
-		// TODO Improve multi-texture depth blending
-	    float d = 0.001;
-	
-		float ma = max(h0, max(max(h1, h2), max(h3, h4))) - d;
 		
-		w0 = max(h0 - ma, 0.0);
-		w1 = max(h1 - ma, 0.0);
-		w2 = max(h2 - ma, 0.0);
-		w3 = max(h3 - ma, 0.0);
-		w4 = max(h4 - ma, 0.0);
+	// TODO An #ifdef macro would be nice! Or move in a different shader, heh
+	if (depth_blending) {
+		
+		float dh = 0.2;
+
+		// TODO Keep improving multilayer blending, there are still some edge cases...
+		// Mitigation workaround is used for now.
+		// Maybe should be using actual bumpmaps to be sure
+		
+		vec4 h;
+		//splat *= 1.4; // Mitigation #1: increase splat range over bump
+		h.r = brightness(col0.rgb) + splat.r;
+		h.g = brightness(col1.rgb) + splat.g;
+		h.b = brightness(col2.rgb) + splat.b;
+		h.a = brightness(col3.rgb) + splat.a;
+		
+		// Mitigation #2: nullify layers with near-zero splat
+		float sc = 0.05;
+		h *= smoothstep(0, sc, splat);
+		
+		vec4 d = h + dh;
+		d.r -= max(h.g, max(h.b, h.a));
+		d.g -= max(h.r, max(h.b, h.a));
+		d.b -= max(h.g, max(h.r, h.a));
+		d.a -= max(h.g, max(h.b, h.r));
+		
+		vec4 w = clamp(d, 0, 1);
+		
+    	ALBEDO = (w.r * col0.rgb + w.g * col1.rgb + w.b * col2.rgb + w.a * col3.rgb) / (w.r + w.g + w.b + w.a);
 		
 	} else {
 		
-		w0 = base_amount;
-		w1 = splat.r;
-		w2 = splat.g;
-		w3 = splat.b;
-		w4 = splat.a;
+		float w0 = splat.r;
+		float w1 = splat.g;
+		float w2 = splat.b;
+		float w3 = splat.a;
+		
+    	ALBEDO = (w0 * col0.rgb + w1 * col1.rgb + w2 * col2.rgb + w3 * col3.rgb) / (w0 + w1 + w2 + w3);
 	}
 	
-    vec3 hc = (w0 * col0.rgb + w1 * col1.rgb + w2 * col2.rgb + w3 * col3.rgb + w4 * col4.rgb) / (w0 + w1 + w2 + w3 + w4); 
-	
-	ALBEDO = hc;
+	//ALBEDO = splat.rgb;
 }
 

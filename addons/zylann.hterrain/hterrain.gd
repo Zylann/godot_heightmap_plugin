@@ -698,7 +698,7 @@ func set_detail_texture(slot, type, tex):
 static func get_detail_texture_slot_count_for_shader(mode):
 	match mode:
 		SHADER_SIMPLE4:
-			return 5
+			return 4
 #		SHADER_ARRAY:
 #			return 256
 	print("Invalid shader type specified ", mode)

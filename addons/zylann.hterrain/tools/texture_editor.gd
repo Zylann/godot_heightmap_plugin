@@ -25,7 +25,7 @@ func _ready():
 	add_child(_load_dialog)
 	
 	_textures_list.clear()
-	for i in range(5):
+	for i in range(4):
 		_textures_list.add_item(str(i), _empty_icon)
 
 

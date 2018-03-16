@@ -110,7 +110,7 @@ func set_resolution2(p_res, update_normals):
 	if _images[CHANNEL_SPLAT] == null:
 		var im = Image.new()
 		im.create(_resolution, _resolution, false, get_channel_format(CHANNEL_SPLAT))
-		im.fill(Color(0, 0, 0, 0))
+		im.fill(Color(1, 0, 0, 0))
 		# Initialize weights so we can see the default texture
 		#im.fill(Color8(0, 128, 0, 0))
 		_images[CHANNEL_SPLAT] = im
