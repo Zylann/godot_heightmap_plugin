@@ -19,12 +19,16 @@ const SHADER_PARAM_SPLAT_TEXTURE = "splat_texture"
 const SHADER_PARAM_MASK_TEXTURE = "mask_texture"
 const SHADER_PARAM_RESOLUTION = "heightmap_resolution"
 const SHADER_PARAM_INVERSE_TRANSFORM = "heightmap_inverse_transform"
-const SHADER_PARAM_DETAIL_ALBEDO = "detail_albedo_" # 0, 1, 2, 3, 4
+const SHADER_PARAM_DETAIL_ALBEDO = "detail_albedo_" # 0, 1, 2, 3...
+const SHADER_PARAM_DETAIL_NORMAL = "detail_normal_" # 0, 1, 2, 3...
+const SHADER_PARAM_DETAIL_BUMP = "detail_bump_" # 0, 1, 2, 3...
 
 const SHADER_SIMPLE4 = 0
 #const SHADER_ARRAY = 1
 
 const DETAIL_ALBEDO = 0
+const DETAIL_NORMAL = 1
+const DETAIL_BUMP = 2
 
 
 export var depth_blending = false
@@ -93,6 +97,14 @@ func _get(key):
 	elif key.begins_with("detail/albedo_"):
 		var i = key.right(len(key) - 1).to_int()
 		return get_detail_texture(i, DETAIL_ALBEDO)
+		
+	elif key.begins_with("detail/normal_"):
+		var i = key.right(len(key) - 1).to_int()
+		return get_detail_texture(i, DETAIL_NORMAL)
+		
+	elif key.begins_with("detail/bump_"):
+		var i = key.right(len(key) - 1).to_int()
+		return get_detail_texture(i, DETAIL_BUMP)
 
 
 func _set(key, value):
@@ -104,6 +116,14 @@ func _set(key, value):
 	elif key.begins_with("detail/albedo_"):
 		var i = key.right(len(key) - 1).to_int()
 		set_detail_texture(i, DETAIL_ALBEDO, value)
+
+	elif key.begins_with("detail/normal_"):
+		var i = key.right(len(key) - 1).to_int()
+		set_detail_texture(i, DETAIL_NORMAL, value)
+
+	elif key.begins_with("detail/bump_"):
+		var i = key.right(len(key) - 1).to_int()
+		set_detail_texture(i, DETAIL_BUMP, value)
 
 
 func get_custom_material():
@@ -681,6 +701,10 @@ func get_detail_texture(slot, type):
 	match type:
 		DETAIL_ALBEDO:
 			return _material.get_shader_param(SHADER_PARAM_DETAIL_ALBEDO + str(slot))
+		DETAIL_NORMAL:
+			return _material.get_shader_param(SHADER_PARAM_DETAIL_NORMAL + str(slot))
+		DETAIL_BUMP:
+			return _material.get_shader_param(SHADER_PARAM_DETAIL_BUMP + str(slot))
 		_:
 			print("Unknown texture type ", type)
 	return null
@@ -691,6 +715,10 @@ func set_detail_texture(slot, type, tex):
 	match type:
 		DETAIL_ALBEDO:
 			_material.set_shader_param(SHADER_PARAM_DETAIL_ALBEDO + str(slot), tex)
+		DETAIL_NORMAL:
+			_material.set_shader_param(SHADER_PARAM_DETAIL_NORMAL + str(slot), tex)
+		DETAIL_BUMP:
+			_material.set_shader_param(SHADER_PARAM_DETAIL_BUMP + str(slot), tex)
 		_:
 			print("Unknown texture type ", type)
 

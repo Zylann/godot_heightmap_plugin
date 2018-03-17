@@ -1,10 +1,12 @@
-[gd_scene load_steps=6 format=2]
+[gd_scene load_steps=8 format=2]
 
 [ext_resource path="res://addons/zylann.hterrain/tools/panel.gd" type="Script" id=1]
 [ext_resource path="res://addons/zylann.hterrain/tools/brush_editor.gd" type="Script" id=2]
 [ext_resource path="res://addons/zylann.hterrain/tools/texture_editor.gd" type="Script" id=3]
-[ext_resource path="res://icon.png" type="Texture" id=4]
-[ext_resource path="res://addons/zylann.hterrain/tools/minimap.gd" type="Script" id=5]
+[ext_resource path="res://addons/zylann.hterrain/tools/icons/empty.png" type="Texture" id=4]
+[ext_resource path="res://addons/zylann.hterrain/tools/texture_editor_dialog.gd" type="Script" id=5]
+[ext_resource path="res://icon.png" type="Texture" id=6]
+[ext_resource path="res://addons/zylann.hterrain/tools/minimap.gd" type="Script" id=7]
 
 [node name="Panel" type="Control" index="0"]
 
@@ -40,17 +42,19 @@ mouse_filter = 0
 mouse_default_cursor_shape = 0
 size_flags_horizontal = 1
 size_flags_vertical = 1
-split_offset = 50
+split_offset = 40
 collapsed = false
 dragger_visibility = 0
+_sections_unfolded = [ "Rect" ]
 
 [node name="BrushEditor" type="Control" parent="HSplitContainer" index="0"]
 
+editor/display_folded = true
 anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
 anchor_bottom = 0.0
-margin_right = 250.0
+margin_right = 240.0
 margin_bottom = 104.0
 rect_min_size = Vector2( 200, 0 )
 rect_pivot_offset = Vector2( 0, 0 )
@@ -64,6 +68,7 @@ _sections_unfolded = [ "Anchor", "Rect", "Size Flags" ]
 
 [node name="GridContainer" type="GridContainer" parent="HSplitContainer/BrushEditor" index="0"]
 
+editor/display_folded = true
 anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 1.0
@@ -104,7 +109,7 @@ anchor_top = 0.0
 anchor_right = 0.0
 anchor_bottom = 0.0
 margin_left = 92.0
-margin_right = 250.0
+margin_right = 240.0
 margin_bottom = 16.0
 rect_pivot_offset = Vector2( 0, 0 )
 rect_clip_content = false
@@ -121,7 +126,7 @@ anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
 anchor_bottom = 0.0
-margin_right = 124.0
+margin_right = 114.0
 margin_bottom = 16.0
 rect_pivot_offset = Vector2( 0, 0 )
 rect_clip_content = false
@@ -149,9 +154,9 @@ anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
 anchor_bottom = 0.0
-margin_left = 128.0
+margin_left = 118.0
 margin_top = 1.0
-margin_right = 158.0
+margin_right = 148.0
 margin_bottom = 15.0
 rect_min_size = Vector2( 30, 0 )
 rect_pivot_offset = Vector2( 0, 0 )
@@ -195,7 +200,7 @@ anchor_right = 0.0
 anchor_bottom = 0.0
 margin_left = 92.0
 margin_top = 20.0
-margin_right = 250.0
+margin_right = 240.0
 margin_bottom = 36.0
 rect_pivot_offset = Vector2( 0, 0 )
 rect_clip_content = false
@@ -212,7 +217,7 @@ anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
 anchor_bottom = 0.0
-margin_right = 124.0
+margin_right = 114.0
 margin_bottom = 16.0
 rect_pivot_offset = Vector2( 0, 0 )
 rect_clip_content = false
@@ -240,9 +245,9 @@ anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
 anchor_bottom = 0.0
-margin_left = 128.0
+margin_left = 118.0
 margin_top = 1.0
-margin_right = 158.0
+margin_right = 148.0
 margin_bottom = 15.0
 rect_min_size = Vector2( 30, 0 )
 rect_pivot_offset = Vector2( 0, 0 )
@@ -286,7 +291,7 @@ anchor_right = 0.0
 anchor_bottom = 0.0
 margin_left = 92.0
 margin_top = 40.0
-margin_right = 250.0
+margin_right = 240.0
 margin_bottom = 64.0
 rect_pivot_offset = Vector2( 0, 0 )
 rect_clip_content = false
@@ -333,7 +338,7 @@ anchor_right = 0.0
 anchor_bottom = 0.0
 margin_left = 92.0
 margin_top = 68.0
-margin_right = 250.0
+margin_right = 240.0
 margin_bottom = 88.0
 rect_pivot_offset = Vector2( 0, 0 )
 rect_clip_content = false
@@ -357,7 +362,7 @@ anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
 anchor_bottom = 0.0
-margin_left = 262.0
+margin_left = 252.0
 margin_right = 630.0
 margin_bottom = 104.0
 rect_pivot_offset = Vector2( 0, 0 )
@@ -376,7 +381,7 @@ anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
 anchor_bottom = 0.0
-margin_right = 256.0
+margin_right = 266.0
 margin_bottom = 104.0
 rect_min_size = Vector2( 100, 0 )
 rect_pivot_offset = Vector2( 0, 0 )
@@ -402,7 +407,7 @@ mouse_filter = 0
 mouse_default_cursor_shape = 0
 size_flags_horizontal = 1
 size_flags_vertical = 1
-items = [ "0", ExtResource( 4 ), false, "1", ExtResource( 4 ), false, "2", ExtResource( 4 ), false, "3", ExtResource( 4 ), false, "4", ExtResource( 4 ), false ]
+items = [ "0", ExtResource( 4 ), false, "1", ExtResource( 4 ), false, "2", ExtResource( 4 ), false, "3", ExtResource( 4 ), false ]
 select_mode = 0
 allow_reselect = false
 max_columns = 0
@@ -474,14 +479,354 @@ text = "Load..."
 flat = false
 align = 1
 
+[node name="EditButton" type="Button" parent="HSplitContainer/HSplitContainer/TextureEditor/HBoxContainer" index="2"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 106.0
+margin_right = 154.0
+margin_bottom = 24.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+group = null
+text = "Edit..."
+flat = false
+align = 1
+
+[node name="EditDialog" type="AcceptDialog" parent="HSplitContainer/HSplitContainer/TextureEditor" index="2"]
+
+editor/display_folded = true
+visible = false
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = -192.0
+margin_top = 183.0
+margin_right = 216.0
+margin_bottom = 432.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+popup_exclusive = false
+window_title = "Edit terrain texture"
+resizable = false
+dialog_hide_on_ok = true
+script = ExtResource( 5 )
+_sections_unfolded = [ "Dialog", "Rect" ]
+
+[node name="GridContainer" type="GridContainer" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog" index="3"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 8.0
+margin_top = 8.0
+margin_right = -8.0
+margin_bottom = -36.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 1
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+columns = 3
+_sections_unfolded = [ "Anchor", "Margin" ]
+
+[node name="AlbedoLabel" type="Label" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="0"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_right = 128.0
+margin_bottom = 14.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 2
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 4
+text = "Albedo"
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+
+[node name="NormalLabel" type="Label" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="1"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 132.0
+margin_right = 260.0
+margin_bottom = 14.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 2
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 4
+text = "Normal"
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+
+[node name="BumpLabel" type="Label" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="2"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 264.0
+margin_right = 392.0
+margin_bottom = 14.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 2
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 4
+text = "Bump"
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+
+[node name="AlbedoPreview" type="TextureRect" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="3"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_top = 18.0
+margin_right = 128.0
+margin_bottom = 146.0
+rect_min_size = Vector2( 128, 128 )
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 1
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+texture = ExtResource( 6 )
+expand = true
+stretch_mode = 0
+_sections_unfolded = [ "Rect" ]
+
+[node name="NormalPreview" type="TextureRect" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="4"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 132.0
+margin_top = 18.0
+margin_right = 260.0
+margin_bottom = 146.0
+rect_min_size = Vector2( 128, 128 )
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 1
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+texture = ExtResource( 6 )
+expand = true
+stretch_mode = 0
+_sections_unfolded = [ "Rect" ]
+
+[node name="BumpPreview" type="TextureRect" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="5"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 264.0
+margin_top = 18.0
+margin_right = 392.0
+margin_bottom = 146.0
+rect_min_size = Vector2( 128, 128 )
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 1
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+texture = ExtResource( 6 )
+expand = true
+stretch_mode = 0
+_sections_unfolded = [ "Rect" ]
+
+[node name="LoadAlbedo" type="Button" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="6"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_top = 150.0
+margin_right = 128.0
+margin_bottom = 170.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+group = null
+text = "Load..."
+flat = false
+align = 1
+
+[node name="LoadNormal" type="Button" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="7"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 132.0
+margin_top = 150.0
+margin_right = 260.0
+margin_bottom = 170.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+group = null
+text = "Load..."
+flat = false
+align = 1
+
+[node name="LoadBump" type="Button" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="8"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 264.0
+margin_top = 150.0
+margin_right = 392.0
+margin_bottom = 170.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+group = null
+text = "Load..."
+flat = false
+align = 1
+
+[node name="ClearAlbedo" type="Button" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="9"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_top = 174.0
+margin_right = 128.0
+margin_bottom = 194.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+group = null
+text = "Clear"
+flat = false
+align = 1
+
+[node name="ClearNormal" type="Button" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="10"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 132.0
+margin_top = 174.0
+margin_right = 260.0
+margin_bottom = 194.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+group = null
+text = "Clear"
+flat = false
+align = 1
+
+[node name="ClearBump" type="Button" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="11"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 264.0
+margin_top = 174.0
+margin_right = 392.0
+margin_bottom = 194.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+group = null
+text = "Clear"
+flat = false
+align = 1
+
 [node name="Minimap" type="ColorRect" parent="HSplitContainer/HSplitContainer" index="1"]
 
 anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
 anchor_bottom = 0.0
-margin_left = 268.0
-margin_right = 368.0
+margin_left = 278.0
+margin_right = 378.0
 margin_bottom = 104.0
 rect_min_size = Vector2( 100, 0 )
 rect_pivot_offset = Vector2( 0, 0 )
@@ -491,13 +836,31 @@ mouse_default_cursor_shape = 0
 size_flags_horizontal = 1
 size_flags_vertical = 1
 color = Color( 0, 0, 0, 1 )
-script = ExtResource( 5 )
+script = ExtResource( 7 )
 _sections_unfolded = [ "Rect" ]
+
+[connection signal="item_activated" from="HSplitContainer/HSplitContainer/TextureEditor/TexturesContainer" to="HSplitContainer/HSplitContainer/TextureEditor" method="_on_TexturesContainer_item_activated"]
 
 [connection signal="item_selected" from="HSplitContainer/HSplitContainer/TextureEditor/TexturesContainer" to="HSplitContainer/HSplitContainer/TextureEditor" method="_on_TexturesContainer_item_selected"]
 
 [connection signal="pressed" from="HSplitContainer/HSplitContainer/TextureEditor/HBoxContainer/ClearButton" to="HSplitContainer/HSplitContainer/TextureEditor" method="_on_ClearButton_pressed"]
 
 [connection signal="pressed" from="HSplitContainer/HSplitContainer/TextureEditor/HBoxContainer/LoadButton" to="HSplitContainer/HSplitContainer/TextureEditor" method="_on_LoadButton_pressed"]
+
+[connection signal="pressed" from="HSplitContainer/HSplitContainer/TextureEditor/HBoxContainer/EditButton" to="HSplitContainer/HSplitContainer/TextureEditor" method="_on_EditButton_pressed"]
+
+[connection signal="albedo_changed" from="HSplitContainer/HSplitContainer/TextureEditor/EditDialog" to="HSplitContainer/HSplitContainer/TextureEditor" method="_on_EditDialog_albedo_changed"]
+
+[connection signal="pressed" from="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer/LoadAlbedo" to="HSplitContainer/HSplitContainer/TextureEditor/EditDialog" method="_on_LoadAlbedo_pressed"]
+
+[connection signal="pressed" from="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer/LoadNormal" to="HSplitContainer/HSplitContainer/TextureEditor/EditDialog" method="_on_LoadNormal_pressed"]
+
+[connection signal="pressed" from="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer/LoadBump" to="HSplitContainer/HSplitContainer/TextureEditor/EditDialog" method="_on_LoadBump_pressed"]
+
+[connection signal="pressed" from="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer/ClearAlbedo" to="HSplitContainer/HSplitContainer/TextureEditor/EditDialog" method="_on_ClearAlbedo_pressed"]
+
+[connection signal="pressed" from="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer/ClearNormal" to="HSplitContainer/HSplitContainer/TextureEditor/EditDialog" method="_on_ClearNormal_pressed"]
+
+[connection signal="pressed" from="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer/ClearBump" to="HSplitContainer/HSplitContainer/TextureEditor/EditDialog" method="_on_ClearBump_pressed"]
 
 

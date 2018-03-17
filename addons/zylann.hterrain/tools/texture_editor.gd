@@ -2,27 +2,24 @@ tool
 extends Control
 
 const HTerrain = preload("../hterrain.gd")
+const LoadTextureDialog = preload("load_texture_dialog.gd")
 
 onready var _textures_list = get_node("TexturesContainer")
+onready var _edit_dialog = get_node("EditDialog")
 
 var _terrain = null
 var _brush = null
 
 var _load_dialog = null
-# TODO Proper icon
-var _empty_icon = load("res://icon.png")
+
+var _empty_icon = preload("icons/empty.png")
 
 
 func _ready():
-	_load_dialog = EditorFileDialog.new()
-	_load_dialog.access = EditorFileDialog.ACCESS_RESOURCES
-	_load_dialog.connect("file_selected", self, "_load_texture_selected")
-	_load_dialog.mode = EditorFileDialog.MODE_OPEN_FILE
-	# TODO I actually want a dialog to load a texture, not specifically a PNG...
-	_load_dialog.add_filter("*.png ; PNG files")
-	_load_dialog.resizable = true
-	_load_dialog.access = EditorFileDialog.ACCESS_FILESYSTEM
+	_load_dialog = LoadTextureDialog.new()
 	add_child(_load_dialog)
+	
+	_edit_dialog.set_load_texture_dialog(_load_dialog)
 	
 	_textures_list.clear()
 	for i in range(4):
@@ -31,6 +28,8 @@ func _ready():
 
 func set_terrain(terrain):
 	_terrain = terrain
+	
+	_edit_dialog.set_terrain(terrain)
 	
 	_textures_list.clear()
 	if _terrain != null:
@@ -46,6 +45,7 @@ func set_brush(brush):
 func _on_LoadButton_pressed():
 	if _terrain == null:
 		return
+	_load_dialog.connect("file_selected", self, "_load_texture_selected")
 	_load_dialog.popup_centered_ratio()
 
 
@@ -73,3 +73,19 @@ func _on_ClearButton_pressed():
 func _on_TexturesContainer_item_selected(index):
 	if _brush != null:
 		_brush.set_texture_index(index)
+
+
+func _on_EditButton_pressed():
+	var selected_slots = _textures_list.get_selected_items()
+	if selected_slots.size() != 0:
+		_edit_dialog.set_slot(selected_slots[0])
+		_edit_dialog.popup_centered()
+
+
+func _on_EditDialog_albedo_changed(slot, texture):
+	_textures_list.set_item_icon(slot, texture)
+
+
+func _on_TexturesContainer_item_activated(index):
+	_edit_dialog.set_slot(index)
+	_edit_dialog.popup_centered()

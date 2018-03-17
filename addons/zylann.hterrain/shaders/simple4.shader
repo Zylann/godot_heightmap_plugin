@@ -12,18 +12,23 @@ uniform sampler2D detail_albedo_0 : hint_albedo;
 uniform sampler2D detail_albedo_1 : hint_albedo;
 uniform sampler2D detail_albedo_2 : hint_albedo;
 uniform sampler2D detail_albedo_3 : hint_albedo;
-uniform float detail_scale = 20.0;
 
+uniform sampler2D detail_normal_0;
+uniform sampler2D detail_normal_1;
+uniform sampler2D detail_normal_2;
+uniform sampler2D detail_normal_3;
+
+uniform sampler2D detail_bump_0;
+uniform sampler2D detail_bump_1;
+uniform sampler2D detail_bump_2;
+uniform sampler2D detail_bump_3;
+
+uniform float detail_scale = 20.0;
 uniform bool depth_blending = true;
 
 
 vec3 unpack_normal(vec3 rgb) {
 	return rgb * 2.0 - vec3(1.0);
-}
-
-float brightness(vec3 rgb) {
-	// TODO Hey dude, you lazy
-	return 0.33 * (rgb.r + rgb.g + rgb.b);
 }
 
 void vertex() {
@@ -42,6 +47,7 @@ void fragment() {
 		discard;
 
 	vec3 n = unpack_normal(texture(normal_texture, UV).rgb);
+	// TODO Apply detail texture normal on top of this normal??
 	NORMAL = (INV_CAMERA_MATRIX * (WORLD_MATRIX * vec4(n, 0.0))).xyz;
 	
 	vec4 splat = texture(splat_texture, UV);
@@ -66,16 +72,18 @@ void fragment() {
 		// Mitigation workaround is used for now.
 		// Maybe should be using actual bumpmaps to be sure
 		
-		vec4 h;
+		// TODO Have a tool to merge bump with albedo,
+		// so it will be provided for free and we won't need those texture fetches
+		col0.a = texture(detail_bump_0, detail_uv).r;
+		col1.a = texture(detail_bump_1, detail_uv).r;
+		col2.a = texture(detail_bump_2, detail_uv).r;
+		col3.a = texture(detail_bump_3, detail_uv).r;
+		
 		//splat *= 1.4; // Mitigation #1: increase splat range over bump
-		h.r = brightness(col0.rgb) + splat.r;
-		h.g = brightness(col1.rgb) + splat.g;
-		h.b = brightness(col2.rgb) + splat.b;
-		h.a = brightness(col3.rgb) + splat.a;
+		vec4 h = vec4(col0.a, col1.a, col2.a, col3.a) + splat;
 		
 		// Mitigation #2: nullify layers with near-zero splat
-		float sc = 0.05;
-		h *= smoothstep(0, sc, splat);
+		h *= smoothstep(0, 0.05, splat);
 		
 		vec4 d = h + dh;
 		d.r -= max(h.g, max(h.b, h.a));
@@ -85,7 +93,7 @@ void fragment() {
 		
 		vec4 w = clamp(d, 0, 1);
 		
-    	ALBEDO = (w.r * col0.rgb + w.g * col1.rgb + w.b * col2.rgb + w.a * col3.rgb) / (w.r + w.g + w.b + w.a);
+    	ALBEDO = tint * (w.r * col0.rgb + w.g * col1.rgb + w.b * col2.rgb + w.a * col3.rgb) / (w.r + w.g + w.b + w.a);
 		
 	} else {
 		
@@ -94,7 +102,7 @@ void fragment() {
 		float w2 = splat.b;
 		float w3 = splat.a;
 		
-    	ALBEDO = (w0 * col0.rgb + w1 * col1.rgb + w2 * col2.rgb + w3 * col3.rgb) / (w0 + w1 + w2 + w3);
+    	ALBEDO = tint * (w0 * col0.rgb + w1 * col1.rgb + w2 * col2.rgb + w3 * col3.rgb) / (w0 + w1 + w2 + w3);
 	}
 	
 	//ALBEDO = splat.rgb;
