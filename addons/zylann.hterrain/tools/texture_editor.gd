@@ -2,7 +2,6 @@ tool
 extends Control
 
 const HTerrain = preload("../hterrain.gd")
-const LoadTextureDialog = preload("load_texture_dialog.gd")
 
 onready var _textures_list = get_node("TexturesContainer")
 onready var _edit_dialog = get_node("EditDialog")
@@ -16,9 +15,6 @@ var _empty_icon = preload("icons/empty.png")
 
 
 func _ready():
-	_load_dialog = LoadTextureDialog.new()
-	add_child(_load_dialog)
-	
 	_edit_dialog.set_load_texture_dialog(_load_dialog)
 	
 	_textures_list.clear()
@@ -40,6 +36,11 @@ func set_terrain(terrain):
 
 func set_brush(brush):
 	_brush = brush
+
+
+func set_load_texture_dialog(dialog):
+	_load_dialog = dialog
+	_edit_dialog.set_load_texture_dialog(_load_dialog)
 
 
 func _on_LoadButton_pressed():

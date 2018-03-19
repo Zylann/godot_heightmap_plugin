@@ -6,10 +6,12 @@ const HTerrain = preload("../hterrain.gd")#preload("hterrain.gdns")
 const HTerrainData = preload("../hterrain_data.gd")
 const Brush = preload("../hterrain_brush.gd")#preload("hterrain_brush.gdns")
 const Util = preload("../util.gd")
-
+const ChannelPacker = preload("channel_packer/dialog.tscn")
+const LoadTextureDialog = preload("load_texture_dialog.gd")
 const EditPanel = preload("panel.tscn")
 
 const MENU_IMPORT_IMAGE = 0
+const MENU_CHANNEL_PACKER = 1
 
 
 var _node = null
@@ -25,6 +27,8 @@ var _accept_dialog = null
 var _import_file_path = ""
 var _import_preloaded_image = null
 
+var _channel_packer = null
+
 
 static func get_icon(name):
 	return load("res://addons/zylann.hterrain/tools/icons/icon_" + name + ".svg")
@@ -39,23 +43,17 @@ func _enter_tree():
 	_brush = Brush.new()
 	_brush.set_radius(5)
 	
+	var editor_interface = get_editor_interface()
+	var base_control = editor_interface.get_base_control()
+	var load_texture_dialog = LoadTextureDialog.new()
+	base_control.add_child(load_texture_dialog)
+	
 	_panel = EditPanel.instance()
 	_panel.hide()
 	add_control_to_container(EditorPlugin.CONTAINER_SPATIAL_EDITOR_BOTTOM, _panel)
 	# Apparently _ready() still isn't called at this point...
 	_panel.call_deferred("set_brush", _brush)
-	
-#	_panel = memnew(HeightMapEditorPanel);
-#	_panel->connect(HeightMapEditorPanel::SIGNAL_TEXTURE_INDEX_SELECTED, this, "_on_texture_index_selected");
-#	HeightMapBrushEditor &brush_editor = _panel->get_brush_editor();
-#	brush_editor.init_params(
-#			_brush.get_radius(),
-#			_brush.get_opacity(),
-#			_brush.get_flatten_height(),
-#			_brush.get_color());
-#	brush_editor.connect(HeightMapBrushEditor::SIGNAL_PARAM_CHANGED, this, "_on_brush_param_changed");
-#	add_control_to_container(CONTAINER_SPATIAL_EDITOR_BOTTOM, _panel);
-#	_panel->hide();
+	_panel.call_deferred("set_load_texture_dialog", load_texture_dialog)
 	
 	_toolbar = HBoxContainer.new()
 	add_control_to_container(EditorPlugin.CONTAINER_SPATIAL_EDITOR_MENU, _toolbar)
@@ -102,9 +100,6 @@ func _enter_tree():
 		button.connect("pressed", self, "_on_mode_selected", [mode])
 		_toolbar.add_child(button)
 	
-	var editor_interface = get_editor_interface()
-	var base_control = editor_interface.get_base_control()
-	
 	_import_dialog = FileDialog.new()
 	_import_dialog.connect("file_selected", self, "_import_file_selected")
 	_import_dialog.mode = FileDialog.MODE_OPEN_FILE
@@ -124,6 +119,15 @@ func _enter_tree():
 	
 	_accept_dialog = AcceptDialog.new()
 	base_control.add_child(_accept_dialog)
+	
+	_channel_packer = ChannelPacker.instance()
+	base_control.add_child(_channel_packer)
+	_channel_packer.call_deferred("set_load_texture_dialog", load_texture_dialog)
+	menu.get_popup().add_separator()
+	menu.get_popup().add_item("Open channel packer", MENU_CHANNEL_PACKER)
+	# TODO This is an ugly workaround because of a Godot bug
+	# See https://github.com/godotengine/godot/issues/17626
+	_channel_packer.rect_min_size += Vector2(0, 100)
 
 
 func _exit_tree():
@@ -266,8 +270,11 @@ func _height_map_exited_scene():
 
 func _menu_item_selected(id):
 	print("Menu item selected ", id)
-	if id == MENU_IMPORT_IMAGE:
-		_import_dialog.popup_centered_minsize(Vector2(800, 600))
+	match id:
+		MENU_IMPORT_IMAGE:
+			_import_dialog.popup_centered_minsize(Vector2(800, 600))
+		MENU_CHANNEL_PACKER:
+			_channel_packer.popup_centered_minsize()
 
 
 func _on_mode_selected(mode):

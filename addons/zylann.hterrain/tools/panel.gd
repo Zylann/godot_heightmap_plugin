@@ -17,4 +17,7 @@ func set_brush(brush):
 	_texture_editor.set_brush(brush)
 
 
+func set_load_texture_dialog(dialog):
+	_texture_editor.set_load_texture_dialog(dialog)
+
 
