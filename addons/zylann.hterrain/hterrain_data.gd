@@ -70,10 +70,10 @@ func _set(key, v):
 			set_resolution(v)
 
 
-func load_default():
+func _edit_load_default():
 	print("Loading default data")
 	set_resolution(DEFAULT_RESOLUTION)
-	update_all_normals()
+	_update_all_normals()
 
 
 func get_resolution():
@@ -108,7 +108,7 @@ func set_resolution2(p_res, update_normals):
 	print("Resizing heights...")
 	if _images[CHANNEL_HEIGHT] == null:
 		var im = Image.new()
-		im.create(_resolution, _resolution, false, get_channel_format(CHANNEL_HEIGHT))
+		im.create(_resolution, _resolution, false, _get_channel_format(CHANNEL_HEIGHT))
 		_images[CHANNEL_HEIGHT] = im
 	else:
 		_images[CHANNEL_HEIGHT].resize(_resolution, _resolution)
@@ -119,15 +119,15 @@ func set_resolution2(p_res, update_normals):
 		var im = Image.new()
 		_images[CHANNEL_NORMAL] = im
 	
-	_images[CHANNEL_NORMAL].create(_resolution, _resolution, false, get_channel_format(CHANNEL_NORMAL))
+	_images[CHANNEL_NORMAL].create(_resolution, _resolution, false, _get_channel_format(CHANNEL_NORMAL))
 	if update_normals:
-		update_all_normals()
+		_update_all_normals()
 
 	# Resize colors
 	print("Resizing colors...")
 	if _images[CHANNEL_COLOR] == null:
 		var im = Image.new()
-		im.create(_resolution, _resolution, false, get_channel_format(CHANNEL_COLOR))
+		im.create(_resolution, _resolution, false, _get_channel_format(CHANNEL_COLOR))
 		im.fill(Color(1, 1, 1, 1))
 		_images[CHANNEL_COLOR] = im
 	else:
@@ -137,7 +137,7 @@ func set_resolution2(p_res, update_normals):
 	print("Resizing splats...")
 	if _images[CHANNEL_SPLAT] == null:
 		var im = Image.new()
-		im.create(_resolution, _resolution, false, get_channel_format(CHANNEL_SPLAT))
+		im.create(_resolution, _resolution, false, _get_channel_format(CHANNEL_SPLAT))
 		im.fill(Color(1, 0, 0, 0))
 		# Initialize weights so we can see the default texture
 		#im.fill(Color8(0, 128, 0, 0))
@@ -150,7 +150,7 @@ func set_resolution2(p_res, update_normals):
 	print("Resizing mask...")
 	if _images[CHANNEL_MASK] == null:
 		var im = Image.new()
-		im.create(_resolution, _resolution, false, get_channel_format(CHANNEL_MASK))
+		im.create(_resolution, _resolution, false, _get_channel_format(CHANNEL_MASK))
 		# Initialize mask so the terrain has no holes by default.
 		# Need to be a white color because even though L8 format is a single channel,
 		# the color gets converted to greyscale before been writen into the image
@@ -165,7 +165,7 @@ func set_resolution2(p_res, update_normals):
 	emit_signal("resolution_changed")
 
 
-static func get_clamped(im, x, y):
+static func _get_clamped(im, x, y):
 
 	if x < 0:
 		x = 0
@@ -188,7 +188,7 @@ func get_height_at(x, y):
 
 	var im = _images[CHANNEL_HEIGHT]
 	im.lock();
-	var h = get_clamped(im, x, y).r;
+	var h = _get_clamped(im, x, y).r;
 	im.unlock();
 	return h;
 
@@ -208,10 +208,10 @@ func get_interpolated_height_at(pos):
 
 	var im = _images[CHANNEL_HEIGHT]
 	im.lock()
-	var h00 = get_clamped(im, x0, y0).r
-	var h10 = get_clamped(im, x0 + 1, y0).r
-	var h01 = get_clamped(im, x0, y0 + 1).r
-	var h11 = get_clamped(im, x0 + 1, y0 + 1).r
+	var h00 = _get_clamped(im, x0, y0).r
+	var h10 = _get_clamped(im, x0 + 1, y0).r
+	var h01 = _get_clamped(im, x0, y0 + 1).r
+	var h11 = _get_clamped(im, x0 + 1, y0 + 1).r
 	im.unlock()
 
 	# Bilinear filter
@@ -220,7 +220,7 @@ func get_interpolated_height_at(pos):
 	return h;
 
 
-func update_all_normals():
+func _update_all_normals():
 	update_normals(0, 0, _resolution, _resolution)
 
 
@@ -253,14 +253,14 @@ func update_normals(min_x, min_y, size_x, size_y):
 	for y in range(min_y, max_y):
 		for x in range(min_x, max_x):
 			
-			var left = get_clamped(heights, x - 1, y).r
-			var right = get_clamped(heights, x + 1, y).r
-			var fore = get_clamped(heights, x, y + 1).r
-			var back = get_clamped(heights, x, y - 1).r
+			var left = _get_clamped(heights, x - 1, y).r
+			var right = _get_clamped(heights, x + 1, y).r
+			var fore = _get_clamped(heights, x, y + 1).r
+			var back = _get_clamped(heights, x, y - 1).r
 
 			var n = Vector3(left - right, 2.0, back - fore).normalized()
 
-			normals.set_pixel(x, y, encode_normal(n))
+			normals.set_pixel(x, y, _encode_normal(n))
 			
 	heights.unlock()
 	normals.unlock()
@@ -275,16 +275,16 @@ func notify_region_change(p_min, p_max, channel):
 			# for better user experience, we could set chunks AABBs to a very large height just while drawing,
 			# and set correct AABBs as a background task once done
 			var size = [p_max[0] - p_min[0], p_max[1] - p_min[1]]
-			update_vertical_bounds(p_min[0], p_min[1], size[0], size[1])
+			_update_vertical_bounds(p_min[0], p_min[1], size[0], size[1])
 
-			upload_region(channel, p_min[0], p_min[1], p_max[0], p_max[1])
-			upload_region(CHANNEL_NORMAL, p_min[0], p_min[1], p_max[0], p_max[1])
+			_upload_region(channel, p_min[0], p_min[1], p_max[0], p_max[1])
+			_upload_region(CHANNEL_NORMAL, p_min[0], p_min[1], p_max[0], p_max[1])
 
 		CHANNEL_NORMAL, \
 		CHANNEL_SPLAT, \
 		CHANNEL_COLOR, \
 		CHANNEL_MASK:
-			upload_region(channel, p_min[0], p_min[1], p_max[0], p_max[1])
+			_upload_region(channel, p_min[0], p_min[1], p_max[0], p_max[1])
 
 		_:
 			print("Unrecognized channel\n")
@@ -367,11 +367,11 @@ func _edit_apply_undo(undo_data):
 		notify_region_change(args[0], args[1], args[2])
 
 
-func upload_channel(channel):
-	upload_region(channel, 0, 0, _resolution, _resolution)
+func _upload_channel(channel):
+	_upload_region(channel, 0, 0, _resolution, _resolution)
 
 
-func upload_region(channel, min_x, min_y, max_x, max_y):
+func _upload_region(channel, min_x, min_y, max_x, max_y):
 
 	assert(_images[channel] != null)
 
@@ -414,7 +414,7 @@ func get_image(channel):
 
 func get_texture(channel):
 	if _textures[channel] == null and _images[channel] != null:
-		upload_channel(channel)
+		_upload_channel(channel)
 	return _textures[channel]
 
 
@@ -459,10 +459,10 @@ func _update_all_vertical_bounds():
 	Grid.resize_grid(_chunked_vertical_bounds, csize_x, csize_y)
 	_chunked_vertical_bounds_size = [csize_x, csize_y]
 
-	update_vertical_bounds(0, 0, _resolution - 1, _resolution - 1)
+	_update_vertical_bounds(0, 0, _resolution - 1, _resolution - 1)
 
 
-func update_vertical_bounds(origin_in_cells_x, origin_in_cells_y, size_in_cells_x, size_in_cells_y):
+func _update_vertical_bounds(origin_in_cells_x, origin_in_cells_y, size_in_cells_x, size_in_cells_y):
 
 	var cmin_x = origin_in_cells_x / HTerrain.CHUNK_SIZE
 	var cmin_y = origin_in_cells_y / HTerrain.CHUNK_SIZE
@@ -493,10 +493,10 @@ func update_vertical_bounds(origin_in_cells_x, origin_in_cells_y, size_in_cells_
 				_chunked_vertical_bounds[y][x] = b
 
 			var pmin_x = x * HTerrain.CHUNK_SIZE
-			compute_vertical_bounds_at(pmin_x, pmin_y, chunk_size_x, chunk_size_y, b);
+			_compute_vertical_bounds_at(pmin_x, pmin_y, chunk_size_x, chunk_size_y, b);
 
 
-func compute_vertical_bounds_at(origin_x, origin_y, size_x, size_y, out_b):
+func _compute_vertical_bounds_at(origin_x, origin_y, size_x, size_y, out_b):
 
 	var heights = _images[CHANNEL_HEIGHT]
 	assert(heights != null)
@@ -643,21 +643,57 @@ func _load_channel(channel):
 		if im == null:
 			im = Image.new()
 			_images[channel] = im
-		im.create_from_data(_resolution, _resolution, false, get_channel_format(channel), data)
-		upload_channel(channel)
+		im.create_from_data(_resolution, _resolution, false, _get_channel_format(channel), data)
+		_upload_channel(channel)
 
 	return true
 
 
-static func encode_normal(n):
+func _edit_import_heightmap_8bit(src_image, min_y, max_y):
+	print("Resizing terrain...")
+	set_resolution2(src_image.get_width(), false)
+	
+	var im = get_image(CHANNEL_HEIGHT)
+	assert(im != null)
+	
+	var hrange = max_y - min_y
+	
+	var width = Util.min_int(im.get_width(), src_image.get_width())
+	var height = Util.min_int(im.get_height(), src_image.get_height())
+	
+	print("Converting to internal format...")
+	
+	im.lock()
+	src_image.lock()
+	
+	# Convert to internal format (from RGBA8 to RH16)
+	for y in range(0, width):
+		for x in range(0, height):
+			var gs = src_image.get_pixel(x, y).r
+			var h = min_y + hrange * gs
+			im.set_pixel(x, y, Color(h, 0, 0))
+	
+	src_image.unlock()
+	im.unlock()
+	
+	print("Updating normals...")
+	_update_all_normals()
+	
+	print("Notify region change...")
+	notify_region_change([0, 0], [im.get_width(), im.get_height()], CHANNEL_HEIGHT)
+	
+	print("Done")
+
+
+static func _encode_normal(n):
 	return Color(0.5 * (n.x + 1.0), 0.5 * (n.y + 1.0), 0.5 * (n.z + 1.0), 1.0)
 
 
-static func decode_normal(c):
-	return Vector3(2.0 * c.r - 1.0, 2.0 * c.g - 1.0, 2.0 * c.b - 1.0)
+#static func _decode_normal(c):
+#	return Vector3(2.0 * c.r - 1.0, 2.0 * c.g - 1.0, 2.0 * c.b - 1.0)
 
 
-static func get_channel_format(channel):
+static func _get_channel_format(channel):
 	match channel:
 		CHANNEL_HEIGHT:
 			return Image.FORMAT_RH

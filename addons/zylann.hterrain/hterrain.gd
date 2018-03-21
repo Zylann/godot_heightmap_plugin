@@ -133,7 +133,7 @@ func set_collision_enabled(enabled):
 	# TODO Update chunks / enable heightmap collider (or will be done through a different node perhaps)
 
 
-func for_all_chunks(action):
+func _for_all_chunks(action):
 	for lod in range(len(_chunks)):
 		var grid = _chunks[lod]
 		for y in range(len(grid)):
@@ -150,24 +150,24 @@ func _notification(what):
 		NOTIFICATION_PREDELETE:
 			print("Destroy HeightMap")
 			# Note: might get rid of a circular ref in GDScript port
-			clear_all_chunks()
+			_clear_all_chunks()
 
 		NOTIFICATION_ENTER_WORLD:
 			print("Enter world")
-			for_all_chunks(EnterWorldAction.new(get_world()))
+			_for_all_chunks(EnterWorldAction.new(get_world()))
 
 		NOTIFICATION_EXIT_WORLD:
 			print("Exit world");
-			for_all_chunks(ExitWorldAction.new())
+			_for_all_chunks(ExitWorldAction.new())
 
 		NOTIFICATION_TRANSFORM_CHANGED:
 			print("Transform changed");
-			for_all_chunks(TransformChangedAction.new(get_global_transform()))
-			update_material()
+			_for_all_chunks(TransformChangedAction.new(get_global_transform()))
+			_update_material()
 
 		NOTIFICATION_VISIBILITY_CHANGED:
 			print("Visibility changed");
-			for_all_chunks(VisibilityChangedAction.new(is_visible()))
+			_for_all_chunks(VisibilityChangedAction.new(is_visible()))
 
 
 func _enter_tree():
@@ -202,18 +202,18 @@ func _enter_tree():
 	set_process(true)
 
 
-func clear_all_chunks():
+func _clear_all_chunks():
 
 	# The lodder has to be cleared because otherwise it will reference dangling pointers
 	_lodder.clear();
 
-	#for_all_chunks(DeleteChunkAction.new())
+	#_for_all_chunks(DeleteChunkAction.new())
 
 	for i in range(len(_chunks)):
 		_chunks[i].clear()
 
 
-func get_chunk_at(pos_x, pos_y, lod):
+func _get_chunk_at(pos_x, pos_y, lod):
 	if lod < len(_chunks):
 		return Grid.grid_get_or_default(_chunks[lod], pos_x, pos_y, null)
 	return null
@@ -243,7 +243,7 @@ func set_data(new_data):
 	_data = new_data
 
 	# Note: the order of these two is important
-	clear_all_chunks()
+	_clear_all_chunks()
 
 	if has_data():
 		print("Connecting new HeightMapData")
@@ -251,21 +251,21 @@ func set_data(new_data):
 		# This is a small UX improvement so that the user sees a default terrain
 		if is_inside_tree() and Engine.is_editor_hint():
 			if _data.get_resolution() == 0:
-				_data.load_default()
+				_data._edit_load_default()
 
 		_data.connect("resolution_changed", self, "_on_data_resolution_changed")
 		_data.connect("region_changed", self, "_on_data_region_changed")
 
 		_on_data_resolution_changed()
 
-		update_material()
+		_update_material()
 
 	print("Set data done")
 
 
 func _on_data_resolution_changed():
 
-	clear_all_chunks();
+	_clear_all_chunks();
 
 	_pending_chunk_updates.clear();
 
@@ -285,7 +285,7 @@ func _on_data_resolution_changed():
 		csize_y /= 2
 
 	_mesher.configure(CHUNK_SIZE, CHUNK_SIZE, _lodder.get_lod_count())
-	update_material()
+	_update_material()
 
 
 func _on_data_region_changed(min_x, min_y, max_x, max_y, channel):
@@ -319,10 +319,10 @@ func set_custom_material(p_material):
 					# TODO If code isn't empty,
 					# verify existing parameters and issue a warning if important ones are missing
 
-		update_material()
+		_update_material()
 
 
-func update_material():
+func _update_material():
 
 	var instance_changed = false;
 
@@ -346,12 +346,12 @@ func update_material():
 		_material.set_shader(DefaultShader)
 
 	if instance_changed:
-		for_all_chunks(SetMaterialAction.new(_material))
+		_for_all_chunks(SetMaterialAction.new(_material))
 
-	update_material_params()
+	_update_material_params()
 
 
-func update_material_params():
+func _update_material_params():
 
 	assert(_material != null)
 	
@@ -486,12 +486,12 @@ func _process(delta):
 			var ncpos_x = u.pos_x + s_dirs[d][0]
 			var ncpos_y = u.pos_y + s_dirs[d][1]
 			
-			var nchunk = get_chunk_at(ncpos_x, ncpos_y, u.lod)
+			var nchunk = _get_chunk_at(ncpos_x, ncpos_y, u.lod)
 
 			if nchunk != null and nchunk.is_active():
 				# Note: this will append elements to the array we are iterating on,
 				# but we iterate only on the previous count so it should be fine
-				add_chunk_update(nchunk, ncpos_x, ncpos_y, u.lod)
+				_add_chunk_update(nchunk, ncpos_x, ncpos_y, u.lod)
 
 		# In case the chunk got joined
 		if u.lod > 0:
@@ -504,18 +504,18 @@ func _process(delta):
 				var ncpos_upper_x = cpos_upper_x + s_rdirs[rd][0]
 				var ncpos_upper_y = cpos_upper_y + s_rdirs[rd][1]
 				
-				var nchunk = get_chunk_at(ncpos_upper_x, ncpos_upper_y, nlod)
+				var nchunk = _get_chunk_at(ncpos_upper_x, ncpos_upper_y, nlod)
 
 				if nchunk != null and nchunk.is_active():
-					add_chunk_update(nchunk, ncpos_upper_x, ncpos_upper_y, nlod)
+					_add_chunk_update(nchunk, ncpos_upper_x, ncpos_upper_y, nlod)
 
 	# Update chunks
 	for i in range(len(_pending_chunk_updates)):
 		
 		var u = _pending_chunk_updates[i]
-		var chunk = get_chunk_at(u.pos_x, u.pos_y, u.lod)
+		var chunk = _get_chunk_at(u.pos_x, u.pos_y, u.lod)
 		assert(chunk != null)
-		update_chunk(chunk, u.lod)
+		_update_chunk(chunk, u.lod)
 
 	_pending_chunk_updates.clear()
 
@@ -523,14 +523,14 @@ func _process(delta):
 		# TODO I would reaaaally like to get rid of this... it just looks inefficient,
 		# and it won't play nice if more materials are used internally.
 		# Initially needed so that custom materials can be tweaked in editor.
-		update_material_params()
+		_update_material_params()
 
 	# DEBUG
 #	if(_updated_chunks > 0):
 #		print("Updated {0} chunks".format(_updated_chunks))
 
 
-func update_chunk(chunk, lod):
+func _update_chunk(chunk, lod):
 	assert(has_data())
 
 	# Check for my own seams
@@ -545,7 +545,7 @@ func update_chunk(chunk, lod):
 		var ncpos_lower_x = (cpos_x + s_dirs[d][0]) / 2
 		var ncpos_lower_y = (cpos_y + s_dirs[d][1]) / 2
 		if ncpos_lower_x != cpos_lower_x or ncpos_lower_y != cpos_lower_y:
-			var nchunk = get_chunk_at(ncpos_lower_x, ncpos_lower_y, lod + 1)
+			var nchunk = _get_chunk_at(ncpos_lower_x, ncpos_lower_y, lod + 1)
 			if nchunk != null and nchunk.is_active():
 				seams |= (1 << d)
 
@@ -570,7 +570,7 @@ func update_chunk(chunk, lod):
 #	}
 
 
-func add_chunk_update(chunk, pos_x, pos_y, lod):
+func _add_chunk_update(chunk, pos_x, pos_y, lod):
 
 	if chunk.is_pending_update():
 		#print_line("Chunk update is already pending!");
@@ -624,7 +624,7 @@ func set_area_dirty(origin_in_cells_x, origin_in_cells_y, size_in_cells_x, size_
 				var chunk = Grid.grid_get_or_default(grid, cx, cy, null)
 
 				if chunk != null and chunk.is_active():
-					add_chunk_update(chunk, cx, cy, lod)
+					_add_chunk_update(chunk, cx, cy, lod)
 				
 				cx += 1
 			cy += 1
@@ -633,8 +633,8 @@ func set_area_dirty(origin_in_cells_x, origin_in_cells_y, size_in_cells_x, size_
 # Called when a chunk is needed to be seen
 func _cb_make_chunk(cpos_x, cpos_y, lod):
 
-	# TODO What if cpos is invalid? get_chunk_at will return NULL but that's still invalid
-	var chunk = get_chunk_at(cpos_x, cpos_y, lod)
+	# TODO What if cpos is invalid? _get_chunk_at will return NULL but that's still invalid
+	var chunk = _get_chunk_at(cpos_x, cpos_y, lod)
 
 	if chunk == null:
 		# This is the first time this chunk is required at this lod, generate it
@@ -650,7 +650,7 @@ func _cb_make_chunk(cpos_x, cpos_y, lod):
 		row[cpos_x] = chunk
 
 	# Make sure it gets updated
-	add_chunk_update(chunk, cpos_x, cpos_y, lod);
+	_add_chunk_update(chunk, cpos_x, cpos_y, lod);
 
 	chunk.set_active(true)
 
@@ -663,14 +663,14 @@ func _cb_recycle_chunk(chunk, cx, cy, lod):
 	chunk.set_active(false);
 
 
-func local_pos_to_cell(local_pos):
+func _local_pos_to_cell(local_pos):
 	return [
 		int(local_pos.x),
 		int(local_pos.z)
 	]
 
 
-static func get_height_or_default(im, pos_x, pos_y):
+static func _get_height_or_default(im, pos_x, pos_y):
 	if pos_x < 0 or pos_y < 0 or pos_x >= im.get_width() or pos_y >= im.get_height():
 		return 0
 	return im.get_pixel(pos_x, pos_y).r
@@ -694,8 +694,8 @@ func cell_raycast(origin_world, dir_world, out_cell_pos):
 
 	heights.lock()
 
-	var cpos = local_pos_to_cell(origin)
-	if origin.y < get_height_or_default(heights, cpos[0], cpos[1]):
+	var cpos = _local_pos_to_cell(origin)
+	if origin.y < _get_height_or_default(heights, cpos[0], cpos[1]):
 		# Below
 		return false
 
@@ -708,9 +708,9 @@ func cell_raycast(origin_world, dir_world, out_cell_pos):
 	# TODO Could be optimized with a form of binary search
 	while d < max_distance:
 		pos += dir * unit
-		cpos = local_pos_to_cell(origin)
-		if get_height_or_default(heights, cpos[0], cpos[1]) > pos.y:
-			cpos = local_pos_to_cell(pos - dir * unit);
+		cpos = _local_pos_to_cell(origin)
+		if _get_height_or_default(heights, cpos[0], cpos[1]) > pos.y:
+			cpos = _local_pos_to_cell(pos - dir * unit);
 			out_cell_pos[0] = cpos[0]
 			out_cell_pos[1] = cpos[1]
 			return true

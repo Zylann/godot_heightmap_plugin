@@ -412,42 +412,12 @@ func _import_png_file(path):
 	assert(_node != null)
 	var data = _node.get_data()
 	assert(data != null)
+
+	# TODO Have these configurable
+	var min_y = 0
+	var max_y = 100
+
+	data._edit_import_heightmap_8bit(src_image, min_y, max_y)
 	
-	print("Resizing terrain...")
-	data.set_resolution2(src_image.get_width(), false)
-	
-	var im = data.get_image(HTerrainData.CHANNEL_HEIGHT)
-	assert(im != null)
-	
-	# TODO Have these configurable in shader
-	var min_y = 0.0
-	var max_y = 100.0
-	var hrange = max_y - min_y
-	
-	var width = Util.min_int(im.get_width(), src_image.get_width())
-	var height = Util.min_int(im.get_height(), src_image.get_height())
-	
-	print("Converting to internal format...")
-	
-	im.lock()
-	src_image.lock()
-	
-	# Convert to internal format (from RGBA8 to RH16)
-	for y in range(0, width):
-		for x in range(0, height):
-			var gs = src_image.get_pixel(x, y).r
-			var h = min_y + hrange * gs
-			im.set_pixel(x, y, Color(h, 0, 0))
-	
-	src_image.unlock()
-	im.unlock()
-	
-	print("Updating normals...")
-	data.update_all_normals()
-	
-	print("Notify region change...")
-	data.notify_region_change([0, 0], [im.get_width(), im.get_height()], HTerrainData.CHANNEL_HEIGHT)
-	
-	print("Done")
 
 

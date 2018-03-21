@@ -44,7 +44,7 @@ func set_radius(p_radius):
 	if p_radius != _radius:
 		assert(p_radius > 0)
 		_radius = p_radius
-		generate_procedural(_radius)
+		_generate_procedural(_radius)
 		# TODO Allow to set a texture as shape
 
 
@@ -88,7 +88,7 @@ func get_color():
 	return _color
 
 
-func generate_procedural(radius):
+func _generate_procedural(radius):
 	assert(typeof(radius) == TYPE_INT)
 	assert(radius > 0)
 	
@@ -113,7 +113,7 @@ func generate_procedural(radius):
 			_shape_sum += v;
 
 
-func get_mode_channel(mode):
+static func _get_mode_channel(mode):
 	match mode:
 		MODE_ADD, \
 		MODE_SUBTRACT, \
@@ -152,31 +152,31 @@ func paint(height_map, cell_pos_x, cell_pos_y, override_mode):
 	match mode:
 
 		MODE_ADD:
-			paint_height(data, origin_x, origin_y, 50.0 * delta)
+			_paint_height(data, origin_x, origin_y, 50.0 * delta)
 
 		MODE_SUBTRACT:
-			paint_height(data, origin_x, origin_y, -50.0 * delta)
+			_paint_height(data, origin_x, origin_y, -50.0 * delta)
 
 		MODE_SMOOTH:
-			smooth_height(data, origin_x, origin_y, delta)
+			_smooth_height(data, origin_x, origin_y, delta)
 
 		MODE_FLATTEN:
-			flatten_height(data, origin_x, origin_y)
+			_flatten(data, origin_x, origin_y)
 
 		MODE_SPLAT:
-			paint_splat(data, origin_x, origin_y)
+			_paint_splat(data, origin_x, origin_y)
 
 		MODE_COLOR:
-			paint_color(data, origin_x, origin_y)
+			_paint_color(data, origin_x, origin_y)
 
 		MODE_MASK:
-			paint_mask(data, origin_x, origin_y)
+			_paint_mask(data, origin_x, origin_y)
 
-	data.notify_region_change([origin_x, origin_y], [_shape_size, _shape_size], get_mode_channel(mode))
+	data.notify_region_change([origin_x, origin_y], [_shape_size, _shape_size], _get_mode_channel(mode))
 
 
 # TODO Erk!
-static func foreach_xy(op, data, origin_x, origin_y, speed, opacity, shape):
+static func _foreach_xy(op, data, origin_x, origin_y, speed, opacity, shape):
 	
 	var shape_size = shape.size()
 
@@ -256,11 +256,11 @@ class OperatorLerpColor:
 		_im.set_pixel(pos_x, pos_y, c)
 
 
-static func is_valid_pos(pos_x, pos_y, im):
+static func _is_valid_pos(pos_x, pos_y, im):
 	return not (pos_x < 0 or pos_y < 0 or pos_x >= im.get_width() or pos_y >= im.get_height())
 
 
-func backup_for_undo(im, undo_cache, rect_origin_x, rect_origin_y, rect_size_x, rect_size_y):
+func _backup_for_undo(im, undo_cache, rect_origin_x, rect_origin_y, rect_size_x, rect_size_y):
 
 	# Backup cells before they get changed,
 	# using chunks so that we don't save the entire grid everytime.
@@ -285,8 +285,8 @@ func backup_for_undo(im, undo_cache, rect_origin_x, rect_origin_y, rect_size_x, 
 			var min_x = cpos_x * HTerrain.CHUNK_SIZE
 			var max_x = min_x + HTerrain.CHUNK_SIZE
 
-			var invalid_min = not is_valid_pos(min_x, min_y, im)
-			var invalid_max = not is_valid_pos(max_x - 1, max_y - 1, im) # Note: max is excluded
+			var invalid_min = not _is_valid_pos(min_x, min_y, im)
+			var invalid_max = not _is_valid_pos(max_x - 1, max_y - 1, im) # Note: max is excluded
 
 			if invalid_min or invalid_max:
 				# Out of bounds
@@ -302,65 +302,65 @@ func backup_for_undo(im, undo_cache, rect_origin_x, rect_origin_y, rect_size_x, 
 
 
 
-func paint_height(data, origin_x, origin_y, speed):
+func _paint_height(data, origin_x, origin_y, speed):
 
 	var im = data.get_image(HTerrainData.CHANNEL_HEIGHT)
 	assert(im != null)
 
-	backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
+	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
 
 	im.lock()
 	var op = OperatorAdd.new(im)
-	foreach_xy(op, data, origin_x, origin_y, speed, _opacity, _shape)
+	_foreach_xy(op, data, origin_x, origin_y, speed, _opacity, _shape)
 	im.unlock()
 
 	data.update_normals(origin_x, origin_y, _shape_size, _shape_size)
 
 	
-func smooth_height(data, origin_x, origin_y, speed):
+func _smooth_height(data, origin_x, origin_y, speed):
 
 	var im = data.get_image(HTerrainData.CHANNEL_HEIGHT)
 	assert(im != null)
 
-	backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
+	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
 
 	im.lock()
 
 	var sum_op = OperatorSum.new(im)
-	foreach_xy(sum_op, data, origin_x, origin_y, 1.0, _opacity, _shape)
+	_foreach_xy(sum_op, data, origin_x, origin_y, 1.0, _opacity, _shape)
 	var target_value = sum_op.sum / float(_shape_sum)
 
 	var lerp_op = OperatorLerp.new(target_value, im)
-	foreach_xy(lerp_op, data, origin_x, origin_y, speed, _opacity, _shape)
+	_foreach_xy(lerp_op, data, origin_x, origin_y, speed, _opacity, _shape)
 	
 	im.unlock()
 
 	data.update_normals(origin_x, origin_y, _shape_size, _shape_size)
 
 
-func flatten_height(data, origin_x, origin_y):
+func _flatten(data, origin_x, origin_y):
 
 	var im = data.get_image(HTerrainData.CHANNEL_HEIGHT)
 	assert(im != null)
 
-	backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
+	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
 
 	im.lock()
 	var op = OperatorLerp.new(_flatten_height, im)
-	foreach_xy(op, data, origin_x, origin_y, 1, 1, _shape)
+	_foreach_xy(op, data, origin_x, origin_y, 1, 1, _shape)
 	im.unlock()
 
 	data.update_normals(origin_x, origin_y, _shape_size, _shape_size)
 
 
-func paint_splat(data, origin_x, origin_y):
+func _paint_splat(data, origin_x, origin_y):
 
 	var im = data.get_image(HTerrainData.CHANNEL_SPLAT)
 	assert(im != null)
 
 	var shape_size = _shape_size
 
-	backup_for_undo(im, _undo_cache, origin_x, origin_y, shape_size, shape_size)
+	_backup_for_undo(im, _undo_cache, origin_x, origin_y, shape_size, shape_size)
 
 	var min_x = origin_x
 	var min_y = origin_y
@@ -420,25 +420,25 @@ func paint_splat(data, origin_x, origin_y):
 	im.unlock()
 
 
-func paint_color(data, origin_x, origin_y):
+func _paint_color(data, origin_x, origin_y):
 
 	var im = data.get_image(HTerrainData.CHANNEL_COLOR)
 	assert(im != null)
 
-	backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
+	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
 
 	im.lock()
 	var op = OperatorLerpColor.new(_color, im)
-	foreach_xy(op, data, origin_x, origin_y, 1, _opacity, _shape)
+	_foreach_xy(op, data, origin_x, origin_y, 1, _opacity, _shape)
 	im.unlock()
 
 
-func paint_mask(data, origin_x, origin_y):
+func _paint_mask(data, origin_x, origin_y):
 
 	var im = data.get_image(HTerrainData.CHANNEL_MASK)
 	assert(im != null)
 	
-	backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size);
+	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size);
 
 	var shape_size = _shape_size
 
@@ -474,7 +474,7 @@ func paint_mask(data, origin_x, origin_y):
 				im.set_pixel(x, y, value)
 
 
-static func fetch_redo_chunks(im, keys):
+static func _fetch_redo_chunks(im, keys):
 	var output = []
 	for key in keys:
 		var cpos = Util.decode_v2i(key)
@@ -494,13 +494,13 @@ func _edit_pop_undo_redo_data(heightmap_data):
 
 	var chunk_positions_keys = _undo_cache.keys()
 
-	var channel = get_mode_channel(_mode)
+	var channel = _get_mode_channel(_mode)
 	assert(channel != HTerrainData.CHANNEL_COUNT)
 
 	var im = heightmap_data.get_image(channel)
 	assert(im != null)
 	
-	var redo_data = fetch_redo_chunks(im, chunk_positions_keys)
+	var redo_data = _fetch_redo_chunks(im, chunk_positions_keys)
 
 	# Convert chunk positions to flat int array
 	var undo_data = []
