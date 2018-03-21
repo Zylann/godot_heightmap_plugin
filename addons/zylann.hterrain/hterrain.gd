@@ -59,12 +59,6 @@ func _init():
 	set_notify_transform(true)
 
 
-# TODO TEMPORARY!!!
-func _ready():
-	if not has_data():
-		set_data(HTerrainData.new())
-
-
 func _get_property_list():
 	var props = [
 		{
@@ -178,6 +172,33 @@ func _notification(what):
 
 func _enter_tree():
 	print("Enter tree")
+
+	#   .                                                      .
+	#          .n                   .                 .                  n.
+	#    .   .dP                  dP                   9b                 9b.    .
+	#   4    qXb         .       dX                     Xb       .        dXp     t
+	#  dX.    9Xb      .dXb    __                         __    dXb.     dXP     .Xb
+	#  9XXb._       _.dXXXXb dXXXXbo.                 .odXXXXb dXXXXb._       _.dXXP
+	#   9XXXXXXXXXXXXXXXXXXXVXXXXXXXXOo.           .oOXXXXXXXXVXXXXXXXXXXXXXXXXXXXP
+	#    `9XXXXXXXXXXXXXXXXXXXXX'~   ~`OOO8b   d8OOO'~   ~`XXXXXXXXXXXXXXXXXXXXXP'
+	#      `9XXXXXXXXXXXP' `9XX'   DIE    `98v8P'  HUMAN   `XXP' `9XXXXXXXXXXXP'
+	#          ~~~~~~~       9X.          .db|db.          .XP       ~~~~~~~
+	#                          )b.  .dbo.dP'`v'`9b.odb.  .dX(
+	#                        ,dXXXXXXXXXXXb     dXXXXXXXXXXXb.
+	#                       dXXXXXXXXXXXP'   .   `9XXXXXXXXXXXb
+	#                      dXXXXXXXXXXXXb   d|b   dXXXXXXXXXXXXb
+	#                      9XXb'   `XXXXXb.dX|Xb.dXXXXX'   `dXXP
+	#                       `'      9XXXXXX(   )XXXXXXP      `'
+	#                                XXXX X.`v'.X XXXX
+	#                                XP^X'`b   d'`X^XX
+	#                                X. 9  `   '  P )X
+	#                                `b  `       '  d'
+	#                                 `             '
+	# TODO This is temporary until I get saving and loading to work the proper way!
+	# Makes the terrain load automatically
+	if _data != null and _data.get_resolution() == 0:
+		_data.load_data()
+
 	set_process(true)
 
 
@@ -269,7 +290,10 @@ func _on_data_resolution_changed():
 
 func _on_data_region_changed(min_x, min_y, max_x, max_y, channel):
 	#print_line(String("_on_data_region_changed {0}, {1}, {2}, {3}").format(varray(min_x, min_y, max_x, max_y)));
-	set_area_dirty(min_x, min_y, max_x - min_x, max_y - min_y)
+
+	# Testing only heights because it's the only channel that can impact geometry and LOD
+	if channel == HTerrainData.CHANNEL_HEIGHT:
+		set_area_dirty(min_x, min_y, max_x - min_x, max_y - min_y)
 
 
 func set_custom_material(p_material):
@@ -443,7 +467,7 @@ func _process(delta):
 		if camera != null:
 			viewer_pos = camera.get_global_transform().origin
 
-	if has_data():
+	if has_data() and _data.get_resolution() != 0:
 		_lodder.update(viewer_pos)
 
 	_updated_chunks = 0

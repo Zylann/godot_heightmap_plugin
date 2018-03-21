@@ -9,11 +9,14 @@ const CHANNEL_HEIGHT = 0
 const CHANNEL_NORMAL = 1
 const CHANNEL_SPLAT = 2
 const CHANNEL_COLOR = 3
+# TODO Merge mask with color under alpha channel to save space
 const CHANNEL_MASK = 4
 const CHANNEL_COUNT = 5
 
 const MAX_RESOLUTION = 4096 + 1
 const DEFAULT_RESOLUTION = 256
+
+const DATA_FOLDER_SUFFIX = ".hterrain_data"
 
 signal resolution_changed
 signal region_changed
@@ -22,10 +25,6 @@ signal region_changed
 class VerticalBounds:
 	var minv = 0
 	var maxv = 0
-
-
-# TODO Only allow predefined resolutions, because that's currently the case
-export(int) var resolution setget set_resolution, get_resolution
 
 
 var _resolution = 0
@@ -40,6 +39,35 @@ var _edit_disable_apply_undo = false
 func _init():
 	_textures.resize(CHANNEL_COUNT)
 	_images.resize(CHANNEL_COUNT)
+
+
+func _get_property_list():
+	var props = [
+		{
+			# TODO Only allow predefined resolutions, because that's currently the case
+			"name": "resolution",
+			"type": TYPE_INT,
+			"usage": PROPERTY_USAGE_EDITOR
+		}
+	]
+	return props
+
+
+func _get(key):
+	match key:
+		"resolution":
+			return get_resolution()
+
+
+func _set(key, v):
+	match key:
+		"resolution":
+			# Setting resolution has only effect when set from editor or a script.
+			# It's not part of the saved resource variables because it is
+			# deduced from the height texture,
+			# and resizing on load wouldn't make sense.
+			assert(typeof(v) == TYPE_INT)
+			set_resolution(v)
 
 
 func load_default():
@@ -123,20 +151,16 @@ func set_resolution2(p_res, update_normals):
 	if _images[CHANNEL_MASK] == null:
 		var im = Image.new()
 		im.create(_resolution, _resolution, false, get_channel_format(CHANNEL_MASK))
-		# Initialize mask so the terrain has no holes by default
-		im.fill(Color8(255, 0, 0, 0))
+		# Initialize mask so the terrain has no holes by default.
+		# Need to be a white color because even though L8 format is a single channel,
+		# the color gets converted to greyscale before been writen into the image
+		im.fill(Color8(255, 255, 255, 255))
 		_images[CHANNEL_MASK] = im
 	
 	else:
 		_images[CHANNEL_SPLAT].resize(_resolution, _resolution)
 
-	print("Updating vertical bounds...")
-	var csize_x = p_res / HTerrain.CHUNK_SIZE
-	var csize_y = p_res / HTerrain.CHUNK_SIZE
-	# TODO Could set `preserve_data` to true, but would require callback to construct new cells
-	Grid.resize_grid(_chunked_vertical_bounds, csize_x, csize_y)
-	_chunked_vertical_bounds_size = [csize_x, csize_y]
-	update_all_vertical_bounds()
+	_update_all_vertical_bounds()
 
 	emit_signal("resolution_changed")
 
@@ -351,7 +375,7 @@ func upload_region(channel, min_x, min_y, max_x, max_y):
 
 	assert(_images[channel] != null)
 
-	if _textures[channel] == null:
+	if _textures[channel] == null or not (_textures[channel] is ImageTexture):
 		_textures[channel] = ImageTexture.new()
 
 	var flags = 0;
@@ -427,7 +451,14 @@ func get_region_aabb(origin_in_cells_x, origin_in_cells_y, size_in_cells_x, size
 	return aabb
 
 
-func update_all_vertical_bounds():
+func _update_all_vertical_bounds():
+	var csize_x = _resolution / HTerrain.CHUNK_SIZE
+	var csize_y = _resolution / HTerrain.CHUNK_SIZE
+	print("Updating all vertical bounds... (", csize_x , "x", csize_y, " chunks)")
+	# TODO Could set `preserve_data` to true, but would require callback to construct new cells
+	Grid.resize_grid(_chunked_vertical_bounds, csize_x, csize_y)
+	_chunked_vertical_bounds_size = [csize_x, csize_y]
+
 	update_vertical_bounds(0, 0, _resolution - 1, _resolution - 1)
 
 
@@ -501,6 +532,123 @@ func compute_vertical_bounds_at(origin_x, origin_y, size_x, size_y, out_b):
 	out_b.maxv = max_height
 
 
+func save_data():
+	for channel in range(CHANNEL_COUNT):
+		_save_channel(channel)
+	# TODO Trigger reimport on generated assets
+
+
+func load_data():
+	for channel in range(CHANNEL_COUNT):
+		_load_channel(channel)
+	_update_all_vertical_bounds()
+	emit_signal("resolution_changed")
+
+
+func get_data_dir():
+	# TODO Eventually have that one configurable?
+	return resource_path.get_basename() + DATA_FOLDER_SUFFIX
+
+
+func _save_channel(channel):
+	var im = _images[channel]
+	if im == null:
+		var tex = _textures[channel]
+		if tex != null:
+			print("Image not found for channel ", channel, ", downloading from VRAM")
+			im = tex.get_data()
+		else:
+			print("No data in channel ", channel)
+			# This data doesn't have such channel
+			return true
+	
+	var dir_path = get_data_dir()
+	var dir = Directory.new()
+	if not dir.dir_exists(dir_path):
+		dir.make_dir(dir_path)
+	
+	var fpath = dir_path.plus_file(_get_channel_name(channel))
+	
+	print("Saving ", fpath, "...")
+
+	if _channel_can_be_saved_as_png(channel):
+		fpath += ".png"
+		im.save_png(fpath)
+
+	else:
+		fpath += ".bin"
+		var f = File.new()
+		var err = f.open(fpath, File.WRITE)
+		if err != OK:
+			print("Could not open ", fpath, " for writing")
+			return false
+		
+		# TODO Too lazy to save mipmaps in that format...
+		# only heights are using it for now anyways
+		assert(not im.has_mipmaps())
+
+		var data = im.get_data()
+		f.store_32(im.get_width())
+		f.store_32(im.get_height())
+		var pixel_size = data.size() / (im.get_width() * im.get_height())
+		f.store_32(pixel_size)
+		f.store_buffer(im.get_data())
+		f.close()
+	
+	return true
+
+
+func _load_channel(channel):
+	var dir = get_data_dir()
+	var fpath = dir.plus_file(_get_channel_name(channel))
+	
+	print("Loading ", fpath, "...")
+
+	if _channel_can_be_saved_as_png(channel):
+		fpath += ".png"
+		# In this particular case, we can use Godot ResourceLoader directly, if the texture got imported.
+
+		if Engine.editor_hint:
+			# But in the editor we want textures to be editable,
+			# so we have to automatically load the data also in RAM
+			var im = _images[channel]
+			if im == null:
+				im = Image.new()
+				_images[channel] = im
+			im.load(fpath)
+
+		var tex = load(fpath)
+		_textures[channel] = tex
+
+	else:
+		fpath += ".bin"
+		var f = File.new()
+		var err = f.open(fpath, File.READ)
+		if err != OK:
+			print("Could not open ", fpath, " for reading")
+			return false
+		
+		var width = f.get_32()
+		var height = f.get_32()
+		var pixel_size = f.get_32()
+		var data_size = width * height * pixel_size
+		var data = f.get_buffer(data_size)
+		if data.size() != data_size:
+			print("Unexpected end of buffer, expected size ", data_size, ", got ", data.size())
+			return false
+
+		_resolution = width
+
+		var im = _images[channel]
+		if im == null:
+			im = Image.new()
+			_images[channel] = im
+		im.create_from_data(_resolution, _resolution, false, get_channel_format(channel), data)
+		upload_channel(channel)
+
+	return true
+
+
 static func encode_normal(n):
 	return Color(0.5 * (n.x + 1.0), 0.5 * (n.y + 1.0), 0.5 * (n.z + 1.0), 1.0)
 
@@ -522,9 +670,32 @@ static func get_channel_format(channel):
 			return Image.FORMAT_RGBA8
 		CHANNEL_MASK:
 			# TODO A bitmap would be 8 times lighter...
-			return Image.FORMAT_R8
+			# Didn't use FORMAT_R8 because it won't save as a mono-channel PNG
+			return Image.FORMAT_L8
 	
 	print("Unrecognized channel\n")
 	return Image.FORMAT_MAX
+
+
+# Note: PNG supports 16-bit channels, unfortunately Godot doesn't
+static func _channel_can_be_saved_as_png(channel):
+	if channel == CHANNEL_HEIGHT:
+		return false
+	return true
+
+
+static func _get_channel_name(c):
+	match c:
+		CHANNEL_COLOR:
+			return "color"
+		CHANNEL_SPLAT:
+			return "splat"
+		CHANNEL_NORMAL:
+			return "normal"
+		CHANNEL_MASK:
+			return "mask"
+		CHANNEL_HEIGHT:
+			return "height"
+	return null
 
 

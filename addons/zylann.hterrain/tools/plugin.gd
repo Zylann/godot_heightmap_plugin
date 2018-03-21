@@ -12,6 +12,9 @@ const EditPanel = preload("panel.tscn")
 
 const MENU_IMPORT_IMAGE = 0
 const MENU_CHANNEL_PACKER = 1
+# TODO These two should not exist, they are workarounds to test saving!
+const MENU_SAVE = 2
+const MENU_LOAD = 3
 
 
 var _node = null
@@ -38,7 +41,7 @@ func _enter_tree():
 	print("Heightmap plugin Enter tree")
 	
 	add_custom_type("HTerrain", "Spatial", HTerrain, get_icon("heightmap_node"))
-	add_custom_type("HTerrainData", "Resource", HTerrain, get_icon("heightmap_data"))
+	add_custom_type("HTerrainData", "Resource", HTerrainData, get_icon("heightmap_data"))
 	
 	_brush = Brush.new()
 	_brush.set_radius(5)
@@ -62,6 +65,9 @@ func _enter_tree():
 	var menu = MenuButton.new()
 	menu.set_text("HeightMap")
 	menu.get_popup().add_item("Import image...", MENU_IMPORT_IMAGE)
+	menu.get_popup().add_separator()
+	menu.get_popup().add_item("Save", MENU_SAVE)
+	menu.get_popup().add_item("Load", MENU_LOAD)
 	menu.get_popup().connect("id_pressed", self, "_menu_item_selected")
 	_toolbar.add_child(menu)
 	
@@ -275,6 +281,14 @@ func _menu_item_selected(id):
 			_import_dialog.popup_centered_minsize(Vector2(800, 600))
 		MENU_CHANNEL_PACKER:
 			_channel_packer.popup_centered_minsize()
+		MENU_SAVE:
+			var data = _node.get_data()
+			if data != null:
+				data.save_data()
+		MENU_LOAD:
+			var data = _node.get_data()
+			if data != null:
+				data.load_data()
 
 
 func _on_mode_selected(mode):
