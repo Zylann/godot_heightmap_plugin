@@ -650,7 +650,11 @@ func _load_channel(channel):
 
 
 func _edit_import_heightmap_8bit(src_image, min_y, max_y):
-	print("Resizing terrain...")
+	# TODO Support clamping
+	if _edit_check_valid_map_size(src_image.get_width(), src_image.get_height()):
+		return false
+	var res = src_image.get_width()
+	print("Resizing terrain to ", res, "x", res, "...")
 	set_resolution2(src_image.get_width(), false)
 	
 	var im = get_image(CHANNEL_HEIGHT)
@@ -683,6 +687,61 @@ func _edit_import_heightmap_8bit(src_image, min_y, max_y):
 	notify_region_change([0, 0], [im.get_width(), im.get_height()], CHANNEL_HEIGHT)
 	
 	print("Done")
+
+
+func _edit_import_heightmap_16bit_file(f, min_y, max_y):
+	var file_len = f.get_len()
+	var file_res = int(round(sqrt(file_len / 2)))
+	var res = Util.next_power_of_two(file_res - 1) + 1
+	print("file_len: ", file_len, ", file_res: ", file_res, ", res: ", res)
+	var width = res
+	var height = res
+	
+	print("Resizing terrain to ", width, "x", height, "...")
+	set_resolution2(res, false)
+	
+	var im = get_image(CHANNEL_HEIGHT)
+	assert(im != null)
+	
+	var hrange = max_y - min_y
+	
+	print("Converting to internal format...")
+	
+	im.lock()
+	
+	var rw = Util.min_int(res, file_res)
+	var rh = Util.min_int(res, file_res)
+	
+	# Convert to internal format (from bytes to RH16)
+	var h = 0.0
+	for y in range(0, rh):
+		for x in range(0, rw):
+			var gs = float(f.get_16()) / 65536.0
+			h = min_y + hrange * float(gs)
+			im.set_pixel(x, y, Color(h, 0, 0))
+		# Skip next pixels if the file is bigger than the accepted resolution
+		for x in range(rw, file_res):
+			f.get_16()
+	
+	im.unlock()
+
+	print("Updating normals...")
+	_update_all_normals()
+	
+	print("Notify region change...")
+	notify_region_change([0, 0], [im.get_width(), im.get_height()], CHANNEL_HEIGHT)
+	
+	print("Done")
+
+
+static func _edit_check_valid_map_size(width, height):
+	if width != height:
+		print("Map is not square.")
+		return false
+	if Util.next_power_of_two(width) + 1 != width:
+		print("Map is not power of two + 1")
+		return false
+	return true
 
 
 static func _encode_normal(n):

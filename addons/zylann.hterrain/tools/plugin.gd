@@ -331,7 +331,7 @@ func _import_raw_file_selected(path):
 	f.close()
 	var size = get_size_from_raw_length(flen)
 	
-	print("Deduced RAW heightmap resolution: {0}*{1}, for a length of {2}".format(size, size, flen))
+	print("Deduced RAW heightmap resolution: {0}*{1}, for a length of {2}".format([size, size, flen]))
 
 	if flen / 2 != size * size:
 		_accept_dialog.window_title = "Import RAW heightmap error"
@@ -397,8 +397,24 @@ func _import_file_confirmed():
 
 func _import_raw_file(path):
 	print("Import raw file ", path)
-	print("NOT IMPLEMENTED YET")
-	# TODO
+	
+	assert(_node != null)
+	var data = _node.get_data()
+	assert(data != null)
+	
+	var f = File.new()
+	var err = f.open(path, File.READ)
+	if err != OK:
+		print("Couldn't open file ", path, ", error ", err)
+		return
+
+	# TODO Have these configurable
+	var min_y = 0
+	var max_y = 500
+	
+	data._edit_import_heightmap_16bit_file(f, min_y, max_y)
+	
+	f.close()
 
 
 func _import_png_file(path):
