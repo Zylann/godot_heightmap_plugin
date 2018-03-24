@@ -1,13 +1,24 @@
-[gd_scene load_steps=7 format=2]
+[gd_scene load_steps=19 format=2]
 
 [ext_resource path="res://addons/zylann.hterrain/hterrain.gd" type="Script" id=1]
 [ext_resource path="res://addons/zylann.hterrain/tools/icons/icon_heightmap_node.svg" type="Texture" id=2]
 [ext_resource path="res://addons/zylann.hterrain/hterrain_data.gd" type="Script" id=3]
+[ext_resource path="res://addons/zylann.hterrain/demo/textures/grass_albedo.png" type="Texture" id=4]
+[ext_resource path="res://addons/zylann.hterrain/demo/textures/grass_normal.png" type="Texture" id=5]
+[ext_resource path="res://addons/zylann.hterrain/demo/textures/grass_depth.png" type="Texture" id=6]
+[ext_resource path="res://addons/zylann.hterrain/demo/textures/leaves_albedo.png" type="Texture" id=7]
+[ext_resource path="res://addons/zylann.hterrain/demo/textures/leaves_normal.png" type="Texture" id=8]
+[ext_resource path="res://addons/zylann.hterrain/demo/textures/leaves_depth.png" type="Texture" id=9]
+[ext_resource path="res://addons/zylann.hterrain/demo/textures/sand_albedo.png" type="Texture" id=10]
+[ext_resource path="res://addons/zylann.hterrain/demo/textures/sand_normal.png" type="Texture" id=11]
+[ext_resource path="res://addons/zylann.hterrain/demo/textures/sand_depth.png" type="Texture" id=12]
+[ext_resource path="res://addons/zylann.hterrain/demo/textures/bricks_albedo.png" type="Texture" id=13]
+[ext_resource path="res://addons/zylann.hterrain/demo/textures/bricks_normal.png" type="Texture" id=14]
+[ext_resource path="res://addons/zylann.hterrain/demo/textures/bricks_depth.png" type="Texture" id=15]
 
 [sub_resource type="Resource" id=1]
 
 script = ExtResource( 3 )
-resolution = 257
 
 [sub_resource type="ProceduralSky" id=2]
 
@@ -41,7 +52,7 @@ background_canvas_max_layer = 0
 ambient_light_color = Color( 0, 0, 0, 1 )
 ambient_light_energy = 1.0
 ambient_light_sky_contribution = 0.5
-fog_enabled = false
+fog_enabled = true
 fog_color = Color( 0.5, 0.6, 0.7, 1 )
 fog_sun_color = Color( 1, 0.9, 0.7, 1 )
 fog_sun_amount = 0.0
@@ -89,7 +100,7 @@ dof_blur_near_distance = 2.0
 dof_blur_near_transition = 1.0
 dof_blur_near_amount = 0.1
 dof_blur_near_quality = 1
-glow_enabled = false
+glow_enabled = true
 glow_levels/1 = false
 glow_levels/2 = false
 glow_levels/3 = true
@@ -99,7 +110,7 @@ glow_levels/6 = false
 glow_levels/7 = false
 glow_intensity = 0.8
 glow_strength = 1.0
-glow_bloom = 0.0
+glow_bloom = 1.0
 glow_blend_mode = 2
 glow_hdr_threshold = 1.0
 glow_hdr_scale = 2.0
@@ -108,7 +119,7 @@ adjustment_enabled = false
 adjustment_brightness = 1.0
 adjustment_contrast = 1.0
 adjustment_saturation = 1.0
-_sections_unfolded = [ "Ambient Light", "Background" ]
+_sections_unfolded = [ "Fog", "Glow" ]
 
 [node name="Node" type="Node" index="0"]
 
@@ -119,7 +130,20 @@ script = ExtResource( 1 )
 __meta__ = {
 "_editor_icon": ExtResource( 2 )
 }
+depth_blending = true
 data = SubResource( 1 )
+detail/albedo_0 = ExtResource( 4 )
+detail/normal_0 = ExtResource( 5 )
+detail/depth_0 = ExtResource( 6 )
+detail/albedo_1 = ExtResource( 7 )
+detail/normal_1 = ExtResource( 8 )
+detail/depth_1 = ExtResource( 9 )
+detail/albedo_2 = ExtResource( 10 )
+detail/normal_2 = ExtResource( 11 )
+detail/depth_2 = ExtResource( 12 )
+detail/albedo_3 = ExtResource( 13 )
+detail/normal_3 = ExtResource( 14 )
+detail/depth_3 = ExtResource( 15 )
 
 [node name="DirectionalLight" type="DirectionalLight" parent="." index="1"]
 
@@ -146,7 +170,7 @@ directional_shadow_blend_splits = false
 directional_shadow_normal_bias = 0.8
 directional_shadow_bias_split_scale = 0.25
 directional_shadow_depth_range = 0
-directional_shadow_max_distance = 200.0
+directional_shadow_max_distance = 1000.0
 _sections_unfolded = [ "Directional Shadow", "Shadow", "Transform" ]
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." index="2"]
