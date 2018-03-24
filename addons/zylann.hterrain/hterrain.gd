@@ -72,13 +72,14 @@ func _get_property_list():
 	]
 	
 	for i in range(get_detail_texture_slot_count()):
-		props.append({
-			"name": "detail/albedo_" + str(i),
-			"type": TYPE_OBJECT,
-			"usage": PROPERTY_USAGE_STORAGE,
-			"hint": PROPERTY_HINT_RESOURCE_TYPE,
-			"hint_string": "Texture"
-		})
+		for t in ["albedo", "normal", "depth"]:
+			props.append({
+				"name": "detail/" + t + "_" + str(i),
+				"type": TYPE_OBJECT,
+				"usage": PROPERTY_USAGE_STORAGE,
+				"hint": PROPERTY_HINT_RESOURCE_TYPE,
+				"hint_string": "Texture"
+			})
 	
 	return props
 
@@ -96,7 +97,7 @@ func _get(key):
 		var i = key.right(len(key) - 1).to_int()
 		return get_detail_texture(i, DETAIL_NORMAL)
 		
-	elif key.begins_with("detail/bump_"):
+	elif key.begins_with("detail/depth_"):
 		var i = key.right(len(key) - 1).to_int()
 		return get_detail_texture(i, DETAIL_BUMP)
 
@@ -115,7 +116,7 @@ func _set(key, value):
 		var i = key.right(len(key) - 1).to_int()
 		set_detail_texture(i, DETAIL_NORMAL, value)
 
-	elif key.begins_with("detail/bump_"):
+	elif key.begins_with("detail/depth_"):
 		var i = key.right(len(key) - 1).to_int()
 		set_detail_texture(i, DETAIL_BUMP, value)
 
