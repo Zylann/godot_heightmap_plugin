@@ -1,6 +1,8 @@
 HeightMap terrain plugin for Godot Engine 3.x
 ================================================
 
+![Editor screenshot](addons/zylann.hterrain/screenshots/2018_03_24.png)
+
 Heightmap-based terrain for Godot 3.x, using GDScript, C++ and GDNative (engine recompilation is not needed).
 It was forked from its former module implementation: https://github.com/Zylann/godot_heightmap_module
 
