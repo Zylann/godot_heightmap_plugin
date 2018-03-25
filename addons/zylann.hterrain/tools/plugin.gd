@@ -9,6 +9,7 @@ const Util = preload("../util.gd")
 const ChannelPacker = preload("channel_packer/dialog.tscn")
 const LoadTextureDialog = preload("load_texture_dialog.gd")
 const EditPanel = preload("panel.tscn")
+const ProgressWindow = preload("progress_window.tscn")
 
 const MENU_IMPORT_IMAGE = 0
 const MENU_CHANNEL_PACKER = 1
@@ -31,6 +32,8 @@ var _import_file_path = ""
 var _import_preloaded_image = null
 
 var _channel_packer = null
+
+var _progress_window = null
 
 
 static func get_icon(name):
@@ -131,9 +134,12 @@ func _enter_tree():
 	_channel_packer.call_deferred("set_load_texture_dialog", load_texture_dialog)
 	menu.get_popup().add_separator()
 	menu.get_popup().add_item("Open channel packer", MENU_CHANNEL_PACKER)
-	# TODO This is an ugly workaround because of a Godot bug
+	# TODO This is an ugly workaround because of a Godot bug. Remove it once fixed!
 	# See https://github.com/godotengine/godot/issues/17626
 	_channel_packer.rect_min_size += Vector2(0, 100)
+	
+	_progress_window = ProgressWindow.instance()
+	base_control.add_child(_progress_window)
 
 
 func _exit_tree():
@@ -153,11 +159,13 @@ func edit(object):
 	
 	if _node != null:
 		_node.disconnect("tree_exited", self, "_height_map_exited_scene")
+		_node.disconnect("progress_notified", self, "_terrain_progress_notified")
 	
 	_node = node
 	
 	if _node != null:
 		_node.connect("tree_exited", self, "_height_map_exited_scene")
+		_node.connect("progress_notified", self, "_terrain_progress_notified")
 	
 	_panel.set_terrain(_node)
 
@@ -284,11 +292,11 @@ func _menu_item_selected(id):
 		MENU_SAVE:
 			var data = _node.get_data()
 			if data != null:
-				data.save_data()
+				data.save_data_async()
 		MENU_LOAD:
 			var data = _node.get_data()
 			if data != null:
-				data.load_data()
+				data.load_data_async()
 
 
 func _on_mode_selected(mode):
@@ -412,7 +420,7 @@ func _import_raw_file(path):
 	var min_y = 0
 	var max_y = 500
 	
-	data._edit_import_heightmap_16bit_file(f, min_y, max_y)
+	data._edit_import_heightmap_16bit_file_async(f, min_y, max_y)
 	
 	f.close()
 
@@ -433,7 +441,18 @@ func _import_png_file(path):
 	var min_y = 0
 	var max_y = 100
 
-	data._edit_import_heightmap_8bit(src_image, min_y, max_y)
+	data._edit_import_heightmap_8bit_async(src_image, min_y, max_y)
 	
+
+func _terrain_progress_notified(info):
+	#print("Plugin received: ", info.message, ", ", int(info.progress * 100.0), "%")
+	
+	if info.finished:
+		_progress_window.hide()
+	else:
+		if not _progress_window.visible:
+			_progress_window.popup_centered_minsize()
+		_progress_window.show_progress(info.message, info.progress)
+		# TODO Have builtin modal progress bar
 
 

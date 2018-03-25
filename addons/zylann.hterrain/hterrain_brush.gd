@@ -136,6 +136,7 @@ func paint(height_map, cell_pos_x, cell_pos_y, override_mode):
 
 	assert(height_map.get_data() != null)
 	var data = height_map.get_data()
+	assert(not data.is_locked())
 
 	var delta = _opacity * 1.0 / 60.0
 	var mode = _mode

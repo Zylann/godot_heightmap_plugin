@@ -31,6 +31,9 @@ const DETAIL_NORMAL = 1
 const DETAIL_BUMP = 2
 
 
+signal progress_notified(info)
+
+
 export var depth_blending = false
 
 var _custom_material = null
@@ -198,7 +201,10 @@ func _enter_tree():
 	# TODO This is temporary until I get saving and loading to work the proper way!
 	# Makes the terrain load automatically
 	if _data != null and _data.get_resolution() == 0:
-		_data.load_data()
+		if Engine.editor_hint:
+			_data.load_data_async()
+		else:
+			_data.load_data()
 
 	set_process(true)
 
@@ -240,6 +246,7 @@ func set_data(new_data):
 		print("Disconnecting old HeightMapData")
 		_data.disconnect("resolution_changed", self, "_on_data_resolution_changed")
 		_data.disconnect("region_changed", self, "_on_data_region_changed")
+		_data.disconnect("progress_notified", self, "_on_data_progress_notified")
 
 	_data = new_data
 
@@ -256,12 +263,17 @@ func set_data(new_data):
 
 		_data.connect("resolution_changed", self, "_on_data_resolution_changed")
 		_data.connect("region_changed", self, "_on_data_region_changed")
+		_data.connect("progress_notified", self, "_on_data_progress_notified")
 
 		_on_data_resolution_changed()
 
 		_update_material()
 
 	print("Set data done")
+
+
+func _on_data_progress_notified(info):
+	emit_signal("progress_notified", info)
 
 
 func _on_data_resolution_changed():
@@ -459,7 +471,7 @@ const s_rdirs = [
 ]
 
 func _process(delta):
-		
+	
 	# Get viewer pos
 	var viewer_pos = _edit_manual_viewer_pos
 	var viewport = get_viewport()
@@ -467,12 +479,20 @@ func _process(delta):
 		var camera = viewport.get_camera()
 		if camera != null:
 			viewer_pos = camera.get_global_transform().origin
-
-	if has_data() and _data.get_resolution() != 0:
-		_lodder.update(viewer_pos)
-
+	
+	if has_data():
+		# TODO I would like to do this without needing a ref to the scene tree...
+		_data.emit_signal("_internal_process")
+		
+		if _data.is_locked():
+			# Can't use the data for now
+			return
+		
+		if _data.get_resolution() != 0:
+			_lodder.update(viewer_pos)
+	
 	_updated_chunks = 0
-
+	
 	# Add more chunk updates for neighboring (seams):
 	# This adds updates to higher-LOD chunks around lower-LOD ones,
 	# because they might not needed to update by themselves, but the fact a neighbor

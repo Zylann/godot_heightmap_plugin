@@ -5,21 +5,27 @@ const Grid = preload("grid.gd")
 var HTerrain = load("res://addons/zylann.hterrain/hterrain.gd")
 const Util = preload("util.gd")
 
+# TODO Rename "CHANNEL" to "MAP", makes more sense and less confusing with RGBA channels
 const CHANNEL_HEIGHT = 0
 const CHANNEL_NORMAL = 1
 const CHANNEL_SPLAT = 2
 const CHANNEL_COLOR = 3
-# TODO Merge mask with color under alpha channel to save space
+# TODO Merge mask with color under alpha channel to save space and optimize shader
 const CHANNEL_MASK = 4
 const CHANNEL_COUNT = 5
 
 const MAX_RESOLUTION = 4096 + 1
 const DEFAULT_RESOLUTION = 256
+# TODO Have vertical bounds chunk size
+# TODO Have undo chunk size
 
 const DATA_FOLDER_SUFFIX = ".hterrain_data"
 
 signal resolution_changed
-signal region_changed
+signal region_changed(x, y, w, h, channel)
+signal progress_notified(info)
+
+signal _internal_process
 
 
 class VerticalBounds:
@@ -32,6 +38,8 @@ var _textures = []
 var _images = []
 var _chunked_vertical_bounds = []
 var _chunked_vertical_bounds_size = [0, 0]
+var _locked = false
+var _progress_complete = true
 
 var _edit_disable_apply_undo = false
 
@@ -61,6 +69,7 @@ func _get(key):
 
 func _set(key, v):
 	match key:
+		# TODO Should we even allow this to be set if there is existing data which isn't loaded yet?
 		"resolution":
 			# Setting resolution has only effect when set from editor or a script.
 			# It's not part of the saved resource variables because it is
@@ -76,6 +85,10 @@ func _edit_load_default():
 	_update_all_normals()
 
 
+func is_locked():
+	return _locked
+
+
 func get_resolution():
 	return _resolution
 
@@ -89,7 +102,7 @@ func set_resolution2(p_res, update_normals):
 	assert(typeof(update_normals) == TYPE_BOOL)
 	
 	print("HeightMapData::set_resolution ", p_res)
-
+	
 	if p_res == get_resolution():
 		return
 
@@ -220,6 +233,7 @@ func get_interpolated_height_at(pos):
 	return h;
 
 
+# TODO Have an async version that uses the GPU
 func _update_all_normals():
 	update_normals(0, 0, _resolution, _resolution)
 
@@ -271,7 +285,7 @@ func notify_region_change(p_min, p_max, channel):
 	# TODO Hmm not sure if that belongs here // <-- why this, Me from the past?
 	match channel:
 		CHANNEL_HEIGHT:
-			# TODO Optimization: when drawing very large patches, this might get called too often and would slow down.
+			# TODO when drawing very large patches, this might get called too often and would slow down.
 			# for better user experience, we could set chunks AABBs to a very large height just while drawing,
 			# and set correct AABBs as a background task once done
 			var size = [p_max[0] - p_min[0], p_max[1] - p_min[1]]
@@ -511,38 +525,82 @@ func _compute_vertical_bounds_at(origin_x, origin_y, size_x, size_y, out_b):
 	var min_height = heights.get_pixel(min_x, min_y).r
 	var max_height = min_height
 
-	var y = min_y
-	while y < max_y:
-		var x = min_x
-		while x < max_x:
+	for y in range(min_y, max_y):
+		for x in range(min_x, max_x):
 			
 			var h = heights.get_pixel(x, y).r
-
+			
 			if h < min_height:
 				min_height = h
 			elif h > max_height:
 				max_height = h
-			
-			x += 1
-		y += 1
-
+	
 	heights.unlock()
 
 	out_b.minv = min_height
 	out_b.maxv = max_height
 
 
-func save_data():
+func _notify_progress(message, progress, finished = false):
+	_progress_complete = finished
+	print("[", int(100.0 * progress), "%] ", message)
+	emit_signal("progress_notified", {
+		"message": message, 
+		"progress": progress,
+		"finished": finished
+	})
+
+
+func _notify_progress_complete():
+	_notify_progress("Done", 1.0, true)
+
+
+func save_data_async():
+	_locked = true
+	_notify_progress("Saving terrain data...", 0.0)
+	yield(self, "_internal_process")
+	
 	for channel in range(CHANNEL_COUNT):
+		var p = 0.1 + 0.9 * float(channel) / float(CHANNEL_COUNT)
+		_notify_progress("Saving map " + _get_channel_name(channel) + "...", p)
+		yield(self, "_internal_process")
 		_save_channel(channel)
 	# TODO Trigger reimport on generated assets
 
+	_locked = false
+	_notify_progress_complete()
+
 
 func load_data():
+	load_data_async()
+	while not _progress_complete:
+		emit_signal("_internal_process")
+
+
+func load_data_async():
+	_locked = true
+	_notify_progress("Loading terrain data...", 0.0)
+	yield(self, "_internal_process")
+	
+	# Note: if we loaded all maps at once before uploading them to VRAM,
+	# it would take a lot more RAM than if we load them one by one
 	for channel in range(CHANNEL_COUNT):
-		_load_channel(channel)
+		var p = 0.1 + 0.6 * float(channel) / float(CHANNEL_COUNT)
+		_notify_progress("Loading map " + _get_channel_name(channel) + "...", p)
+		yield(self, "_internal_process")
+		_load_channel(channel, float(channel) / float(CHANNEL_COUNT))
+	
+	_notify_progress("Calculating vertical bounds...", 0.8)
+	yield(self, "_internal_process")
 	_update_all_vertical_bounds()
+		
+	_notify_progress("Notify resolution change...", 0.9)
+	yield(self, "_internal_process")
+	
+	_locked = false
 	emit_signal("resolution_changed")
+	
+	_notify_progress_complete()
 
 
 func get_data_dir():
@@ -569,8 +627,6 @@ func _save_channel(channel):
 	
 	var fpath = dir_path.plus_file(_get_channel_name(channel))
 	
-	print("Saving ", fpath, "...")
-
 	if _channel_can_be_saved_as_png(channel):
 		fpath += ".png"
 		im.save_png(fpath)
@@ -598,12 +654,10 @@ func _save_channel(channel):
 	return true
 
 
-func _load_channel(channel):
+func _load_channel(channel, progress = 0.0):
 	var dir = get_data_dir()
 	var fpath = dir.plus_file(_get_channel_name(channel))
 	
-	print("Loading ", fpath, "...")
-
 	if _channel_can_be_saved_as_png(channel):
 		fpath += ".png"
 		# In this particular case, we can use Godot ResourceLoader directly, if the texture got imported.
@@ -649,12 +703,16 @@ func _load_channel(channel):
 	return true
 
 
-func _edit_import_heightmap_8bit(src_image, min_y, max_y):
+func _edit_import_heightmap_8bit_async(src_image, min_y, max_y):
 	# TODO Support clamping
 	if _edit_check_valid_map_size(src_image.get_width(), src_image.get_height()):
 		return false
 	var res = src_image.get_width()
-	print("Resizing terrain to ", res, "x", res, "...")
+	
+	_locked = true
+	
+	_notify_progress("Resizing terrain to " + str(res) + "x" + str(res) + "...", 0.1)
+	yield(self, "_internal_process")
 	set_resolution2(src_image.get_width(), false)
 	
 	var im = get_image(CHANNEL_HEIGHT)
@@ -665,7 +723,8 @@ func _edit_import_heightmap_8bit(src_image, min_y, max_y):
 	var width = Util.min_int(im.get_width(), src_image.get_width())
 	var height = Util.min_int(im.get_height(), src_image.get_height())
 	
-	print("Converting to internal format...")
+	_notify_progress("Converting to internal format...", 0.2)
+	yield(self, "_internal_process")
 	
 	im.lock()
 	src_image.lock()
@@ -680,24 +739,31 @@ func _edit_import_heightmap_8bit(src_image, min_y, max_y):
 	src_image.unlock()
 	im.unlock()
 	
-	print("Updating normals...")
+	_notify_progress("Updating normals...", 0.3)
+	yield(self, "_internal_process")
 	_update_all_normals()
 	
-	print("Notify region change...")
+	_locked = false
+	
+	_notify_progress("Notify region change...", 0.9)
+	yield(self, "_internal_process")
 	notify_region_change([0, 0], [im.get_width(), im.get_height()], CHANNEL_HEIGHT)
 	
-	print("Done")
+	_notify_progress_complete()
 
 
-func _edit_import_heightmap_16bit_file(f, min_y, max_y):
+func _edit_import_heightmap_16bit_file_async(f, min_y, max_y):	
 	var file_len = f.get_len()
 	var file_res = int(round(sqrt(file_len / 2)))
 	var res = Util.next_power_of_two(file_res - 1) + 1
 	print("file_len: ", file_len, ", file_res: ", file_res, ", res: ", res)
 	var width = res
 	var height = res
-	
-	print("Resizing terrain to ", width, "x", height, "...")
+
+	_locked = true
+
+	_notify_progress("Resizing terrain to " + str(width) + "x" + str(height) + "...", 0.1)
+	yield(self, "_internal_process")
 	set_resolution2(res, false)
 	
 	var im = get_image(CHANNEL_HEIGHT)
@@ -705,7 +771,8 @@ func _edit_import_heightmap_16bit_file(f, min_y, max_y):
 	
 	var hrange = max_y - min_y
 	
-	print("Converting to internal format...")
+	_notify_progress("Converting to internal format...", 0.2)
+	yield(self, "_internal_process")
 	
 	im.lock()
 	
@@ -725,13 +792,17 @@ func _edit_import_heightmap_16bit_file(f, min_y, max_y):
 	
 	im.unlock()
 
-	print("Updating normals...")
+	_notify_progress("Updating normals...", 0.3)
+	yield(self, "_internal_process")
 	_update_all_normals()
 	
-	print("Notify region change...")
+	_locked = false
+	_notify_progress("Notifying region change...", 0.9)
+	yield(self, "_internal_process")
+	
 	notify_region_change([0, 0], [im.get_width(), im.get_height()], CHANNEL_HEIGHT)
 	
-	print("Done")
+	_notify_progress_complete()
 
 
 static func _edit_check_valid_map_size(width, height):
