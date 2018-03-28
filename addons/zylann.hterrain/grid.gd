@@ -2,6 +2,8 @@
 # Note: `tool` is optional but without it there are no error reporting in the editor
 tool
 
+# TODO Remove grid_ prefixes, context is already given by the script itself
+
 
 # Performs a positive integer division rounded to upper (4/2 = 2, 5/3 = 2)
 static func up_div(a, b):

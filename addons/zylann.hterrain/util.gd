@@ -11,6 +11,7 @@ static func next_power_of_two(x):
 	return x
 
 
+# TODO Get rid of this, it was needed for C++ porting but it's ugly in GDScript
 static func clamp_min_max_excluded(out_min, out_max, p_min, p_max):
 	if out_min[0] < p_min[0]:
 		out_min[0] = p_min[0]
@@ -54,4 +55,12 @@ static func min_int(a, b):
 
 static func max_int(a, b):
 	return a if a > b else b
+
+
+static func clampi(x, a, b):
+	if x < a:
+		return a
+	if x >= b:
+		return b
+	return x
 

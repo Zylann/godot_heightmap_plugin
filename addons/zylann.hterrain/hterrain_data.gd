@@ -21,9 +21,11 @@ const DEFAULT_RESOLUTION = 256
 
 const DATA_FOLDER_SUFFIX = ".hterrain_data"
 
+
 signal resolution_changed
 signal region_changed(x, y, w, h, channel)
-signal progress_notified(info)
+# TODO Instead of message, send a state enum and a var (for translation and code semantic)
+signal progress_notified(info) # { "progress": real, "message": string, "finished": bool }
 
 signal _internal_process
 
@@ -233,6 +235,43 @@ func get_interpolated_height_at(pos):
 	return h;
 
 
+func get_heights_region(x0, y0, w, h):
+	assert(_images[CHANNEL_HEIGHT] != null)
+	
+	var im = _images[CHANNEL_HEIGHT]
+	
+	var min_x = Util.clampi(x0, 0, im.get_width())
+	var min_y = Util.clampi(y0, 0, im.get_height())
+	var max_x = Util.clampi(x0 + w, 0, im.get_width() + 1)
+	var max_y = Util.clampi(y0 + h, 0, im.get_height() + 1)
+	
+	var heights = PoolRealArray()
+	
+	var area = (max_x - min_x) * (max_y - min_y)
+	if area == 0:
+		print("Empty heights region!")
+		return heights
+	
+	heights.resize(area)
+	
+	im.lock()
+	
+	var i = 0
+	for y in range(min_y, max_y):
+		for x in range(min_x, max_x):
+			heights[i] = im.get_pixel(x, y).r
+			i += 1
+	
+	im.unlock()
+	
+	return heights
+
+
+func get_all_heights():
+	return get_heights_region(0, 0, _resolution, _resolution)
+
+
+
 # TODO Have an async version that uses the GPU
 func _update_all_normals():
 	update_normals(0, 0, _resolution, _resolution)
@@ -430,6 +469,11 @@ func get_texture(channel):
 	if _textures[channel] == null and _images[channel] != null:
 		_upload_channel(channel)
 	return _textures[channel]
+
+
+func get_aabb():
+	# TODO Why subtract 1? I forgot
+	return get_region_aabb(0, 0, _resolution - 1, _resolution - 1)
 
 
 func get_region_aabb(origin_in_cells_x, origin_in_cells_y, size_in_cells_x, size_in_cells_y):

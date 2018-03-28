@@ -7,6 +7,7 @@ const Grid = preload("grid.gd")
 var HTerrainData = load("res://addons/zylann.hterrain/hterrain_data.gd")
 const HTerrainChunk = preload("hterrain_chunk.gd")
 const Util = preload("util.gd")
+const HTerrainCollider = preload("hterrain_collider.gd")
 
 const DefaultShader = preload("shaders/simple4.shader")
 
@@ -35,10 +36,11 @@ signal progress_notified(info)
 
 
 export var depth_blending = false
+export var collision_enabled = false setget set_collision_enabled
+export var async_loading = false
 
 var _custom_material = null
 var _material = null
-var _collision_enabled = false
 var _data = null
 
 var _mesher = Mesher.new()
@@ -49,6 +51,8 @@ var _pending_chunk_updates = []
 # [lod][pos]
 # This container owns chunks
 var _chunks = []
+
+var _collider = null
 
 # Stats
 var _updated_chunks = 0
@@ -128,13 +132,23 @@ func get_custom_material():
 	return _custom_material
 
 
-func is_collision_enabled():
-	return _collision_enabled
+# TODO Remove this once 3.x contains heightmap shape fix, because it's broken in 3.0.2
+# You need this PR: https://github.com/godotengine/godot/pull/17806
+static func _check_heightmap_collider_support():
+	print("Heightmap shape not supported in this version of Godot")
+	return false
 
 
 func set_collision_enabled(enabled):
-	_collision_enabled = enabled
-	# TODO Update chunks / enable heightmap collider (or will be done through a different node perhaps)
+	if collision_enabled != enabled:
+		collision_enabled = enabled
+		if collision_enabled:
+			if not Engine.editor_hint and _check_heightmap_collider_support():
+				_collider = HTerrainCollider.new()
+		else:
+			# Despite this object being a Reference,
+			# this should free it, as it should be the only reference
+			_collider = null
 
 
 func _for_all_chunks(action):
@@ -159,16 +173,23 @@ func _notification(what):
 		NOTIFICATION_ENTER_WORLD:
 			print("Enter world")
 			_for_all_chunks(EnterWorldAction.new(get_world()))
-
+			if _collider != null:
+				_collider.set_world(get_world())
+				_collider.set_transform(get_global_transform())
+			
 		NOTIFICATION_EXIT_WORLD:
 			print("Exit world");
 			_for_all_chunks(ExitWorldAction.new())
-
+			if _collider != null:
+				_collider.set_world(null)
+			
 		NOTIFICATION_TRANSFORM_CHANGED:
 			print("Transform changed");
 			_for_all_chunks(TransformChangedAction.new(get_global_transform()))
 			_update_material()
-
+			if _collider != null:
+				_collider.set_transform(get_global_transform())
+			
 		NOTIFICATION_VISIBILITY_CHANGED:
 			print("Visibility changed");
 			_for_all_chunks(VisibilityChangedAction.new(is_visible()))
@@ -176,7 +197,7 @@ func _notification(what):
 
 func _enter_tree():
 	print("Enter tree")
-
+		
 	#   .                                                      .
 	#          .n                   .                 .                  n.
 	#    .   .dP                  dP                   9b                 9b.    .
@@ -199,13 +220,16 @@ func _enter_tree():
 	#                                `b  `       '  d'
 	#                                 `             '
 	# TODO This is temporary until I get saving and loading to work the proper way!
-	# Makes the terrain load automatically
+	# Terrain data should be able to load even before being assigned to its node.
+	# This makes the terrain load automatically
 	if _data != null and _data.get_resolution() == 0:
-		if Engine.editor_hint:
+		# Note: async loading in editor is better UX
+		if Engine.editor_hint or async_loading:
 			_data.load_data_async()
 		else:
+			# The game will freeze until enough data is ready
 			_data.load_data()
-
+	
 	set_process(true)
 
 
@@ -274,6 +298,11 @@ func set_data(new_data):
 
 func _on_data_progress_notified(info):
 	emit_signal("progress_notified", info)
+	
+	if info.finished and not Engine.editor_hint:
+		# Update collider when data is loaded
+		if _collider != null:
+			_collider.create_from_terrain_data(_data)
 
 
 func _on_data_resolution_changed():
