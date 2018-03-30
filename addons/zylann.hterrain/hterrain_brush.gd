@@ -125,7 +125,7 @@ static func _get_mode_channel(mode):
 		MODE_SPLAT:
 			return HTerrainData.CHANNEL_SPLAT
 		MODE_MASK:
-			return HTerrainData.CHANNEL_MASK
+			return HTerrainData.CHANNEL_COLOR
 		_:
 			print("This mode has no channel")
 
@@ -436,7 +436,7 @@ func _paint_color(data, origin_x, origin_y):
 
 func _paint_mask(data, origin_x, origin_y):
 
-	var im = data.get_image(HTerrainData.CHANNEL_MASK)
+	var im = data.get_image(HTerrainData.CHANNEL_COLOR)
 	assert(im != null)
 	
 	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size);
@@ -458,9 +458,6 @@ func _paint_mask(data, origin_x, origin_y):
 	max_x = pmax[0]
 	max_y = pmax[1]
 
-	var shape_threshold = 0.1
-	var value = Color(1.0, 0.0, 0.0, 0.0) if _opacity > 0.5 else Color()
-
 	im.lock()
 
 	for y in range(min_y, max_y):
@@ -470,9 +467,10 @@ func _paint_mask(data, origin_x, origin_y):
 			var py = y - min_noclamp_y
 			
 			var shape_value = _shape[py][px]
-
-			if shape_value > shape_threshold:
-				im.set_pixel(x, y, value)
+			
+			var c = im.get_pixel(x, y)
+			c.a = lerp(c.a, _opacity, shape_value)
+			im.set_pixel(x, y, c)
 
 
 static func _fetch_redo_chunks(im, keys):

@@ -4,7 +4,6 @@ uniform sampler2D height_texture;
 uniform sampler2D normal_texture;
 uniform sampler2D color_texture : hint_albedo;
 uniform sampler2D splat_texture;
-uniform sampler2D mask_texture;
 uniform vec2 heightmap_resolution;
 uniform mat4 heightmap_inverse_transform;
 
@@ -42,8 +41,9 @@ void vertex() {
 
 void fragment() {
 
-	float mask = texture(mask_texture, UV).r;
-	if(mask < 0.5)
+	vec4 tint = texture(color_texture, UV);
+	if(tint.a < 0.5)
+		// TODO Add option to use vertex discarding instead, using NaNs
 		discard;
 
 	vec3 n = unpack_normal(texture(normal_texture, UV).rgb);
@@ -61,8 +61,6 @@ void fragment() {
 	vec4 col2 = texture(detail_albedo_2, detail_uv);
 	vec4 col3 = texture(detail_albedo_3, detail_uv);
 	
-	vec3 tint = texture(color_texture, UV).rgb;
-		
 	// TODO An #ifdef macro would be nice! Or move in a different shader, heh
 	if (depth_blending) {
 		
@@ -93,7 +91,7 @@ void fragment() {
 		
 		vec4 w = clamp(d, 0, 1);
 		
-    	ALBEDO = tint * (w.r * col0.rgb + w.g * col1.rgb + w.b * col2.rgb + w.a * col3.rgb) / (w.r + w.g + w.b + w.a);
+    	ALBEDO = tint.rgb * (w.r * col0.rgb + w.g * col1.rgb + w.b * col2.rgb + w.a * col3.rgb) / (w.r + w.g + w.b + w.a);
 		
 	} else {
 		
@@ -102,7 +100,7 @@ void fragment() {
 		float w2 = splat.b;
 		float w3 = splat.a;
 		
-    	ALBEDO = tint * (w0 * col0.rgb + w1 * col1.rgb + w2 * col2.rgb + w3 * col3.rgb) / (w0 + w1 + w2 + w3);
+    	ALBEDO = tint.rgb * (w0 * col0.rgb + w1 * col1.rgb + w2 * col2.rgb + w3 * col3.rgb) / (w0 + w1 + w2 + w3);
 	}
 	
 	//ALBEDO = splat.rgb;

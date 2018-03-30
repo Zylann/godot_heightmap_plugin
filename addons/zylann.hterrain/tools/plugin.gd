@@ -245,9 +245,6 @@ func paint_completed():
 			
 		HTerrainData.CHANNEL_HEIGHT:
 			action_name = "Modify HeightMapData Height"
-
-		HTerrainData.CHANNEL_MASK:
-			action_name = "Modify HeightMapData Mask"
 			
 		_:
 			action_name = "Modify HeightMapData"

@@ -17,7 +17,6 @@ const SHADER_PARAM_HEIGHT_TEXTURE = "height_texture"
 const SHADER_PARAM_NORMAL_TEXTURE = "normal_texture"
 const SHADER_PARAM_COLOR_TEXTURE = "color_texture"
 const SHADER_PARAM_SPLAT_TEXTURE = "splat_texture"
-const SHADER_PARAM_MASK_TEXTURE = "mask_texture"
 const SHADER_PARAM_RESOLUTION = "heightmap_resolution"
 const SHADER_PARAM_INVERSE_TRANSFORM = "heightmap_inverse_transform"
 const SHADER_PARAM_DETAIL_ALBEDO = "detail_albedo_" # 0, 1, 2, 3...
@@ -426,7 +425,6 @@ func _update_material_params():
 	var normal_texture
 	var color_texture
 	var splat_texture
-	var mask_texture
 	var res = Vector2(-1,-1)
 
 	# TODO Only get textures the shader supports
@@ -436,7 +434,6 @@ func _update_material_params():
 		normal_texture = _data.get_texture(HTerrainData.CHANNEL_NORMAL)
 		color_texture = _data.get_texture(HTerrainData.CHANNEL_COLOR)
 		splat_texture = _data.get_texture(HTerrainData.CHANNEL_SPLAT)
-		mask_texture = _data.get_texture(HTerrainData.CHANNEL_MASK)
 		res.x = _data.get_resolution()
 		res.y = res.x
 
@@ -449,7 +446,6 @@ func _update_material_params():
 	material.set_shader_param(SHADER_PARAM_NORMAL_TEXTURE, normal_texture)
 	material.set_shader_param(SHADER_PARAM_COLOR_TEXTURE, color_texture)
 	material.set_shader_param(SHADER_PARAM_SPLAT_TEXTURE, splat_texture)
-	material.set_shader_param(SHADER_PARAM_MASK_TEXTURE, mask_texture)
 	material.set_shader_param(SHADER_PARAM_RESOLUTION, res)
 	material.set_shader_param("depth_blending", depth_blending)
 

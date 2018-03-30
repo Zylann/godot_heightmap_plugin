@@ -10,9 +10,7 @@ const CHANNEL_HEIGHT = 0
 const CHANNEL_NORMAL = 1
 const CHANNEL_SPLAT = 2
 const CHANNEL_COLOR = 3
-# TODO Merge mask with color under alpha channel to save space and optimize shader
-const CHANNEL_MASK = 4
-const CHANNEL_COUNT = 5
+const CHANNEL_COUNT = 4
 
 const MAX_RESOLUTION = 4096 + 1
 const DEFAULT_RESOLUTION = 256
@@ -154,24 +152,8 @@ func set_resolution2(p_res, update_normals):
 		var im = Image.new()
 		im.create(_resolution, _resolution, false, _get_channel_format(CHANNEL_SPLAT))
 		im.fill(Color(1, 0, 0, 0))
-		# Initialize weights so we can see the default texture
-		#im.fill(Color8(0, 128, 0, 0))
 		_images[CHANNEL_SPLAT] = im
 		
-	else:
-		_images[CHANNEL_SPLAT].resize(_resolution, _resolution)
-
-	# Resize mask
-	print("Resizing mask...")
-	if _images[CHANNEL_MASK] == null:
-		var im = Image.new()
-		im.create(_resolution, _resolution, false, _get_channel_format(CHANNEL_MASK))
-		# Initialize mask so the terrain has no holes by default.
-		# Need to be a white color because even though L8 format is a single channel,
-		# the color gets converted to greyscale before been writen into the image
-		im.fill(Color8(255, 255, 255, 255))
-		_images[CHANNEL_MASK] = im
-	
 	else:
 		_images[CHANNEL_SPLAT].resize(_resolution, _resolution)
 
@@ -335,8 +317,7 @@ func notify_region_change(p_min, p_max, channel):
 
 		CHANNEL_NORMAL, \
 		CHANNEL_SPLAT, \
-		CHANNEL_COLOR, \
-		CHANNEL_MASK:
+		CHANNEL_COLOR:
 			_upload_region(channel, p_min[0], p_min[1], p_max[0], p_max[1])
 
 		_:
@@ -401,8 +382,7 @@ func _edit_apply_undo(undo_data):
 				update_normals(min_x - 1, min_y - 1, max_x - min_x + 2, max_y - min_y + 2)
 
 			CHANNEL_SPLAT, \
-			CHANNEL_COLOR, \
-			CHANNEL_MASK:
+			CHANNEL_COLOR:
 				assert(_images[channel] != null)
 				_images[channel].blit_rect(data, data_rect, Vector2(min_x, min_y))
 
@@ -874,14 +854,9 @@ static func _get_channel_format(channel):
 		CHANNEL_NORMAL:
 			return Image.FORMAT_RGB8
 		CHANNEL_SPLAT:
-			#return Image.FORMAT_RG8
 			return Image.FORMAT_RGBA8
 		CHANNEL_COLOR:
 			return Image.FORMAT_RGBA8
-		CHANNEL_MASK:
-			# TODO A bitmap would be 8 times lighter...
-			# Didn't use FORMAT_R8 because it won't save as a mono-channel PNG
-			return Image.FORMAT_L8
 	
 	print("Unrecognized channel\n")
 	return Image.FORMAT_MAX
@@ -902,8 +877,6 @@ static func _get_channel_name(c):
 			return "splat"
 		CHANNEL_NORMAL:
 			return "normal"
-		CHANNEL_MASK:
-			return "mask"
 		CHANNEL_HEIGHT:
 			return "height"
 	return null
