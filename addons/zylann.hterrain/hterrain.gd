@@ -19,9 +19,7 @@ const SHADER_PARAM_COLOR_TEXTURE = "color_texture"
 const SHADER_PARAM_SPLAT_TEXTURE = "splat_texture"
 const SHADER_PARAM_RESOLUTION = "heightmap_resolution"
 const SHADER_PARAM_INVERSE_TRANSFORM = "heightmap_inverse_transform"
-const SHADER_PARAM_DETAIL_ALBEDO = "detail_albedo_" # 0, 1, 2, 3...
-const SHADER_PARAM_DETAIL_NORMAL = "detail_normal_" # 0, 1, 2, 3...
-const SHADER_PARAM_DETAIL_BUMP = "detail_bump_" # 0, 1, 2, 3...
+const SHADER_PARAM_DETAIL_PREFIX = "detail_" # + name + _0, _1, _2, _3...
 
 const SHADER_SIMPLE4 = 0
 #const SHADER_ARRAY = 1
@@ -29,7 +27,15 @@ const SHADER_SIMPLE4 = 0
 const DETAIL_ALBEDO = 0
 const DETAIL_NORMAL = 1
 const DETAIL_BUMP = 2
+const DETAIL_ROUGHNESS = 3
+const DETAIL_TYPE_COUNT = 4
 
+const _detail_enum_to_name = [
+	"albedo",
+	"normal",
+	"depth",
+	"roughness"
+]
 
 signal progress_notified(info)
 
@@ -78,7 +84,7 @@ func _get_property_list():
 	]
 	
 	for i in range(get_detail_texture_slot_count()):
-		for t in ["albedo", "normal", "depth"]:
+		for t in _detail_enum_to_name:
 			props.append({
 				"name": "detail/" + t + "_" + str(i),
 				"type": TYPE_OBJECT,
@@ -94,18 +100,12 @@ func _get(key):
 	
 	if key == "data":
 		return get_data()
-		
-	elif key.begins_with("detail/albedo_"):
-		var i = key.right(len(key) - 1).to_int()
-		return get_detail_texture(i, DETAIL_ALBEDO)
-		
-	elif key.begins_with("detail/normal_"):
-		var i = key.right(len(key) - 1).to_int()
-		return get_detail_texture(i, DETAIL_NORMAL)
-		
-	elif key.begins_with("detail/depth_"):
-		var i = key.right(len(key) - 1).to_int()
-		return get_detail_texture(i, DETAIL_BUMP)
+	
+	for detail_type in range(DETAIL_TYPE_COUNT):
+		var type_name = _detail_enum_to_name[detail_type]
+		if key.begins_with("detail/" + type_name + "_"):
+			var i = key.right(len(key) - 1).to_int()
+			return get_detail_texture(i, detail_type)
 
 
 func _set(key, value):
@@ -114,17 +114,11 @@ func _set(key, value):
 	if key == "data":
 		set_data(value)
 	
-	elif key.begins_with("detail/albedo_"):
-		var i = key.right(len(key) - 1).to_int()
-		set_detail_texture(i, DETAIL_ALBEDO, value)
-
-	elif key.begins_with("detail/normal_"):
-		var i = key.right(len(key) - 1).to_int()
-		set_detail_texture(i, DETAIL_NORMAL, value)
-
-	elif key.begins_with("detail/depth_"):
-		var i = key.right(len(key) - 1).to_int()
-		set_detail_texture(i, DETAIL_BUMP, value)
+	for detail_type in range(DETAIL_TYPE_COUNT):
+		var type_name = _detail_enum_to_name[detail_type]
+		if key.begins_with("detail/" + type_name + "_"):
+			var i = key.right(len(key) - 1).to_int()
+			set_detail_texture(i, detail_type, value)
 
 
 func get_custom_material():
@@ -766,31 +760,33 @@ func cell_raycast(origin_world, dir_world, out_cell_pos):
 	return false
 
 
+static func get_detail_texture_shader_param(detail_type, slot):
+	assert(typeof(slot) == TYPE_INT and slot >= 0)
+	_check_detail_type(detail_type)
+	return SHADER_PARAM_DETAIL_PREFIX + _detail_enum_to_name[detail_type] + "_" + str(slot)
+
+
 func get_detail_texture(slot, type):
-	assert(slot >= 0 and slot < get_detail_texture_slot_count())
-	match type:
-		DETAIL_ALBEDO:
-			return _material.get_shader_param(SHADER_PARAM_DETAIL_ALBEDO + str(slot))
-		DETAIL_NORMAL:
-			return _material.get_shader_param(SHADER_PARAM_DETAIL_NORMAL + str(slot))
-		DETAIL_BUMP:
-			return _material.get_shader_param(SHADER_PARAM_DETAIL_BUMP + str(slot))
-		_:
-			print("Unknown texture type ", type)
-	return null
+	_check_slot(slot)
+	var shader_param = get_detail_texture_shader_param(type, slot)
+	return _material.get_shader_param(shader_param)
 
 
 func set_detail_texture(slot, type, tex):
+	_check_slot(slot)
+	assert(tex == null or tex is Texture)
+	var shader_param = get_detail_texture_shader_param(type, slot)
+	_material.set_shader_param(shader_param, tex)
+
+
+func _check_slot(slot):
+	assert(typeof(slot) == TYPE_INT)
 	assert(slot >= 0 and slot < get_detail_texture_slot_count())
-	match type:
-		DETAIL_ALBEDO:
-			_material.set_shader_param(SHADER_PARAM_DETAIL_ALBEDO + str(slot), tex)
-		DETAIL_NORMAL:
-			_material.set_shader_param(SHADER_PARAM_DETAIL_NORMAL + str(slot), tex)
-		DETAIL_BUMP:
-			_material.set_shader_param(SHADER_PARAM_DETAIL_BUMP + str(slot), tex)
-		_:
-			print("Unknown texture type ", type)
+
+
+static func _check_detail_type(detail_type):
+	assert(typeof(detail_type) == TYPE_INT)
+	assert(detail_type >= 0 and detail_type < DETAIL_TYPE_COUNT)
 
 
 static func get_detail_texture_slot_count_for_shader(mode):

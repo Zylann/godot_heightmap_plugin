@@ -3,6 +3,7 @@ extends AcceptDialog
 
 const HTerrain = preload("../hterrain.gd")
 
+# Need to know when albedo changed because it's used as the "main" preview
 signal albedo_changed(slot, texture)
 
 var _terrain = null
@@ -11,6 +12,7 @@ var _slot = 0
 onready var _albedo_preview = get_node("GridContainer/AlbedoPreview")
 onready var _normal_preview = get_node("GridContainer/NormalPreview")
 onready var _bump_preview = get_node("GridContainer/BumpPreview")
+onready var _roughness_preview = get_node("GridContainer/RoughnessPreview")
 
 var _load_dialog = null
 var _load_dialog_tex_type = -1
@@ -38,6 +40,7 @@ func _update_previews():
 	_albedo_preview.texture = _get_preview_texture(_slot, HTerrain.DETAIL_ALBEDO)
 	_normal_preview.texture = _get_preview_texture(_slot, HTerrain.DETAIL_NORMAL)
 	_bump_preview.texture = _get_preview_texture(_slot, HTerrain.DETAIL_BUMP)
+	_roughness_preview.texture = _get_preview_texture(_slot, HTerrain.DETAIL_ROUGHNESS)
 
 
 func _get_preview_texture(slot, tex_type):
@@ -82,6 +85,10 @@ func _on_LoadBump_pressed():
 	_open_load_dialog(HTerrain.DETAIL_BUMP)
 
 
+func _on_LoadRoughness_pressed():
+	_open_load_dialog(HTerrain.DETAIL_ROUGHNESS)
+
+
 func _on_ClearAlbedo_pressed():
 	_set_texture(null, HTerrain.DETAIL_ALBEDO)
 
@@ -93,4 +100,7 @@ func _on_ClearNormal_pressed():
 func _on_ClearBump_pressed():
 	_set_texture(null, HTerrain.DETAIL_BUMP)
 
+
+func _on_ClearRoughness_pressed():
+	_set_texture(null, HTerrain.DETAIL_ROUGHNESS)
 

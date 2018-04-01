@@ -17,10 +17,10 @@ uniform sampler2D detail_normal_1;
 uniform sampler2D detail_normal_2;
 uniform sampler2D detail_normal_3;
 
-uniform sampler2D detail_bump_0;
-uniform sampler2D detail_bump_1;
-uniform sampler2D detail_bump_2;
-uniform sampler2D detail_bump_3;
+uniform sampler2D detail_depth_0;
+uniform sampler2D detail_depth_1;
+uniform sampler2D detail_depth_2;
+uniform sampler2D detail_depth_3;
 
 uniform float detail_scale = 20.0;
 uniform bool depth_blending = true;
@@ -72,10 +72,10 @@ void fragment() {
 		
 		// TODO Have a tool to merge bump with albedo,
 		// so it will be provided for free and we won't need those texture fetches
-		col0.a = texture(detail_bump_0, detail_uv).r;
-		col1.a = texture(detail_bump_1, detail_uv).r;
-		col2.a = texture(detail_bump_2, detail_uv).r;
-		col3.a = texture(detail_bump_3, detail_uv).r;
+		col0.a = texture(detail_depth_0, detail_uv).r;
+		col1.a = texture(detail_depth_1, detail_uv).r;
+		col2.a = texture(detail_depth_2, detail_uv).r;
+		col3.a = texture(detail_depth_3, detail_uv).r;
 		
 		//splat *= 1.4; // Mitigation #1: increase splat range over bump
 		vec4 h = vec4(col0.a, col1.a, col2.a, col3.a) + splat;
