@@ -2,25 +2,26 @@
 
 importer="texture"
 type="StreamTexture"
-path="res://.import/bricks_roughness.png-957e6e9bb8e10f640f59deb5f7d9fb94.stex"
+path.s3tc="res://.import/bricks_roughness.png-957e6e9bb8e10f640f59deb5f7d9fb94.s3tc.stex"
+path.etc2="res://.import/bricks_roughness.png-957e6e9bb8e10f640f59deb5f7d9fb94.etc2.stex"
 
 [deps]
 
 source_file="res://addons/zylann.hterrain/demo/textures/bricks_roughness.png"
 source_md5="734f12ee013c70d304dee488fcafcbf7"
 
-dest_files=[ "res://.import/bricks_roughness.png-957e6e9bb8e10f640f59deb5f7d9fb94.stex" ]
-dest_md5="5544579a30234132c5ade7122835cf0a"
+dest_files=[ "res://.import/bricks_roughness.png-957e6e9bb8e10f640f59deb5f7d9fb94.s3tc.stex", "res://.import/bricks_roughness.png-957e6e9bb8e10f640f59deb5f7d9fb94.etc2.stex" ]
+dest_md5="9a46588e35462cd8adea700870fb0d60"
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/lossy_quality=0.7
 compress/hdr_mode=0
 compress/normal_map=0
-flags/repeat=0
+flags/repeat=true
 flags/filter=true
-flags/mipmaps=false
+flags/mipmaps=true
 flags/anisotropic=false
 flags/srgb=2
 process/fix_alpha_border=true
@@ -28,5 +29,5 @@ process/premult_alpha=false
 process/HDR_as_SRGB=false
 stream=false
 size_limit=0
-detect_3d=true
+detect_3d=false
 svg/scale=1.0

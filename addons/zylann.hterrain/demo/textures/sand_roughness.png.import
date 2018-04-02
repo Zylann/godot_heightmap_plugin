@@ -2,25 +2,26 @@
 
 importer="texture"
 type="StreamTexture"
-path="res://.import/sand_roughness.png-c5bdc6df943a9b53b90ae1b611c95024.stex"
+path.s3tc="res://.import/sand_roughness.png-c5bdc6df943a9b53b90ae1b611c95024.s3tc.stex"
+path.etc2="res://.import/sand_roughness.png-c5bdc6df943a9b53b90ae1b611c95024.etc2.stex"
 
 [deps]
 
 source_file="res://addons/zylann.hterrain/demo/textures/sand_roughness.png"
 source_md5="37cd6939c5ca1b238ee172aed410c12c"
 
-dest_files=[ "res://.import/sand_roughness.png-c5bdc6df943a9b53b90ae1b611c95024.stex" ]
-dest_md5="19cec846889399dd163b1c8aced09634"
+dest_files=[ "res://.import/sand_roughness.png-c5bdc6df943a9b53b90ae1b611c95024.s3tc.stex", "res://.import/sand_roughness.png-c5bdc6df943a9b53b90ae1b611c95024.etc2.stex" ]
+dest_md5="1b9d2d18af04cb8621ab0af6306ca492"
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/lossy_quality=0.7
 compress/hdr_mode=0
 compress/normal_map=0
-flags/repeat=0
+flags/repeat=true
 flags/filter=true
-flags/mipmaps=false
+flags/mipmaps=true
 flags/anisotropic=false
 flags/srgb=2
 process/fix_alpha_border=true
@@ -28,5 +29,5 @@ process/premult_alpha=false
 process/HDR_as_SRGB=false
 stream=false
 size_limit=0
-detect_3d=true
+detect_3d=false
 svg/scale=1.0

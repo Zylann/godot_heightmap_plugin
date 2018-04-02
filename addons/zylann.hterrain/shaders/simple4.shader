@@ -22,6 +22,11 @@ uniform sampler2D detail_depth_1;
 uniform sampler2D detail_depth_2;
 uniform sampler2D detail_depth_3;
 
+uniform sampler2D detail_roughness_0;
+uniform sampler2D detail_roughness_1;
+uniform sampler2D detail_roughness_2;
+uniform sampler2D detail_roughness_3;
+
 uniform float detail_scale = 20.0;
 uniform bool depth_blending = true;
 
@@ -61,6 +66,11 @@ void fragment() {
 	vec4 col2 = texture(detail_albedo_2, detail_uv);
 	vec4 col3 = texture(detail_albedo_3, detail_uv);
 	
+	float roughness0 = texture(detail_roughness_0, detail_uv).r;
+	float roughness1 = texture(detail_roughness_1, detail_uv).r;
+	float roughness2 = texture(detail_roughness_2, detail_uv).r;
+	float roughness3 = texture(detail_roughness_3, detail_uv).r;
+	
 	// TODO An #ifdef macro would be nice! Or move in a different shader, heh
 	if (depth_blending) {
 		
@@ -91,7 +101,10 @@ void fragment() {
 		
 		vec4 w = clamp(d, 0, 1);
 		
-    	ALBEDO = tint.rgb * (w.r * col0.rgb + w.g * col1.rgb + w.b * col2.rgb + w.a * col3.rgb) / (w.r + w.g + w.b + w.a);
+		float w_sum = (w.r + w.g + w.b + w.a);
+		
+    	ALBEDO = tint.rgb * (w.r * col0.rgb + w.g * col1.rgb + w.b * col2.rgb + w.a * col3.rgb) / w_sum;
+		ROUGHNESS = (w.r * roughness0 + w.g * roughness1 + w.b * roughness2 + w.a * roughness3) / w_sum;
 		
 	} else {
 		
@@ -99,8 +112,11 @@ void fragment() {
 		float w1 = splat.g;
 		float w2 = splat.b;
 		float w3 = splat.a;
+
+		float w_sum = (w0 + w1 + w2 + w3);
 		
-    	ALBEDO = tint.rgb * (w0 * col0.rgb + w1 * col1.rgb + w2 * col2.rgb + w3 * col3.rgb) / (w0 + w1 + w2 + w3);
+    	ALBEDO = tint.rgb * (w0 * col0.rgb + w1 * col1.rgb + w2 * col2.rgb + w3 * col3.rgb) / w_sum;
+		ROUGHNESS = (w0 * roughness0 + w1 * roughness1 + w2 * roughness2 + w3 * roughness3) / w_sum;
 	}
 	
 	//ALBEDO = splat.rgb;

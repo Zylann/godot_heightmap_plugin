@@ -2,25 +2,26 @@
 
 importer="texture"
 type="StreamTexture"
-path="res://.import/grass_roughness.png-a5039eff17e8251bfaf72fabe90b9ef1.stex"
+path.s3tc="res://.import/grass_roughness.png-a5039eff17e8251bfaf72fabe90b9ef1.s3tc.stex"
+path.etc2="res://.import/grass_roughness.png-a5039eff17e8251bfaf72fabe90b9ef1.etc2.stex"
 
 [deps]
 
 source_file="res://addons/zylann.hterrain/demo/textures/grass_roughness.png"
 source_md5="bbdcd12144bfab230585a783de2d0be7"
 
-dest_files=[ "res://.import/grass_roughness.png-a5039eff17e8251bfaf72fabe90b9ef1.stex" ]
-dest_md5="7ed9582fcd0c8717dc0fe15cf8aec2da"
+dest_files=[ "res://.import/grass_roughness.png-a5039eff17e8251bfaf72fabe90b9ef1.s3tc.stex", "res://.import/grass_roughness.png-a5039eff17e8251bfaf72fabe90b9ef1.etc2.stex" ]
+dest_md5="eb401c9a32d360231f722bd1ee2d07a3"
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/lossy_quality=0.7
 compress/hdr_mode=0
 compress/normal_map=0
-flags/repeat=0
+flags/repeat=true
 flags/filter=true
-flags/mipmaps=false
+flags/mipmaps=true
 flags/anisotropic=false
 flags/srgb=2
 process/fix_alpha_border=true
@@ -28,5 +29,5 @@ process/premult_alpha=false
 process/HDR_as_SRGB=false
 stream=false
 size_limit=0
-detect_3d=true
+detect_3d=false
 svg/scale=1.0
