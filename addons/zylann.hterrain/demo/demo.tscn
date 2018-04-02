@@ -1,4 +1,4 @@
-[gd_scene load_steps=26 format=2]
+[gd_scene load_steps=27 format=2]
 
 [ext_resource path="res://addons/zylann.hterrain/hterrain.gd" type="Script" id=1]
 [ext_resource path="res://addons/zylann.hterrain/tools/icons/icon_heightmap_node.svg" type="Texture" id=2]
@@ -19,34 +19,19 @@
 [ext_resource path="res://addons/zylann.hterrain/demo/textures/bricks_normal.png" type="Texture" id=17]
 [ext_resource path="res://addons/zylann.hterrain/demo/textures/bricks_depth.png" type="Texture" id=18]
 [ext_resource path="res://addons/zylann.hterrain/demo/textures/bricks_roughness.png" type="Texture" id=19]
-[ext_resource path="res://addons/zylann.hterrain/demo/avatar.gd" type="Script" id=20]
-[ext_resource path="res://addons/zylann.hterrain/demo/mouse_look.gd" type="Script" id=21]
-[ext_resource path="res://addons/zylann.hterrain/demo/inventory.gd" type="Script" id=22]
+[ext_resource path="res://addons/zylann.hterrain/demo/table_mountain_2_4k.hdr" type="Texture" id=20]
+[ext_resource path="res://addons/zylann.hterrain/demo/avatar.gd" type="Script" id=21]
+[ext_resource path="res://addons/zylann.hterrain/demo/mouse_look.gd" type="Script" id=22]
+[ext_resource path="res://addons/zylann.hterrain/demo/inventory.gd" type="Script" id=23]
 
 [sub_resource type="Resource" id=1]
 
 script = ExtResource( 3 )
 
-[sub_resource type="ProceduralSky" id=2]
+[sub_resource type="PanoramaSky" id=2]
 
 radiance_size = 4
-sky_top_color = Color( 0.315033, 0.49562, 0.726563, 1 )
-sky_horizon_color = Color( 0.556863, 0.823529, 0.909804, 1 )
-sky_curve = 0.25
-sky_energy = 1.0
-ground_bottom_color = Color( 0.101961, 0.145098, 0.188235, 1 )
-ground_horizon_color = Color( 0.482353, 0.788235, 0.952941, 1 )
-ground_curve = 0.01
-ground_energy = 1.0
-sun_color = Color( 1, 1, 1, 1 )
-sun_latitude = 35.0
-sun_longitude = 0.0
-sun_angle_min = 1.0
-sun_angle_max = 100.0
-sun_curve = 0.05
-sun_energy = 16.0
-texture_size = 2
-_sections_unfolded = [ "Sky" ]
+panorama = ExtResource( 20 )
 
 [sub_resource type="Environment" id=3]
 
@@ -58,13 +43,13 @@ background_energy = 1.0
 background_canvas_max_layer = 0
 ambient_light_color = Color( 0, 0, 0, 1 )
 ambient_light_energy = 1.0
-ambient_light_sky_contribution = 0.5
+ambient_light_sky_contribution = 0.2
 fog_enabled = true
-fog_color = Color( 0.5, 0.6, 0.7, 1 )
+fog_color = Color( 0.537255, 0.607843, 0.647059, 1 )
 fog_sun_color = Color( 1, 0.9, 0.7, 1 )
 fog_sun_amount = 0.0
 fog_depth_enabled = true
-fog_depth_begin = 10.0
+fog_depth_begin = 50.0
 fog_depth_curve = 1.0
 fog_transmit_enabled = false
 fog_transmit_curve = 1.0
@@ -107,7 +92,7 @@ dof_blur_near_distance = 2.0
 dof_blur_near_transition = 1.0
 dof_blur_near_amount = 0.1
 dof_blur_near_quality = 1
-glow_enabled = true
+glow_enabled = false
 glow_levels/1 = false
 glow_levels/2 = false
 glow_levels/3 = true
@@ -126,7 +111,7 @@ adjustment_enabled = false
 adjustment_brightness = 1.0
 adjustment_contrast = 1.0
 adjustment_saturation = 1.0
-_sections_unfolded = [ "Fog", "Glow" ]
+_sections_unfolded = [ "Ambient Light", "Background", "Fog", "Glow" ]
 
 [node name="Node" type="Node" index="0"]
 
@@ -160,7 +145,7 @@ detail/roughness_3 = ExtResource( 19 )
 
 [node name="DirectionalLight" type="DirectionalLight" parent="." index="1"]
 
-transform = Transform( 0.885685, 0.266304, -0.380321, 0, 0.819152, 0.573576, 0.464287, -0.508008, 0.72551, 0.23566, 24.6231, 0 )
+transform = Transform( 0.63372, 0.481459, -0.605471, -0.0588273, 0.810434, 0.582869, 0.771323, -0.333757, 0.54191, 208.674, 25.6072, 95.8954 )
 layers = 1
 light_color = Color( 1, 1, 1, 1 )
 light_energy = 1.0
@@ -193,7 +178,7 @@ environment = SubResource( 3 )
 [node name="Avatar" type="Spatial" parent="." index="3"]
 
 transform = Transform( -1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 178.398, 33.4623, 0 )
-script = ExtResource( 20 )
+script = ExtResource( 21 )
 _sections_unfolded = [ "Transform" ]
 
 [node name="Camera" type="Camera" parent="Avatar" index="0"]
@@ -211,7 +196,7 @@ fov = 70.0
 size = 1.0
 near = 0.05
 far = 1000.0
-script = ExtResource( 21 )
+script = ExtResource( 22 )
 _sections_unfolded = [ "Transform" ]
 sensitivity = 0.4
 min_angle = -90
@@ -221,6 +206,6 @@ distance = 5.0
 
 [node name="Inventory" type="Node" parent="Avatar" index="1"]
 
-script = ExtResource( 22 )
+script = ExtResource( 23 )
 
 

@@ -50,10 +50,6 @@ void fragment() {
 	if(tint.a < 0.5)
 		// TODO Add option to use vertex discarding instead, using NaNs
 		discard;
-
-	vec3 n = unpack_normal(texture(normal_texture, UV).rgb);
-	// TODO Apply detail texture normal on top of this normal??
-	NORMAL = (INV_CAMERA_MATRIX * (WORLD_MATRIX * vec4(n, 0.0))).xyz;
 	
 	vec4 splat = texture(splat_texture, UV);
 
@@ -70,6 +66,13 @@ void fragment() {
 	float roughness1 = texture(detail_roughness_1, detail_uv).r;
 	float roughness2 = texture(detail_roughness_2, detail_uv).r;
 	float roughness3 = texture(detail_roughness_3, detail_uv).r;
+	
+	vec3 normal0 = unpack_normal(texture(detail_normal_0, detail_uv).xzy);
+	vec3 normal1 = unpack_normal(texture(detail_normal_1, detail_uv).xzy);
+	vec3 normal2 = unpack_normal(texture(detail_normal_2, detail_uv).xzy);
+	vec3 normal3 = unpack_normal(texture(detail_normal_3, detail_uv).xzy);
+	
+	vec3 detail_normal;
 	
 	// TODO An #ifdef macro would be nice! Or move in a different shader, heh
 	if (depth_blending) {
@@ -105,6 +108,7 @@ void fragment() {
 		
     	ALBEDO = tint.rgb * (w.r * col0.rgb + w.g * col1.rgb + w.b * col2.rgb + w.a * col3.rgb) / w_sum;
 		ROUGHNESS = (w.r * roughness0 + w.g * roughness1 + w.b * roughness2 + w.a * roughness3) / w_sum;
+		detail_normal = (w.r * normal0 + w.g * normal1 + w.b * normal2 + w.a * normal3) / w_sum;
 		
 	} else {
 		
@@ -117,8 +121,14 @@ void fragment() {
 		
     	ALBEDO = tint.rgb * (w0 * col0.rgb + w1 * col1.rgb + w2 * col2.rgb + w3 * col3.rgb) / w_sum;
 		ROUGHNESS = (w0 * roughness0 + w1 * roughness1 + w2 * roughness2 + w3 * roughness3) / w_sum;
+		detail_normal = (w0 * normal0 + w1 * normal1 + w2 * normal2 + w3 * normal3) / w_sum;
 	}
 	
+	// Combine terrain normals with detail normals (not sure if correct but looks ok)
+	vec3 terrain_normal = unpack_normal(texture(normal_texture, UV).rgb);
+	vec3 normal = normalize(vec3(terrain_normal.x + detail_normal.x, terrain_normal.y, terrain_normal.z + detail_normal.z));
+	NORMAL = (INV_CAMERA_MATRIX * (WORLD_MATRIX * vec4(normal, 0.0))).xyz;
+
 	//ALBEDO = splat.rgb;
 }
 
