@@ -1,0 +1,25 @@
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://addons/zylann.hterrain/tools/inspector.gd" type="Script" id=1]
+
+[node name="Inspector" type="GridContainer" index="0"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_right = 348.0
+margin_bottom = 383.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+custom_constants/vseparation = 4
+custom_constants/hseparation = 8
+columns = 2
+script = ExtResource( 1 )
+_sections_unfolded = [ "custom_constants" ]
+
+

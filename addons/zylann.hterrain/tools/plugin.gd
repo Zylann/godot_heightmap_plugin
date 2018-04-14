@@ -10,12 +10,14 @@ const ChannelPacker = preload("channel_packer/dialog.tscn")
 const LoadTextureDialog = preload("load_texture_dialog.gd")
 const EditPanel = preload("panel.tscn")
 const ProgressWindow = preload("progress_window.tscn")
+const GeneratorDialog = preload("generator/generator_dialog.tscn")
 
 const MENU_IMPORT_IMAGE = 0
 const MENU_CHANNEL_PACKER = 1
 # TODO These two should not exist, they are workarounds to test saving!
 const MENU_SAVE = 2
 const MENU_LOAD = 3
+const MENU_GENERATE = 4
 
 
 var _node = null
@@ -32,6 +34,8 @@ var _import_file_path = ""
 var _import_preloaded_image = null
 
 var _channel_packer = null
+
+var _generator_dialog = null
 
 var _progress_window = null
 
@@ -71,6 +75,8 @@ func _enter_tree():
 	menu.get_popup().add_separator()
 	menu.get_popup().add_item("Save", MENU_SAVE)
 	menu.get_popup().add_item("Load", MENU_LOAD)
+	menu.get_popup().add_separator()
+	menu.get_popup().add_item("Generate...", MENU_GENERATE)
 	menu.get_popup().connect("id_pressed", self, "_menu_item_selected")
 	_toolbar.add_child(menu)
 	
@@ -138,6 +144,10 @@ func _enter_tree():
 	# See https://github.com/godotengine/godot/issues/17626
 	_channel_packer.rect_min_size += Vector2(0, 100)
 	
+	_generator_dialog = GeneratorDialog.instance()
+	_generator_dialog.connect("progress_notified", self, "_terrain_progress_notified")
+	base_control.add_child(_generator_dialog)
+	
 	_progress_window = ProgressWindow.instance()
 	base_control.add_child(_progress_window)
 
@@ -158,16 +168,17 @@ func edit(object):
 		node = object
 	
 	if _node != null:
-		_node.disconnect("tree_exited", self, "_height_map_exited_scene")
+		_node.disconnect("tree_exited", self, "_terrain_exited_scene")
 		_node.disconnect("progress_notified", self, "_terrain_progress_notified")
 	
 	_node = node
 	
 	if _node != null:
-		_node.connect("tree_exited", self, "_height_map_exited_scene")
+		_node.connect("tree_exited", self, "_terrain_exited_scene")
 		_node.connect("progress_notified", self, "_terrain_progress_notified")
 	
 	_panel.set_terrain(_node)
+	_generator_dialog.set_terrain(_node)
 
 
 func make_visible(visible):
@@ -274,8 +285,8 @@ func paint_completed():
 	heightmap_data._edit_set_disable_apply_undo(false)
 
 
-func _height_map_exited_scene():
-	print("HeightMap exited the scene")
+func _terrain_exited_scene():
+	print("HTerrain exited the scene")
 	edit(null)
 
 
@@ -294,6 +305,8 @@ func _menu_item_selected(id):
 			var data = _node.get_data()
 			if data != null:
 				data.load_data_async()
+		MENU_GENERATE:
+			_generator_dialog.popup_centered_minsize()
 
 
 func _on_mode_selected(mode):
@@ -444,11 +457,17 @@ func _import_png_file(path):
 func _terrain_progress_notified(info):
 	#print("Plugin received: ", info.message, ", ", int(info.progress * 100.0), "%")
 	
-	if info.finished:
+	if info.has("finished") and info.finished:
 		_progress_window.hide()
+	
 	else:
 		if not _progress_window.visible:
 			_progress_window.popup_centered_minsize()
+		
+		var message = ""
+		if info.has("message"):
+			message = info.message
+		
 		_progress_window.show_progress(info.message, info.progress)
 		# TODO Have builtin modal progress bar
 
