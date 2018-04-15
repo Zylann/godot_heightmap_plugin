@@ -37,10 +37,10 @@ func set_slot(slot):
 
 
 func _update_previews():
-	_albedo_preview.texture = _get_preview_texture(_slot, HTerrain.DETAIL_ALBEDO)
-	_normal_preview.texture = _get_preview_texture(_slot, HTerrain.DETAIL_NORMAL)
-	_bump_preview.texture = _get_preview_texture(_slot, HTerrain.DETAIL_BUMP)
-	_roughness_preview.texture = _get_preview_texture(_slot, HTerrain.DETAIL_ROUGHNESS)
+	_albedo_preview.texture = _get_preview_texture(_slot, HTerrain.DETAIL_ALBEDO_ROUGHNESS)
+	_roughness_preview.texture = _get_preview_texture(_slot, HTerrain.DETAIL_ALBEDO_ROUGHNESS)
+	_normal_preview.texture = _get_preview_texture(_slot, HTerrain.DETAIL_NORMAL_BUMP)
+	_bump_preview.texture = _get_preview_texture(_slot, HTerrain.DETAIL_NORMAL_BUMP)
 
 
 func _get_preview_texture(slot, tex_type):
@@ -69,38 +69,22 @@ func _set_texture(tex, type):
 	# TODO Make it undoable
 	_terrain.set_detail_texture(_slot, type, tex)
 	_update_previews()
-	if type == HTerrain.DETAIL_ALBEDO:
+	if type == HTerrain.DETAIL_ALBEDO_ROUGHNESS:
 		emit_signal("albedo_changed", _slot, tex)
 
 
 func _on_LoadAlbedo_pressed():
-	_open_load_dialog(HTerrain.DETAIL_ALBEDO)
+	_open_load_dialog(HTerrain.DETAIL_ALBEDO_ROUGHNESS)
 
 
 func _on_LoadNormal_pressed():
-	_open_load_dialog(HTerrain.DETAIL_NORMAL)
-
-
-func _on_LoadBump_pressed():
-	_open_load_dialog(HTerrain.DETAIL_BUMP)
-
-
-func _on_LoadRoughness_pressed():
-	_open_load_dialog(HTerrain.DETAIL_ROUGHNESS)
+	_open_load_dialog(HTerrain.DETAIL_NORMAL_BUMP)
 
 
 func _on_ClearAlbedo_pressed():
-	_set_texture(null, HTerrain.DETAIL_ALBEDO)
+	_set_texture(null, HTerrain.DETAIL_ALBEDO_ROUGHNESS)
 
 
 func _on_ClearNormal_pressed():
-	_set_texture(null, HTerrain.DETAIL_NORMAL)
-
-
-func _on_ClearBump_pressed():
-	_set_texture(null, HTerrain.DETAIL_BUMP)
-
-
-func _on_ClearRoughness_pressed():
-	_set_texture(null, HTerrain.DETAIL_ROUGHNESS)
+	_set_texture(null, HTerrain.DETAIL_NORMAL_BUMP)
 

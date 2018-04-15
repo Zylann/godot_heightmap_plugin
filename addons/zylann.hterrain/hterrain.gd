@@ -24,17 +24,14 @@ const SHADER_PARAM_DETAIL_PREFIX = "detail_" # + name + _0, _1, _2, _3...
 const SHADER_SIMPLE4 = 0
 #const SHADER_ARRAY = 1
 
-const DETAIL_ALBEDO = 0
-const DETAIL_NORMAL = 1
-const DETAIL_BUMP = 2
-const DETAIL_ROUGHNESS = 3
-const DETAIL_TYPE_COUNT = 4
+# Note: the alpha channel is used to pack additional maps
+const DETAIL_ALBEDO_ROUGHNESS = 0
+const DETAIL_NORMAL_BUMP = 1
+const DETAIL_TYPE_COUNT = 2
 
 const _detail_enum_to_name = [
-	"albedo",
-	"normal",
-	"depth",
-	"roughness"
+	"albedo_roughness",
+	"normal_bump"
 ]
 
 signal progress_notified(info)

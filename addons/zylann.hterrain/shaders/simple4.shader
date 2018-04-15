@@ -7,25 +7,15 @@ uniform sampler2D splat_texture;
 uniform vec2 heightmap_resolution;
 uniform mat4 heightmap_inverse_transform;
 
-uniform sampler2D detail_albedo_0 : hint_albedo;
-uniform sampler2D detail_albedo_1 : hint_albedo;
-uniform sampler2D detail_albedo_2 : hint_albedo;
-uniform sampler2D detail_albedo_3 : hint_albedo;
+uniform sampler2D detail_albedo_roughness_0 : hint_albedo;
+uniform sampler2D detail_albedo_roughness_1 : hint_albedo;
+uniform sampler2D detail_albedo_roughness_2 : hint_albedo;
+uniform sampler2D detail_albedo_roughness_3 : hint_albedo;
 
-uniform sampler2D detail_normal_0;
-uniform sampler2D detail_normal_1;
-uniform sampler2D detail_normal_2;
-uniform sampler2D detail_normal_3;
-
-uniform sampler2D detail_depth_0;
-uniform sampler2D detail_depth_1;
-uniform sampler2D detail_depth_2;
-uniform sampler2D detail_depth_3;
-
-uniform sampler2D detail_roughness_0;
-uniform sampler2D detail_roughness_1;
-uniform sampler2D detail_roughness_2;
-uniform sampler2D detail_roughness_3;
+uniform sampler2D detail_normal_bump_0;
+uniform sampler2D detail_normal_bump_1;
+uniform sampler2D detail_normal_bump_2;
+uniform sampler2D detail_normal_bump_3;
 
 uniform float detail_scale = 20.0;
 uniform bool depth_blending = true;
@@ -41,7 +31,7 @@ void vertex() {
 	float h = texture(height_texture, uv).r;
 	VERTEX.y = h;
 	UV = uv;
-	NORMAL = unpack_normal(texture(normal_texture, UV).rgb);
+	NORMAL = unpack_normal(texture(normal_texture, UV).xyz);
 }
 
 void fragment() {
@@ -55,22 +45,32 @@ void fragment() {
 
 	// TODO Detail should only be rasterized on nearby chunks (needs proximity management to switch shaders)
 	
-	// TODO Should use local XZ
 	vec2 detail_uv = UV * detail_scale;
-	vec4 col0 = texture(detail_albedo_0, detail_uv);
-	vec4 col1 = texture(detail_albedo_1, detail_uv);
-	vec4 col2 = texture(detail_albedo_2, detail_uv);
-	vec4 col3 = texture(detail_albedo_3, detail_uv);
+	vec4 ar0 = texture(detail_albedo_roughness_0, detail_uv);
+	vec4 ar1 = texture(detail_albedo_roughness_1, detail_uv);
+	vec4 ar2 = texture(detail_albedo_roughness_2, detail_uv);
+	vec4 ar3 = texture(detail_albedo_roughness_3, detail_uv);
 	
-	float roughness0 = texture(detail_roughness_0, detail_uv).r;
-	float roughness1 = texture(detail_roughness_1, detail_uv).r;
-	float roughness2 = texture(detail_roughness_2, detail_uv).r;
-	float roughness3 = texture(detail_roughness_3, detail_uv).r;
+	// TODO Should use local XZ
+	vec3 col0 = ar0.rgb;
+	vec3 col1 = ar1.rgb;
+	vec3 col2 = ar2.rgb;
+	vec3 col3 = ar3.rgb;
 	
-	vec3 normal0 = unpack_normal(texture(detail_normal_0, detail_uv).xzy);
-	vec3 normal1 = unpack_normal(texture(detail_normal_1, detail_uv).xzy);
-	vec3 normal2 = unpack_normal(texture(detail_normal_2, detail_uv).xzy);
-	vec3 normal3 = unpack_normal(texture(detail_normal_3, detail_uv).xzy);
+	float roughness0 = ar0.a;
+	float roughness1 = ar1.a;
+	float roughness2 = ar2.a;
+	float roughness3 = ar3.a;
+	
+	vec4 nb0 = texture(detail_normal_bump_0, detail_uv);
+	vec4 nb1 = texture(detail_normal_bump_1, detail_uv);
+	vec4 nb2 = texture(detail_normal_bump_2, detail_uv);
+	vec4 nb3 = texture(detail_normal_bump_3, detail_uv);
+	
+	vec3 normal0 = unpack_normal(nb0.xzy);
+	vec3 normal1 = unpack_normal(nb1.xzy);
+	vec3 normal2 = unpack_normal(nb2.xzy);
+	vec3 normal3 = unpack_normal(nb3.xzy);
 	
 	vec3 detail_normal;
 	
@@ -82,16 +82,9 @@ void fragment() {
 		// TODO Keep improving multilayer blending, there are still some edge cases...
 		// Mitigation workaround is used for now.
 		// Maybe should be using actual bumpmaps to be sure
-		
-		// TODO Have a tool to merge bump with albedo,
-		// so it will be provided for free and we won't need those texture fetches
-		col0.a = texture(detail_depth_0, detail_uv).r;
-		col1.a = texture(detail_depth_1, detail_uv).r;
-		col2.a = texture(detail_depth_2, detail_uv).r;
-		col3.a = texture(detail_depth_3, detail_uv).r;
-		
+				
 		//splat *= 1.4; // Mitigation #1: increase splat range over bump
-		vec4 h = vec4(col0.a, col1.a, col2.a, col3.a) + splat;
+		vec4 h = vec4(nb0.a, nb1.a, nb2.a, nb3.a) + splat;
 		
 		// Mitigation #2: nullify layers with near-zero splat
 		h *= smoothstep(0, 0.05, splat);

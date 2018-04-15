@@ -11,7 +11,7 @@ var _brush = null
 
 var _load_dialog = null
 
-var _empty_icon = preload("icons/empty.png")
+var _empty_icon = load("res://addons/zylann.hterrain/tools/icons/empty.png")
 
 
 func _ready():
@@ -30,7 +30,7 @@ func set_terrain(terrain):
 	_textures_list.clear()
 	if _terrain != null:
 		for i in range(_terrain.get_detail_texture_slot_count()):
-			var tex = _terrain.get_detail_texture(i, HTerrain.DETAIL_ALBEDO)
+			var tex = _terrain.get_detail_texture(i, HTerrain.DETAIL_ALBEDO_ROUGHNESS)
 			_textures_list.add_item(str(i), tex if tex != null else _empty_icon)
 
 
@@ -57,7 +57,7 @@ func _load_texture_selected(path):
 	# TODO Make it undoable
 	var selected_slots = _textures_list.get_selected_items()
 	for slot in selected_slots:
-		_terrain.set_detail_texture(slot, HTerrain.DETAIL_ALBEDO, texture)
+		_terrain.set_detail_texture(slot, HTerrain.DETAIL_ALBEDO_ROUGHNESS, texture)
 		_textures_list.set_item_icon(slot, texture)
 
 
@@ -67,7 +67,7 @@ func _on_ClearButton_pressed():
 	# TODO Make it undoable
 	var selected_slots = _textures_list.get_selected_items()
 	for slot in selected_slots:
-		_terrain.set_detail_texture(slot, HTerrain.DETAIL_ALBEDO, null)
+		_terrain.set_detail_texture(slot, HTerrain.DETAIL_ALBEDO_ROUGHNESS, null)
 		_textures_list.set_item_icon(slot, null)
 
 

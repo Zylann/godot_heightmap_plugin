@@ -1,12 +1,14 @@
-[gd_scene load_steps=8 format=2]
+[gd_scene load_steps=10 format=2]
 
 [ext_resource path="res://addons/zylann.hterrain/tools/panel.gd" type="Script" id=1]
 [ext_resource path="res://addons/zylann.hterrain/tools/brush_editor.gd" type="Script" id=2]
 [ext_resource path="res://addons/zylann.hterrain/tools/texture_editor.gd" type="Script" id=3]
 [ext_resource path="res://addons/zylann.hterrain/tools/icons/empty.png" type="Texture" id=4]
 [ext_resource path="res://addons/zylann.hterrain/tools/texture_editor_dialog.gd" type="Script" id=5]
-[ext_resource path="res://icon.png" type="Texture" id=6]
-[ext_resource path="res://addons/zylann.hterrain/tools/minimap.gd" type="Script" id=7]
+[ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/display_color_material.tres" type="Material" id=6]
+[ext_resource path="res://icon.png" type="Texture" id=7]
+[ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/display_alpha_material.tres" type="Material" id=8]
+[ext_resource path="res://addons/zylann.hterrain/tools/minimap.gd" type="Script" id=9]
 
 [node name="Panel" type="Control" index="0"]
 
@@ -512,7 +514,7 @@ anchor_right = 0.0
 anchor_bottom = 0.0
 margin_left = -192.0
 margin_top = 183.0
-margin_right = 216.0
+margin_right = 348.0
 margin_bottom = 432.0
 rect_pivot_offset = Vector2( 0, 0 )
 rect_clip_content = false
@@ -565,7 +567,7 @@ percent_visible = 1.0
 lines_skipped = 0
 max_lines_visible = -1
 
-[node name="NormalLabel" type="Label" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="1"]
+[node name="RoughnessLabel" type="Label" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="1"]
 
 anchor_left = 0.0
 anchor_top = 0.0
@@ -580,12 +582,12 @@ mouse_filter = 2
 mouse_default_cursor_shape = 0
 size_flags_horizontal = 1
 size_flags_vertical = 4
-text = "Normal"
+text = "+ alpha roughness"
 percent_visible = 1.0
 lines_skipped = 0
 max_lines_visible = -1
 
-[node name="BumpLabel" type="Label" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="2"]
+[node name="NormalLabel" type="Label" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="2"]
 
 anchor_left = 0.0
 anchor_top = 0.0
@@ -600,12 +602,12 @@ mouse_filter = 2
 mouse_default_cursor_shape = 0
 size_flags_horizontal = 1
 size_flags_vertical = 4
-text = "Bump"
+text = "Normal"
 percent_visible = 1.0
 lines_skipped = 0
 max_lines_visible = -1
 
-[node name="RoughnessLabel" type="Label" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="3"]
+[node name="BumpLabel" type="Label" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="3"]
 
 anchor_left = 0.0
 anchor_top = 0.0
@@ -620,13 +622,14 @@ mouse_filter = 2
 mouse_default_cursor_shape = 0
 size_flags_horizontal = 1
 size_flags_vertical = 4
-text = "Roughness"
+text = "+ alpha bump"
 percent_visible = 1.0
 lines_skipped = 0
 max_lines_visible = -1
 
 [node name="AlbedoPreview" type="TextureRect" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="4"]
 
+material = ExtResource( 6 )
 anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
@@ -641,13 +644,14 @@ mouse_filter = 1
 mouse_default_cursor_shape = 0
 size_flags_horizontal = 1
 size_flags_vertical = 1
-texture = ExtResource( 6 )
+texture = ExtResource( 7 )
 expand = true
 stretch_mode = 0
-_sections_unfolded = [ "Rect" ]
+_sections_unfolded = [ "Material", "Rect" ]
 
-[node name="NormalPreview" type="TextureRect" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="5"]
+[node name="RoughnessPreview" type="TextureRect" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="5"]
 
+material = ExtResource( 8 )
 anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
@@ -663,13 +667,14 @@ mouse_filter = 1
 mouse_default_cursor_shape = 0
 size_flags_horizontal = 1
 size_flags_vertical = 1
-texture = ExtResource( 6 )
+texture = ExtResource( 7 )
 expand = true
 stretch_mode = 0
-_sections_unfolded = [ "Rect" ]
+_sections_unfolded = [ "Material", "Rect" ]
 
-[node name="BumpPreview" type="TextureRect" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="6"]
+[node name="NormalPreview" type="TextureRect" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="6"]
 
+material = ExtResource( 6 )
 anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
@@ -685,13 +690,14 @@ mouse_filter = 1
 mouse_default_cursor_shape = 0
 size_flags_horizontal = 1
 size_flags_vertical = 1
-texture = ExtResource( 6 )
+texture = ExtResource( 7 )
 expand = true
 stretch_mode = 0
-_sections_unfolded = [ "Rect" ]
+_sections_unfolded = [ "Material", "Rect" ]
 
-[node name="RoughnessPreview" type="TextureRect" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="7"]
+[node name="BumpPreview" type="TextureRect" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="7"]
 
+material = ExtResource( 8 )
 anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
@@ -707,10 +713,10 @@ mouse_filter = 1
 mouse_default_cursor_shape = 0
 size_flags_horizontal = 1
 size_flags_vertical = 1
-texture = ExtResource( 6 )
+texture = ExtResource( 7 )
 expand = true
 stretch_mode = 0
-_sections_unfolded = [ "Rect" ]
+_sections_unfolded = [ "Material", "Rect" ]
 
 [node name="LoadAlbedo" type="Button" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="8"]
 
@@ -736,7 +742,7 @@ text = "Load..."
 flat = false
 align = 1
 
-[node name="LoadNormal" type="Button" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="9"]
+[node name="Spacer" type="Control" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="9"]
 
 anchor_left = 0.0
 anchor_top = 0.0
@@ -753,15 +759,8 @@ mouse_filter = 0
 mouse_default_cursor_shape = 0
 size_flags_horizontal = 1
 size_flags_vertical = 1
-toggle_mode = false
-enabled_focus_mode = 2
-shortcut = null
-group = null
-text = "Load..."
-flat = false
-align = 1
 
-[node name="LoadBump" type="Button" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="10"]
+[node name="LoadNormal" type="Button" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="10"]
 
 anchor_left = 0.0
 anchor_top = 0.0
@@ -786,7 +785,7 @@ text = "Load..."
 flat = false
 align = 1
 
-[node name="LoadRoughness" type="Button" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="11"]
+[node name="Spacer2" type="Control" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="11"]
 
 anchor_left = 0.0
 anchor_top = 0.0
@@ -803,13 +802,6 @@ mouse_filter = 0
 mouse_default_cursor_shape = 0
 size_flags_horizontal = 1
 size_flags_vertical = 1
-toggle_mode = false
-enabled_focus_mode = 2
-shortcut = null
-group = null
-text = "Load..."
-flat = false
-align = 1
 
 [node name="ClearAlbedo" type="Button" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="12"]
 
@@ -835,7 +827,7 @@ text = "Clear"
 flat = false
 align = 1
 
-[node name="ClearNormal" type="Button" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="13"]
+[node name="Spacer3" type="Control" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="13"]
 
 anchor_left = 0.0
 anchor_top = 0.0
@@ -852,15 +844,8 @@ mouse_filter = 0
 mouse_default_cursor_shape = 0
 size_flags_horizontal = 1
 size_flags_vertical = 1
-toggle_mode = false
-enabled_focus_mode = 2
-shortcut = null
-group = null
-text = "Clear"
-flat = false
-align = 1
 
-[node name="ClearBump" type="Button" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="14"]
+[node name="ClearNormal" type="Button" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="14"]
 
 anchor_left = 0.0
 anchor_top = 0.0
@@ -885,7 +870,7 @@ text = "Clear"
 flat = false
 align = 1
 
-[node name="ClearRoughness" type="Button" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="15"]
+[node name="Spacer4" type="Control" parent="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer" index="15"]
 
 anchor_left = 0.0
 anchor_top = 0.0
@@ -902,13 +887,6 @@ mouse_filter = 0
 mouse_default_cursor_shape = 0
 size_flags_horizontal = 1
 size_flags_vertical = 1
-toggle_mode = false
-enabled_focus_mode = 2
-shortcut = null
-group = null
-text = "Clear"
-flat = false
-align = 1
 
 [node name="Minimap" type="ColorRect" parent="HSplitContainer/HSplitContainer" index="1"]
 
@@ -927,7 +905,7 @@ mouse_default_cursor_shape = 0
 size_flags_horizontal = 1
 size_flags_vertical = 1
 color = Color( 0, 0, 0, 1 )
-script = ExtResource( 7 )
+script = ExtResource( 9 )
 _sections_unfolded = [ "Rect" ]
 
 [connection signal="item_activated" from="HSplitContainer/HSplitContainer/TextureEditor/TexturesContainer" to="HSplitContainer/HSplitContainer/TextureEditor" method="_on_TexturesContainer_item_activated"]
@@ -946,16 +924,8 @@ _sections_unfolded = [ "Rect" ]
 
 [connection signal="pressed" from="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer/LoadNormal" to="HSplitContainer/HSplitContainer/TextureEditor/EditDialog" method="_on_LoadNormal_pressed"]
 
-[connection signal="pressed" from="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer/LoadBump" to="HSplitContainer/HSplitContainer/TextureEditor/EditDialog" method="_on_LoadBump_pressed"]
-
-[connection signal="pressed" from="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer/LoadRoughness" to="HSplitContainer/HSplitContainer/TextureEditor/EditDialog" method="_on_LoadRoughness_pressed"]
-
 [connection signal="pressed" from="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer/ClearAlbedo" to="HSplitContainer/HSplitContainer/TextureEditor/EditDialog" method="_on_ClearAlbedo_pressed"]
 
 [connection signal="pressed" from="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer/ClearNormal" to="HSplitContainer/HSplitContainer/TextureEditor/EditDialog" method="_on_ClearNormal_pressed"]
-
-[connection signal="pressed" from="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer/ClearBump" to="HSplitContainer/HSplitContainer/TextureEditor/EditDialog" method="_on_ClearBump_pressed"]
-
-[connection signal="pressed" from="HSplitContainer/HSplitContainer/TextureEditor/EditDialog/GridContainer/ClearRoughness" to="HSplitContainer/HSplitContainer/TextureEditor/EditDialog" method="_on_ClearRoughness_pressed"]
 
 
