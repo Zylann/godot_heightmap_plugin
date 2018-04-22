@@ -1,7 +1,7 @@
 [gd_scene load_steps=5 format=2]
 
 [ext_resource path="res://addons/zylann.hterrain/tools/generator/generator_dialog.gd" type="Script" id=1]
-[ext_resource path="res://addons/zylann.hterrain/tools/inspector.tscn" type="PackedScene" id=2]
+[ext_resource path="res://addons/zylann.hterrain/tools/inspector/inspector.tscn" type="PackedScene" id=2]
 [ext_resource path="res://addons/zylann.hterrain/tools/generator/terrain_preview.shader" type="Shader" id=3]
 
 [sub_resource type="ShaderMaterial" id=1]
