@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=2]
 
-[ext_resource path="res://addons/zylann.hterrain/tools/brush_editor.gd" type="Script" id=1]
+[ext_resource path="res://addons/zylann.hterrain/tools/brush/brush_editor.gd" type="Script" id=1]
 
 [node name="BrushEditor" type="Control"]
 
