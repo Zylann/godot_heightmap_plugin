@@ -20,9 +20,32 @@ uniform sampler2D detail_normal_bump_3;
 uniform float detail_scale = 20.0;
 uniform bool depth_blending = true;
 
+varying vec4 v_tint;
+varying vec4 v_splat;
+
 
 vec3 unpack_normal(vec3 rgb) {
 	return rgb * 2.0 - vec3(1.0);
+}
+
+// Blends weights according to the bump of detail textures,
+// so for example it allows to have sand fill the gaps between pebbles
+vec4 get_depth_blended_weights(vec4 splat, vec4 bumps) {
+	float dh = 0.2;
+
+	vec4 h = bumps + v_splat;
+	
+	// TODO Keep improving multilayer blending, there are still some edge cases...
+	// Mitigation: nullify layers with near-zero splat
+	h *= smoothstep(0, 0.05, v_splat);
+	
+	vec4 d = h + dh;
+	d.r -= max(h.g, max(h.b, h.a));
+	d.g -= max(h.r, max(h.b, h.a));
+	d.b -= max(h.g, max(h.r, h.a));
+	d.a -= max(h.g, max(h.b, h.r));
+	
+	return clamp(d, 0, 1);
 }
 
 void vertex() {
@@ -31,36 +54,39 @@ void vertex() {
 	float h = texture(height_texture, uv).r;
 	VERTEX.y = h;
 	UV = uv;
+	
+	// Putting this in vertex saves 2 fetches from the fragment shader,
+	// which is good for performance at a negligible quality cost,
+	// provided that geometry is a regular grid that decimates with LOD.
+	// (downside is LOD will also decimate tint and splat, but it's not bad overall)
+	v_tint = texture(color_texture, uv);
+	v_splat = texture(splat_texture, uv);
+	
 	NORMAL = unpack_normal(texture(normal_texture, UV).xyz);
 }
 
 void fragment() {
 
-	vec4 tint = texture(color_texture, UV);
-	if(tint.a < 0.5)
+	if(v_tint.a < 0.5)
 		// TODO Add option to use vertex discarding instead, using NaNs
 		discard;
 	
-	vec4 splat = texture(splat_texture, UV);
-
 	// TODO Detail should only be rasterized on nearby chunks (needs proximity management to switch shaders)
 	
+	// TODO Should use local XZ
 	vec2 detail_uv = UV * detail_scale;
+	
 	vec4 ar0 = texture(detail_albedo_roughness_0, detail_uv);
 	vec4 ar1 = texture(detail_albedo_roughness_1, detail_uv);
 	vec4 ar2 = texture(detail_albedo_roughness_2, detail_uv);
 	vec4 ar3 = texture(detail_albedo_roughness_3, detail_uv);
 	
-	// TODO Should use local XZ
 	vec3 col0 = ar0.rgb;
 	vec3 col1 = ar1.rgb;
 	vec3 col2 = ar2.rgb;
 	vec3 col3 = ar3.rgb;
 	
-	float roughness0 = ar0.a;
-	float roughness1 = ar1.a;
-	float roughness2 = ar2.a;
-	float roughness3 = ar3.a;
+	vec4 rough = vec4(ar0.a, ar1.a, ar2.a, ar3.a);
 	
 	vec4 nb0 = texture(detail_normal_bump_0, detail_uv);
 	vec4 nb1 = texture(detail_normal_bump_1, detail_uv);
@@ -72,50 +98,19 @@ void fragment() {
 	vec3 normal2 = unpack_normal(nb2.xzy);
 	vec3 normal3 = unpack_normal(nb3.xzy);
 	
-	vec3 detail_normal;
-	
-	// TODO An #ifdef macro would be nice! Or move in a different shader, heh
+	vec4 w;
+	// TODO An #ifdef macro would be nice! Or copy/paste everything in a different shader...
 	if (depth_blending) {
-		
-		float dh = 0.2;
-
-		// TODO Keep improving multilayer blending, there are still some edge cases...
-		// Mitigation workaround is used for now.
-		// Maybe should be using actual bumpmaps to be sure
-				
-		//splat *= 1.4; // Mitigation #1: increase splat range over bump
-		vec4 h = vec4(nb0.a, nb1.a, nb2.a, nb3.a) + splat;
-		
-		// Mitigation #2: nullify layers with near-zero splat
-		h *= smoothstep(0, 0.05, splat);
-		
-		vec4 d = h + dh;
-		d.r -= max(h.g, max(h.b, h.a));
-		d.g -= max(h.r, max(h.b, h.a));
-		d.b -= max(h.g, max(h.r, h.a));
-		d.a -= max(h.g, max(h.b, h.r));
-		
-		vec4 w = clamp(d, 0, 1);
-		
-		float w_sum = (w.r + w.g + w.b + w.a);
-		
-    	ALBEDO = tint.rgb * (w.r * col0.rgb + w.g * col1.rgb + w.b * col2.rgb + w.a * col3.rgb) / w_sum;
-		ROUGHNESS = (w.r * roughness0 + w.g * roughness1 + w.b * roughness2 + w.a * roughness3) / w_sum;
-		detail_normal = (w.r * normal0 + w.g * normal1 + w.b * normal2 + w.a * normal3) / w_sum;
-		
+		w = get_depth_blended_weights(v_splat, vec4(nb0.a, nb1.a, nb2.a, nb3.a));
 	} else {
-		
-		float w0 = splat.r;
-		float w1 = splat.g;
-		float w2 = splat.b;
-		float w3 = splat.a;
-
-		float w_sum = (w0 + w1 + w2 + w3);
-		
-    	ALBEDO = tint.rgb * (w0 * col0.rgb + w1 * col1.rgb + w2 * col2.rgb + w3 * col3.rgb) / w_sum;
-		ROUGHNESS = (w0 * roughness0 + w1 * roughness1 + w2 * roughness2 + w3 * roughness3) / w_sum;
-		detail_normal = (w0 * normal0 + w1 * normal1 + w2 * normal2 + w3 * normal3) / w_sum;
+		w = v_splat.rgba;
 	}
+	
+	float w_sum = (w.r + w.g + w.b + w.a);
+	
+	ALBEDO = v_tint.rgb * (w.r * col0.rgb + w.g * col1.rgb + w.b * col2.rgb + w.a * col3.rgb) / w_sum;
+	ROUGHNESS = (w.r * rough.r + w.g * rough.g + w.b * rough.b + w.a * rough.a) / w_sum;
+	vec3 detail_normal = (w.r * normal0 + w.g * normal1 + w.b * normal2 + w.a * normal3) / w_sum;
 	
 	// Combine terrain normals with detail normals (not sure if correct but looks ok)
 	vec3 terrain_normal = unpack_normal(texture(normal_texture, UV).rgb);
