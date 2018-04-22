@@ -14,6 +14,8 @@ const MODE_COLOR = 5
 const MODE_MASK = 6
 const MODE_COUNT = 7
 
+signal shape_changed(shape)
+
 var _radius = 0
 var _opacity = 1.0
 var _shape = [] #Grid2D<float> _shape;
@@ -50,6 +52,11 @@ func set_radius(p_radius):
 
 func get_radius():
 	return _radius
+
+
+# TODO returns a grid, but in the future it should be a texture
+func get_shape():
+	return _shape
 
 
 func set_opacity(opacity):
@@ -111,6 +118,8 @@ func _generate_procedural(radius):
 			
 			_shape[y + radius][x + radius] = v
 			_shape_sum += v;
+
+	emit_signal("shape_changed", _shape)
 
 
 static func _get_mode_channel(mode):

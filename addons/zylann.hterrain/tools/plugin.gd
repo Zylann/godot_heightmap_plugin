@@ -5,6 +5,7 @@ extends EditorPlugin
 const HTerrain = preload("../hterrain.gd")#preload("hterrain.gdns")
 const HTerrainData = preload("../hterrain_data.gd")
 const Brush = preload("../hterrain_brush.gd")#preload("hterrain_brush.gdns")
+const BrushDecal = preload("brush/decal.gd")
 const Util = preload("../util.gd")
 const ChannelPacker = preload("channel_packer/dialog.tscn")
 const LoadTextureDialog = preload("load_texture_dialog.gd")
@@ -25,6 +26,7 @@ var _node = null
 var _panel = null
 var _toolbar = null
 var _brush = null
+var _brush_decal = null
 var _mouse_pressed = false
 
 var _import_dialog = null
@@ -52,6 +54,10 @@ func _enter_tree():
 	
 	_brush = Brush.new()
 	_brush.set_radius(5)
+
+	_brush_decal = BrushDecal.new()
+	_brush_decal.set_shape(_brush.get_shape())
+	_brush.connect("shape_changed", _brush_decal, "set_shape")
 	
 	var editor_interface = get_editor_interface()
 	var base_control = editor_interface.get_base_control()
@@ -179,6 +185,7 @@ func edit(object):
 	
 	_panel.set_terrain(_node)
 	_generator_dialog.set_terrain(_node)
+	_brush_decal.set_terrain(_node)
 
 
 func make_visible(visible):
@@ -213,28 +220,27 @@ func forward_spatial_gui_input(p_camera, p_event):
 					# Just finished painting
 					paint_completed()
 
-	elif p_event is InputEventMouseMotion and _mouse_pressed:
+	elif p_event is InputEventMouseMotion:
 		var mm = p_event
 		
-		if Input.is_mouse_button_pressed(BUTTON_LEFT):
-			captured_event = paint(p_camera, mm.position)
+		var screen_pos = mm.position
+		var origin = p_camera.project_ray_origin(screen_pos)
+		var dir = p_camera.project_ray_normal(screen_pos)
+		
+		var hit_pos_in_cells = [0, 0]
+		if _node.cell_raycast(origin, dir, hit_pos_in_cells):
+			
+			_brush_decal.set_position(Vector3(hit_pos_in_cells[0], 0, hit_pos_in_cells[1]))
+			
+			if _mouse_pressed:
+				if Input.is_mouse_button_pressed(BUTTON_LEFT):
+					
+					var override_mode = -1
+					_brush.paint(_node, hit_pos_in_cells[0], hit_pos_in_cells[1], override_mode)
+					
+					captured_event = true
 
 	return captured_event
-
-
-func paint(camera, screen_pos):
-	assert(_node != null)
-	
-	var origin = camera.project_ray_origin(screen_pos)
-	var dir = camera.project_ray_normal(screen_pos)
-	
-	var hit_pos_in_cells = [0, 0]
-	if _node.cell_raycast(origin, dir, hit_pos_in_cells):
-		var override_mode = -1
-		_brush.paint(_node, hit_pos_in_cells[0], hit_pos_in_cells[1], override_mode)
-		return true
-	
-	return false
 
 
 func paint_completed():
