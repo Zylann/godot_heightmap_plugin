@@ -1,7 +1,7 @@
 tool
 extends Control
 
-const HTerrain = preload("../hterrain.gd")
+const HTerrain = preload("../../hterrain.gd")
 
 onready var _textures_list = get_node("TexturesContainer")
 onready var _edit_dialog = get_node("EditDialog")

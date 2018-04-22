@@ -1,7 +1,7 @@
 tool
 extends AcceptDialog
 
-const HTerrain = preload("../hterrain.gd")
+const HTerrain = preload("../../hterrain.gd")
 
 # Need to know when albedo changed because it's used as the "main" preview
 signal albedo_changed(slot, texture)
@@ -17,7 +17,7 @@ onready var _roughness_preview = get_node("GridContainer/RoughnessPreview")
 var _load_dialog = null
 var _load_dialog_tex_type = -1
 
-var _empty_icon = preload("icons/empty.png")
+var _empty_icon = preload("../icons/empty.png")
 
 
 func set_terrain(terrain):
