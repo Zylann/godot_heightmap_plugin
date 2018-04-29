@@ -33,6 +33,10 @@ func set_shape(shape_grid):
 	set_size(len(shape_grid))
 
 
+func set_visible(visible):
+	_mesh_instance.set_visible(visible)
+
+
 func set_terrain(terrain):
 	_terrain = terrain
 	var heightmap = _get_heightmap(terrain)

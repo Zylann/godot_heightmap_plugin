@@ -194,6 +194,7 @@ func edit(object):
 func make_visible(visible):
 	_panel.set_visible(visible)
 	_toolbar.set_visible(visible)
+	_brush_decal.set_visible(visible)
 
 
 func forward_spatial_gui_input(p_camera, p_event):
