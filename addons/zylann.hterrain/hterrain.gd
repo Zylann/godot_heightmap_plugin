@@ -745,7 +745,7 @@ func cell_raycast(origin_world, dir_world, out_cell_pos):
 	# TODO Could be optimized with a form of binary search
 	while d < max_distance:
 		pos += dir * unit
-		cpos = _local_pos_to_cell(origin)
+		cpos = _local_pos_to_cell(pos)
 		if _get_height_or_default(heights, cpos[0], cpos[1]) > pos.y:
 			cpos = _local_pos_to_cell(pos - dir * unit);
 			out_cell_pos[0] = cpos[0]
