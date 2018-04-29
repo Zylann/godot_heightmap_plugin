@@ -260,6 +260,8 @@ func _update_all_normals():
 
 
 func update_normals(min_x, min_y, size_x, size_y):	
+	#var time_before = OS.get_ticks_msec()
+
 	assert(typeof(min_x) == TYPE_INT)
 	assert(typeof(min_y) == TYPE_INT)
 	assert(typeof(size_x) == TYPE_INT)
@@ -282,48 +284,83 @@ func update_normals(min_x, min_y, size_x, size_y):
 	max_x = p_max[0]
 	max_y = p_max[1]
 
-	heights.lock();
-	normals.lock();
+	if normals.has_method("bumpmap_to_normalmap"):
 
-	for y in range(min_y, max_y):
-		for x in range(min_x, max_x):
-			
-			var left = _get_clamped(heights, x - 1, y).r
-			var right = _get_clamped(heights, x + 1, y).r
-			var fore = _get_clamped(heights, x, y + 1).r
-			var back = _get_clamped(heights, x, y - 1).r
+		# Calculating normals using this function will make border pixels invalid,
+		# so we must pick a region 1 pixel larger in all directions to be sure we have neighboring information.
+		# Then, we'll blit the result by cropping away this margin.
+		var min_pad_x = 0 if min_x == 0 else 1
+		var min_pad_y = 0 if min_y == 0 else 1
+		var max_pad_x = 0 if max_x == normals.get_width() else 1
+		var max_pad_y = 0 if max_y == normals.get_height() else 1
 
-			var n = Vector3(left - right, 2.0, back - fore).normalized()
+		var src_extract_rect = Rect2( \
+			min_x - min_pad_x, \
+			min_y - min_pad_y, \
+			max_x - min_x + min_pad_x + max_pad_x, \
+			max_y - min_y + min_pad_x + max_pad_x)
 
-			normals.set_pixel(x, y, _encode_normal(n))
-			
-	heights.unlock()
-	normals.unlock()
+		var sub = heights.get_rect(src_extract_rect)
+		# TODO Need a parameter for this function to NOT wrap pixels, it can cause lighting artifacts on map borders
+		sub.bumpmap_to_normalmap()
+		sub.convert(normals.get_format())
+
+		var src_blit_rect = Rect2( \
+			min_pad_x, \
+			min_pad_x, \
+			sub.get_width() - min_pad_x - max_pad_x, \
+			sub.get_height() - min_pad_x - max_pad_y)
+
+		normals.blit_rect(sub, src_blit_rect, Vector2(min_x, min_y))
+
+	else:
+		# Godot 3.0.2 or earlier
+
+		heights.lock();
+		normals.lock();
+
+		for y in range(min_y, max_y):
+			for x in range(min_x, max_x):
+				
+				var left = _get_clamped(heights, x - 1, y).r
+				var right = _get_clamped(heights, x + 1, y).r
+				var fore = _get_clamped(heights, x, y + 1).r
+				var back = _get_clamped(heights, x, y - 1).r
+
+				var n = Vector3(left - right, 2.0, fore - back).normalized()
+
+				normals.set_pixel(x, y, _encode_normal(n))
+				
+		heights.unlock()
+		normals.unlock()
+
+	#var time_elapsed = OS.get_ticks_msec() - time_before
+	#print("Elapsed updating normals: ", time_elapsed, "ms")
+	#print("Was from ", min_x, ", ", min_y, " to ", max_x, ", ", max_y)
 
 
-func notify_region_change(p_min, p_max, channel):
-	
+func notify_region_change(p_min, p_size, channel):
+
 	# TODO Hmm not sure if that belongs here // <-- why this, Me from the past?
 	match channel:
 		CHANNEL_HEIGHT:
 			# TODO when drawing very large patches, this might get called too often and would slow down.
 			# for better user experience, we could set chunks AABBs to a very large height just while drawing,
 			# and set correct AABBs as a background task once done
-			var size = [p_max[0] - p_min[0], p_max[1] - p_min[1]]
-			_update_vertical_bounds(p_min[0], p_min[1], size[0], size[1])
+			_update_vertical_bounds(p_min[0], p_min[1], p_size[0], p_size[1])
 
-			_upload_region(channel, p_min[0], p_min[1], p_max[0], p_max[1])
-			_upload_region(CHANNEL_NORMAL, p_min[0], p_min[1], p_max[0], p_max[1])
+			_upload_region(channel, p_min[0], p_min[1], p_size[0], p_size[1])
+			_upload_region(CHANNEL_NORMAL, p_min[0], p_min[1], p_size[0], p_size[1])
 
 		CHANNEL_NORMAL, \
 		CHANNEL_SPLAT, \
 		CHANNEL_COLOR:
-			_upload_region(channel, p_min[0], p_min[1], p_max[0], p_max[1])
+			_upload_region(channel, p_min[0], p_min[1], p_size[0], p_size[1])
 
 		_:
 			print("Unrecognized channel\n")
 
-	emit_signal("region_changed", p_min[0], p_min[1], p_max[0], p_max[1], channel)
+	emit_signal("region_changed", p_min[0], p_min[1], p_size[0], p_size[1], channel)
 
 
 func _edit_set_disable_apply_undo(e):
@@ -392,7 +429,7 @@ func _edit_apply_undo(undo_data):
 				print("Wut? Unsupported undo channel\n");
 		
 		# Defer this to a second pass, otherwise it causes order-dependent artifacts on the normal map
-		regions_changed.append([[min_x, min_y], [max_x, max_y], channel])
+		regions_changed.append([[min_x, min_y], [max_x - min_x, max_y - min_y], channel])
 
 	for args in regions_changed:
 		# TODO This one is VERY slow because partial texture updates is not supported...
@@ -404,12 +441,13 @@ func _upload_channel(channel):
 	_upload_region(channel, 0, 0, _resolution, _resolution)
 
 
-func _upload_region(channel, min_x, min_y, max_x, max_y):
+func _upload_region(channel, min_x, min_y, size_x, size_y):
+
+	#print("Upload ", min_x, ", ", min_y, ", ", size_x, "x", size_y)
+	#var time_before = OS.get_ticks_msec()
 
 	assert(_images[channel] != null)
-
-	if _textures[channel] == null or not (_textures[channel] is ImageTexture):
-		_textures[channel] = ImageTexture.new()
+	assert(size_x > 0 and size_y > 0)
 
 	var flags = 0;
 
@@ -417,28 +455,71 @@ func _upload_region(channel, min_x, min_y, max_x, max_y):
 		# To allow smooth shading in fragment shader
 		flags |= Texture.FLAG_FILTER
 
+	var image = _images[channel]
 
-	#               ..ooo@@@XXX%%%xx..
-	#            .oo@@XXX%x%xxx..     ` .
-	#          .o@XX%%xx..               ` .
-	#        o@X%..                  ..ooooooo
-	#      .@X%x.                 ..o@@^^   ^^@@o
-	#    .ooo@@@@@@ooo..      ..o@@^          @X%
-	#    o@@^^^     ^^^@@@ooo.oo@@^             %
-	#   xzI    -*--      ^^^o^^        --*-     %
-	#   @@@o     ooooooo^@@^o^@X^@oooooo     .X%x
-	#  I@@@@@@@@@XX%%xx  ( o@o )X%x@ROMBASED@@@X%x
-	#  I@@@@XX%%xx  oo@@@@X% @@X%x   ^^^@@@@@@@X%x
-	#   @X%xx     o@@@@@@@X% @@XX%%x  )    ^^@X%x
-	#    ^   xx o@@@@@@@@Xx  ^ @XX%%x    xxx
-	#          o@@^^^ooo I^^ I^o ooo   .  x
-	#          oo @^ IX      I   ^X  @^ oo
-	#          IX     U  .        V     IX
-	#           V     .           .     V
-	#
-	# TODO Partial update pleaaase! SLOOOOOOOOOOWNESS AHEAD !!
-	_textures[channel].create_from_image(_images[channel], flags)
+	if _textures[channel] == null or not (_textures[channel] is ImageTexture):
+		
+		# The texture doesn't exist yet in an editable format
+		if _textures[channel] != null and not (_textures[channel] is ImageTexture):
+			print("_upload_region was used but the texture isn't an ImageTexture. The map will be reuploaded entirely.")
+		else:
+			print("_upload_region was used but the texture is not created yet. The map will be uploaded entirely.")
+
+		var texture = ImageTexture.new()
+		texture.create_from_image(_images[channel], flags)
+		_textures[channel] = texture
+
+	else:
+		var texture = _textures[channel]
+
+		if VisualServer.has_method("texture_set_data_partial"):
+
+			# TODO Actually, I think the input params should be valid in the first place...
+			if min_x < 0:
+				min_x = 0
+			if min_y < 0:
+				min_y = 0
+			if min_x + size_x > image.get_width():
+				size_x = image.get_width() - min_x
+			if min_y + size_y > image.get_height():
+				size_y = image.get_height() - min_y
+			#if size_x <= 0 or size_y <= 0:
+			#	return
+
+			VisualServer.texture_set_data_partial( \
+				texture.get_rid(), image, \
+				min_x, min_y, \
+				size_x, size_y, \
+				min_x, min_y, \
+				0, 0)
+
+		else:
+			# Godot 3.0.2 and earlier...
+
+			#               ..ooo@@@XXX%%%xx..
+			#            .oo@@XXX%x%xxx..     ` .
+			#          .o@XX%%xx..               ` .
+			#        o@X%..                  ..ooooooo
+			#      .@X%x.                 ..o@@^^   ^^@@o
+			#    .ooo@@@@@@ooo..      ..o@@^          @X%
+			#    o@@^^^     ^^^@@@ooo.oo@@^             %
+			#   xzI    -*--      ^^^o^^        --*-     %
+			#   @@@o     ooooooo^@@^o^@X^@oooooo     .X%x
+			#  I@@@@@@@@@XX%%xx  ( o@o )X%x@ROMBASED@@@X%x
+			#  I@@@@XX%%xx  oo@@@@X% @@X%x   ^^^@@@@@@@X%x
+			#   @X%xx     o@@@@@@@X% @@XX%%x  )    ^^@X%x
+			#    ^   xx o@@@@@@@@Xx  ^ @XX%%x    xxx
+			#          o@@^^^ooo I^^ I^o ooo   .  x
+			#          oo @^ IX      I   ^X  @^ oo
+			#          IX     U  .        V     IX
+			#           V     .           .     V
+			#
+			_textures[channel].create_from_image(_images[channel], flags)
+
 	#print("Channel updated ", channel)
+
+	#var time_elapsed = OS.get_ticks_msec() - time_before
+	#print("Texture upload time: ", time_elapsed, "ms")
 
 
 func get_image(channel):
@@ -840,11 +921,11 @@ static func _edit_check_valid_map_size(width, height):
 
 
 static func _encode_normal(n):
-	return Color(0.5 * (n.x + 1.0), 0.5 * (n.y + 1.0), 0.5 * (n.z + 1.0), 1.0)
+	return Color(0.5 * (n.x + 1.0), 0.5 * (n.z + 1.0), 0.5 * (n.y + 1.0), 1.0)
 
 
 #static func _decode_normal(c):
-#	return Vector3(2.0 * c.r - 1.0, 2.0 * c.g - 1.0, 2.0 * c.b - 1.0)
+#	return Vector3(2.0 * c.r - 1.0, 2.0 * c.b - 1.0, 2.0 * c.g - 1.0)
 
 
 static func _get_channel_format(channel):

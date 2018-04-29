@@ -24,8 +24,8 @@ varying vec4 v_tint;
 varying vec4 v_splat;
 
 
-vec3 unpack_normal(vec3 rgb) {
-	return rgb * 2.0 - vec3(1.0);
+vec3 unpack_normal(vec4 rgba) {
+	return rgba.xzy * 2.0 - vec3(1.0);
 }
 
 // Blends weights according to the bump of detail textures,
@@ -62,7 +62,8 @@ void vertex() {
 	v_tint = texture(color_texture, uv);
 	v_splat = texture(splat_texture, uv);
 	
-	NORMAL = unpack_normal(texture(normal_texture, UV).xyz);
+	// For some reason I had to invert Z when sampling terrain normals... not sure why
+	NORMAL = unpack_normal(texture(normal_texture, UV)) * vec3(1,1,-1);
 }
 
 void fragment() {
@@ -93,10 +94,10 @@ void fragment() {
 	vec4 nb2 = texture(detail_normal_bump_2, detail_uv);
 	vec4 nb3 = texture(detail_normal_bump_3, detail_uv);
 	
-	vec3 normal0 = unpack_normal(nb0.xzy);
-	vec3 normal1 = unpack_normal(nb1.xzy);
-	vec3 normal2 = unpack_normal(nb2.xzy);
-	vec3 normal3 = unpack_normal(nb3.xzy);
+	vec3 normal0 = unpack_normal(nb0);
+	vec3 normal1 = unpack_normal(nb1);
+	vec3 normal2 = unpack_normal(nb2);
+	vec3 normal3 = unpack_normal(nb3);
 	
 	vec4 w;
 	// TODO An #ifdef macro would be nice! Or copy/paste everything in a different shader...
@@ -113,7 +114,7 @@ void fragment() {
 	vec3 detail_normal = (w.r * normal0 + w.g * normal1 + w.b * normal2 + w.a * normal3) / w_sum;
 	
 	// Combine terrain normals with detail normals (not sure if correct but looks ok)
-	vec3 terrain_normal = unpack_normal(texture(normal_texture, UV).rgb);
+	vec3 terrain_normal = unpack_normal(texture(normal_texture, UV)) * vec3(1,1,-1);
 	vec3 normal = normalize(vec3(terrain_normal.x + detail_normal.x, terrain_normal.y, terrain_normal.z + detail_normal.z));
 	NORMAL = (INV_CAMERA_MATRIX * (WORLD_MATRIX * vec4(normal, 0.0))).xyz;
 

@@ -41,6 +41,9 @@ var _generator_dialog = null
 
 var _progress_window = null
 
+var _pending_paint_action = null
+var _pending_paint_completed = false
+
 
 static func get_icon(name):
 	return load("res://addons/zylann.hterrain/tools/icons/icon_" + name + ".svg")
@@ -218,7 +221,7 @@ func forward_spatial_gui_input(p_camera, p_event):
 				
 				if not _mouse_pressed:
 					# Just finished painting
-					paint_completed()
+					_pending_paint_completed = true
 
 	elif p_event is InputEventMouseMotion:
 		var mm = p_event
@@ -235,12 +238,27 @@ func forward_spatial_gui_input(p_camera, p_event):
 			if _mouse_pressed:
 				if Input.is_mouse_button_pressed(BUTTON_LEFT):
 					
-					var override_mode = -1
-					_brush.paint(_node, hit_pos_in_cells[0], hit_pos_in_cells[1], override_mode)
+					# Deferring this to be done once per frame,
+					# because mouse events may happen more often than frames,
+					# which can result in unpleasant stuttering/freezes when painting large areas
+					_pending_paint_action = [hit_pos_in_cells[0], hit_pos_in_cells[1]]
 					
 					captured_event = true
 
 	return captured_event
+
+
+func _process(delta):
+	if _node != null:
+		if _pending_paint_action != null:
+			var override_mode = -1
+			_brush.paint(_node, _pending_paint_action[0], _pending_paint_action[1], override_mode)
+
+		if _pending_paint_completed:
+			paint_completed()
+
+	_pending_paint_completed = false
+	_pending_paint_action = null
 
 
 func paint_completed():
