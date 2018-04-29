@@ -8,10 +8,7 @@ path.etc2="res://.import/splat.png-f2d8c9cb0d7afbc5e7da2211bb290d03.etc2.stex"
 [deps]
 
 source_file="res://addons/zylann.hterrain/demo/demo.hterrain_data/splat.png"
-source_md5="e70a9c3d025bddb0c1907e10fca1e110"
-
 dest_files=[ "res://.import/splat.png-f2d8c9cb0d7afbc5e7da2211bb290d03.s3tc.stex", "res://.import/splat.png-f2d8c9cb0d7afbc5e7da2211bb290d03.etc2.stex" ]
-dest_md5="07b2406a118f805ec0072ae2690c60f7"
 
 [params]
 
