@@ -30,6 +30,11 @@ func clear_prototype():
 	_prototype = null
 
 
+func get_value(key):
+	var editor = _editors[key]
+	return editor.getter.call_func()
+
+
 func get_values():
 	var values = {}
 	for key in _editors:
@@ -171,7 +176,7 @@ static func _setup_range_control(range_control, prop):
 
 func _property_edited(value, key):
 	if _edit_signal:
-		print("Property edited ", key, "=", value)
+		#print("Property edited ", key, "=", value)
 		emit_signal("property_changed", key, value)
 
 

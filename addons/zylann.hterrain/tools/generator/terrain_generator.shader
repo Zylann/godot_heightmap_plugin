@@ -9,6 +9,7 @@ uniform float u_scale = 0.02;
 uniform int u_octaves = 5;
 uniform float u_roughness = 0.5;
 uniform float u_curve = 1.0;
+uniform int u_mode = 0; // 0: heights, 1: normals
 
 float get_noise(vec2 uv) {
 	return texture(noise_texture, uv).r;
@@ -38,16 +39,49 @@ float get_smooth_noise(vec2 uv, int extra_magic_rot) {
 	return gs;
 }
 
+float get_height(vec2 uv) {
+	
+	float h = get_smooth_noise(uv, 0);
+	h = pow(h, u_curve);
+	h = u_base_height + h * u_height_range;
+
+	// Test pattern
+	// float s = 1.0 / u_scale;
+	// float h = u_base_height + 0.5 * u_height_range * (cos(s * uv.x) + sin(s * uv.y));
+	//float h = uv.x * 513.0;
+
+	return h;
+}
+
+vec3 pack_normal(vec3 n) {
+	return (0.5 * (n + 1.0)).xzy;
+}
+
 void fragment() {
 	vec2 uv = UV + u_offset;
-	
-	float gs = get_smooth_noise(uv, 0);
-//	gs = 1.0 * abs(gs - 0.5);
-//	gs += 0.5 * get_smooth_noise(uv + vec2(123.0, 456.0), 33);
-	gs = pow(gs, u_curve);
-	gs = u_base_height + gs * u_height_range;
-	
-	//gs = step(gs, 0.25);
-	
-	COLOR = vec4(gs, gs, gs, 1.0);
+
+	if(u_mode == 0) {
+
+		float h = get_height(uv);
+		COLOR = vec4(h, h, h, 1.0);
+
+	} else {
+
+		// Calculating normals here because if it were done as post-processing,
+		// it would work on half-precision floats, which produces aliasing.
+		// It also speeds up final generation considerably so normals don't need to be computed on CPU.
+
+		// Needs to be SCREEN_PIXEL_SIZE because the dummy texture used with this shader
+		// may not be the same size as the render target we are using as output
+		vec2 ps = SCREEN_PIXEL_SIZE;
+		float k = 1.0;
+		float left = get_height(uv + vec2(-ps.x, 0)) * k;
+		float right = get_height(uv + vec2(ps.x, 0)) * k;
+		float back = get_height(uv + vec2(0, -ps.y)) * k;
+		float fore = get_height(uv + vec2(0, ps.y)) * k;
+		vec3 n = normalize(vec3(left - right, 2.0, fore - back));
+		
+		vec3 pn = pack_normal(n);
+		COLOR = vec4(pn, 1.0);
+	}
 }
