@@ -37,9 +37,14 @@ func _on_ClearButton_pressed():
 
 
 func _on_LoadTextureDialog_file_selected(fpath):
-	var tex = load(fpath)
-	if tex == null:
+	# Using raw image loading so we can load images from outside the project
+	var im = Image.new()
+	var err = im.load(fpath)
+	if err != OK:
+		print("ERROR: couldn't load image '", fpath, "', error ", err)
 		return
+	var tex = ImageTexture.new()
+	tex.create_from_image(im, 0)
 	_set_texture(tex, fpath)
 
 
