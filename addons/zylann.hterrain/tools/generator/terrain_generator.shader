@@ -12,7 +12,29 @@ uniform float u_curve = 1.0;
 uniform int u_mode = 0; // 0: heights, 1: normals
 
 float get_noise(vec2 uv) {
-	return texture(noise_texture, uv).r;
+
+	vec2 ts = vec2(textureSize(noise_texture, 0));
+	//vec2 ps = 1.0 / ts;
+
+	vec2 puv = uv * ts;
+
+	float c00 = texture(noise_texture, floor(puv) / ts).r;
+	float c10 = texture(noise_texture, floor(puv + vec2(1.0, 0.0)) / ts).r;
+	float c01 = texture(noise_texture, floor(puv + vec2(0.0, 1.0)) / ts).r;
+	float c11 = texture(noise_texture, floor(puv + vec2(1.0, 1.0)) / ts).r;
+
+	vec2 fuv = fract(puv);
+
+	//return mix(mix(c00, c01, fuv.y), mix(c10, c11, fuv.y), fuv.x);
+
+	vec2 u = fuv * fuv * (3.0 - 2.0 * fuv);
+	return mix(c00, c10, u.x) + (c01 - c00) * u.y * (1.0 - u.x) + (c11 - c10) * u.x * u.y;
+
+	// Normally, the filter offered by OpenGL should have done the job,
+	// but for some reason it has 8-bit quality results, despite the texture being 32bit,
+	// which produce aliasing when calculating normals...
+	// something must be wrong between my driver and Godot
+	//return texture(noise_texture, uv).r;
 }
 
 float get_smooth_noise(vec2 uv, int extra_magic_rot) {
