@@ -8,10 +8,7 @@ path.etc2="res://.import/leaves_roughness.png-1983aee93ed4ff8602c8e5ed15fa6c80.e
 [deps]
 
 source_file="res://addons/zylann.hterrain/demo/textures/leaves_roughness.png"
-source_md5="043c6d49f3f0c52b43c71bdd4da7867f"
-
 dest_files=[ "res://.import/leaves_roughness.png-1983aee93ed4ff8602c8e5ed15fa6c80.s3tc.stex", "res://.import/leaves_roughness.png-1983aee93ed4ff8602c8e5ed15fa6c80.etc2.stex" ]
-dest_md5="f313a69d40f4eda25efc8291198976a3"
 
 [params]
 

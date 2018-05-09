@@ -8,10 +8,7 @@ path.etc2="res://.import/grass_roughness.png-a5039eff17e8251bfaf72fabe90b9ef1.et
 [deps]
 
 source_file="res://addons/zylann.hterrain/demo/textures/grass_roughness.png"
-source_md5="bbdcd12144bfab230585a783de2d0be7"
-
 dest_files=[ "res://.import/grass_roughness.png-a5039eff17e8251bfaf72fabe90b9ef1.s3tc.stex", "res://.import/grass_roughness.png-a5039eff17e8251bfaf72fabe90b9ef1.etc2.stex" ]
-dest_md5="eb401c9a32d360231f722bd1ee2d07a3"
 
 [params]
 

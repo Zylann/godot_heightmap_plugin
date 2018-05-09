@@ -2,15 +2,12 @@
 
 importer="texture"
 type="StreamTexture"
-path="res://.import/height_map.png-cdd92a1ac94426de674aa3f1c3da2ca2.stex"
+path="res://.import/height_map.png-d62b9041fc8c34d62e9236527ca5226d.stex"
 
 [deps]
 
 source_file="res://addons/zylann.hterrain/tools/icons/height_map.png"
-source_md5="f993ab5aa9e820cb076d57c2736cbbde"
-
-dest_files=[ "res://.import/height_map.png-cdd92a1ac94426de674aa3f1c3da2ca2.stex" ]
-dest_md5="1866b4c093d86691d9f682eb965c2f0f"
+dest_files=[ "res://.import/height_map.png-d62b9041fc8c34d62e9236527ca5226d.stex" ]
 
 [params]
 

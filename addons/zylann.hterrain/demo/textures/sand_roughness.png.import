@@ -8,10 +8,7 @@ path.etc2="res://.import/sand_roughness.png-c5bdc6df943a9b53b90ae1b611c95024.etc
 [deps]
 
 source_file="res://addons/zylann.hterrain/demo/textures/sand_roughness.png"
-source_md5="37cd6939c5ca1b238ee172aed410c12c"
-
 dest_files=[ "res://.import/sand_roughness.png-c5bdc6df943a9b53b90ae1b611c95024.s3tc.stex", "res://.import/sand_roughness.png-c5bdc6df943a9b53b90ae1b611c95024.etc2.stex" ]
-dest_md5="1b9d2d18af04cb8621ab0af6306ca492"
 
 [params]
 

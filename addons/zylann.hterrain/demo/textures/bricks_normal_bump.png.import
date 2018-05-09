@@ -8,10 +8,7 @@ path.etc2="res://.import/bricks_normal_bump.png-8afb598c7cf8c54a9305688cd2d1daf9
 [deps]
 
 source_file="res://addons/zylann.hterrain/demo/textures/bricks_normal_bump.png"
-source_md5="d6a6857c37ef179564e8706556fa846d"
-
 dest_files=[ "res://.import/bricks_normal_bump.png-8afb598c7cf8c54a9305688cd2d1daf9.s3tc.stex", "res://.import/bricks_normal_bump.png-8afb598c7cf8c54a9305688cd2d1daf9.etc2.stex" ]
-dest_md5="c3ca22d4eab5263afb3f704bfc8e7924"
 
 [params]
 

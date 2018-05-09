@@ -7,10 +7,7 @@ path="res://.import/empty.png-31363f083c9c4e2e8e54cf64f3716737.stex"
 [deps]
 
 source_file="res://addons/zylann.hterrain/tools/icons/empty.png"
-source_md5="86a328557fbf049f2d27c382fe8c942c"
-
 dest_files=[ "res://.import/empty.png-31363f083c9c4e2e8e54cf64f3716737.stex" ]
-dest_md5="c9b56542ae3a2312186dbc07d045e2b9"
 
 [params]
 
