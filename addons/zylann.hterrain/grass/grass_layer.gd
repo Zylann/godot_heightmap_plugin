@@ -4,7 +4,7 @@ extends Spatial
 const HTerrain = preload("res://addons/zylann.hterrain/hterrain.gd")
 const HTerrainData = preload("res://addons/zylann.hterrain/hterrain_data.gd")
 
-const CHUNK_SIZE = 8
+const CHUNK_SIZE = 32
 
 class Chunk:
 	var cx = 0
@@ -19,7 +19,7 @@ var _multimesh = null
 var _multimesh_instance_pool = []
 var _material = null
 var _chunks = {}
-var _view_distance = 32.0
+var _view_distance = 128.0
 
 var _edit_manual_viewer_pos = Vector3()
 
@@ -56,6 +56,17 @@ func _process(delta):
 	var cmin_z = viewer_cz - cr
 	var cmax_x = viewer_cx + cr
 	var cmax_z = viewer_cz + cr
+	
+	var terrain_csize = _terrain.get_data().get_resolution() / CHUNK_SIZE
+	
+	if cmin_x < 0:
+		cmin_x = 0
+	if cmin_z < 0:
+		cmin_z = 0
+	if cmin_x >= terrain_csize:
+		cmin_x = terrain_csize - 1
+	if cmax_z >= terrain_csize:
+		cmax_z = terrain_csize - 1
 	
 	for cz in range(cmin_z, cmax_z):
 		for cx in range(cmin_x, cmax_x):
@@ -258,6 +269,7 @@ func _create_multimesh_instance(multimesh, parent):
 		mat.shader = _grass_shader
 		mat.set_shader_param("u_terrain_heightmap", heightmap_texture)
 		mat.set_shader_param("u_albedo_alpha", _grass_texture)
+		mat.set_shader_param("u_view_distance", _view_distance)
 		_material = mat
 	
 	# Assign multimesh to be rendered by the MultiMeshInstance

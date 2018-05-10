@@ -3,6 +3,7 @@ render_mode cull_disabled;
 
 uniform sampler2D u_terrain_heightmap;
 uniform sampler2D u_albedo_alpha;
+uniform float u_view_distance;
 //uniform sampler2D u_terrain_normalmap;
 
 void vertex() {
@@ -14,11 +15,11 @@ void vertex() {
 	// Snap model to the terrain
 	VERTEX.y += height;
 	
-	/*vec3 wpos = (WORLD_MATRIX * vec4(VERTEX, 1)).xyz;
+	vec3 wpos = (WORLD_MATRIX * vec4(VERTEX, 1)).xyz;
 	vec3 campos = CAMERA_MATRIX[3].xyz;
 	float distance_to_camera = distance(wpos, campos);
-	float max_fade_distance = 100.0;
-	COLOR.a = clamp(1.0 - distance_to_camera / max_fade_distance, 0.0, 1.0);*/
+	float dr = distance_to_camera / u_view_distance;
+	COLOR.a = clamp(1.0 - dr * dr * dr, 0.0, 1.0);
 }
 
 void fragment() {
