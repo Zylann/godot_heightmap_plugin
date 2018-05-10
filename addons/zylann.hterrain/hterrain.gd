@@ -35,6 +35,8 @@ const _detail_enum_to_name = [
 ]
 
 signal progress_notified(info)
+# Same as progress_notified once finished, but more convenient to yield
+signal progress_complete
 
 
 export var depth_blending = false
@@ -289,10 +291,13 @@ func set_data(new_data):
 func _on_data_progress_notified(info):
 	emit_signal("progress_notified", info)
 	
-	if info.finished and not Engine.editor_hint:
-		# Update collider when data is loaded
-		if _collider != null:
-			_collider.create_from_terrain_data(_data)
+	if info.finished:
+		if not Engine.editor_hint:
+			# Update collider when data is loaded
+			if _collider != null:
+				_collider.create_from_terrain_data(_data)
+		
+		emit_signal("progress_complete")
 
 
 func _on_data_resolution_changed():

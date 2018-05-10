@@ -197,8 +197,8 @@ func get_interpolated_height_at(pos):
 	assert(_images[CHANNEL_HEIGHT] != null)
 
 	# The function takes a Vector3 for convenience so it's easier to use in 3D scripting
-	var x0 = int(pos.x)
-	var y0 = int(pos.z)
+	var x0 = int(floor(pos.x))
+	var y0 = int(floor(pos.z))
 
 	var xf = pos.x - x0
 	var yf = pos.z - y0
@@ -548,6 +548,15 @@ func get_region_aabb(origin_in_cells_x, origin_in_cells_y, size_in_cells_x, size
 	
 	var cmax_x = (origin_in_cells_x + size_in_cells_x - 1) / HTerrain.CHUNK_SIZE + 1
 	var cmax_y = (origin_in_cells_y + size_in_cells_y - 1) / HTerrain.CHUNK_SIZE + 1
+
+	if cmin_x < 0:
+		cmin_x = 0
+	if cmin_y < 0:
+		cmin_y = 0
+	if cmax_x >= _chunked_vertical_bounds_size[0]:
+		cmax_x = _chunked_vertical_bounds_size[0]
+	if cmax_y >= _chunked_vertical_bounds_size[1]:
+		cmax_y = _chunked_vertical_bounds_size[1]
 
 	var min_height = _chunked_vertical_bounds[0][0].minv
 	var max_height = min_height
