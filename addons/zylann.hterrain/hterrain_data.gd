@@ -451,8 +451,7 @@ func _upload_region(channel, min_x, min_y, size_x, size_y):
 
 	var flags = 0;
 
-	if channel == CHANNEL_NORMAL or channel == CHANNEL_COLOR or channel == CHANNEL_SPLAT:
-		# To allow smooth shading in fragment shader
+	if channel == CHANNEL_NORMAL or channel == CHANNEL_COLOR or channel == CHANNEL_SPLAT or channel == CHANNEL_HEIGHT:
 		flags |= Texture.FLAG_FILTER
 
 	var image = _images[channel]
