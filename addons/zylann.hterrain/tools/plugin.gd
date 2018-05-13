@@ -94,8 +94,10 @@ func _enter_tree():
 	mode_icons[Brush.MODE_SUBTRACT] = get_icon("heightmap_lower")
 	mode_icons[Brush.MODE_SMOOTH] = get_icon("heightmap_smooth")
 	mode_icons[Brush.MODE_FLATTEN] = get_icon("heightmap_flatten")
+	# TODO Have different icons
 	mode_icons[Brush.MODE_SPLAT] = get_icon("heightmap_paint")
 	mode_icons[Brush.MODE_COLOR] = get_icon("heightmap_paint")
+	mode_icons[Brush.MODE_GRASS] = get_icon("heightmap_paint")
 	mode_icons[Brush.MODE_MASK] = get_icon("heightmap_mask")
 	
 	var mode_tooltips = {}
@@ -105,13 +107,26 @@ func _enter_tree():
 	mode_tooltips[Brush.MODE_FLATTEN] = "Flatten"
 	mode_tooltips[Brush.MODE_SPLAT] = "Texture paint"
 	mode_tooltips[Brush.MODE_COLOR] = "Color paint"
+	mode_tooltips[Brush.MODE_GRASS] = "Grass paint"
 	mode_tooltips[Brush.MODE_MASK] = "Mask"
 	
 	_toolbar.add_child(VSeparator.new())
 	
 	var mode_group = ButtonGroup.new()
 	
-	for mode in range(Brush.MODE_COUNT):
+	# I want modes to be in that order in the GUI
+	var ordered_brush_modes = [
+		Brush.MODE_ADD,
+		Brush.MODE_SUBTRACT,
+		Brush.MODE_SMOOTH,
+		Brush.MODE_FLATTEN,
+		Brush.MODE_SPLAT,
+		Brush.MODE_COLOR,
+		Brush.MODE_GRASS,
+		Brush.MODE_MASK
+	]
+	
+	for mode in ordered_brush_modes:
 		var button = ToolButton.new()
 		button.icon = mode_icons[mode]
 		button.set_tooltip(mode_tooltips[mode])
@@ -281,6 +296,9 @@ func paint_completed():
 			
 		HTerrainData.CHANNEL_HEIGHT:
 			action_name = "Modify HeightMapData Height"
+
+		HTerrainData.CHANNEL_GRASS:
+			action_name = "Modify HeightMapData Grass"
 			
 		_:
 			action_name = "Modify HeightMapData"
@@ -288,12 +306,14 @@ func paint_completed():
 	var undo_data = {
 		"chunk_positions": ur_data.chunk_positions,
 		"data": ur_data.redo,
-		"channel": ur_data.channel
+		"channel": ur_data.channel,
+		"index": ur_data.index
 	}
 	var redo_data = {
 		"chunk_positions": ur_data.chunk_positions,
 		"data": ur_data.undo,
-		"channel": ur_data.channel
+		"channel": ur_data.channel,
+		"index": ur_data.index
 	}
 
 	ur.create_action(action_name)

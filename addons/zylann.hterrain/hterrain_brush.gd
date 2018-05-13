@@ -5,14 +5,17 @@ const HTerrainData = preload("hterrain_data.gd")
 const Util = preload("util.gd")
 const Grid = preload("grid.gd")
 
+# TODO Rename MODE_RAISE
 const MODE_ADD = 0
+# TODO Rename MODE_LOWER
 const MODE_SUBTRACT = 1
 const MODE_SMOOTH = 2
 const MODE_FLATTEN = 3
 const MODE_SPLAT = 4
 const MODE_COLOR = 5
 const MODE_MASK = 6
-const MODE_COUNT = 7
+const MODE_GRASS = 7
+const MODE_COUNT = 8
 
 signal shape_changed(shape)
 
@@ -135,6 +138,8 @@ static func _get_mode_channel(mode):
 			return HTerrainData.CHANNEL_SPLAT
 		MODE_MASK:
 			return HTerrainData.CHANNEL_COLOR
+		MODE_GRASS:
+			return HTerrainData.CHANNEL_GRASS
 		_:
 			print("This mode has no channel")
 
@@ -142,6 +147,7 @@ static func _get_mode_channel(mode):
 
 
 func paint(height_map, cell_pos_x, cell_pos_y, override_mode):
+	#var time_before = OS.get_ticks_msec()
 
 	assert(height_map.get_data() != null)
 	var data = height_map.get_data()
@@ -181,8 +187,14 @@ func paint(height_map, cell_pos_x, cell_pos_y, override_mode):
 
 		MODE_MASK:
 			_paint_mask(data, origin_x, origin_y)
+		
+		MODE_GRASS:
+			_paint_grass(data, origin_x, origin_y)
 
 	data.notify_region_change([origin_x, origin_y], [_shape_size, _shape_size], _get_mode_channel(mode))
+
+	#var time_elapsed = OS.get_ticks_msec() - time_before
+	#print("Time elapsed painting: ", time_elapsed, "ms")
 
 
 # TODO Erk!
@@ -313,18 +325,25 @@ func _backup_for_undo(im, undo_cache, rect_origin_x, rect_origin_y, rect_size_x,
 
 
 func _paint_height(data, origin_x, origin_y, speed):
+	#var time_before = OS.get_ticks_msec()
 
 	var im = data.get_image(HTerrainData.CHANNEL_HEIGHT)
 	assert(im != null)
 
 	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
+	#print("Backup time: ", (OS.get_ticks_msec() - time_before))
+	#time_before = OS.get_ticks_msec()
 
 	im.lock()
 	var op = OperatorAdd.new(im)
 	_foreach_xy(op, data, origin_x, origin_y, speed, _opacity, _shape)
 	im.unlock()
+	#print("Raster time: ", (OS.get_ticks_msec() - time_before))
+	#time_before = OS.get_ticks_msec()
 
 	data.update_normals(origin_x, origin_y, _shape_size, _shape_size)
+	#print("Normals time: ", (OS.get_ticks_msec() - time_before))
+	#time_before = OS.get_ticks_msec()
 
 	
 func _smooth_height(data, origin_x, origin_y, speed):
@@ -405,7 +424,6 @@ func _paint_splat(data, origin_x, origin_y):
 				var c = im.get_pixel(x, y)
 				c = c.linear_interpolate(target_color, shape_value * _opacity)
 				im.set_pixel(x, y, c)
-
 	
 #	elif _texture_mode == HTerrain.SHADER_ARRAY:
 #		var shape_threshold = 0.1
@@ -439,6 +457,22 @@ func _paint_color(data, origin_x, origin_y):
 
 	im.lock()
 	var op = OperatorLerpColor.new(_color, im)
+	_foreach_xy(op, data, origin_x, origin_y, 1, _opacity, _shape)
+	im.unlock()
+
+
+func _paint_grass(data, origin_x, origin_y):
+
+	# TODO This is temporary, normally the grassmap is supposed to exist before
+	if data.get_map_count(HTerrainData.CHANNEL_GRASS) == 0:
+		data._edit_add_grass_map()
+
+	var im = data.get_image(HTerrainData.CHANNEL_GRASS)
+
+	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
+
+	im.lock()
+	var op = OperatorLerpColor.new(Color(_opacity, _opacity, _opacity, 1.0), im)
 	_foreach_xy(op, data, origin_x, origin_y, 1, _opacity, _shape)
 	im.unlock()
 
@@ -528,7 +562,8 @@ func _edit_pop_undo_redo_data(heightmap_data):
 		"undo": undo_data,
 		"redo": redo_data,
 		"chunk_positions": chunk_positions,
-		"channel": channel
+		"channel": channel,
+		"index": 0
 	}
 
 	_undo_cache.clear()

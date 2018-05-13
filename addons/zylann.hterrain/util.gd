@@ -64,3 +64,9 @@ static func clampi(x, a, b):
 		return b
 	return x
 
+
+static func array_sum(a):
+	var s = 0
+	for x in a:
+		s += x
+	return s

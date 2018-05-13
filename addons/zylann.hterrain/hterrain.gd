@@ -8,6 +8,7 @@ var HTerrainData = load("res://addons/zylann.hterrain/hterrain_data.gd")
 const HTerrainChunk = preload("hterrain_chunk.gd")
 const Util = preload("util.gd")
 const HTerrainCollider = preload("hterrain_collider.gd")
+const GrassRenderer = preload("grass/grass_layer.gd")
 
 const DefaultShader = preload("shaders/simple4.shader")
 
@@ -49,6 +50,7 @@ var _data = null
 
 var _mesher = Mesher.new()
 var _lodder = QuadTreeLod.new()
+var _grass = GrassRenderer.new()
 
 var _pending_chunk_updates = []
 
@@ -61,12 +63,14 @@ var _collider = null
 # Stats
 var _updated_chunks = 0
 
+# Editor-only
 var _edit_manual_viewer_pos = Vector3()
 
 
 func _init():
 	print("Create HeightMap")
 	_lodder.set_callbacks(funcref(self, "_cb_make_chunk"), funcref(self,"_cb_recycle_chunk"))
+	_grass.set_terrain(self)
 	set_notify_transform(true)
 
 
@@ -263,6 +267,7 @@ func set_data(new_data):
 		_data.disconnect("resolution_changed", self, "_on_data_resolution_changed")
 		_data.disconnect("region_changed", self, "_on_data_region_changed")
 		_data.disconnect("progress_notified", self, "_on_data_progress_notified")
+		_data.disconnect("maps_changed", self, "_on_data_maps_changed")
 
 	_data = new_data
 
@@ -280,6 +285,7 @@ func set_data(new_data):
 		_data.connect("resolution_changed", self, "_on_data_resolution_changed")
 		_data.connect("region_changed", self, "_on_data_region_changed")
 		_data.connect("progress_notified", self, "_on_data_progress_notified")
+		_data.connect("maps_changed", self, "_on_maps_changed")
 
 		_on_data_resolution_changed()
 
@@ -296,6 +302,8 @@ func _on_data_progress_notified(info):
 			# Update collider when data is loaded
 			if _collider != null:
 				_collider.create_from_terrain_data(_data)
+		
+		_grass.reset()
 		
 		emit_signal("progress_complete")
 
@@ -331,6 +339,10 @@ func _on_data_region_changed(min_x, min_y, max_x, max_y, channel):
 	# Testing only heights because it's the only channel that can impact geometry and LOD
 	if channel == HTerrainData.CHANNEL_HEIGHT:
 		set_area_dirty(min_x, min_y, max_x - min_x, max_y - min_y)
+
+
+func _on_maps_changed():
+	_grass.reset()
 
 
 func set_custom_material(p_material):
@@ -511,6 +523,9 @@ func _process(delta):
 		
 		if _data.get_resolution() != 0:
 			_lodder.update(viewer_pos)
+		
+		if _data.get_map_count(HTerrainData.CHANNEL_GRASS) > 0:
+			_grass.process(viewer_pos)
 	
 	_updated_chunks = 0
 	

@@ -10,12 +10,13 @@ const CHANNEL_HEIGHT = 0
 const CHANNEL_NORMAL = 1
 const CHANNEL_SPLAT = 2
 const CHANNEL_COLOR = 3
-const CHANNEL_COUNT = 4
+const CHANNEL_GRASS = 4
+const CHANNEL_COUNT = 5
 
 const MAX_RESOLUTION = 4096 + 1
 const DEFAULT_RESOLUTION = 256
-# TODO Have vertical bounds chunk size
-# TODO Have undo chunk size
+# TODO Have vertical bounds chunk size to emphasise the fact it's independent
+# TODO Have undo chunk size to emphasise the fact it's independent
 
 const DATA_FOLDER_SUFFIX = ".hterrain_data"
 
@@ -24,6 +25,7 @@ signal resolution_changed
 signal region_changed(x, y, w, h, channel)
 # TODO Instead of message, send a state enum and a var (for translation and code semantic)
 signal progress_notified(info) # { "progress": real, "message": string, "finished": bool }
+signal maps_changed
 
 signal _internal_process
 
@@ -33,9 +35,20 @@ class VerticalBounds:
 	var maxv = 0
 
 
+# A map is a texture covering the terrain.
+# The usage of a map depends on its type (heightmap, normalmap, splatmap...).
+class Map:
+	var texture
+	# Reference used in case we need the data CPU-side
+	var image
+
+
 var _resolution = 0
-var _textures = []
-var _images = []
+
+# There can be multiple maps of the same type, though most of them are single
+# [map_type][instance_index] => map
+var _maps = [[]]
+
 var _chunked_vertical_bounds = []
 var _chunked_vertical_bounds_size = [0, 0]
 var _locked = false
@@ -45,8 +58,13 @@ var _edit_disable_apply_undo = false
 
 
 func _init():
-	_textures.resize(CHANNEL_COUNT)
-	_images.resize(CHANNEL_COUNT)
+	_maps.resize(CHANNEL_COUNT)
+	for c in range(CHANNEL_COUNT):
+		var maps = []
+		var n = _get_channel_default_count(c)
+		for i in range(n):
+			maps.append(Map.new())
+		_maps[c] = maps
 
 
 func _get_property_list():
@@ -85,6 +103,7 @@ func _edit_load_default():
 	_update_all_normals()
 
 
+# Don't use the data if this getter returns false
 func is_locked():
 	return _locked
 
@@ -116,47 +135,33 @@ func set_resolution2(p_res, update_normals):
 	p_res = Util.next_power_of_two(p_res - 1) + 1
 
 	_resolution = p_res;
-
-	# Resize heights
-	print("Resizing heights...")
-	if _images[CHANNEL_HEIGHT] == null:
-		var im = Image.new()
-		im.create(_resolution, _resolution, false, _get_channel_format(CHANNEL_HEIGHT))
-		_images[CHANNEL_HEIGHT] = im
-	else:
-		_images[CHANNEL_HEIGHT].resize(_resolution, _resolution)
-
-	# Resize normals
-	print("Resizing normals...")
-	if _images[CHANNEL_NORMAL] == null:
-		var im = Image.new()
-		_images[CHANNEL_NORMAL] = im
 	
-	_images[CHANNEL_NORMAL].create(_resolution, _resolution, false, _get_channel_format(CHANNEL_NORMAL))
-	if update_normals:
-		_update_all_normals()
-
-	# Resize colors
-	print("Resizing colors...")
-	if _images[CHANNEL_COLOR] == null:
-		var im = Image.new()
-		im.create(_resolution, _resolution, false, _get_channel_format(CHANNEL_COLOR))
-		im.fill(Color(1, 1, 1, 1))
-		_images[CHANNEL_COLOR] = im
-	else:
-		_images[CHANNEL_COLOR].resize(_resolution, _resolution)
-
-	# Resize splats
-	print("Resizing splats...")
-	if _images[CHANNEL_SPLAT] == null:
-		var im = Image.new()
-		im.create(_resolution, _resolution, false, _get_channel_format(CHANNEL_SPLAT))
-		im.fill(Color(1, 0, 0, 0))
-		_images[CHANNEL_SPLAT] = im
+	for channel in range(CHANNEL_COUNT):
+		print("Resizing ", _get_channel_name(channel), "...")
+		var maps = _maps[channel]
 		
-	else:
-		_images[CHANNEL_SPLAT].resize(_resolution, _resolution)
-
+		for index in len(maps):
+			var map = maps[index]
+			var im = map.image
+			
+			if im == null:
+				im = Image.new()
+				im.create(_resolution, _resolution, false, _get_channel_format(channel))
+				
+				var fill_color = _get_channel_default_fill(channel)
+				if fill_color != null:
+					im.fill(fill_color)
+				
+				map.image = im
+				
+			else:
+				if channel == CHANNEL_NORMAL:
+					im.create(_resolution, _resolution, false, _get_channel_format(channel))
+					if update_normals:
+						_update_all_normals()
+				else:
+					im.resize(_resolution, _resolution)
+	
 	_update_all_vertical_bounds()
 
 	emit_signal("resolution_changed")
@@ -181,9 +186,9 @@ func get_height_at(x, y):
 	# This function is relatively slow due to locking, so don't use it to fetch large areas
 
 	# Height data must be loaded in RAM
-	assert(_images[CHANNEL_HEIGHT] != null)
+	var im = get_image(CHANNEL_HEIGHT)
+	assert(im != null)
 
-	var im = _images[CHANNEL_HEIGHT]
 	im.lock();
 	var h = _get_clamped(im, x, y).r;
 	im.unlock();
@@ -194,7 +199,8 @@ func get_interpolated_height_at(pos):
 	# This function is relatively slow due to locking, so don't use it to fetch large areas
 
 	# Height data must be loaded in RAM
-	assert(_images[CHANNEL_HEIGHT] != null)
+	var im = get_image(CHANNEL_HEIGHT)
+	assert(im != null)
 
 	# The function takes a Vector3 for convenience so it's easier to use in 3D scripting
 	var x0 = int(floor(pos.x))
@@ -203,7 +209,6 @@ func get_interpolated_height_at(pos):
 	var xf = pos.x - x0
 	var yf = pos.z - y0
 
-	var im = _images[CHANNEL_HEIGHT]
 	im.lock()
 	var h00 = _get_clamped(im, x0, y0).r
 	var h10 = _get_clamped(im, x0 + 1, y0).r
@@ -218,9 +223,8 @@ func get_interpolated_height_at(pos):
 
 
 func get_heights_region(x0, y0, w, h):
-	assert(_images[CHANNEL_HEIGHT] != null)
-	
-	var im = _images[CHANNEL_HEIGHT]
+	var im = get_image(CHANNEL_HEIGHT)
+	assert(im != null)
 	
 	var min_x = Util.clampi(x0, 0, im.get_width())
 	var min_y = Util.clampi(y0, 0, im.get_height())
@@ -253,7 +257,6 @@ func get_all_heights():
 	return get_heights_region(0, 0, _resolution, _resolution)
 
 
-
 # TODO Have an async version that uses the GPU
 func _update_all_normals():
 	update_normals(0, 0, _resolution, _resolution)
@@ -267,11 +270,11 @@ func update_normals(min_x, min_y, size_x, size_y):
 	assert(typeof(size_x) == TYPE_INT)
 	assert(typeof(size_x) == TYPE_INT)
 	
-	assert(_images[CHANNEL_HEIGHT] != null)
-	assert(_images[CHANNEL_NORMAL] != null)
-
-	var heights = _images[CHANNEL_HEIGHT]
-	var normals = _images[CHANNEL_NORMAL]
+	var heights = get_image(CHANNEL_HEIGHT)
+	var normals = get_image(CHANNEL_NORMAL)
+	
+	assert(heights != null)
+	assert(normals != null)
 
 	var max_x = min_x + size_x
 	var max_y = min_y + size_y
@@ -339,7 +342,7 @@ func update_normals(min_x, min_y, size_x, size_y):
 	#print("Was from ", min_x, ", ", min_y, " to ", max_x, ", ", max_y)
 
 
-func notify_region_change(p_min, p_size, channel):
+func notify_region_change(p_min, p_size, channel, index = 0):
 
 	# TODO Hmm not sure if that belongs here // <-- why this, Me from the past?
 	match channel:
@@ -349,13 +352,14 @@ func notify_region_change(p_min, p_size, channel):
 			# and set correct AABBs as a background task once done
 			_update_vertical_bounds(p_min[0], p_min[1], p_size[0], p_size[1])
 
-			_upload_region(channel, p_min[0], p_min[1], p_size[0], p_size[1])
-			_upload_region(CHANNEL_NORMAL, p_min[0], p_min[1], p_size[0], p_size[1])
+			_upload_region(channel, 0, p_min[0], p_min[1], p_size[0], p_size[1])
+			_upload_region(CHANNEL_NORMAL, 0, p_min[0], p_min[1], p_size[0], p_size[1])
 
 		CHANNEL_NORMAL, \
 		CHANNEL_SPLAT, \
-		CHANNEL_COLOR:
-			_upload_region(channel, p_min[0], p_min[1], p_size[0], p_size[1])
+		CHANNEL_COLOR, \
+		CHANNEL_GRASS:
+			_upload_region(channel, index, p_min[0], p_min[1], p_size[0], p_size[1])
 
 		_:
 			print("Unrecognized channel\n")
@@ -375,6 +379,7 @@ func _edit_apply_undo(undo_data):
 	var chunk_positions = undo_data["chunk_positions"]
 	var chunk_datas = undo_data["data"]
 	var channel = undo_data["channel"]
+	var index = undo_data["index"]
 
 	# Validate input
 
@@ -408,20 +413,21 @@ func _edit_apply_undo(undo_data):
 		assert(data != null)
 
 		var data_rect = Rect2(0, 0, data.get_width(), data.get_height())
+		
+		var dst_image = get_image(channel, index)
+		assert(dst_image != null)
 
 		match channel:
 
 			CHANNEL_HEIGHT:
-				assert(_images[channel] != null)
-				_images[channel].blit_rect(data, data_rect, Vector2(min_x, min_y))
+				dst_image.blit_rect(data, data_rect, Vector2(min_x, min_y))
 				# Padding is needed because normals are calculated using neighboring,
 				# so a change in height X also requires normals in X-1 and X+1 to be updated
 				update_normals(min_x - 1, min_y - 1, max_x - min_x + 2, max_y - min_y + 2)
 
 			CHANNEL_SPLAT, \
 			CHANNEL_COLOR:
-				assert(_images[channel] != null)
-				_images[channel].blit_rect(data, data_rect, Vector2(min_x, min_y))
+				dst_image.blit_rect(data, data_rect, Vector2(min_x, min_y))
 
 			CHANNEL_NORMAL:
 				print("This is a calculated channel!, no undo on this one\n")
@@ -429,48 +435,52 @@ func _edit_apply_undo(undo_data):
 				print("Wut? Unsupported undo channel\n");
 		
 		# Defer this to a second pass, otherwise it causes order-dependent artifacts on the normal map
-		regions_changed.append([[min_x, min_y], [max_x - min_x, max_y - min_y], channel])
+		regions_changed.append([[min_x, min_y], [max_x - min_x, max_y - min_y], channel, index])
 
 	for args in regions_changed:
 		# TODO This one is VERY slow because partial texture updates is not supported...
 		# so the entire texture gets reuploaded for each chunk being undone
-		notify_region_change(args[0], args[1], args[2])
+		notify_region_change(args[0], args[1], args[2], args[3])
 
 
-func _upload_channel(channel):
-	_upload_region(channel, 0, 0, _resolution, _resolution)
+func _upload_channel(channel, index):
+	_upload_region(channel, index, 0, 0, _resolution, _resolution)
 
 
-func _upload_region(channel, min_x, min_y, size_x, size_y):
+func _upload_region(channel, index, min_x, min_y, size_x, size_y):
 
 	#print("Upload ", min_x, ", ", min_y, ", ", size_x, "x", size_y)
 	#var time_before = OS.get_ticks_msec()
 
-	assert(_images[channel] != null)
+	var map = _maps[channel][index]
+
+	var image = map.image
+	assert(image != null)
 	assert(size_x > 0 and size_y > 0)
 
 	var flags = 0;
-
 	if channel == CHANNEL_NORMAL or channel == CHANNEL_COLOR or channel == CHANNEL_SPLAT or channel == CHANNEL_HEIGHT:
 		flags |= Texture.FLAG_FILTER
 
-	var image = _images[channel]
+	var texture = map.texture
 
-	if _textures[channel] == null or not (_textures[channel] is ImageTexture):
+	if texture == null or not (texture is ImageTexture):
 		
 		# The texture doesn't exist yet in an editable format
-		if _textures[channel] != null and not (_textures[channel] is ImageTexture):
+		if texture != null and not (texture is ImageTexture):
 			print("_upload_region was used but the texture isn't an ImageTexture. The map will be reuploaded entirely.")
 		else:
 			print("_upload_region was used but the texture is not created yet. The map will be uploaded entirely.")
 
-		var texture = ImageTexture.new()
-		texture.create_from_image(_images[channel], flags)
-		_textures[channel] = texture
+		texture = ImageTexture.new()
+		texture.create_from_image(image, flags)
+		
+		map.texture = texture
+
+		# Need to notify because other systems may want to grab the new texture
+		emit_signal("maps_changed")
 
 	else:
-		var texture = _textures[channel]
-
 		if VisualServer.has_method("texture_set_data_partial"):
 
 			# TODO Actually, I think the input params should be valid in the first place...
@@ -493,7 +503,7 @@ func _upload_region(channel, min_x, min_y, size_x, size_y):
 				0, 0)
 
 		else:
-			# Godot 3.0.2 and earlier...
+			# Godot 3.0.3 and earlier...
 
 			#               ..ooo@@@XXX%%%xx..
 			#            .oo@@XXX%x%xxx..     ` .
@@ -513,7 +523,7 @@ func _upload_region(channel, min_x, min_y, size_x, size_y):
 			#          IX     U  .        V     IX
 			#           V     .           .     V
 			#
-			_textures[channel].create_from_image(_images[channel], flags)
+			texture.create_from_image(image, flags)
 
 	#print("Channel updated ", channel)
 
@@ -521,14 +531,41 @@ func _upload_region(channel, min_x, min_y, size_x, size_y):
 	#print("Texture upload time: ", time_elapsed, "ms")
 
 
-func get_image(channel):
-	return _images[channel]
+func get_map_count(map_type):
+	return len(_maps[map_type])
 
 
-func get_texture(channel):
-	if _textures[channel] == null and _images[channel] != null:
-		_upload_channel(channel)
-	return _textures[channel]
+func _edit_add_grass_map():
+	print("Adding grass map")
+	var grass_maps = _maps[CHANNEL_GRASS]
+	var map = Map.new()
+	map.image = Image.new()
+	map.image.create(_resolution, _resolution, false, _get_channel_format(CHANNEL_GRASS))
+	var index = len(grass_maps)
+	grass_maps.append(map)
+	emit_signal("maps_changed")
+	return index
+
+
+# TODO
+#func remove_grass_map(index):
+#	pass
+
+
+func get_image(channel, index = 0):
+	var maps = _maps[channel]
+	return maps[index].image
+
+
+func _get_texture(channel, index):
+	var maps = _maps[channel]
+	return maps[index].texture
+
+
+func get_texture(channel, index = 0):
+	if _get_texture(channel, index) == null and get_image(channel) != null:
+		_upload_channel(channel, index)
+	return _get_texture(channel, index)
 
 
 func get_aabb():
@@ -625,7 +662,7 @@ func _update_vertical_bounds(origin_in_cells_x, origin_in_cells_y, size_in_cells
 
 func _compute_vertical_bounds_at(origin_x, origin_y, size_x, size_y, out_b):
 
-	var heights = _images[CHANNEL_HEIGHT]
+	var heights = get_image(CHANNEL_HEIGHT)
 	assert(heights != null)
 
 	var min_x = origin_x
@@ -673,15 +710,30 @@ func save_data_async():
 	_notify_progress("Saving terrain data...", 0.0)
 	yield(self, "_internal_process")
 	
+	var map_count = _get_total_map_count()
+	
+	var pi = 0
 	for channel in range(CHANNEL_COUNT):
-		var p = 0.1 + 0.9 * float(channel) / float(CHANNEL_COUNT)
-		_notify_progress("Saving map " + _get_channel_name(channel) + "...", p)
-		yield(self, "_internal_process")
-		_save_channel(channel)
-	# TODO Trigger reimport on generated assets
+		var maps = _maps[channel]
+		
+		for index in range(len(maps)):
+			var p = 0.1 + 0.9 * float(pi) / float(map_count)
+			_notify_progress("Saving map " + _get_channel_name(channel, index) + "...", p)
+			yield(self, "_internal_process")
+			_save_channel(channel, index)
+			pi += 1
+			
+	# TODO In editor, trigger reimport on generated assets
 
 	_locked = false
 	_notify_progress_complete()
+
+
+func _get_total_map_count():
+	var s = 0
+	for maps in _maps:
+		s += len(maps)
+	return s
 
 
 func load_data():
@@ -695,18 +747,24 @@ func load_data_async():
 	_notify_progress("Loading terrain data...", 0.0)
 	yield(self, "_internal_process")
 	
+	var channel_instance_counts = _scan_channel_instance_counts()
+	var channel_instance_sum = Util.array_sum(channel_instance_counts)
+	var pi = 0
+
 	# Note: if we loaded all maps at once before uploading them to VRAM,
 	# it would take a lot more RAM than if we load them one by one
 	for channel in range(CHANNEL_COUNT):
-		var p = 0.1 + 0.6 * float(channel) / float(CHANNEL_COUNT)
-		_notify_progress("Loading map " + _get_channel_name(channel) + "...", p)
-		yield(self, "_internal_process")
-		_load_channel(channel, float(channel) / float(CHANNEL_COUNT))
+		for index in range(channel_instance_counts[channel]):
+			var p = 0.1 + 0.6 * float(pi) / float(channel_instance_sum)
+			_notify_progress("Loading map " + _get_channel_name(channel, index) + "...", p)
+			yield(self, "_internal_process")
+			_load_channel(channel, index)
+			pi += 1
 	
 	_notify_progress("Calculating vertical bounds...", 0.8)
 	yield(self, "_internal_process")
 	_update_all_vertical_bounds()
-		
+	
 	_notify_progress("Notify resolution change...", 0.9)
 	yield(self, "_internal_process")
 	
@@ -716,20 +774,51 @@ func load_data_async():
 	_notify_progress_complete()
 
 
+func _scan_channel_instance_counts():
+
+	# TODO It would be probably more efficient to have a mapping in .tres instead,
+	# because removing/adding maps requires to rename all files to decrement their indexes
+
+	var counts = []
+	counts.resize(CHANNEL_COUNT)
+	for i in range(len(counts)):
+		counts[i] = 0
+
+	var dirpath = get_data_dir()
+
+	var dir = Directory.new()
+	assert(dir.open(dirpath) == OK)
+	assert(dir.list_dir_begin(true) == OK)
+
+	while true:
+		var fname = dir.get_next()
+		if fname == "":
+			break
+		var name = fname.get_basename()
+		var map_key = _get_channel_from_name(name)
+		if map_key == null:
+			print("Unknown map file '", fname, "'")
+			continue
+		counts[map_key[0]] += 1
+	
+	return counts
+
+
 func get_data_dir():
 	# TODO Eventually have that one configurable?
 	return resource_path.get_basename() + DATA_FOLDER_SUFFIX
 
 
-func _save_channel(channel):
-	var im = _images[channel]
+func _save_channel(channel, index):
+	var map = _maps[channel][index]
+	var im = map.image
 	if im == null:
-		var tex = _textures[channel]
+		var tex = map.texture
 		if tex != null:
 			print("Image not found for channel ", channel, ", downloading from VRAM")
 			im = tex.get_data()
 		else:
-			print("No data in channel ", channel)
+			print("No data in channel ", channel, "[", index, "]")
 			# This data doesn't have such channel
 			return true
 	
@@ -738,7 +827,7 @@ func _save_channel(channel):
 	if not dir.dir_exists(dir_path):
 		dir.make_dir(dir_path)
 	
-	var fpath = dir_path.plus_file(_get_channel_name(channel))
+	var fpath = dir_path.plus_file(_get_channel_name(channel, index))
 	
 	if _channel_can_be_saved_as_png(channel):
 		fpath += ".png"
@@ -767,9 +856,18 @@ func _save_channel(channel):
 	return true
 
 
-func _load_channel(channel, progress = 0.0):
+func _load_channel(channel, index):
 	var dir = get_data_dir()
-	var fpath = dir.plus_file(_get_channel_name(channel))
+	var fpath = dir.plus_file(_get_channel_name(channel, index))
+
+	while len(_maps) <= channel:
+		_maps.append([])
+	while len(_maps[channel]) <= index:
+		_maps[channel].append(null)
+	var map = _maps[channel][index]
+	if map == null:
+		map = Map.new()
+		_maps[channel][index] = map
 	
 	if _channel_can_be_saved_as_png(channel):
 		fpath += ".png"
@@ -778,14 +876,12 @@ func _load_channel(channel, progress = 0.0):
 		if Engine.editor_hint:
 			# But in the editor we want textures to be editable,
 			# so we have to automatically load the data also in RAM
-			var im = _images[channel]
-			if im == null:
-				im = Image.new()
-				_images[channel] = im
-			im.load(fpath)
+			if map.image == null:
+				map.image = Image.new()
+			map.image.load(fpath)
 
 		var tex = load(fpath)
-		_textures[channel] = tex
+		map.texture = tex
 
 	else:
 		fpath += ".bin"
@@ -805,13 +901,11 @@ func _load_channel(channel, progress = 0.0):
 			return false
 
 		_resolution = width
-
-		var im = _images[channel]
-		if im == null:
-			im = Image.new()
-			_images[channel] = im
-		im.create_from_data(_resolution, _resolution, false, _get_channel_format(channel), data)
-		_upload_channel(channel)
+		
+		if map.image == null:
+			map.image = Image.new()
+		map.image.create_from_data(_resolution, _resolution, false, _get_channel_format(channel), data)
+		_upload_channel(channel, index)
 
 	return true
 
@@ -842,7 +936,7 @@ func _edit_import_heightmap_8bit_async(src_image, min_y, max_y):
 	im.lock()
 	src_image.lock()
 	
-	# Convert to internal format (from RGBA8 to RH16)
+	# Convert to internal format (from RGBA8 to RH16) with range scaling
 	for y in range(0, width):
 		for x in range(0, height):
 			var gs = src_image.get_pixel(x, y).r
@@ -946,6 +1040,8 @@ static func _get_channel_format(channel):
 			return Image.FORMAT_RGBA8
 		CHANNEL_COLOR:
 			return Image.FORMAT_RGBA8
+		CHANNEL_GRASS:
+			return Image.FORMAT_L8
 	
 	print("Unrecognized channel\n")
 	return Image.FORMAT_MAX
@@ -958,16 +1054,54 @@ static func _channel_can_be_saved_as_png(channel):
 	return true
 
 
-static func _get_channel_name(c):
+static func _get_channel_name(c, index):
+	var name = null
 	match c:
 		CHANNEL_COLOR:
-			return "color"
+			name = "color"
 		CHANNEL_SPLAT:
-			return "splat"
+			name = "splat"
 		CHANNEL_NORMAL:
-			return "normal"
+			name = "normal"
 		CHANNEL_HEIGHT:
-			return "height"
+			name = "height"
+		CHANNEL_GRASS:
+			name = "grass"
+	if index > 0:
+		name += str(index)
+	return name
+
+
+static func _get_channel_from_name(name):
+	match name:
+		"color":
+			return [CHANNEL_COLOR, 0]
+		"splat":
+			return [CHANNEL_SPLAT, 0]
+		"normal":
+			return [CHANNEL_NORMAL, 0]
+		"height":
+			return [CHANNEL_HEIGHT, 0]
+		"grass":
+			return [CHANNEL_GRASS, 0]
+	# TODO Use a regex?
 	return null
 
 
+static func _get_channel_default_fill(c):
+	match c:
+		CHANNEL_COLOR:
+			return Color(1, 1, 1, 1)
+		CHANNEL_SPLAT:
+			return Color(1, 0, 0, 0)
+		CHANNEL_GRASS:
+			return Color(0, 0, 0, 0)
+		_:
+			# No need to fill
+			return null
+
+
+static func _get_channel_default_count(c):
+	if c == CHANNEL_GRASS:
+		return 0
+	return 1
