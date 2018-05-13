@@ -272,9 +272,10 @@ func _get_layer_material(layer, index):
 	assert(_terrain.get_data() != null)
 	var terrain_data = _terrain.get_data()
 	assert(not terrain_data.is_locked())
-	
+
 	var heightmap_texture = _terrain.get_data().get_texture(HTerrainData.CHANNEL_HEIGHT)
 	var grassmap_texture = _terrain.get_data().get_texture(HTerrainData.CHANNEL_GRASS, index)
+	var normalmap_texture = _terrain.get_data().get_texture(HTerrainData.CHANNEL_NORMAL)
 
 #	var mat = SpatialMaterial.new()
 #	mat.albedo_texture = _grass_texture
@@ -290,6 +291,7 @@ func _get_layer_material(layer, index):
 	mat.shader = _grass_shader
 	mat.set_shader_param("u_terrain_heightmap", heightmap_texture)
 	mat.set_shader_param("u_terrain_grassmap", grassmap_texture)
+	mat.set_shader_param("u_terrain_normalmap", normalmap_texture)
 	mat.set_shader_param("u_albedo_alpha", layer.texture)
 	mat.set_shader_param("u_view_distance", _view_distance)
 	layer.material = mat
