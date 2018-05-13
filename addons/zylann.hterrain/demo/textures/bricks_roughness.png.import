@@ -8,7 +8,10 @@ path.etc2="res://.import/bricks_roughness.png-957e6e9bb8e10f640f59deb5f7d9fb94.e
 [deps]
 
 source_file="res://addons/zylann.hterrain/demo/textures/bricks_roughness.png"
+source_md5="734f12ee013c70d304dee488fcafcbf7"
+
 dest_files=[ "res://.import/bricks_roughness.png-957e6e9bb8e10f640f59deb5f7d9fb94.s3tc.stex", "res://.import/bricks_roughness.png-957e6e9bb8e10f640f59deb5f7d9fb94.etc2.stex" ]
+dest_md5="9a46588e35462cd8adea700870fb0d60"
 
 [params]
 

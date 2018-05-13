@@ -7,7 +7,10 @@ path="res://.import/table_mountain_2_4k.hdr-a025c5607bf70f61668b0fd1d1b8c2a9.ste
 [deps]
 
 source_file="res://addons/zylann.hterrain/demo/table_mountain_2_4k.hdr"
+source_md5="f43b90798994b71586e7e895444bfa2b"
+
 dest_files=[ "res://.import/table_mountain_2_4k.hdr-a025c5607bf70f61668b0fd1d1b8c2a9.stex" ]
+dest_md5="a3912b6df038ba30557b4dd83785c41e"
 
 [params]
 

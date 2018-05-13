@@ -8,7 +8,10 @@ path.etc2="res://.import/leaves_albedo.png-d15ea12a32683a7f82448c6b7ac8efc6.etc2
 [deps]
 
 source_file="res://addons/zylann.hterrain/demo/textures/leaves_albedo.png"
+source_md5="1a427e151eac73accc3b6e7284bc1fa0"
+
 dest_files=[ "res://.import/leaves_albedo.png-d15ea12a32683a7f82448c6b7ac8efc6.s3tc.stex", "res://.import/leaves_albedo.png-d15ea12a32683a7f82448c6b7ac8efc6.etc2.stex" ]
+dest_md5="1384cbdb9e59276bad5353e7dc34744c"
 
 [params]
 

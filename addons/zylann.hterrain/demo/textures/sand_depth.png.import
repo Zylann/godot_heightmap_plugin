@@ -8,7 +8,10 @@ path.etc2="res://.import/sand_depth.png-a5cce9bfcf9547a0f902f5b15f1cdcdd.etc2.st
 [deps]
 
 source_file="res://addons/zylann.hterrain/demo/textures/sand_depth.png"
+source_md5="8d638fbb69012fdbd41da87ed59e8cbd"
+
 dest_files=[ "res://.import/sand_depth.png-a5cce9bfcf9547a0f902f5b15f1cdcdd.s3tc.stex", "res://.import/sand_depth.png-a5cce9bfcf9547a0f902f5b15f1cdcdd.etc2.stex" ]
+dest_md5="c856514109f5aa53f6cd40d839e8e104"
 
 [params]
 
