@@ -4,9 +4,33 @@ extends Control
 
 signal property_changed(key, value)
 
+# Used for most simple types
+class Editor:
+	var control = null
+	var getter = null
+	var setter = null
+
+
+# Used when the control cannot hold the actual value
+class ResourceEditor extends Editor:
+	var value = null
+	var label = null
+	
+	func get_value():
+		return value
+	
+	func set_value(v):
+		value = v
+		label.text = "null" if v == null else v.resource_path
+
+
 var _prototype = null
 var _edit_signal = true
 var _editors = {}
+
+# Had to separate the container because otherwise I can't open dialogs properly...
+onready var _grid_container = get_node("GridContainer")
+onready var _open_file_dialog = get_node("OpenFileDialog")
 
 
 # Test
@@ -15,16 +39,17 @@ var _editors = {}
 #		"seed": { "type": TYPE_INT, "randomizable": true },
 #		"base_height": { "type": TYPE_REAL, "range": {"min": -1000.0, "max": 1000.0, "step": 0.1}},
 #		"height_range": { "type": TYPE_REAL, "range": {"min": -1000.0, "max": 1000.0, "step": 0.1 }, "default_value": 500.0},
-#		"streamed": { "type": TYPE_BOOL }
+#		"streamed": { "type": TYPE_BOOL },
+#		"texture": { "type": TYPE_OBJECT, "object_type": Resource }
 #	})
 
 
 func clear_prototype():
 	_editors.clear()
-	var i = get_child_count() - 1
+	var i = _grid_container.get_child_count() - 1
 	while i >= 0:
-		var child = get_child(i)
-		remove_child(child)
+		var child = _grid_container.get_child(i)
+		_grid_container.remove_child(child)
 		child.call_deferred("free")
 		i -= 1
 	_prototype = null
@@ -43,6 +68,11 @@ func get_values():
 	return values
 
 
+func set_value(key, value):
+	var editor = _editors[key]
+	editor.setter.call_func(value)
+
+
 func set_values(values):
 	for key in values:
 		if _editors.has(key):
@@ -59,7 +89,7 @@ func set_prototype(proto):
 		
 		var label = Label.new()
 		label.text = str(key).capitalize()
-		add_child(label)
+		_grid_container.add_child(label)
 		
 		var editor = _make_editor(key, prop)
 		
@@ -67,7 +97,7 @@ func set_prototype(proto):
 			editor.setter.call_func(prop.default_value)
 		
 		_editors[key] = editor
-		add_child(editor.control)
+		_grid_container.add_child(editor.control)
 	
 	_prototype = proto
 
@@ -79,9 +109,12 @@ func trigger_all_modified():
 
 
 func _make_editor(key, prop):
+	var ed = null
+	
 	var editor = null
 	var getter = null
 	var setter = null
+	var extra = null
 	
 	match prop.type:
 	
@@ -141,6 +174,33 @@ func _make_editor(key, prop):
 			getter = funcref(editor, "is_pressed")
 			setter = funcref(editor, "set_pressed")
 		
+		TYPE_OBJECT:
+			# TODO How do I even check inheritance if I work on the class themselves, not instances?
+			if prop.object_type == Resource:
+				editor = HBoxContainer.new()
+				
+				var label = Label.new()
+				label.text = "null"
+				label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				label.clip_text = true
+				label.align = Label.ALIGN_RIGHT
+				editor.add_child(label)
+				
+				var load_button = Button.new()
+				load_button.text = "Load..."
+				load_button.connect("pressed", self, "_on_ask_load_texture", [key])
+				editor.add_child(load_button)
+
+				var clear_button = Button.new()
+				clear_button.text = "Clear"
+				clear_button.connect("pressed", self, "_on_ask_clear_texture", [key])
+				editor.add_child(clear_button)
+				
+				ed = ResourceEditor.new()
+				ed.label = label
+				getter = funcref(ed, "get_value")
+				setter = funcref(ed, "set_value")
+		
 		_:
 			editor = Label.new()
 			editor.text = "<not editable>"
@@ -150,11 +210,14 @@ func _make_editor(key, prop):
 	if not(editor is CheckButton):
 		editor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	
-	return {
-		"control": editor,
-		"getter": getter,
-		"setter": setter
-	}
+	if ed == null:
+		# Default
+		ed = Editor.new()
+	ed.control = editor
+	ed.getter = getter
+	ed.setter = setter
+	
+	return ed
 
 
 static func _setup_range_control(range_control, prop):
@@ -205,5 +268,38 @@ func _dummy_getter():
 
 
 func _dummy_setter(v):
+	# TODO Could use extra data to store the value anyways?
 	pass
+
+
+func _on_ask_load_texture(key):
+	_open_file_dialog.add_filter("*.png ; PNG files")
+	_open_file_dialog.connect("popup_hide", self, "call_deferred", ["_on_file_dialog_close"], CONNECT_ONESHOT)
+	_open_file_dialog.connect("file_selected", self, "_on_texture_selected", [key])
+	_open_file_dialog.popup_centered_minsize()
+
+
+func _on_file_dialog_close():
+	# Disconnect listeners automatically,
+	# so we can re-use the same dialog with different listeners
+	var cons = _open_file_dialog.get_signal_connection_list("file_selected")
+	for con in cons:
+		#print("DDD Disconnect ", con.method)
+		_open_file_dialog.disconnect("file_selected", con.target, con.method)
+
+
+func _on_texture_selected(path, key):
+	var tex = load(path)
+	if tex == null:
+		print("Could not load texture ", path)
+		return
+	var ed = _editors[key]
+	ed.setter.call_func(tex)
+	_property_edited(tex, key)
+
+
+func _on_ask_clear_texture(key):
+	var ed = _editors[key]
+	ed.setter.call_func(null)
+	_property_edited(null, key)
 

@@ -95,6 +95,12 @@ func _get_property_list():
 				"hint": PROPERTY_HINT_RESOURCE_TYPE,
 				"hint_string": "Texture"
 			})
+
+	props.append({
+		"name": "_detail_objects_data",
+		"type": TYPE_ARRAY,
+		"usage": PROPERTY_USAGE_STORAGE
+	})
 	
 	return props
 
@@ -104,11 +110,16 @@ func _get(key):
 	if key == "data":
 		return get_data()
 	
-	for detail_type in range(DETAIL_TYPE_COUNT):
-		var type_name = _detail_enum_to_name[detail_type]
-		if key.begins_with("detail/" + type_name + "_"):
-			var i = key.right(len(key) - 1).to_int()
-			return get_detail_texture(i, detail_type)
+	if key.begins_with("detail/"):
+		# TODO This are splat textures... not really detail objects
+		for detail_type in range(DETAIL_TYPE_COUNT):
+			var type_name = _detail_enum_to_name[detail_type]
+			if key.begins_with(str("detail/", type_name, "_")):
+				var i = key.right(len(key) - 1).to_int()
+				return get_detail_texture(i, detail_type)
+
+	if key == "_detail_objects_data":
+		return _grass.serialize()
 
 
 func _set(key, value):
@@ -119,9 +130,12 @@ func _set(key, value):
 	
 	for detail_type in range(DETAIL_TYPE_COUNT):
 		var type_name = _detail_enum_to_name[detail_type]
-		if key.begins_with("detail/" + type_name + "_"):
+		if key.begins_with(str("detail/", type_name, "_")):
 			var i = key.right(len(key) - 1).to_int()
 			set_detail_texture(i, detail_type, value)
+
+	if key == "_detail_objects_data":
+		return _grass.deserialize(value)
 
 
 func get_custom_material():
@@ -267,7 +281,9 @@ func set_data(new_data):
 		_data.disconnect("resolution_changed", self, "_on_data_resolution_changed")
 		_data.disconnect("region_changed", self, "_on_data_region_changed")
 		_data.disconnect("progress_notified", self, "_on_data_progress_notified")
-		_data.disconnect("maps_changed", self, "_on_data_maps_changed")
+		_data.disconnect("map_changed", self, "_on_data_map_changed")
+		_data.disconnect("map_added", self, "_on_data_map_added")
+		_data.disconnect("map_removed", self, "_on_data_map_removed")
 
 	_data = new_data
 
@@ -285,7 +301,9 @@ func set_data(new_data):
 		_data.connect("resolution_changed", self, "_on_data_resolution_changed")
 		_data.connect("region_changed", self, "_on_data_region_changed")
 		_data.connect("progress_notified", self, "_on_data_progress_notified")
-		_data.connect("maps_changed", self, "_on_maps_changed")
+		_data.connect("map_changed", self, "_on_data_map_changed")
+		_data.connect("map_added", self, "_on_data_map_added")
+		_data.connect("map_removed", self, "_on_data_map_removed")
 
 		_on_data_resolution_changed()
 
@@ -341,8 +359,19 @@ func _on_data_region_changed(min_x, min_y, max_x, max_y, channel):
 		set_area_dirty(min_x, min_y, max_x - min_x, max_y - min_y)
 
 
-func _on_maps_changed():
-	_grass.reset()
+func _on_data_map_changed(type, index):
+	if type == HTerrainData.CHANNEL_GRASS:
+		_grass.reset()
+
+
+func _on_data_map_added(type, index):
+	if type == HTerrainData.CHANNEL_GRASS:
+		_grass.reset()
+
+
+func _on_data_map_removed(type, index):
+	if type == HTerrainData.CHANNEL_GRASS:
+		_grass.remove_layer(index)
 
 
 func set_custom_material(p_material):
@@ -776,6 +805,7 @@ func cell_raycast(origin_world, dir_world, out_cell_pos):
 
 	return false
 
+# TODO Rename these "splat textures"
 
 static func get_detail_texture_shader_param(detail_type, slot):
 	assert(typeof(slot) == TYPE_INT and slot >= 0)
@@ -794,6 +824,14 @@ func set_detail_texture(slot, type, tex):
 	assert(tex == null or tex is Texture)
 	var shader_param = get_detail_texture_shader_param(type, slot)
 	_material.set_shader_param(shader_param, tex)
+
+
+func set_grass_texture(slot, tex):
+	_grass.set_texture(slot, tex)
+
+
+func get_grass_texture(slot):
+	return _grass.get_texture(slot)
 
 
 func _check_slot(slot):

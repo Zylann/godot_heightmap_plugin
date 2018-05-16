@@ -6,6 +6,7 @@ var HTerrain = load("res://addons/zylann.hterrain/hterrain.gd")
 var HTerrainData = load("res://addons/zylann.hterrain/hterrain_data.gd")
 
 const CHUNK_SIZE = 32
+const GRASS_SHADER_PATH = "res://addons/zylann.hterrain/grass/grass.shader"
 
 class Chunk:
 	var cx = 0
@@ -15,13 +16,13 @@ class Chunk:
 
 class Layer:
 	var material = null
-	var texture = load("res://addons/zylann.hterrain/demo/textures/grass/grass_billboard.png")
+	var texture = null
 
 var _view_distance = 100.0
 var _layers = []
 
 var _terrain = null
-var _grass_shader = load("res://addons/zylann.hterrain/grass/grass.shader")
+var _grass_shader = load(GRASS_SHADER_PATH)
 var _multimesh = null
 var _multimesh_instance_pool = []
 var _chunks = {}
@@ -32,29 +33,78 @@ var _edit_manual_viewer_pos = Vector3()
 
 
 func set_terrain(terrain):
-	if _terrain == terrain:
-		return
 	_terrain = terrain
-	_reset_layers()
+	#_reset_layers()
+
+
+func serialize():
+	var data = []
+	for layer in _layers:
+		data.append({ "texture": layer.texture })
+	return data
+
+
+func deserialize(data):
+	_layers.clear()
+	for layer_data in data:
+		var layer = Layer.new()
+		layer.texture = layer_data.texture
+		_layers.append(layer)
 
 
 func reset():
 	_reset_layers()
 
 
+func remove_layer(index):
+	print("Erase detail layer ", index)
+	_layers.remove(index)
+	_reset_layers()
+
+
+func get_layer_count():
+	return len(_layers)
+
+
+func set_texture(i, tex):
+	assert(i < len(_layers))
+	var layer = _layers[i]
+	assert(layer != null)
+	layer.texture = tex
+	if layer.material != null:
+		layer.material.set_shader_param("u_albedo_alpha", tex)
+
+
+func get_texture(i):
+	assert(i < len(_layers))
+	var layer = _layers[i]
+	return layer.texture if layer != null else null
+
+
 func _reset_layers():
+	print("Resetting detail layers")
+
 	for k in _chunks.keys():
 		_recycle_chunk(k)
-	_layers.clear()
-
-	if _terrain != null:
-		var data = _terrain.get_data()
-		if data == null or data.is_locked():
-			return
-		var layer_count = data.get_map_count(HTerrainData.CHANNEL_GRASS)
-		if layer_count > 0:
-			for i in range(layer_count):
-				_layers.append(Layer.new())
+	
+	if _terrain == null:
+		_layers.clear()
+		return
+	
+	var data = _terrain.get_data()
+	if data == null or data.is_locked():
+		return
+	
+	var layer_count = data.get_map_count(HTerrainData.CHANNEL_GRASS)
+	_layers.resize(layer_count)
+	for i in range(layer_count):
+		var layer = _layers[i]
+		if layer == null:
+			layer = Layer.new()
+			_layers[i] = layer
+		else:
+			if layer.material != null:
+				_update_layer_material(layer, i)
 
 
 func process(viewer_pos):
@@ -179,7 +229,7 @@ func _recycle_chunk(cpos2d):
 	_chunks.erase(cpos2d)
 
 
-static func _create_quad():
+static func create_quad():
 	var positions = PoolVector3Array([
 		Vector3(-0.5, 0, 0),
 		Vector3(0.5, 0, 0),
@@ -223,7 +273,7 @@ static func _create_quad():
 
 
 static func _generate_multimesh(resolution):
-	var mesh = _create_quad()
+	var mesh = create_quad()
 	
 	var density = 4
 	var position_randomness = 0.5
@@ -268,6 +318,19 @@ func _get_layer_material(layer, index):
 	if layer.material != null:
 		return layer.material
 
+	print("Creating material for detail layer ", index, " with texture ", layer.texture)
+
+	var mat = ShaderMaterial.new()
+	mat.shader = _grass_shader
+	layer.material = mat
+
+	_update_layer_material(layer, index)
+	
+	return mat
+
+
+func _update_layer_material(layer, index):
+
 	assert(_terrain != null)
 	assert(_terrain.get_data() != null)
 	var terrain_data = _terrain.get_data()
@@ -277,23 +340,9 @@ func _get_layer_material(layer, index):
 	var grassmap_texture = _terrain.get_data().get_texture(HTerrainData.CHANNEL_GRASS, index)
 	var normalmap_texture = _terrain.get_data().get_texture(HTerrainData.CHANNEL_NORMAL)
 
-#	var mat = SpatialMaterial.new()
-#	mat.albedo_texture = _grass_texture
-#	mat.vertex_color_use_as_albedo = true
-#	mat.params_cull_mode = SpatialMaterial.CULL_DISABLED
-#	mat.params_use_alpha_scissor = true
-#	mat.params_alpha_scissor_threshold = 0.5
-#	mat.roughness = 1.0
-	#mat.params_depth_draw_mode = SpatialMaterial.DEPTH_DRAW_ALPHA_OPAQUE_PREPASS
-	#mat.params_billboard_mode = SpatialMaterial.BILLBOARD_FIXED_Y
-	
-	var mat = ShaderMaterial.new()
-	mat.shader = _grass_shader
+	var mat = layer.material
 	mat.set_shader_param("u_terrain_heightmap", heightmap_texture)
 	mat.set_shader_param("u_terrain_grassmap", grassmap_texture)
 	mat.set_shader_param("u_terrain_normalmap", normalmap_texture)
 	mat.set_shader_param("u_albedo_alpha", layer.texture)
 	mat.set_shader_param("u_view_distance", _view_distance)
-	layer.material = mat
-	
-	return mat

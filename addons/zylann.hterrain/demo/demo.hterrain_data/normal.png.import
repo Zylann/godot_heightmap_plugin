@@ -8,10 +8,10 @@ path.etc2="res://.import/normal.png-ed5db1bc10e0a8e0fb3b23189752d479.etc2.stex"
 [deps]
 
 source_file="res://addons/zylann.hterrain/demo/demo.hterrain_data/normal.png"
-source_md5="90980f3084ab72f58e92a0a0cb302f1a"
+source_md5="a93dac5b9dc7a4e37c9fe6b76801c11d"
 
 dest_files=[ "res://.import/normal.png-ed5db1bc10e0a8e0fb3b23189752d479.s3tc.stex", "res://.import/normal.png-ed5db1bc10e0a8e0fb3b23189752d479.etc2.stex" ]
-dest_md5="b41dc9550105325ebb4a9841830f7b75"
+dest_md5="46ff96a77fb61b2630ce89339baff0b3"
 
 [params]
 

@@ -27,6 +27,7 @@ var _shape_size = 0
 var _mode = MODE_ADD
 var _flatten_height = 0.0
 var _texture_index = 0
+var _detail_index = 0
 var _texture_mode = HTerrain.SHADER_SIMPLE4
 var _color = Color(1, 1, 1)
 var _undo_cache = {}
@@ -87,6 +88,15 @@ func set_texture_index(tid):
 
 func get_texture_index():
 	return _texture_index
+
+
+func set_detail_index(index):
+	assert(index >= 0)
+	_detail_index = index
+
+
+# func get_detail_index():
+# 	return _detail_index
 
 
 func set_color(c):
@@ -164,6 +174,7 @@ func paint(height_map, cell_pos_x, cell_pos_y, override_mode):
 	var origin_y = cell_pos_y - _shape_size / 2
 
 	height_map.set_area_dirty(origin_x, origin_y, _shape_size, _shape_size)
+	var map_index = 0
 
 	match mode:
 
@@ -189,9 +200,10 @@ func paint(height_map, cell_pos_x, cell_pos_y, override_mode):
 			_paint_mask(data, origin_x, origin_y)
 		
 		MODE_GRASS:
-			_paint_grass(data, origin_x, origin_y)
+			_paint_detail(data, origin_x, origin_y)
+			map_index = _detail_index
 
-	data.notify_region_change([origin_x, origin_y], [_shape_size, _shape_size], _get_mode_channel(mode))
+	data.notify_region_change([origin_x, origin_y], [_shape_size, _shape_size], _get_mode_channel(mode), map_index)
 
 	#var time_elapsed = OS.get_ticks_msec() - time_before
 	#print("Time elapsed painting: ", time_elapsed, "ms")
@@ -461,13 +473,10 @@ func _paint_color(data, origin_x, origin_y):
 	im.unlock()
 
 
-func _paint_grass(data, origin_x, origin_y):
+func _paint_detail(data, origin_x, origin_y):
 
-	# TODO This is temporary, normally the grassmap is supposed to exist before
-	if data.get_map_count(HTerrainData.CHANNEL_GRASS) == 0:
-		data._edit_add_grass_map()
-
-	var im = data.get_image(HTerrainData.CHANNEL_GRASS)
+	var im = data.get_image(HTerrainData.CHANNEL_GRASS, _detail_index)
+	assert(im != null)
 
 	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
 

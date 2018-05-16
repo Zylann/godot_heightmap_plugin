@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=2]
+[gd_scene load_steps=21 format=2]
 
 [ext_resource path="res://addons/zylann.hterrain/hterrain.gd" type="Script" id=1]
 [ext_resource path="res://addons/zylann.hterrain/tools/icons/icon_heightmap_node.svg" type="Texture" id=2]
@@ -11,19 +11,34 @@
 [ext_resource path="res://addons/zylann.hterrain/demo/textures/sand_normal.png" type="Texture" id=9]
 [ext_resource path="res://addons/zylann.hterrain/demo/textures/bricks_albedo_roughness.png" type="Texture" id=10]
 [ext_resource path="res://addons/zylann.hterrain/demo/textures/bricks_normal_bump.png" type="Texture" id=11]
-[ext_resource path="res://addons/zylann.hterrain/demo/table_mountain_2_4k.hdr" type="Texture" id=12]
-[ext_resource path="res://addons/zylann.hterrain/demo/avatar.gd" type="Script" id=13]
-[ext_resource path="res://addons/zylann.hterrain/demo/mouse_look.gd" type="Script" id=14]
-[ext_resource path="res://addons/zylann.hterrain/demo/inventory.gd" type="Script" id=15]
+[ext_resource path="res://icon.png" type="Texture" id=12]
+[ext_resource path="res://addons/zylann.hterrain/demo/textures/grass/grass_billboard.png" type="Texture" id=13]
+[ext_resource path="res://addons/zylann.hterrain/demo/table_mountain_2_4k.hdr" type="Texture" id=14]
+[ext_resource path="res://addons/zylann.hterrain/demo/avatar.gd" type="Script" id=15]
+[ext_resource path="res://addons/zylann.hterrain/demo/mouse_look.gd" type="Script" id=16]
+[ext_resource path="res://addons/zylann.hterrain/demo/inventory.gd" type="Script" id=17]
 
 [sub_resource type="Resource" id=1]
 
 script = ExtResource( 3 )
+_maps_data = [ [ {
+"id": 0
+} ], [ {
+"id": 0
+} ], [ {
+"id": 0
+} ], [ {
+"id": 0
+} ], [ {
+"id": 0
+}, {
+"id": 1
+} ] ]
 
 [sub_resource type="PanoramaSky" id=2]
 
 radiance_size = 4
-panorama = ExtResource( 12 )
+panorama = ExtResource( 14 )
 
 [sub_resource type="Environment" id=3]
 
@@ -126,6 +141,11 @@ detail/albedo_roughness_2 = ExtResource( 8 )
 detail/normal_bump_2 = ExtResource( 9 )
 detail/albedo_roughness_3 = ExtResource( 10 )
 detail/normal_bump_3 = ExtResource( 11 )
+_detail_objects_data = [ {
+"texture": ExtResource( 12 )
+}, {
+"texture": ExtResource( 13 )
+} ]
 
 [node name="DirectionalLight" type="DirectionalLight" parent="." index="1"]
 
@@ -162,7 +182,7 @@ environment = SubResource( 3 )
 [node name="Avatar" type="Spatial" parent="." index="3"]
 
 transform = Transform( -1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 178.398, 33.4623, 0 )
-script = ExtResource( 13 )
+script = ExtResource( 15 )
 _sections_unfolded = [ "Transform" ]
 
 [node name="Camera" type="Camera" parent="Avatar" index="0"]
@@ -180,7 +200,7 @@ fov = 70.0
 size = 1.0
 near = 0.05
 far = 1000.0
-script = ExtResource( 14 )
+script = ExtResource( 16 )
 _sections_unfolded = [ "Transform" ]
 sensitivity = 0.4
 min_angle = -90
@@ -190,6 +210,6 @@ distance = 5.0
 
 [node name="Inventory" type="Node" parent="Avatar" index="1"]
 
-script = ExtResource( 15 )
+script = ExtResource( 17 )
 
 

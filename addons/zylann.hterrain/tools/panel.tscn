@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=2]
+[gd_scene load_steps=6 format=2]
 
 [ext_resource path="res://addons/zylann.hterrain/tools/panel.gd" type="Script" id=1]
 [ext_resource path="res://addons/zylann.hterrain/tools/brush/brush_editor.tscn" type="PackedScene" id=2]
 [ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/texture_editor.tscn" type="PackedScene" id=3]
-[ext_resource path="res://addons/zylann.hterrain/tools/minimap.gd" type="Script" id=4]
+[ext_resource path="res://addons/zylann.hterrain/tools/detail_editor/detail_editor.tscn" type="PackedScene" id=4]
+[ext_resource path="res://addons/zylann.hterrain/tools/minimap.gd" type="Script" id=5]
 
 [node name="Panel" type="Control" index="0"]
 
@@ -11,7 +12,7 @@ anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
 anchor_bottom = 0.0
-margin_right = 640.0
+margin_right = 895.0
 margin_bottom = 112.0
 rect_min_size = Vector2( 400, 112 )
 rect_pivot_offset = Vector2( 0, 0 )
@@ -53,7 +54,7 @@ anchor_top = 0.0
 anchor_right = 0.0
 anchor_bottom = 0.0
 margin_left = 252.0
-margin_right = 630.0
+margin_right = 885.0
 margin_bottom = 104.0
 rect_pivot_offset = Vector2( 0, 0 )
 rect_clip_content = false
@@ -64,8 +65,37 @@ size_flags_vertical = 1
 split_offset = 0
 collapsed = false
 dragger_visibility = 0
+_sections_unfolded = [ "Size Flags" ]
 
-[node name="TextureEditor" parent="HSplitContainer/HSplitContainer" index="0" instance=ExtResource( 3 )]
+[node name="HSplitContainer" type="HSplitContainer" parent="HSplitContainer/HSplitContainer" index="0"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_right = 521.0
+margin_bottom = 104.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 3
+size_flags_vertical = 1
+split_offset = 150
+collapsed = false
+dragger_visibility = 0
+_sections_unfolded = [ "Size Flags" ]
+
+[node name="TextureEditor" parent="HSplitContainer/HSplitContainer/HSplitContainer" index="0" instance=ExtResource( 3 )]
+
+margin_right = 250.0
+size_flags_horizontal = 1
+
+[node name="DetailEditor" parent="HSplitContainer/HSplitContainer/HSplitContainer" index="1" instance=ExtResource( 4 )]
+
+margin_left = 262.0
+margin_right = 521.0
+margin_bottom = 104.0
 
 [node name="Minimap" type="ColorRect" parent="HSplitContainer/HSplitContainer" index="1"]
 
@@ -73,8 +103,8 @@ anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
 anchor_bottom = 0.0
-margin_left = 278.0
-margin_right = 378.0
+margin_left = 533.0
+margin_right = 633.0
 margin_bottom = 104.0
 rect_min_size = Vector2( 100, 0 )
 rect_pivot_offset = Vector2( 0, 0 )
@@ -84,7 +114,7 @@ mouse_default_cursor_shape = 0
 size_flags_horizontal = 1
 size_flags_vertical = 1
 color = Color( 0, 0, 0, 1 )
-script = ExtResource( 4 )
+script = ExtResource( 5 )
 _sections_unfolded = [ "Rect" ]
 
 
