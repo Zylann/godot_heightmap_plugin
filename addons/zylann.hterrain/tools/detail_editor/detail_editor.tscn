@@ -134,7 +134,6 @@ align = 1
 
 [node name="EditDetailDialog" type="WindowDialog" parent="." index="2"]
 
-visible = false
 anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
@@ -254,8 +253,9 @@ mouse_filter = 1
 mouse_default_cursor_shape = 0
 size_flags_horizontal = 1
 size_flags_vertical = 1
+custom_constants/separation = 32
 alignment = 1
-_sections_unfolded = [ "Rect" ]
+_sections_unfolded = [ "Rect", "custom_constants" ]
 
 [node name="OkButton" type="Button" parent="EditDetailDialog/VBoxContainer/HBoxContainer2" index="0"]
 
@@ -263,8 +263,8 @@ anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
 anchor_bottom = 0.0
-margin_left = 227.0
-margin_right = 257.0
+margin_left = 184.0
+margin_right = 214.0
 margin_bottom = 20.0
 rect_pivot_offset = Vector2( 0, 0 )
 rect_clip_content = false
@@ -278,6 +278,30 @@ enabled_focus_mode = 2
 shortcut = null
 group = null
 text = "Ok"
+flat = false
+align = 1
+
+[node name="CancelButton" type="Button" parent="EditDetailDialog/VBoxContainer/HBoxContainer2" index="1"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 246.0
+margin_right = 300.0
+margin_bottom = 20.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+group = null
+text = "Cancel"
 flat = false
 align = 1
 
@@ -307,6 +331,8 @@ This action cannot be undone."
 dialog_hide_on_ok = true
 _sections_unfolded = [ "Dialog" ]
 
+[connection signal="item_activated" from="ItemList" to="." method="_on_ItemList_item_activated"]
+
 [connection signal="item_selected" from="ItemList" to="." method="_on_ItemList_item_selected"]
 
 [connection signal="pressed" from="HBoxContainer/Add" to="." method="_on_Add_pressed"]
@@ -320,6 +346,8 @@ _sections_unfolded = [ "Dialog" ]
 [connection signal="property_changed" from="EditDetailDialog/VBoxContainer/HBoxContainer/Properties/Inspector" to="EditDetailDialog" method="_on_Inspector_property_changed"]
 
 [connection signal="pressed" from="EditDetailDialog/VBoxContainer/HBoxContainer2/OkButton" to="EditDetailDialog" method="_on_OkButton_pressed"]
+
+[connection signal="pressed" from="EditDetailDialog/VBoxContainer/HBoxContainer2/CancelButton" to="EditDetailDialog" method="hide"]
 
 [connection signal="confirmed" from="ConfirmationDialog" to="." method="_on_ConfirmationDialog_confirmed"]
 

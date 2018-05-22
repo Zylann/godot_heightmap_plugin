@@ -36,6 +36,15 @@ func _update_list():
 				_item_list.add_item(str(i), _placeholder_icon)
 
 
+func _edit_detail(index):
+	_dialog_target = index
+	
+	var texture = _terrain.get_grass_texture(_dialog_target)
+	
+	_edit_dialog.set_params(texture)
+	_edit_dialog.popup_centered_minsize()
+
+
 func _on_Add_pressed():
 	_dialog_target = -1
 	_edit_dialog.set_params(null)
@@ -48,12 +57,7 @@ func _on_Remove_pressed():
 
 
 func _on_Edit_pressed():
-	_dialog_target = _item_list.get_selected_items()[0]
-	
-	var texture = _terrain.get_grass_texture(_dialog_target)
-	
-	_edit_dialog.set_params(texture)
-	_edit_dialog.popup_centered_minsize()
+	_edit_detail(_item_list.get_selected_items()[0])
 
 
 func _on_EditDetailDialog_confirmed(params):
@@ -78,3 +82,10 @@ func _on_ConfirmationDialog_confirmed():
 func _on_ItemList_item_selected(index):
 	emit_signal("detail_selected", index)
 
+
+func _on_ItemList_item_activated(index):
+	# Edit on double-click
+	_edit_detail(index)
+
+
+	
