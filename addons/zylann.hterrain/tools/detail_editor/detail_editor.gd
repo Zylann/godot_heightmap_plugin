@@ -12,6 +12,7 @@ onready var _confirmation_dialog = get_node("ConfirmationDialog")
 var _terrain = null
 var _dialog_target = -1
 var _empty_texture = load("res://addons/zylann.hterrain/tools/icons/empty.png")
+var _placeholder_icon = load("res://addons/zylann.hterrain/tools/icons/icon_grass.svg")
 
 
 func set_terrain(terrain):
@@ -32,7 +33,7 @@ func _update_list():
 			var layer_count = data.get_map_count(HTerrainData.CHANNEL_GRASS)
 			for i in range(layer_count):
 				# TODO How do I make a preview here?
-				_item_list.add_item(str(i))
+				_item_list.add_item(str(i), _placeholder_icon)
 
 
 func _on_Add_pressed():

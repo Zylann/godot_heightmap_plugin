@@ -97,7 +97,7 @@ func _enter_tree():
 	# TODO Have different icons
 	mode_icons[Brush.MODE_SPLAT] = get_icon("heightmap_paint")
 	mode_icons[Brush.MODE_COLOR] = get_icon("heightmap_paint")
-	mode_icons[Brush.MODE_GRASS] = get_icon("heightmap_paint")
+	mode_icons[Brush.MODE_GRASS] = get_icon("grass")
 	mode_icons[Brush.MODE_MASK] = get_icon("heightmap_mask")
 	
 	var mode_tooltips = {}
