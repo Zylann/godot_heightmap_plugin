@@ -63,8 +63,16 @@ func _notification(what):
 				if _viewport != null:
 					return
 				
+				# Creating a viewport on the fly because none of this should exist
+				# while there is no preview to show
+				
+				var world = World.new()
+				
 				_viewport = Viewport.new()
 				_viewport.size = Vector2(200, 200)
+				_viewport.world = world
+				_viewport.own_world = true
+				
 				print("Making mat for viewport: ", _inspector.get_value("texture"))
 				var mat = ShaderMaterial.new()
 				mat.shader = _grass_shader
