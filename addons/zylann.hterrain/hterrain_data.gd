@@ -10,7 +10,7 @@ const CHANNEL_HEIGHT = 0
 const CHANNEL_NORMAL = 1
 const CHANNEL_SPLAT = 2
 const CHANNEL_COLOR = 3
-const CHANNEL_GRASS = 4
+const CHANNEL_DETAIL = 4
 const CHANNEL_COUNT = 5
 
 const MAX_RESOLUTION = 4096 + 1
@@ -424,7 +424,7 @@ func notify_region_change(p_min, p_size, channel, index = 0):
 		CHANNEL_NORMAL, \
 		CHANNEL_SPLAT, \
 		CHANNEL_COLOR, \
-		CHANNEL_GRASS:
+		CHANNEL_DETAIL:
 			_upload_region(channel, index, p_min[0], p_min[1], p_size[0], p_size[1])
 
 		_:
@@ -493,7 +493,7 @@ func _edit_apply_undo(undo_data):
 
 			CHANNEL_SPLAT, \
 			CHANNEL_COLOR, \
-			CHANNEL_GRASS:
+			CHANNEL_DETAIL:
 				dst_image.blit_rect(data, data_rect, Vector2(min_x, min_y))
 
 			CHANNEL_NORMAL:
@@ -604,24 +604,24 @@ func get_map_count(map_type):
 	return len(_maps[map_type])
 
 
-func _edit_add_grass_map():
-	print("Adding grass map")
-	var map_type = CHANNEL_GRASS
-	var grass_maps = _maps[map_type]
+func _edit_add_detail_map():
+	print("Adding detail map")
+	var map_type = CHANNEL_DETAIL
+	var detail_maps = _maps[map_type]
 	var map = Map.new(_get_free_id(map_type))
 	map.image = Image.new()
 	map.image.create(_resolution, _resolution, false, _get_channel_format(map_type))
-	var index = len(grass_maps)
-	grass_maps.append(map)
+	var index = len(detail_maps)
+	detail_maps.append(map)
 	emit_signal("map_added", map_type, index)
 	return index
 
 
-func _edit_remove_grass_map(index):
-	print("Removing grass map ", index)
-	var map_type = CHANNEL_GRASS
-	var grass_maps = _maps[map_type]
-	grass_maps.remove(index)
+func _edit_remove_detail_map(index):
+	print("Removing detail map ", index)
+	var map_type = CHANNEL_DETAIL
+	var detail_maps = _maps[map_type]
+	detail_maps.remove(index)
 	emit_signal("map_removed", map_type, index)
 
 
@@ -1140,7 +1140,7 @@ static func _get_channel_format(channel):
 			return Image.FORMAT_RGBA8
 		CHANNEL_COLOR:
 			return Image.FORMAT_RGBA8
-		CHANNEL_GRASS:
+		CHANNEL_DETAIL:
 			return Image.FORMAT_L8
 	
 	print("Unrecognized channel\n")
@@ -1165,8 +1165,8 @@ static func _get_channel_name(c):
 			name = "normal"
 		CHANNEL_HEIGHT:
 			name = "height"
-		CHANNEL_GRASS:
-			name = "grass"
+		CHANNEL_DETAIL:
+			name = "detail"
 	assert(name != null)
 	return name
 
@@ -1189,8 +1189,8 @@ func _get_map_filename(c, index):
 # 			return [CHANNEL_NORMAL, 0]
 # 		"height":
 # 			return [CHANNEL_HEIGHT, 0]
-# 		"grass":
-# 			return [CHANNEL_GRASS, 0]
+# 		"detail":
+# 			return [CHANNEL_DETAIL, 0]
 # 	# TODO Use a regex?
 # 	return null
 
@@ -1201,7 +1201,7 @@ static func _get_channel_default_fill(c):
 			return Color(1, 1, 1, 1)
 		CHANNEL_SPLAT:
 			return Color(1, 0, 0, 0)
-		CHANNEL_GRASS:
+		CHANNEL_DETAIL:
 			return Color(0, 0, 0, 0)
 		_:
 			# No need to fill
@@ -1209,6 +1209,6 @@ static func _get_channel_default_fill(c):
 
 
 static func _get_channel_default_count(c):
-	if c == CHANNEL_GRASS:
+	if c == CHANNEL_DETAIL:
 		return 0
 	return 1

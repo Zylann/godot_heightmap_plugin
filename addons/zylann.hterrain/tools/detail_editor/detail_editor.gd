@@ -30,7 +30,7 @@ func _update_list():
 	if _terrain != null:
 		var data = _terrain.get_data()
 		if data != null:
-			var layer_count = data.get_map_count(HTerrainData.CHANNEL_GRASS)
+			var layer_count = data.get_map_count(HTerrainData.CHANNEL_DETAIL)
 			for i in range(layer_count):
 				# TODO How do I make a preview here?
 				_item_list.add_item(str(i), _placeholder_icon)
@@ -39,7 +39,7 @@ func _update_list():
 func _edit_detail(index):
 	_dialog_target = index
 	
-	var texture = _terrain.get_grass_texture(_dialog_target)
+	var texture = _terrain.get_detail_texture(_dialog_target)
 	
 	_edit_dialog.set_params(texture)
 	_edit_dialog.popup_centered_minsize()
@@ -65,9 +65,9 @@ func _on_EditDetailDialog_confirmed(params):
 	
 	if _dialog_target == -1:
 		var data = _terrain.get_data()
-		index = data._edit_add_grass_map()
+		index = data._edit_add_detail_map()
 
-	_terrain.set_grass_texture(index, params.texture)
+	_terrain.set_detail_texture(index, params.texture)
 
 	if _dialog_target == -1:
 		_update_list()
@@ -75,7 +75,7 @@ func _on_EditDetailDialog_confirmed(params):
 
 func _on_ConfirmationDialog_confirmed():
 	var data = _terrain.get_data()
-	data._edit_remove_grass_map(_dialog_target)
+	data._edit_remove_detail_map(_dialog_target)
 	_update_list()
 
 

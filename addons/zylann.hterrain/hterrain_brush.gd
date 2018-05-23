@@ -14,7 +14,7 @@ const MODE_FLATTEN = 3
 const MODE_SPLAT = 4
 const MODE_COLOR = 5
 const MODE_MASK = 6
-const MODE_GRASS = 7
+const MODE_DETAIL = 7
 const MODE_COUNT = 8
 
 signal shape_changed(shape)
@@ -81,7 +81,7 @@ func get_flatten_height():
 
 func set_texture_index(tid):
 	assert(tid >= 0)
-	var slot_count = HTerrain.get_detail_texture_slot_count_for_shader(_texture_mode)
+	var slot_count = HTerrain.get_ground_texture_slot_count_for_shader(_texture_mode)
 	assert(tid < slot_count)
 	_texture_index = tid
 
@@ -148,8 +148,8 @@ static func _get_mode_channel(mode):
 			return HTerrainData.CHANNEL_SPLAT
 		MODE_MASK:
 			return HTerrainData.CHANNEL_COLOR
-		MODE_GRASS:
-			return HTerrainData.CHANNEL_GRASS
+		MODE_DETAIL:
+			return HTerrainData.CHANNEL_DETAIL
 		_:
 			print("This mode has no channel")
 
@@ -199,7 +199,7 @@ func paint(height_map, cell_pos_x, cell_pos_y, override_mode):
 		MODE_MASK:
 			_paint_mask(data, origin_x, origin_y)
 		
-		MODE_GRASS:
+		MODE_DETAIL:
 			_paint_detail(data, origin_x, origin_y)
 			map_index = _detail_index
 
@@ -475,7 +475,7 @@ func _paint_color(data, origin_x, origin_y):
 
 func _paint_detail(data, origin_x, origin_y):
 
-	var im = data.get_image(HTerrainData.CHANNEL_GRASS, _detail_index)
+	var im = data.get_image(HTerrainData.CHANNEL_DETAIL, _detail_index)
 	assert(im != null)
 
 	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)

@@ -97,7 +97,7 @@ func _enter_tree():
 	# TODO Have different icons
 	mode_icons[Brush.MODE_SPLAT] = get_icon("heightmap_paint")
 	mode_icons[Brush.MODE_COLOR] = get_icon("heightmap_paint")
-	mode_icons[Brush.MODE_GRASS] = get_icon("grass")
+	mode_icons[Brush.MODE_DETAIL] = get_icon("grass")
 	mode_icons[Brush.MODE_MASK] = get_icon("heightmap_mask")
 	
 	var mode_tooltips = {}
@@ -107,7 +107,7 @@ func _enter_tree():
 	mode_tooltips[Brush.MODE_FLATTEN] = "Flatten"
 	mode_tooltips[Brush.MODE_SPLAT] = "Texture paint"
 	mode_tooltips[Brush.MODE_COLOR] = "Color paint"
-	mode_tooltips[Brush.MODE_GRASS] = "Grass paint"
+	mode_tooltips[Brush.MODE_DETAIL] = "Grass paint"
 	mode_tooltips[Brush.MODE_MASK] = "Mask"
 	
 	_toolbar.add_child(VSeparator.new())
@@ -122,7 +122,7 @@ func _enter_tree():
 		Brush.MODE_FLATTEN,
 		Brush.MODE_SPLAT,
 		Brush.MODE_COLOR,
-		Brush.MODE_GRASS,
+		Brush.MODE_DETAIL,
 		Brush.MODE_MASK
 	]
 	
@@ -297,8 +297,8 @@ func paint_completed():
 		HTerrainData.CHANNEL_HEIGHT:
 			action_name = "Modify HeightMapData Height"
 
-		HTerrainData.CHANNEL_GRASS:
-			action_name = "Modify HeightMapData Grass"
+		HTerrainData.CHANNEL_DETAIL:
+			action_name = "Modify HeightMapData Detail"
 			
 		_:
 			action_name = "Modify HeightMapData"

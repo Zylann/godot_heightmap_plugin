@@ -1,12 +1,12 @@
 tool
 
-# Internal module which handles grass layers on the terrain
+# Internal module which handles detail layers on the terrain (grass, foliage, rocks)
 
 var HTerrain = load("res://addons/zylann.hterrain/hterrain.gd")
 var HTerrainData = load("res://addons/zylann.hterrain/hterrain_data.gd")
 
 const CHUNK_SIZE = 32
-const GRASS_SHADER_PATH = "res://addons/zylann.hterrain/grass/grass.shader"
+const DETAIL_SHADER_PATH = "res://addons/zylann.hterrain/detail/detail.shader"
 
 class Chunk:
 	var cx = 0
@@ -22,7 +22,7 @@ var _view_distance = 100.0
 var _layers = []
 
 var _terrain = null
-var _grass_shader = load(GRASS_SHADER_PATH)
+var _detail_shader = load(DETAIL_SHADER_PATH)
 var _multimesh = null
 var _multimesh_instance_pool = []
 var _chunks = {}
@@ -95,7 +95,7 @@ func _reset_layers():
 	if data == null or data.is_locked():
 		return
 	
-	var layer_count = data.get_map_count(HTerrainData.CHANNEL_GRASS)
+	var layer_count = data.get_map_count(HTerrainData.CHANNEL_DETAIL)
 	_layers.resize(layer_count)
 	for i in range(layer_count):
 		var layer = _layers[i]
@@ -110,11 +110,11 @@ func _reset_layers():
 func process(viewer_pos):
 
 	if _terrain == null:
-		print("GrassLayer processing while terrain is null!")
+		print("DetailLayer processing while terrain is null!")
 		return
 	
 	if len(_layers) == 0:
-		print("GrassLayer processing while there are no layers!")
+		print("DetailLayer processing while there are no layers!")
 		return
 
 	var viewer_cx = viewer_pos.x / CHUNK_SIZE
@@ -248,7 +248,7 @@ static func create_quad():
 		Vector2(1, 0),
 		Vector2(0, 0)
 	])
-	# Bottom is darkened to fake grass AO
+	# Bottom is darkened to fake AO
 	var dc = 0.8
 	var colors = PoolColorArray([
 		Color(1, 1, 1).darkened(dc),
@@ -321,7 +321,7 @@ func _get_layer_material(layer, index):
 	print("Creating material for detail layer ", index, " with texture ", layer.texture)
 
 	var mat = ShaderMaterial.new()
-	mat.shader = _grass_shader
+	mat.shader = _detail_shader
 	layer.material = mat
 
 	_update_layer_material(layer, index)
@@ -337,12 +337,12 @@ func _update_layer_material(layer, index):
 	assert(not terrain_data.is_locked())
 
 	var heightmap_texture = _terrain.get_data().get_texture(HTerrainData.CHANNEL_HEIGHT)
-	var grassmap_texture = _terrain.get_data().get_texture(HTerrainData.CHANNEL_GRASS, index)
+	var detailmap_texture = _terrain.get_data().get_texture(HTerrainData.CHANNEL_DETAIL, index)
 	var normalmap_texture = _terrain.get_data().get_texture(HTerrainData.CHANNEL_NORMAL)
 
 	var mat = layer.material
 	mat.set_shader_param("u_terrain_heightmap", heightmap_texture)
-	mat.set_shader_param("u_terrain_grassmap", grassmap_texture)
+	mat.set_shader_param("u_terrain_detailmap", detailmap_texture)
 	mat.set_shader_param("u_terrain_normalmap", normalmap_texture)
 	mat.set_shader_param("u_albedo_alpha", layer.texture)
 	mat.set_shader_param("u_view_distance", _view_distance)

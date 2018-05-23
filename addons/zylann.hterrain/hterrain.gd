@@ -8,7 +8,7 @@ var HTerrainData = load("res://addons/zylann.hterrain/hterrain_data.gd")
 const HTerrainChunk = preload("hterrain_chunk.gd")
 const Util = preload("util.gd")
 const HTerrainCollider = preload("hterrain_collider.gd")
-const GrassRenderer = preload("grass/grass_layer.gd")
+const DetailRenderer = preload("detail/detail_renderer.gd")
 
 const DefaultShader = preload("shaders/simple4.shader")
 
@@ -20,17 +20,17 @@ const SHADER_PARAM_COLOR_TEXTURE = "color_texture"
 const SHADER_PARAM_SPLAT_TEXTURE = "splat_texture"
 const SHADER_PARAM_RESOLUTION = "heightmap_resolution"
 const SHADER_PARAM_INVERSE_TRANSFORM = "heightmap_inverse_transform"
-const SHADER_PARAM_DETAIL_PREFIX = "detail_" # + name + _0, _1, _2, _3...
+const SHADER_PARAM_GROUND_PREFIX = "ground_" # + name + _0, _1, _2, _3...
 
 const SHADER_SIMPLE4 = 0
 #const SHADER_ARRAY = 1
 
 # Note: the alpha channel is used to pack additional maps
-const DETAIL_ALBEDO_ROUGHNESS = 0
-const DETAIL_NORMAL_BUMP = 1
-const DETAIL_TYPE_COUNT = 2
+const GROUND_ALBEDO_ROUGHNESS = 0
+const GROUND_NORMAL_BUMP = 1
+const GROUND_TEXTURE_TYPE_COUNT = 2
 
-const _detail_enum_to_name = [
+const _ground_enum_to_name = [
 	"albedo_roughness",
 	"normal_bump"
 ]
@@ -50,7 +50,7 @@ var _data = null
 
 var _mesher = Mesher.new()
 var _lodder = QuadTreeLod.new()
-var _grass = GrassRenderer.new()
+var _details = DetailRenderer.new()
 
 var _pending_chunk_updates = []
 
@@ -70,7 +70,7 @@ var _edit_manual_viewer_pos = Vector3()
 func _init():
 	print("Create HeightMap")
 	_lodder.set_callbacks(funcref(self, "_cb_make_chunk"), funcref(self,"_cb_recycle_chunk"))
-	_grass.set_terrain(self)
+	_details.set_terrain(self)
 	set_notify_transform(true)
 
 
@@ -86,10 +86,10 @@ func _get_property_list():
 		}
 	]
 	
-	for i in range(get_detail_texture_slot_count()):
-		for t in _detail_enum_to_name:
+	for i in range(get_ground_texture_slot_count()):
+		for t in _ground_enum_to_name:
 			props.append({
-				"name": "detail/" + t + "_" + str(i),
+				"name": "ground/" + t + "_" + str(i),
 				"type": TYPE_OBJECT,
 				"usage": PROPERTY_USAGE_STORAGE,
 				"hint": PROPERTY_HINT_RESOURCE_TYPE,
@@ -110,16 +110,15 @@ func _get(key):
 	if key == "data":
 		return get_data()
 	
-	if key.begins_with("detail/"):
-		# TODO This are splat textures... not really detail objects
-		for detail_type in range(DETAIL_TYPE_COUNT):
-			var type_name = _detail_enum_to_name[detail_type]
-			if key.begins_with(str("detail/", type_name, "_")):
+	if key.begins_with("ground/"):
+		for ground_texture_type in range(GROUND_TEXTURE_TYPE_COUNT):
+			var type_name = _ground_enum_to_name[ground_texture_type]
+			if key.begins_with(str("ground/", type_name, "_")):
 				var i = key.right(len(key) - 1).to_int()
-				return get_detail_texture(i, detail_type)
+				return get_ground_texture(i, ground_texture_type)
 
 	if key == "_detail_objects_data":
-		return _grass.serialize()
+		return _details.serialize()
 
 
 func _set(key, value):
@@ -128,14 +127,14 @@ func _set(key, value):
 	if key == "data":
 		set_data(value)
 	
-	for detail_type in range(DETAIL_TYPE_COUNT):
-		var type_name = _detail_enum_to_name[detail_type]
-		if key.begins_with(str("detail/", type_name, "_")):
+	for ground_texture_type in range(GROUND_TEXTURE_TYPE_COUNT):
+		var type_name = _ground_enum_to_name[ground_texture_type]
+		if key.begins_with(str("ground/", type_name, "_")):
 			var i = key.right(len(key) - 1).to_int()
-			set_detail_texture(i, detail_type, value)
+			set_ground_texture(i, ground_texture_type, value)
 
 	if key == "_detail_objects_data":
-		return _grass.deserialize(value)
+		return _details.deserialize(value)
 
 
 func get_custom_material():
@@ -321,7 +320,7 @@ func _on_data_progress_notified(info):
 			if _collider != null:
 				_collider.create_from_terrain_data(_data)
 		
-		_grass.reset()
+		_details.reset()
 		
 		emit_signal("progress_complete")
 
@@ -360,18 +359,18 @@ func _on_data_region_changed(min_x, min_y, max_x, max_y, channel):
 
 
 func _on_data_map_changed(type, index):
-	if type == HTerrainData.CHANNEL_GRASS:
-		_grass.reset()
+	if type == HTerrainData.CHANNEL_DETAIL:
+		_details.reset()
 
 
 func _on_data_map_added(type, index):
-	if type == HTerrainData.CHANNEL_GRASS:
-		_grass.reset()
+	if type == HTerrainData.CHANNEL_DETAIL:
+		_details.reset()
 
 
 func _on_data_map_removed(type, index):
-	if type == HTerrainData.CHANNEL_GRASS:
-		_grass.remove_layer(index)
+	if type == HTerrainData.CHANNEL_DETAIL:
+		_details.remove_layer(index)
 
 
 func set_custom_material(p_material):
@@ -553,8 +552,8 @@ func _process(delta):
 		if _data.get_resolution() != 0:
 			_lodder.update(viewer_pos)
 		
-		if _data.get_map_count(HTerrainData.CHANNEL_GRASS) > 0:
-			_grass.process(viewer_pos)
+		if _data.get_map_count(HTerrainData.CHANNEL_DETAIL) > 0:
+			_details.process(viewer_pos)
 	
 	_updated_chunks = 0
 	
@@ -807,44 +806,44 @@ func cell_raycast(origin_world, dir_world, out_cell_pos):
 
 # TODO Rename these "splat textures"
 
-static func get_detail_texture_shader_param(detail_type, slot):
+static func get_ground_texture_shader_param(ground_texture_type, slot):
 	assert(typeof(slot) == TYPE_INT and slot >= 0)
-	_check_detail_type(detail_type)
-	return SHADER_PARAM_DETAIL_PREFIX + _detail_enum_to_name[detail_type] + "_" + str(slot)
+	_check_ground_texture_type(ground_texture_type)
+	return SHADER_PARAM_GROUND_PREFIX + _ground_enum_to_name[ground_texture_type] + "_" + str(slot)
 
 
-func get_detail_texture(slot, type):
+func get_ground_texture(slot, type):
 	_check_slot(slot)
-	var shader_param = get_detail_texture_shader_param(type, slot)
+	var shader_param = get_ground_texture_shader_param(type, slot)
 	return _material.get_shader_param(shader_param)
 
 
-func set_detail_texture(slot, type, tex):
+func set_ground_texture(slot, type, tex):
 	_check_slot(slot)
 	assert(tex == null or tex is Texture)
-	var shader_param = get_detail_texture_shader_param(type, slot)
+	var shader_param = get_ground_texture_shader_param(type, slot)
 	_material.set_shader_param(shader_param, tex)
 
 
-func set_grass_texture(slot, tex):
-	_grass.set_texture(slot, tex)
+func set_detail_texture(slot, tex):
+	_details.set_texture(slot, tex)
 
 
-func get_grass_texture(slot):
-	return _grass.get_texture(slot)
+func get_detail_texture(slot):
+	return _details.get_texture(slot)
 
 
 func _check_slot(slot):
 	assert(typeof(slot) == TYPE_INT)
-	assert(slot >= 0 and slot < get_detail_texture_slot_count())
+	assert(slot >= 0 and slot < get_ground_texture_slot_count())
 
 
-static func _check_detail_type(detail_type):
-	assert(typeof(detail_type) == TYPE_INT)
-	assert(detail_type >= 0 and detail_type < DETAIL_TYPE_COUNT)
+static func _check_ground_texture_type(ground_texture_type):
+	assert(typeof(ground_texture_type) == TYPE_INT)
+	assert(ground_texture_type >= 0 and ground_texture_type < GROUND_TEXTURE_TYPE_COUNT)
 
 
-static func get_detail_texture_slot_count_for_shader(mode):
+static func get_ground_texture_slot_count_for_shader(mode):
 	match mode:
 		SHADER_SIMPLE4:
 			return 4
@@ -854,8 +853,8 @@ static func get_detail_texture_slot_count_for_shader(mode):
 	return 0
 
 
-func get_detail_texture_slot_count():
-	return get_detail_texture_slot_count_for_shader(SHADER_SIMPLE4)
+func get_ground_texture_slot_count():
+	return get_ground_texture_slot_count_for_shader(SHADER_SIMPLE4)
 
 
 func _edit_set_manual_viewer_pos(pos):

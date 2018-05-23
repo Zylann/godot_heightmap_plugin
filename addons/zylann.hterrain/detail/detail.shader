@@ -2,7 +2,7 @@ shader_type spatial;
 render_mode cull_disabled;
 
 uniform sampler2D u_terrain_heightmap;
-uniform sampler2D u_terrain_grassmap;
+uniform sampler2D u_terrain_detailmap;
 uniform sampler2D u_terrain_normalmap;
 uniform sampler2D u_albedo_alpha;
 uniform float u_view_distance;
@@ -22,7 +22,7 @@ void vertex() {
 	vec2 map_uv = obj_pos / vec2(textureSize(u_terrain_heightmap, 0));
 
 	//float density = 0.5 + 0.5 * sin(4.0*TIME); // test
-	float density = texture(u_terrain_grassmap, map_uv).r;
+	float density = texture(u_terrain_detailmap, map_uv).r;
 	float hash = get_hash(obj_pos);
 	
 	if(density > hash) {

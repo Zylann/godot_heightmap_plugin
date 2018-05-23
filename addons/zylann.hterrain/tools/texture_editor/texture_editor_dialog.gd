@@ -37,16 +37,16 @@ func set_slot(slot):
 
 
 func _update_previews():
-	_albedo_preview.texture = _get_preview_texture(_slot, HTerrain.DETAIL_ALBEDO_ROUGHNESS)
-	_roughness_preview.texture = _get_preview_texture(_slot, HTerrain.DETAIL_ALBEDO_ROUGHNESS)
-	_normal_preview.texture = _get_preview_texture(_slot, HTerrain.DETAIL_NORMAL_BUMP)
-	_bump_preview.texture = _get_preview_texture(_slot, HTerrain.DETAIL_NORMAL_BUMP)
+	_albedo_preview.texture = _get_preview_texture(_slot, HTerrain.GROUND_ALBEDO_ROUGHNESS)
+	_roughness_preview.texture = _get_preview_texture(_slot, HTerrain.GROUND_ALBEDO_ROUGHNESS)
+	_normal_preview.texture = _get_preview_texture(_slot, HTerrain.GROUND_NORMAL_BUMP)
+	_bump_preview.texture = _get_preview_texture(_slot, HTerrain.GROUND_NORMAL_BUMP)
 
 
 func _get_preview_texture(slot, tex_type):
 	if _terrain == null:
 		return _empty_icon
-	var tex = _terrain.get_detail_texture(slot, tex_type)
+	var tex = _terrain.get_ground_texture(slot, tex_type)
 	if tex == null:
 		return _empty_icon
 	return tex
@@ -67,24 +67,24 @@ func _on_LoadTextureDialog_file_selected(fpath):
 
 func _set_texture(tex, type):
 	# TODO Make it undoable
-	_terrain.set_detail_texture(_slot, type, tex)
+	_terrain.set_ground_texture(_slot, type, tex)
 	_update_previews()
-	if type == HTerrain.DETAIL_ALBEDO_ROUGHNESS:
+	if type == HTerrain.GROUND_ALBEDO_ROUGHNESS:
 		emit_signal("albedo_changed", _slot, tex)
 
 
 func _on_LoadAlbedo_pressed():
-	_open_load_dialog(HTerrain.DETAIL_ALBEDO_ROUGHNESS)
+	_open_load_dialog(HTerrain.GROUND_ALBEDO_ROUGHNESS)
 
 
 func _on_LoadNormal_pressed():
-	_open_load_dialog(HTerrain.DETAIL_NORMAL_BUMP)
+	_open_load_dialog(HTerrain.GROUND_NORMAL_BUMP)
 
 
 func _on_ClearAlbedo_pressed():
-	_set_texture(null, HTerrain.DETAIL_ALBEDO_ROUGHNESS)
+	_set_texture(null, HTerrain.GROUND_ALBEDO_ROUGHNESS)
 
 
 func _on_ClearNormal_pressed():
-	_set_texture(null, HTerrain.DETAIL_NORMAL_BUMP)
+	_set_texture(null, HTerrain.GROUND_NORMAL_BUMP)
 

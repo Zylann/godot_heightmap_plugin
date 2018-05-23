@@ -1,7 +1,7 @@
 tool
 extends WindowDialog
 
-const GrassRenderer = preload("res://addons/zylann.hterrain/grass/grass_layer.gd")
+const DetailRenderer = preload("res://addons/zylann.hterrain/detail/detail_renderer.gd")
 
 signal confirmed(params)
 
@@ -11,17 +11,18 @@ onready var _preview = get_node("VBoxContainer/HBoxContainer/Preview")
 var _empty_texture = load("res://addons/zylann.hterrain/tools/icons/empty.png")
 var _viewport = null
 var _preview_mesh_instance = null
-var _grass_shader = load(GrassRenderer.GRASS_SHADER_PATH)
+var _detail_shader = load(DetailRenderer.DETAIL_SHADER_PATH)
 var _is_ready = false
 var _dummy_heightmap = null
 var _dummy_normalmap = null
-var _dummy_grassmap = null
+var _dummy_detailmap = null
 
 
 func _ready():
+	# TODO Take formats from HTerrainData, don't assume them (though it doesn't really matter here)
 	_dummy_heightmap = _create_dummy_texture(Image.FORMAT_RH, Color(0, 0, 0, 0))
 	_dummy_normalmap = _create_dummy_texture(Image.FORMAT_RGB8, Color(0.5, 0.5, 1.0, 0.0))
-	_dummy_grassmap = _create_dummy_texture(Image.FORMAT_L8, Color(1, 1, 1, 1))
+	_dummy_detailmap = _create_dummy_texture(Image.FORMAT_L8, Color(1, 1, 1, 1))
 	
 	_inspector.set_prototype({
 		"texture": { "type": TYPE_OBJECT, "object_type": Resource }
@@ -75,15 +76,15 @@ func _notification(what):
 				
 				print("Making mat for viewport: ", _inspector.get_value("texture"))
 				var mat = ShaderMaterial.new()
-				mat.shader = _grass_shader
+				mat.shader = _detail_shader
 				mat.set_shader_param("u_terrain_heightmap", _dummy_heightmap)
-				mat.set_shader_param("u_terrain_grassmap", _dummy_grassmap)
+				mat.set_shader_param("u_terrain_detailmap", _dummy_detailmap)
 				mat.set_shader_param("u_terrain_normalmap", _dummy_normalmap)
 				mat.set_shader_param("u_albedo_alpha", _inspector.get_value("texture"))
 				mat.set_shader_param("u_view_distance", 100)
 				
 				var mi = MeshInstance.new()
-				mi.mesh = GrassRenderer.create_quad()
+				mi.mesh = DetailRenderer.create_quad()
 				mi.material_override = mat
 				_preview_mesh_instance = mi
 				_viewport.add_child(mi)

@@ -7,17 +7,17 @@ uniform sampler2D splat_texture;
 uniform vec2 heightmap_resolution;
 uniform mat4 heightmap_inverse_transform;
 
-uniform sampler2D detail_albedo_roughness_0 : hint_albedo;
-uniform sampler2D detail_albedo_roughness_1 : hint_albedo;
-uniform sampler2D detail_albedo_roughness_2 : hint_albedo;
-uniform sampler2D detail_albedo_roughness_3 : hint_albedo;
+uniform sampler2D ground_albedo_roughness_0 : hint_albedo;
+uniform sampler2D ground_albedo_roughness_1 : hint_albedo;
+uniform sampler2D ground_albedo_roughness_2 : hint_albedo;
+uniform sampler2D ground_albedo_roughness_3 : hint_albedo;
 
-uniform sampler2D detail_normal_bump_0;
-uniform sampler2D detail_normal_bump_1;
-uniform sampler2D detail_normal_bump_2;
-uniform sampler2D detail_normal_bump_3;
+uniform sampler2D ground_normal_bump_0;
+uniform sampler2D ground_normal_bump_1;
+uniform sampler2D ground_normal_bump_2;
+uniform sampler2D ground_normal_bump_3;
 
-uniform float detail_scale = 20.0;
+uniform float ground_uv_scale = 20.0;
 uniform bool depth_blending = true;
 
 varying vec4 v_tint;
@@ -75,12 +75,12 @@ void fragment() {
 	// TODO Detail should only be rasterized on nearby chunks (needs proximity management to switch shaders)
 	
 	// TODO Should use local XZ
-	vec2 detail_uv = UV * detail_scale;
+	vec2 ground_uv = UV * ground_uv_scale;
 	
-	vec4 ar0 = texture(detail_albedo_roughness_0, detail_uv);
-	vec4 ar1 = texture(detail_albedo_roughness_1, detail_uv);
-	vec4 ar2 = texture(detail_albedo_roughness_2, detail_uv);
-	vec4 ar3 = texture(detail_albedo_roughness_3, detail_uv);
+	vec4 ar0 = texture(ground_albedo_roughness_0, ground_uv);
+	vec4 ar1 = texture(ground_albedo_roughness_1, ground_uv);
+	vec4 ar2 = texture(ground_albedo_roughness_2, ground_uv);
+	vec4 ar3 = texture(ground_albedo_roughness_3, ground_uv);
 	
 	vec3 col0 = ar0.rgb;
 	vec3 col1 = ar1.rgb;
@@ -89,10 +89,10 @@ void fragment() {
 	
 	vec4 rough = vec4(ar0.a, ar1.a, ar2.a, ar3.a);
 	
-	vec4 nb0 = texture(detail_normal_bump_0, detail_uv);
-	vec4 nb1 = texture(detail_normal_bump_1, detail_uv);
-	vec4 nb2 = texture(detail_normal_bump_2, detail_uv);
-	vec4 nb3 = texture(detail_normal_bump_3, detail_uv);
+	vec4 nb0 = texture(ground_normal_bump_0, ground_uv);
+	vec4 nb1 = texture(ground_normal_bump_1, ground_uv);
+	vec4 nb2 = texture(ground_normal_bump_2, ground_uv);
+	vec4 nb3 = texture(ground_normal_bump_3, ground_uv);
 	
 	vec3 normal0 = unpack_normal(nb0);
 	vec3 normal1 = unpack_normal(nb1);
@@ -111,11 +111,11 @@ void fragment() {
 	
 	ALBEDO = v_tint.rgb * (w.r * col0.rgb + w.g * col1.rgb + w.b * col2.rgb + w.a * col3.rgb) / w_sum;
 	ROUGHNESS = (w.r * rough.r + w.g * rough.g + w.b * rough.b + w.a * rough.a) / w_sum;
-	vec3 detail_normal = (w.r * normal0 + w.g * normal1 + w.b * normal2 + w.a * normal3) / w_sum;
+	vec3 ground_normal = (w.r * normal0 + w.g * normal1 + w.b * normal2 + w.a * normal3) / w_sum;
 	
 	// Combine terrain normals with detail normals (not sure if correct but looks ok)
 	vec3 terrain_normal = unpack_normal(texture(normal_texture, UV)) * vec3(1,1,-1);
-	vec3 normal = normalize(vec3(terrain_normal.x + detail_normal.x, terrain_normal.y, terrain_normal.z + detail_normal.z));
+	vec3 normal = normalize(vec3(terrain_normal.x + ground_normal.x, terrain_normal.y, terrain_normal.z + ground_normal.z));
 	NORMAL = (INV_CAMERA_MATRIX * (WORLD_MATRIX * vec4(normal, 0.0))).xyz;
 
 	//ALBEDO = splat.rgb;
