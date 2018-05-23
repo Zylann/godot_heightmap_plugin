@@ -15,6 +15,10 @@ Installation
 This is a regular editor plugin.
 Copy the contents of `addons/zylann.hterrain` into the same folder in your project, and activate it in your project settings.
 
+The plugin now comes with no extra assets to stay lightweight.
+If you want to try an example scene, you can install this demo once the plugin is setup and active:
+https://github.com/Zylann/godot_hterrain_demo
+
 
 Language notes
 ----------------------
