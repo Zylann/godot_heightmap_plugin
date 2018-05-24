@@ -11,7 +11,6 @@ config_version=3
 [application]
 
 config/name="Heightmap Terrain"
-run/main_scene="res://addons/zylann.hterrain/demo/demo.tscn"
 name="Heightmap GDNative"
 icon="res://icon.png"
 
