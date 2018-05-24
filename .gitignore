@@ -20,6 +20,9 @@
 .import/
 logs/
 
+# VSCode
+*.vs/
+
 # Misc
 debug.bat
 _draft/
