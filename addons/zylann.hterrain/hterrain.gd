@@ -45,7 +45,7 @@ export var collision_enabled = false setget set_collision_enabled
 export var async_loading = false
 
 var _custom_material = null
-var _material = null
+var _material = ShaderMaterial.new()
 var _data = null
 
 var _mesher = Mesher.new()
