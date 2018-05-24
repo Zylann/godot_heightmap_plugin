@@ -26,7 +26,8 @@ void vertex() {
 }
 
 void fragment() {
-	float g = clamp(1.0 - length(2.0 * UV - 1.0), 0.0, 0.5);
-	ALBEDO = vec3(0.1, 0.1, 1.0);
+	float len = length(2.0 * UV - 1.0);
+	float g = clamp(1.0 - 15.0 * abs(0.9 - len), 0.0, 1.0);
+	ALBEDO = vec3(1.0, 0.1, 0.1);
 	ALPHA = g;
 }
