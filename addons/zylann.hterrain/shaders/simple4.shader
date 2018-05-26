@@ -19,9 +19,11 @@ uniform sampler2D ground_normal_bump_3;
 
 uniform float ground_uv_scale = 20.0;
 uniform bool depth_blending = true;
+uniform bool triplanar = false;
 
 varying vec4 v_tint;
 varying vec4 v_splat;
+varying float v_uvz; // Only used for triplanar, but I can't toggle it without an #ifdef...
 
 
 vec3 unpack_normal(vec4 rgba) {
@@ -48,19 +50,28 @@ vec4 get_depth_blended_weights(vec4 splat, vec4 bumps) {
 	return clamp(d, 0, 1);
 }
 
+vec3 get_triplanar_blend(vec3 world_normal) {
+	vec3 blending = abs(world_normal);
+	blending = normalize(max(blending, vec3(0.00001))); // Force weights to sum to 1.0
+	float b = blending.x + blending.y + blending.z;
+	return blending / vec3(b, b, b);
+}
+
 void vertex() {
 	vec4 tv = heightmap_inverse_transform * WORLD_MATRIX * vec4(VERTEX, 1);
-	vec2 uv = vec2(tv.x, tv.z) / heightmap_resolution;
-	float h = texture(height_texture, uv).r;
-	VERTEX.y = h;
+	vec2 uv = tv.xz / vec2(heightmap_resolution);
 	UV = uv;
+
+	float h = texture(height_texture, UV).r;
+	v_uvz = h;
+	VERTEX.y = h;
 	
 	// Putting this in vertex saves 2 fetches from the fragment shader,
 	// which is good for performance at a negligible quality cost,
 	// provided that geometry is a regular grid that decimates with LOD.
 	// (downside is LOD will also decimate tint and splat, but it's not bad overall)
-	v_tint = texture(color_texture, uv);
-	v_splat = texture(splat_texture, uv);
+	v_tint = texture(color_texture, UV);
+	v_splat = texture(splat_texture, UV);
 	
 	// For some reason I had to invert Z when sampling terrain normals... not sure why
 	NORMAL = unpack_normal(texture(normal_texture, UV)) * vec3(1,1,-1);
@@ -72,15 +83,48 @@ void fragment() {
 		// TODO Add option to use vertex discarding instead, using NaNs
 		discard;
 	
+	vec3 terrain_normal = unpack_normal(texture(normal_texture, UV)) * vec3(1,1,-1);
+
 	// TODO Detail should only be rasterized on nearby chunks (needs proximity management to switch shaders)
 	
 	// TODO Should use local XZ
 	vec2 ground_uv = UV * ground_uv_scale;
 	
+	vec4 ar3;
+	vec4 nb3;
+	if (triplanar) {
+		// Only do triplanar on one texture slot,
+		// because otherwise it would be very expensive and cost many more ifs.
+		// I chose the last slot because first slot is the default on new splatmaps,
+		// and that's a feature used for cliffs, which are usually designed later.
+
+		vec3 world_terrain_normal = (WORLD_MATRIX * vec4(terrain_normal, 0.0)).xyz;
+		vec3 blending = get_triplanar_blend(world_terrain_normal);
+		vec3 ground_coords = vec3(ground_uv.x, v_uvz * 0.05, ground_uv.y);
+
+		vec4 xaxis = texture(ground_albedo_roughness_3, ground_coords.yz);
+		vec4 yaxis = texture(ground_albedo_roughness_3, ground_coords.xz);
+		vec4 zaxis = texture(ground_albedo_roughness_3, ground_coords.xy);
+		// blend the results of the 3 planar projections.
+		ar3 = xaxis * blending.x + yaxis * blending.y + zaxis * blending.z;
+
+		xaxis = texture(ground_normal_bump_3, ground_coords.yz);
+		yaxis = texture(ground_normal_bump_3, ground_coords.xz);
+		zaxis = texture(ground_normal_bump_3, ground_coords.xy);
+		nb3 = xaxis * blending.x + yaxis * blending.y + zaxis * blending.z;
+
+	} else {
+		ar3 = texture(ground_albedo_roughness_3, ground_uv);
+		nb3 = texture(ground_normal_bump_3, ground_uv);
+	}
+
 	vec4 ar0 = texture(ground_albedo_roughness_0, ground_uv);
 	vec4 ar1 = texture(ground_albedo_roughness_1, ground_uv);
 	vec4 ar2 = texture(ground_albedo_roughness_2, ground_uv);
-	vec4 ar3 = texture(ground_albedo_roughness_3, ground_uv);
+		
+	vec4 nb0 = texture(ground_normal_bump_0, ground_uv);
+	vec4 nb1 = texture(ground_normal_bump_1, ground_uv);
+	vec4 nb2 = texture(ground_normal_bump_2, ground_uv);
 	
 	vec3 col0 = ar0.rgb;
 	vec3 col1 = ar1.rgb;
@@ -88,12 +132,7 @@ void fragment() {
 	vec3 col3 = ar3.rgb;
 	
 	vec4 rough = vec4(ar0.a, ar1.a, ar2.a, ar3.a);
-	
-	vec4 nb0 = texture(ground_normal_bump_0, ground_uv);
-	vec4 nb1 = texture(ground_normal_bump_1, ground_uv);
-	vec4 nb2 = texture(ground_normal_bump_2, ground_uv);
-	vec4 nb3 = texture(ground_normal_bump_3, ground_uv);
-	
+
 	vec3 normal0 = unpack_normal(nb0);
 	vec3 normal1 = unpack_normal(nb1);
 	vec3 normal2 = unpack_normal(nb2);
@@ -114,10 +153,10 @@ void fragment() {
 	vec3 ground_normal = (w.r * normal0 + w.g * normal1 + w.b * normal2 + w.a * normal3) / w_sum;
 	
 	// Combine terrain normals with detail normals (not sure if correct but looks ok)
-	vec3 terrain_normal = unpack_normal(texture(normal_texture, UV)) * vec3(1,1,-1);
 	vec3 normal = normalize(vec3(terrain_normal.x + ground_normal.x, terrain_normal.y, terrain_normal.z + ground_normal.z));
 	NORMAL = (INV_CAMERA_MATRIX * (WORLD_MATRIX * vec4(normal, 0.0))).xyz;
 
-	//ALBEDO = splat.rgb;
+	//ALBEDO = w.rgb;
+	//ALBEDO = vec3(v_uvz, 0, 0);
 }
 

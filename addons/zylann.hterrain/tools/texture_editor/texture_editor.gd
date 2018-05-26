@@ -29,9 +29,15 @@ func set_terrain(terrain):
 	
 	_textures_list.clear()
 	if _terrain != null:
-		for i in range(_terrain.get_ground_texture_slot_count()):
+		var slot_count = _terrain.get_ground_texture_slot_count()
+		for i in range(slot_count):
 			var tex = _terrain.get_ground_texture(i, HTerrain.GROUND_ALBEDO_ROUGHNESS)
-			_textures_list.add_item(str(i), tex if tex != null else _empty_icon)
+			_textures_list.add_item(_get_slot_hint_name(i), tex if tex != null else _empty_icon)
+
+
+static func _get_slot_hint_name(i):
+	#if shader_type == HTerrain.SHADER_SIMPLE4:
+	return "cliff" if i == 3 else str("ground", i)
 
 
 func set_brush(brush):

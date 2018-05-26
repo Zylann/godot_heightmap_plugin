@@ -41,6 +41,7 @@ signal progress_complete
 
 
 export var depth_blending = false
+export var cliff_triplanar = false
 export var collision_enabled = false setget set_collision_enabled
 export var async_loading = false
 
@@ -272,7 +273,7 @@ func set_data(new_data):
 
 	print("Set new data ", new_data)
 
-	if(_data == new_data):
+	if _data == new_data:
 		return
 
 	if has_data():
@@ -484,6 +485,7 @@ func _update_material_params():
 	material.set_shader_param(SHADER_PARAM_SPLAT_TEXTURE, splat_texture)
 	material.set_shader_param(SHADER_PARAM_RESOLUTION, res)
 	material.set_shader_param("depth_blending", depth_blending)
+	material.set_shader_param("triplanar", cliff_triplanar)
 
 
 func set_lod_scale(lod_scale):
