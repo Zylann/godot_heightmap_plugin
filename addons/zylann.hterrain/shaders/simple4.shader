@@ -56,6 +56,14 @@ vec3 get_triplanar_blend(vec3 world_normal) {
 	return blending / vec3(b, b, b);
 }
 
+vec4 texture_triplanar(sampler2D tex, vec3 world_pos, vec3 blend) {
+	vec4 xaxis = texture(tex, world_pos.yz);
+	vec4 yaxis = texture(tex, world_pos.xz);
+	vec4 zaxis = texture(tex, world_pos.xy);
+	// blend the results of the 3 planar projections.
+	return xaxis * blend.x + yaxis * blend.y + zaxis * blend.z;
+}
+
 void vertex() {
 	vec4 tv = u_terrain_inverse_transform * WORLD_MATRIX * vec4(VERTEX, 1);
 
@@ -102,16 +110,8 @@ void fragment() {
 		vec3 world_terrain_normal = (WORLD_MATRIX * vec4(terrain_normal, 0.0)).xyz;
 		vec3 blending = get_triplanar_blend(world_terrain_normal);
 
-		vec4 xaxis = texture(u_ground_albedo_roughness_3, v_ground_uv.yz);
-		vec4 yaxis = texture(u_ground_albedo_roughness_3, v_ground_uv.xz);
-		vec4 zaxis = texture(u_ground_albedo_roughness_3, v_ground_uv.xy);
-		// blend the results of the 3 planar projections.
-		ar3 = xaxis * blending.x + yaxis * blending.y + zaxis * blending.z;
-
-		xaxis = texture(u_ground_normal_bump_3, v_ground_uv.yz);
-		yaxis = texture(u_ground_normal_bump_3, v_ground_uv.xz);
-		zaxis = texture(u_ground_normal_bump_3, v_ground_uv.xy);
-		nb3 = xaxis * blending.x + yaxis * blending.y + zaxis * blending.z;
+		ar3 = texture_triplanar(u_ground_albedo_roughness_3, v_ground_uv, blending);
+		nb3 = texture_triplanar(u_ground_normal_bump_3, v_ground_uv, blending);
 
 	} else {
 		ar3 = texture(u_ground_albedo_roughness_3, ground_uv);
@@ -148,12 +148,30 @@ void fragment() {
 	
 	float w_sum = (w.r + w.g + w.b + w.a);
 	
-	ALBEDO = v_tint.rgb * (w.r * col0.rgb + w.g * col1.rgb + w.b * col2.rgb + w.a * col3.rgb) / w_sum;
-	ROUGHNESS = (w.r * rough.r + w.g * rough.g + w.b * rough.b + w.a * rough.a) / w_sum;
-	vec3 ground_normal = (w.r * normal0 + w.g * normal1 + w.b * normal2 + w.a * normal3) / w_sum;
+	ALBEDO = v_tint.rgb * (
+		w.r * col0.rgb + 
+		w.g * col1.rgb + 
+		w.b * col2.rgb + 
+		w.a * col3.rgb) / w_sum;
+
+	ROUGHNESS = (
+		w.r * rough.r + 
+		w.g * rough.g + 
+		w.b * rough.b + 
+		w.a * rough.a) / w_sum;
+	
+	vec3 ground_normal = (
+		w.r * normal0 + 
+		w.g * normal1 + 
+		w.b * normal2 + 
+		w.a * normal3) / w_sum;
 	
 	// Combine terrain normals with detail normals (not sure if correct but looks ok)
-	vec3 normal = normalize(vec3(terrain_normal.x + ground_normal.x, terrain_normal.y, terrain_normal.z + ground_normal.z));
+	vec3 normal = normalize(vec3(
+		terrain_normal.x + ground_normal.x, 
+		terrain_normal.y, 
+		terrain_normal.z + ground_normal.z));
+	
 	NORMAL = (INV_CAMERA_MATRIX * (WORLD_MATRIX * vec4(normal, 0.0))).xyz;
 
 	//ALBEDO = w.rgb;
