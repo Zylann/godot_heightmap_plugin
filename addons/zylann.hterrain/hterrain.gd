@@ -22,6 +22,7 @@ const SHADER_PARAM_INVERSE_TRANSFORM = "u_terrain_inverse_transform"
 const SHADER_PARAM_GROUND_PREFIX = "u_ground_" # + name + _0, _1, _2, _3...
 const SHADER_PARAM_DEPTH_BLENDING = "u_depth_blending"
 const SHADER_PARAM_TRIPLANAR = "u_triplanar"
+const SHADER_PARAM_GROUND_TEXTURE_SCALE = "u_ground_uv_scale"
 
 const SHADER_SIMPLE4 = 0
 #const SHADER_ARRAY = 1
@@ -44,6 +45,7 @@ signal progress_complete
 
 export var depth_blending = false
 export var cliff_triplanar = false
+export var ground_texture_scale = 20.0
 export var collision_enabled = false setget set_collision_enabled
 export var async_loading = false
 
@@ -487,6 +489,7 @@ func _update_material_params():
 	material.set_shader_param(SHADER_PARAM_SPLAT_TEXTURE, splat_texture)
 	material.set_shader_param(SHADER_PARAM_DEPTH_BLENDING, depth_blending)
 	material.set_shader_param(SHADER_PARAM_TRIPLANAR, cliff_triplanar)
+	material.set_shader_param(SHADER_PARAM_GROUND_TEXTURE_SCALE, ground_texture_scale)
 
 
 func set_lod_scale(lod_scale):

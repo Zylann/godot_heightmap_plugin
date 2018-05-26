@@ -22,7 +22,7 @@ uniform bool u_triplanar = false;
 
 varying vec4 v_tint;
 varying vec4 v_splat;
-varying float v_uvz; // Only used for triplanar, but I can't toggle it without an #ifdef...
+varying vec3 v_ground_uv;
 
 
 vec3 unpack_normal(vec4 rgba) {
@@ -58,12 +58,15 @@ vec3 get_triplanar_blend(vec3 world_normal) {
 
 void vertex() {
 	vec4 tv = u_terrain_inverse_transform * WORLD_MATRIX * vec4(VERTEX, 1);
-	vec2 uv = tv.xz / vec2(textureSize(u_terrain_heightmap, 0));
-	UV = uv;
 
+	// Normalized UV
+	UV = tv.xz / vec2(textureSize(u_terrain_heightmap, 0));
+	
+	// Height displacement
 	float h = texture(u_terrain_heightmap, UV).r;
-	v_uvz = h;
 	VERTEX.y = h;
+
+	v_ground_uv = vec3(tv.x, h, tv.z) / u_ground_uv_scale;
 	
 	// Putting this in vertex saves 2 fetches from the fragment shader,
 	// which is good for performance at a negligible quality cost,
@@ -86,8 +89,7 @@ void fragment() {
 
 	// TODO Detail should only be rasterized on nearby chunks (needs proximity management to switch shaders)
 	
-	// TODO Should use local XZ
-	vec2 ground_uv = UV * u_ground_uv_scale;
+	vec2 ground_uv = v_ground_uv.xz;
 	
 	vec4 ar3;
 	vec4 nb3;
@@ -99,17 +101,16 @@ void fragment() {
 
 		vec3 world_terrain_normal = (WORLD_MATRIX * vec4(terrain_normal, 0.0)).xyz;
 		vec3 blending = get_triplanar_blend(world_terrain_normal);
-		vec3 ground_coords = vec3(ground_uv.x, v_uvz * 0.05, ground_uv.y);
 
-		vec4 xaxis = texture(u_ground_albedo_roughness_3, ground_coords.yz);
-		vec4 yaxis = texture(u_ground_albedo_roughness_3, ground_coords.xz);
-		vec4 zaxis = texture(u_ground_albedo_roughness_3, ground_coords.xy);
+		vec4 xaxis = texture(u_ground_albedo_roughness_3, v_ground_uv.yz);
+		vec4 yaxis = texture(u_ground_albedo_roughness_3, v_ground_uv.xz);
+		vec4 zaxis = texture(u_ground_albedo_roughness_3, v_ground_uv.xy);
 		// blend the results of the 3 planar projections.
 		ar3 = xaxis * blending.x + yaxis * blending.y + zaxis * blending.z;
 
-		xaxis = texture(u_ground_normal_bump_3, ground_coords.yz);
-		yaxis = texture(u_ground_normal_bump_3, ground_coords.xz);
-		zaxis = texture(u_ground_normal_bump_3, ground_coords.xy);
+		xaxis = texture(u_ground_normal_bump_3, v_ground_uv.yz);
+		yaxis = texture(u_ground_normal_bump_3, v_ground_uv.xz);
+		zaxis = texture(u_ground_normal_bump_3, v_ground_uv.xy);
 		nb3 = xaxis * blending.x + yaxis * blending.y + zaxis * blending.z;
 
 	} else {
@@ -156,6 +157,6 @@ void fragment() {
 	NORMAL = (INV_CAMERA_MATRIX * (WORLD_MATRIX * vec4(normal, 0.0))).xyz;
 
 	//ALBEDO = w.rgb;
-	//ALBEDO = vec3(v_uvz, 0, 0);
+	//ALBEDO = vec3(v_ground_uv.y, 0, 0);
 }
 
