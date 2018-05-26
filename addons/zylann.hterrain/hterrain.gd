@@ -14,16 +14,18 @@ const DefaultShader = preload("shaders/simple4.shader")
 
 const CHUNK_SIZE = 16
 
-const SHADER_PARAM_HEIGHT_TEXTURE = "height_texture"
-const SHADER_PARAM_NORMAL_TEXTURE = "normal_texture"
-const SHADER_PARAM_COLOR_TEXTURE = "color_texture"
-const SHADER_PARAM_SPLAT_TEXTURE = "splat_texture"
-const SHADER_PARAM_RESOLUTION = "heightmap_resolution"
-const SHADER_PARAM_INVERSE_TRANSFORM = "heightmap_inverse_transform"
-const SHADER_PARAM_GROUND_PREFIX = "ground_" # + name + _0, _1, _2, _3...
+const SHADER_PARAM_HEIGHT_TEXTURE = "u_terrain_heightmap"
+const SHADER_PARAM_NORMAL_TEXTURE = "u_terrain_normalmap"
+const SHADER_PARAM_COLOR_TEXTURE = "u_terrain_colormap"
+const SHADER_PARAM_SPLAT_TEXTURE = "u_terrain_splatmap"
+const SHADER_PARAM_INVERSE_TRANSFORM = "u_terrain_inverse_transform"
+const SHADER_PARAM_GROUND_PREFIX = "u_ground_" # + name + _0, _1, _2, _3...
+const SHADER_PARAM_DEPTH_BLENDING = "u_depth_blending"
+const SHADER_PARAM_TRIPLANAR = "u_triplanar"
 
 const SHADER_SIMPLE4 = 0
 #const SHADER_ARRAY = 1
+#const SHADER_ATLAS = 2
 
 # Note: the alpha channel is used to pack additional maps
 const GROUND_ALBEDO_ROUGHNESS = 0
@@ -483,9 +485,8 @@ func _update_material_params():
 	material.set_shader_param(SHADER_PARAM_NORMAL_TEXTURE, normal_texture)
 	material.set_shader_param(SHADER_PARAM_COLOR_TEXTURE, color_texture)
 	material.set_shader_param(SHADER_PARAM_SPLAT_TEXTURE, splat_texture)
-	material.set_shader_param(SHADER_PARAM_RESOLUTION, res)
-	material.set_shader_param("depth_blending", depth_blending)
-	material.set_shader_param("triplanar", cliff_triplanar)
+	material.set_shader_param(SHADER_PARAM_DEPTH_BLENDING, depth_blending)
+	material.set_shader_param(SHADER_PARAM_TRIPLANAR, cliff_triplanar)
 
 
 func set_lod_scale(lod_scale):
