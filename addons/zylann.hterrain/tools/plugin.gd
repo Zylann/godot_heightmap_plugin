@@ -7,18 +7,16 @@ const HTerrainData = preload("../hterrain_data.gd")
 const Brush = preload("../hterrain_brush.gd")#preload("hterrain_brush.gdns")
 const BrushDecal = preload("brush/decal.gd")
 const Util = preload("../util.gd")
-const ChannelPacker = preload("channel_packer/dialog.tscn")
 const LoadTextureDialog = preload("load_texture_dialog.gd")
 const EditPanel = preload("panel.tscn")
 const ProgressWindow = preload("progress_window.tscn")
 const GeneratorDialog = preload("generator/generator_dialog.tscn")
 
 const MENU_IMPORT_IMAGE = 0
-const MENU_CHANNEL_PACKER = 1
 # TODO These two should not exist, they are workarounds to test saving!
-const MENU_SAVE = 2
-const MENU_LOAD = 3
-const MENU_GENERATE = 4
+const MENU_SAVE = 1
+const MENU_LOAD = 2
+const MENU_GENERATE = 3
 
 
 var _node = null
@@ -34,8 +32,6 @@ var _import_confirmation_dialog = null
 var _accept_dialog = null
 var _import_file_path = ""
 var _import_preloaded_image = null
-
-var _channel_packer = null
 
 var _generator_dialog = null
 
@@ -158,15 +154,6 @@ func _enter_tree():
 	
 	_accept_dialog = AcceptDialog.new()
 	base_control.add_child(_accept_dialog)
-	
-	_channel_packer = ChannelPacker.instance()
-	base_control.add_child(_channel_packer)
-	_channel_packer.call_deferred("set_load_texture_dialog", load_texture_dialog)
-	menu.get_popup().add_separator()
-	menu.get_popup().add_item("Open channel packer", MENU_CHANNEL_PACKER)
-	# TODO This is an ugly workaround because of a Godot bug. Remove it once fixed!
-	# See https://github.com/godotengine/godot/issues/17626
-	_channel_packer.rect_min_size += Vector2(0, 100)
 	
 	_generator_dialog = GeneratorDialog.instance()
 	_generator_dialog.connect("progress_notified", self, "_terrain_progress_notified")
@@ -340,8 +327,6 @@ func _menu_item_selected(id):
 	match id:
 		MENU_IMPORT_IMAGE:
 			_import_dialog.popup_centered_minsize(Vector2(800, 600))
-		MENU_CHANNEL_PACKER:
-			_channel_packer.popup_centered_minsize()
 		MENU_SAVE:
 			var data = _node.get_data()
 			if data != null:
