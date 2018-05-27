@@ -3,10 +3,11 @@ HeightMap terrain plugin for Godot Engine 3.x
 
 ![Editor screenshot](addons/zylann.hterrain/screenshots/2018_04_02.png)
 
-Heightmap-based terrain for Godot 3.x, using GDScript, C++ and GDNative (engine recompilation is not needed).
-It was forked from its former module implementation: https://github.com/Zylann/godot_heightmap_module
+Heightmap-based terrain for Godot 3.0.2 and later.
+It supports texture painting, colouring, holes, level of detail and grass.
 
-WARNING: under development, still very rough and may be buggy.
+Although the plugin can be used, it is still under development. Some features might be missing or bugs can occur.
+Please refer to the issue tracker if you have any problem.
 
 
 Installation
@@ -23,9 +24,7 @@ https://github.com/Zylann/godot_hterrain_demo
 Language notes
 ----------------------
 
-The editor part of this plugin is implemented using GDScript and regular scenes, for practical reasons.
-
-The core part is implemented both in C++ and GDScript. They have both the same features and APIs, but for now only the GDScript implementation is working on theoretically all platforms.
-The C++ implementation is a lot faster, but is tricky and unstable to use for now. It will get updated over time as GDNative C++ bindings are improved.
-
-By default, the GDScript implementation is used by default. Switching to C++ requires to compile the GDNative library and reference `.gdns` files instead of `.gd` in the plugin's source code.
+The plugin is currently fully implemented in GDScript.
+It contains code for a C++ implementation using GDNative, however it doesn't work well, is getting outdated and will probably be archived some day.
+The reason is, the plugin may still change so maintaining two versions on all platforms is too much work for me, and I found it actually works decently without C++.
+Eventually, one day some performance-sensitive areas could be implemented using GDNative, to optionally give some boost.
