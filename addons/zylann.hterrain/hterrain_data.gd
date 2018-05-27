@@ -546,8 +546,15 @@ func _upload_region(channel, index, min_x, min_y, size_x, size_y):
 		
 		map.texture = texture
 
-		# Need to notify because other systems may want to grab the new texture
+		# Need to notify because other systems may want to grab the new texture object
 		emit_signal("map_changed", channel, index)
+
+	elif texture.get_size() != image.get_size():
+
+		print("_upload_region was used but the image size is different. ",\
+			"The map ", channel, "[", index, "] will be reuploaded entirely.")
+		
+		texture.create_from_image(image, flags)
 
 	else:
 		if VisualServer.has_method("texture_set_data_partial"):
