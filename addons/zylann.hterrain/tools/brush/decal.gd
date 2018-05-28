@@ -44,16 +44,16 @@ func set_terrain(terrain):
 	if heightmap == null:
 		_mesh_instance.exit_world()
 		# I do this for refcounting because heightmaps are large resources
-		_material.set_shader_param("heightmap", null)
+		_material.set_shader_param("u_terrain_heightmap", null)
 		
 	else:
 		_mesh_instance.enter_world(terrain.get_world())
 		
-		_material.set_shader_param("heightmap", heightmap)
+		_material.set_shader_param("u_terrain_heightmap", heightmap)
 				
 		var gt = terrain.get_global_transform()
 		var t = gt.affine_inverse()
-		_material.set_shader_param("heightmap_inverse_transform", t)
+		_material.set_shader_param("u_terrain_inverse_transform", t)
 
 
 func set_position(p_local_pos):
