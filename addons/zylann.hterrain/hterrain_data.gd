@@ -383,7 +383,31 @@ func update_normals(min_x, min_y, size_x, size_y):
 		normals.blit_rect(sub, src_blit_rect, Vector2(min_x, min_y))
 
 	else:
-		# Godot 3.0.2 or earlier
+		# Godot 3.0.3 or earlier...
+		# It is slow.
+
+		#                             __________
+		#                          .~#########%%;~.
+		#                         /############%%;`\
+		#                        /######/~\/~\%%;,;,\
+		#                       |#######\    /;;;;.,.|
+		#                       |#########\/%;;;;;.,.|
+		#              XX       |##/~~\####%;;;/~~\;,|       XX
+		#            XX..X      |#|  o  \##%;/  o  |.|      X..XX
+		#          XX.....X     |##\____/##%;\____/.,|     X.....XX
+		#     XXXXX.....XX      \#########/\;;;;;;,, /      XX.....XXXXX
+		#    X |......XX%,.@      \######/%;\;;;;, /      @#%,XX......| X
+		#    X |.....X  @#%,.@     |######%%;;;;,.|     @#%,.@  X.....| X
+		#    X  \...X     @#%,.@   |# # # % ; ; ;,|   @#%,.@     X.../  X
+		#     X# \.X        @#%,.@                  @#%,.@        X./  #
+		#      ##  X          @#%,.@              @#%,.@          X   #
+		#    , "# #X            @#%,.@          @#%,.@            X ##
+		#       `###X             @#%,.@      @#%,.@             ####'
+		#      . ' ###              @#%.,@  @#%,.@              ###`"
+		#        . ";"                @#%.@#%,.@                ;"` ' .
+		#          '                    @#%,.@                   ,.
+		#          ` ,                @#%,.@  @@                `
+		#                              @@@  @@@  
 
 		heights.lock();
 		normals.lock();
@@ -580,6 +604,7 @@ func _upload_region(channel, index, min_x, min_y, size_x, size_y):
 
 		else:
 			# Godot 3.0.3 and earlier...
+			# It is slow.
 
 			#               ..ooo@@@XXX%%%xx..
 			#            .oo@@XXX%x%xxx..     ` .
