@@ -248,8 +248,10 @@ static func _get_clamped(im, x, y):
 	return im.get_pixel(x, y)
 
 
+# Gets the height at the given cell position.
+# This height is raw and doesn't account for scaling of the terrain node.
+# This function is relatively slow due to locking, so don't use it to fetch large areas.
 func get_height_at(x, y):
-	# This function is relatively slow due to locking, so don't use it to fetch large areas
 
 	# Height data must be loaded in RAM
 	var im = get_image(CHANNEL_HEIGHT)
@@ -261,8 +263,10 @@ func get_height_at(x, y):
 	return h;
 
 
+# Gets the height at the given floating-point cell position.
+# This height is raw and doesn't account for scaling of the terrain node.
+# This function is relatively slow due to locking, so don't use it to fetch large areas
 func get_interpolated_height_at(pos):
-	# This function is relatively slow due to locking, so don't use it to fetch large areas
 
 	# Height data must be loaded in RAM
 	var im = get_image(CHANNEL_HEIGHT)
@@ -288,6 +292,9 @@ func get_interpolated_height_at(pos):
 	return h;
 
 
+# Gets all heights within the given rectangle in cells.
+# This height is raw and doesn't account for scaling of the terrain node.
+# Data is returned as a PoolRealArray.
 func get_heights_region(x0, y0, w, h):
 	var im = get_image(CHANNEL_HEIGHT)
 	assert(im != null)
@@ -319,6 +326,9 @@ func get_heights_region(x0, y0, w, h):
 	return heights
 
 
+# Gets all heights.
+# This height is raw and doesn't account for scaling of the terrain node.
+# Data is returned as a PoolRealArray.
 func get_all_heights():
 	return get_heights_region(0, 0, _resolution, _resolution)
 

@@ -767,6 +767,11 @@ static func _get_height_or_default(im, pos_x, pos_y):
 	return im.get_pixel(pos_x, pos_y).r
 
 
+# Performs a raycast to the terrain without using the collision engine.
+# This is mostly useful in the editor, where the collider isn't running.
+# It may be slow on very large distance, but should be enough for editing purpose.
+# out_cell_pos is the returned hit position and must be specified as an array of 2 integers.
+# Returns false if there is no hit.
 func cell_raycast(origin_world, dir_world, out_cell_pos):
 	assert(typeof(origin_world) == TYPE_VECTOR3)
 	assert(typeof(dir_world) == TYPE_VECTOR3)
