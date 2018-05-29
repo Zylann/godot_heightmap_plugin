@@ -519,7 +519,7 @@ func _update_material_params():
 		# This is needed to properly transform normals if the terrain is scaled
 		var normal_basis = gt.basis.inverse().transposed()
 		material.set_shader_param(SHADER_PARAM_NORMAL_BASIS, normal_basis)
-*
+
 	material.set_shader_param(SHADER_PARAM_HEIGHT_TEXTURE, height_texture)
 	material.set_shader_param(SHADER_PARAM_NORMAL_TEXTURE, normal_texture)
 	material.set_shader_param(SHADER_PARAM_COLOR_TEXTURE, color_texture)
