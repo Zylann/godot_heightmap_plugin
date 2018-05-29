@@ -37,8 +37,28 @@ func set_visible(visible):
 	_mesh_instance.set_visible(visible)
 
 
+func _on_terrain_transform_changed(terrain_global_trans):
+
+	var inv = terrain_global_trans.affine_inverse()
+	_material.set_shader_param("u_terrain_inverse_transform", inv)
+
+	var normal_basis = terrain_global_trans.basis.inverse().transposed()
+	_material.set_shader_param("u_terrain_normal_basis", normal_basis)
+
+
 func set_terrain(terrain):
+	if _terrain == terrain:
+		return
+
+	if _terrain != null:
+		_terrain.disconnect("transform_changed", self, "_on_terrain_transform_changed")
+
 	_terrain = terrain
+
+	if _terrain != null:
+		_terrain.connect("transform_changed", self, "_on_terrain_transform_changed")
+		_on_terrain_transform_changed(_terrain.get_internal_transform())
+
 	var heightmap = _get_heightmap(terrain)
 	
 	if heightmap == null:
@@ -50,18 +70,15 @@ func set_terrain(terrain):
 		_mesh_instance.enter_world(terrain.get_world())
 		
 		_material.set_shader_param("u_terrain_heightmap", heightmap)
-				
-		var gt = terrain.get_global_transform()
-		var t = gt.affine_inverse()
-		_material.set_shader_param("u_terrain_inverse_transform", t)
 
 
 func set_position(p_local_pos):
 	assert(_terrain != null)
 	assert(typeof(p_local_pos) == TYPE_VECTOR3)
-	var parent_transform = _terrain.global_transform
-	var pos = parent_transform * p_local_pos
-	_mesh_instance.set_transform(Transform(Basis(), pos))
+	var trans = Transform(Basis(), p_local_pos)
+	var terrain_gt = _terrain.get_internal_transform()
+	trans = terrain_gt * trans
+	_mesh_instance.set_transform(trans)
 
 
 func _get_heightmap(terrain):

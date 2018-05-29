@@ -26,8 +26,6 @@ func _init(p_parent, p_cell_x, p_cell_y, p_material):
 
 	_mesh_instance = vs.instance_create()
 
-	parent_transform_changed(p_parent.get_global_transform())
-
 	if p_material != null:
 		vs.instance_geometry_set_material_override(_mesh_instance, p_material.get_rid())
 

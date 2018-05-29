@@ -4,6 +4,8 @@ render_mode cull_disabled;
 uniform sampler2D u_terrain_heightmap;
 uniform sampler2D u_terrain_detailmap;
 uniform sampler2D u_terrain_normalmap;
+uniform mat4 u_terrain_inverse_transform;
+
 uniform sampler2D u_albedo_alpha;
 uniform float u_view_distance;
 
@@ -18,12 +20,13 @@ vec3 unpack_normal(vec4 rgba) {
 }
 
 void vertex() {
-	vec2 obj_pos = (WORLD_MATRIX * vec4(0, 0, 0, 1)).xz;
-	vec2 map_uv = obj_pos / vec2(textureSize(u_terrain_heightmap, 0));
+	vec4 obj_pos = WORLD_MATRIX * vec4(0, 0, 0, 1);
+	vec2 cell_coords = (u_terrain_inverse_transform * obj_pos).xz;
+	vec2 map_uv = cell_coords / vec2(textureSize(u_terrain_heightmap, 0));
 
 	//float density = 0.5 + 0.5 * sin(4.0*TIME); // test
 	float density = texture(u_terrain_detailmap, map_uv).r;
-	float hash = get_hash(obj_pos);
+	float hash = get_hash(obj_pos.xz);
 	
 	if(density > hash) {
 		float height = texture(u_terrain_heightmap, map_uv).r;

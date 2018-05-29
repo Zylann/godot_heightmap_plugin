@@ -2,6 +2,8 @@ tool
 
 var _shape_rid = RID()
 var _body_rid = RID()
+var _terrain_transform = Transform()
+var _terrain_data = null
 
 
 func _init():
@@ -26,7 +28,8 @@ func _notification(what):
 
 func set_transform(transform):
 	assert(_body_rid != RID())
-	# TODO Handle collider transform
+	_terrain_transform = transform
+	_update_transform()
 
 
 func set_world(world):
@@ -36,6 +39,8 @@ func set_world(world):
 
 func create_from_terrain_data(terrain_data):
 	print("Creating terrain collider shape")
+	
+	_terrain_data = terrain_data
 
 	var aabb = terrain_data.get_aabb()
 	
@@ -53,7 +58,23 @@ func create_from_terrain_data(terrain_data):
 
 	PhysicsServer.shape_set_data(_shape_rid, shape_data)
 	
+	_update_transform(aabb)
+
+
+func _update_transform(aabb=null):
+	if aabb == null:
+		aabb = _terrain_data.get_aabb()
+
+	var width = _terrain_data.get_resolution()
+	var depth = _terrain_data.get_resolution()
+	var height = aabb.size.y
+
+	#_terrain_transform
+
 	# Bullet centers the shape to its overall AABB so we need to move it to match the visuals
 	var trans = Transform(Basis(), 0.5 * Vector3(width, height, depth) + Vector3(0, aabb.position.y, 0))
-	PhysicsServer.body_set_shape_transform(_body_rid, 0, trans)
 
+	# And then apply the terrain transform
+	trans = _terrain_transform * trans
+
+	PhysicsServer.body_set_shape_transform(_body_rid, 0, trans)

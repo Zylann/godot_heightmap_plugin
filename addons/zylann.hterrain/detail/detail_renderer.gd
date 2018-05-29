@@ -37,6 +37,14 @@ func set_terrain(terrain):
 	#_reset_layers()
 
 
+func on_terrain_transform_changed(gt):
+	for i in range(len(_layers)):
+		var layer = _layers[i]
+		if layer != null:
+			if layer.material != null:
+				_update_layer_material(layer, i)
+
+
 func serialize():
 	var data = []
 	for layer in _layers:
@@ -127,16 +135,20 @@ func process(viewer_pos):
 	var cmax_x = viewer_cx + cr
 	var cmax_z = viewer_cz + cr
 	
-	var terrain_csize = _terrain.get_data().get_resolution() / CHUNK_SIZE
+	var terrain_size_x = _terrain.get_data().get_resolution()
+	var terrain_size_z = _terrain.get_data().get_resolution()
+
+	var terrain_chunks_x = terrain_size_x / CHUNK_SIZE
+	var terrain_chunks_z = terrain_size_z / CHUNK_SIZE
 	
 	if cmin_x < 0:
 		cmin_x = 0
 	if cmin_z < 0:
 		cmin_z = 0
-	if cmin_x >= terrain_csize:
-		cmin_x = terrain_csize - 1
-	if cmax_z >= terrain_csize:
-		cmax_z = terrain_csize - 1
+	if cmin_x >= terrain_chunks_x:
+		cmin_x = terrain_chunks_x - 1
+	if cmax_z >= terrain_chunks_z:
+		cmax_z = terrain_chunks_z - 1
 	
 	for cz in range(cmin_z, cmax_z):
 		for cx in range(cmin_x, cmax_x):
@@ -340,9 +352,13 @@ func _update_layer_material(layer, index):
 	var detailmap_texture = _terrain.get_data().get_texture(HTerrainData.CHANNEL_DETAIL, index)
 	var normalmap_texture = _terrain.get_data().get_texture(HTerrainData.CHANNEL_NORMAL)
 
+	var gt = _terrain.get_internal_transform()
+	var it = gt.affine_inverse()
+
 	var mat = layer.material
 	mat.set_shader_param("u_terrain_heightmap", heightmap_texture)
 	mat.set_shader_param("u_terrain_detailmap", detailmap_texture)
 	mat.set_shader_param("u_terrain_normalmap", normalmap_texture)
+	mat.set_shader_param("u_terrain_inverse_transform", it)
 	mat.set_shader_param("u_albedo_alpha", layer.texture)
 	mat.set_shader_param("u_view_distance", _view_distance)

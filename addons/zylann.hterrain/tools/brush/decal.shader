@@ -3,12 +3,13 @@ render_mode unshaded;//, depth_test_disable;
 
 uniform sampler2D u_terrain_heightmap;
 uniform mat4 u_terrain_inverse_transform;
+uniform mat3 u_terrain_normal_basis;
 
 void vertex() {
+	vec2 cell_coords = (u_terrain_inverse_transform * WORLD_MATRIX * vec4(VERTEX, 1)).xz;
+
 	vec2 ps = vec2(1.0) / vec2(textureSize(u_terrain_heightmap, 0));
-	
-	vec4 tv = u_terrain_inverse_transform * WORLD_MATRIX * vec4(VERTEX, 1);
-	vec2 uv = ps * vec2(tv.x, tv.z);
+	vec2 uv = ps * cell_coords;
 	
 	// Get terrain normal
 	float k = 1.0;
@@ -17,6 +18,8 @@ void vertex() {
 	float back = texture(u_terrain_heightmap, uv + vec2(0, -ps.y)).r * k;
 	float fore = texture(u_terrain_heightmap, uv + vec2(0, ps.y)).r * k;
 	vec3 n = normalize(vec3(left - right, 2.0, back - fore));
+
+	n = u_terrain_normal_basis * n;
 	
 	float h = texture(u_terrain_heightmap, uv).r;
 	VERTEX.y = h;

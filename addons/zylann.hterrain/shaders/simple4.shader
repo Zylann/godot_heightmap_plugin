@@ -5,6 +5,7 @@ uniform sampler2D u_terrain_normalmap;
 uniform sampler2D u_terrain_colormap : hint_albedo;
 uniform sampler2D u_terrain_splatmap;
 uniform mat4 u_terrain_inverse_transform;
+uniform mat3 u_terrain_normal_basis;
 
 uniform sampler2D u_ground_albedo_roughness_0 : hint_albedo;
 uniform sampler2D u_ground_albedo_roughness_1 : hint_albedo;
@@ -65,16 +66,16 @@ vec4 texture_triplanar(sampler2D tex, vec3 world_pos, vec3 blend) {
 }
 
 void vertex() {
-	vec4 tv = u_terrain_inverse_transform * WORLD_MATRIX * vec4(VERTEX, 1);
+	vec2 cell_coords = (u_terrain_inverse_transform * WORLD_MATRIX * vec4(VERTEX, 1)).xz;
 
 	// Normalized UV
-	UV = tv.xz / vec2(textureSize(u_terrain_heightmap, 0));
+	UV = cell_coords / vec2(textureSize(u_terrain_heightmap, 0));
 	
 	// Height displacement
 	float h = texture(u_terrain_heightmap, UV).r;
 	VERTEX.y = h;
 
-	v_ground_uv = vec3(tv.x, h, tv.z) / u_ground_uv_scale;
+	v_ground_uv = vec3(cell_coords.x, h, cell_coords.y) / u_ground_uv_scale;
 	
 	// Putting this in vertex saves 2 fetches from the fragment shader,
 	// which is good for performance at a negligible quality cost,
@@ -83,8 +84,9 @@ void vertex() {
 	v_tint = texture(u_terrain_colormap, UV);
 	v_splat = texture(u_terrain_splatmap, UV);
 	
-	// For some reason I had to invert Z when sampling terrain normals... not sure why
-	NORMAL = unpack_normal(texture(u_terrain_normalmap, UV)) * vec3(1,1,-1);
+	// Need to use u_terrain_normal_basis to handle scaling.
+	// For some reason I also had to invert Z when sampling terrain normals... not sure why
+	NORMAL = u_terrain_normal_basis * (unpack_normal(texture(u_terrain_normalmap, UV)) * vec3(1,1,-1));
 }
 
 void fragment() {
@@ -93,7 +95,8 @@ void fragment() {
 		// TODO Add option to use vertex discarding instead, using NaNs
 		discard;
 	
-	vec3 terrain_normal = unpack_normal(texture(u_terrain_normalmap, UV)) * vec3(1,1,-1);
+	vec3 terrain_normal_world = u_terrain_normal_basis * (unpack_normal(texture(u_terrain_normalmap, UV)) * vec3(1,1,-1));
+	terrain_normal_world = normalize(terrain_normal_world);
 
 	// TODO Detail should only be rasterized on nearby chunks (needs proximity management to switch shaders)
 	
@@ -107,8 +110,7 @@ void fragment() {
 		// I chose the last slot because first slot is the default on new splatmaps,
 		// and that's a feature used for cliffs, which are usually designed later.
 
-		vec3 world_terrain_normal = (WORLD_MATRIX * vec4(terrain_normal, 0.0)).xyz;
-		vec3 blending = get_triplanar_blend(world_terrain_normal);
+		vec3 blending = get_triplanar_blend(terrain_normal_world);
 
 		ar3 = texture_triplanar(u_ground_albedo_roughness_3, v_ground_uv, blending);
 		nb3 = texture_triplanar(u_ground_normal_bump_3, v_ground_uv, blending);
@@ -160,7 +162,7 @@ void fragment() {
 		w.b * rough.b + 
 		w.a * rough.a) / w_sum;
 	
-	vec3 ground_normal = (
+	vec3 ground_normal = /*u_terrain_normal_basis **/ (
 		w.r * normal0 + 
 		w.g * normal1 + 
 		w.b * normal2 + 
@@ -168,11 +170,11 @@ void fragment() {
 	
 	// Combine terrain normals with detail normals (not sure if correct but looks ok)
 	vec3 normal = normalize(vec3(
-		terrain_normal.x + ground_normal.x, 
-		terrain_normal.y, 
-		terrain_normal.z + ground_normal.z));
-	
-	NORMAL = (INV_CAMERA_MATRIX * (WORLD_MATRIX * vec4(normal, 0.0))).xyz;
+		terrain_normal_world.x + ground_normal.x, 
+		terrain_normal_world.y, 
+		terrain_normal_world.z + ground_normal.z));
+
+	NORMAL = (INV_CAMERA_MATRIX * (vec4(normal, 0.0))).xyz;
 
 	//ALBEDO = w.rgb;
 	//ALBEDO = vec3(v_ground_uv.y, 0, 0);

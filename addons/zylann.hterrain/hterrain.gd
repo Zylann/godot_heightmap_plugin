@@ -19,6 +19,7 @@ const SHADER_PARAM_NORMAL_TEXTURE = "u_terrain_normalmap"
 const SHADER_PARAM_COLOR_TEXTURE = "u_terrain_colormap"
 const SHADER_PARAM_SPLAT_TEXTURE = "u_terrain_splatmap"
 const SHADER_PARAM_INVERSE_TRANSFORM = "u_terrain_inverse_transform"
+const SHADER_PARAM_NORMAL_BASIS = "u_terrain_normal_basis"
 const SHADER_PARAM_GROUND_PREFIX = "u_ground_" # + name + _0, _1, _2, _3...
 const SHADER_PARAM_DEPTH_BLENDING = "u_depth_blending"
 const SHADER_PARAM_TRIPLANAR = "u_triplanar"
@@ -41,6 +42,7 @@ const _ground_enum_to_name = [
 signal progress_notified(info)
 # Same as progress_notified once finished, but more convenient to yield
 signal progress_complete
+signal transform_changed(global_transform)
 
 
 export var depth_blending = false
@@ -48,6 +50,11 @@ export var cliff_triplanar = false
 export var ground_texture_scale = 20.0
 export var collision_enabled = false setget set_collision_enabled
 export var async_loading = false
+
+# Prefer using this instead of scaling the node's transform.
+# Spatial.scale isn't used because it's not suitable for terrains,
+# it would scale grass too and other environment objects.
+export var map_scale = Vector3(1, 1, 1) setget set_map_scale
 
 var _custom_material = null
 var _material = ShaderMaterial.new()
@@ -176,11 +183,25 @@ func _for_all_chunks(action):
 					action.exec(chunk)
 
 
+func set_map_scale(p_map_scale):
+	if map_scale == p_map_scale:
+		return
+	map_scale = p_map_scale
+	_on_transform_changed()
+
+
+# Gets the global transform to apply to terrain geometry,
+# which is different from Spatial.global_transform gives (that one must only have translation)
+func get_internal_transform():
+	# Terrain can only be scaled and translated,
+	return Transform(Basis().scaled(map_scale), translation)
+
+
 func _notification(what):
 	match what:
 		
 		NOTIFICATION_PREDELETE:
-			print("Destroy HeightMap")
+			print("Destroy HTerrain")
 			# Note: might get rid of a circular ref in GDScript port
 			_clear_all_chunks()
 
@@ -189,7 +210,7 @@ func _notification(what):
 			_for_all_chunks(EnterWorldAction.new(get_world()))
 			if _collider != null:
 				_collider.set_world(get_world())
-				_collider.set_transform(get_global_transform())
+				_collider.set_transform(get_internal_transform())
 			
 		NOTIFICATION_EXIT_WORLD:
 			print("Exit world");
@@ -198,15 +219,27 @@ func _notification(what):
 				_collider.set_world(null)
 			
 		NOTIFICATION_TRANSFORM_CHANGED:
-			print("Transform changed");
-			_for_all_chunks(TransformChangedAction.new(get_global_transform()))
-			_update_material()
-			if _collider != null:
-				_collider.set_transform(get_global_transform())
+			_on_transform_changed()
 			
 		NOTIFICATION_VISIBILITY_CHANGED:
 			print("Visibility changed");
 			_for_all_chunks(VisibilityChangedAction.new(is_visible()))
+
+
+func _on_transform_changed():
+	print("Transform changed");
+	var gt = get_internal_transform()
+
+	_for_all_chunks(TransformChangedAction.new(gt))
+
+	_update_material()
+
+	if _collider != null:
+		_collider.set_transform(gt)
+
+	_details.on_terrain_transform_changed(gt)
+
+	emit_signal("transform_changed", gt)
 
 
 func _enter_tree():
@@ -479,10 +512,14 @@ func _update_material_params():
 		res.y = res.x
 
 	if is_inside_tree():
-		var gt = get_global_transform()
+		var gt = get_internal_transform()
 		var t = gt.affine_inverse()
 		material.set_shader_param(SHADER_PARAM_INVERSE_TRANSFORM, t)
 
+		# This is needed to properly transform normals if the terrain is scaled
+		var normal_basis = gt.basis.inverse().transposed()
+		material.set_shader_param(SHADER_PARAM_NORMAL_BASIS, normal_basis)
+*
 	material.set_shader_param(SHADER_PARAM_HEIGHT_TEXTURE, height_texture)
 	material.set_shader_param(SHADER_PARAM_NORMAL_TEXTURE, normal_texture)
 	material.set_shader_param(SHADER_PARAM_COLOR_TEXTURE, color_texture)
@@ -556,9 +593,13 @@ func _process(delta):
 			return
 		
 		if _data.get_resolution() != 0:
-			_lodder.update(viewer_pos)
+			var gt = get_internal_transform()
+			var local_viewer_pos = gt.affine_inverse() * viewer_pos
+			_lodder.update(local_viewer_pos)
 		
 		if _data.get_map_count(HTerrainData.CHANNEL_DETAIL) > 0:
+			# Note: the detail system is not affected by map scale,
+			# so we have to send viewer position in world space
 			_details.process(viewer_pos)
 	
 	_updated_chunks = 0
@@ -735,6 +776,7 @@ func _cb_make_chunk(cpos_x, cpos_y, lod):
 		var origin_in_cells_y = cpos_y * CHUNK_SIZE * lod_factor
 		
 		chunk = HTerrainChunk.new(self, origin_in_cells_x, origin_in_cells_y, _material)
+		chunk.parent_transform_changed(get_internal_transform())
 		
 		var grid = _chunks[lod]
 		var row = grid[cpos_y]
@@ -784,7 +826,7 @@ func cell_raycast(origin_world, dir_world, out_cell_pos):
 	if heights == null:
 		return false
 
-	var to_local = get_global_transform().affine_inverse()
+	var to_local = get_internal_transform().affine_inverse()
 	var origin = to_local.xform(origin_world)
 	var dir = to_local.basis.xform(dir_world)
 
