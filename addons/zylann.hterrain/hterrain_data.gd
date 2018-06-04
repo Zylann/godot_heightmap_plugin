@@ -46,6 +46,8 @@ class Map:
 	# ID used for saving, because when adding/removing maps,
 	# we shouldn't rename texture files just because the indexes change
 	var id = -1
+	# Should be set to true if the map has unsaved modifications.
+	var modified = true
 	
 	func _init(p_id):
 		id = p_id
@@ -203,7 +205,7 @@ func set_resolution2(p_res, update_normals):
 		var maps = _maps[channel]
 		
 		for index in len(maps):
-			print("Resizing ", _get_channel_name(channel), "[", index, "]...")
+			print("Resizing ", _get_map_debug_name(channel, index), "...")
 
 			var map = maps[index]
 			var im = map.image
@@ -442,6 +444,14 @@ func update_normals(min_x, min_y, size_x, size_y):
 	#print("Was from ", min_x, ", ", min_y, " to ", max_x, ", ", max_y)
 
 
+# Call this function after you end modifying a map.
+# It will commit the change to the GPU so the change will take effect.
+# In the editor, it will also mark the map as modified so it will be saved when needed.
+# Finally, it will emit `region_changed`, which allows other systems to catch up (like physics or grass)
+# p_min: origin point in cells of the rectangular area, as an array of 2 integers. 
+# p_size: size of the rectangular area, as an array of 2 integers.
+# channel: which kind of map changed
+# index: index of the map that changed
 func notify_region_change(p_min, p_size, channel, index = 0):
 
 	# TODO Hmm not sure if that belongs here // <-- why this, Me from the past?
@@ -455,11 +465,15 @@ func notify_region_change(p_min, p_size, channel, index = 0):
 			_upload_region(channel, 0, p_min[0], p_min[1], p_size[0], p_size[1])
 			_upload_region(CHANNEL_NORMAL, 0, p_min[0], p_min[1], p_size[0], p_size[1])
 
+			_maps[CHANNEL_NORMAL][index].modified = true
+			_maps[channel][index].modified = true
+
 		CHANNEL_NORMAL, \
 		CHANNEL_SPLAT, \
 		CHANNEL_COLOR, \
 		CHANNEL_DETAIL:
 			_upload_region(channel, index, p_min[0], p_min[1], p_size[0], p_size[1])
+			_maps[channel][index].modified = true
 
 		_:
 			print("Unrecognized channel\n")
@@ -843,6 +857,10 @@ func _notify_progress_complete():
 
 
 func save_data_async():
+	if not _is_any_map_modified():
+		print("Terrain data has no modifications to save")
+		return
+
 	_locked = true
 	_notify_progress("Saving terrain data...", 0.0)
 	yield(self, "_internal_process")
@@ -855,18 +873,33 @@ func save_data_async():
 		
 		for index in range(len(maps)):
 			
+			var map = _maps[channel][index]
+			if not map.modified:
+				print("Skipping non-modified ", _get_map_debug_name(channel, index))
+				continue
+
 			var p = 0.1 + 0.9 * float(pi) / float(map_count)
-			_notify_progress(str("Saving map ", _get_channel_name(channel), "[", index, "]", \
+			_notify_progress(str("Saving map ", _get_map_debug_name(channel, index), \
 				" as ", _get_map_filename(channel, index), "..."), p)
 
 			yield(self, "_internal_process")
 			_save_channel(channel, index)
+
+			map.modified = false
 			pi += 1
 			
 	# TODO In editor, trigger reimport on generated assets
 
 	_locked = false
 	_notify_progress_complete()
+
+
+func _is_any_map_modified():
+	for maplist in _maps:
+		for map in maplist:
+			if map.modified:
+				return true
+	return false
 
 
 func _get_total_map_count():
@@ -898,11 +931,14 @@ func load_data_async():
 		for index in range(len(maps)):
 
 			var p = 0.1 + 0.6 * float(pi) / float(channel_instance_sum)
-			_notify_progress(str("Loading map ", _get_channel_name(map_type), "[", index, "]", \
+			_notify_progress(str("Loading map ", _get_map_debug_name(map_type, index), \
 				" from ", _get_map_filename(map_type, index), "..."), p)
 			yield(self, "_internal_process")
 
 			_load_channel(map_type, index)
+
+			# A map that was just loaded is considered not modified yet
+			_maps[map_type][index].modified = false
 
 			pi += 1
 	
@@ -1216,6 +1252,10 @@ static func _get_channel_name(c):
 			name = "detail"
 	assert(name != null)
 	return name
+
+
+static func _get_map_debug_name(map_type, index):
+	return str(_get_channel_name(map_type), "[", index, "]")
 
 
 func _get_map_filename(c, index):
