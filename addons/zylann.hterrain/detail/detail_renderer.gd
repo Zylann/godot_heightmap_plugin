@@ -5,7 +5,6 @@ tool
 # Importantly, they also do NOT scale with map scale.
 # Indeed, scaling the heightmap doesn't mean we want to scale grass blades (which is not a use case I know of).
 
-var HTerrain = load("res://addons/zylann.hterrain/hterrain.gd")
 var HTerrainData = load("res://addons/zylann.hterrain/hterrain_data.gd")
 const DirectMultiMeshInstance = preload("direct_multimesh_instance.gd")
 const DirectMeshInstance = preload("../tools/brush/direct_mesh_instance.gd")
