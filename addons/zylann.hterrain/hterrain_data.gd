@@ -707,6 +707,11 @@ func get_aabb():
 
 func get_region_aabb(origin_in_cells_x, origin_in_cells_y, size_in_cells_x, size_in_cells_y):
 
+	assert(typeof(origin_in_cells_x) == TYPE_INT)
+	assert(typeof(origin_in_cells_y) == TYPE_INT)
+	assert(typeof(size_in_cells_x) == TYPE_INT)
+	assert(typeof(size_in_cells_y) == TYPE_INT)
+
 	# Get info from cached vertical bounds,
 	# which is a lot faster than directly fetching heights from the map.
 	# It's not 100% accurate, but enough for culling use case if chunk size is decently chosen.

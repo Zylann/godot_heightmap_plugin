@@ -1,9 +1,13 @@
 tool
 
-# Internal module which handles detail layers on the terrain (grass, foliage, rocks)
+# Internal module which handles detail layers on the terrain (grass, foliage, rocks).
+# Details use their own chunk grid, scattered around the player.
+# Importantly, they also do NOT scale with map scale.
+# Indeed, scaling the heightmap doesn't mean we want to scale grass blades (which is not a use case I know of).
 
 var HTerrain = load("res://addons/zylann.hterrain/hterrain.gd")
 var HTerrainData = load("res://addons/zylann.hterrain/hterrain_data.gd")
+const DirectMultiMeshInstance = preload("direct_multimesh_instance.gd")
 
 const CHUNK_SIZE = 32
 const DETAIL_SHADER_PATH = "res://addons/zylann.hterrain/detail/detail.shader"
@@ -14,9 +18,23 @@ class Chunk:
 	# One per layer
 	var multimesh_instances = []
 
+	func set_aabb(p_aabb):
+		for mmi in multimesh_instances:
+			mmi.set_aabb(p_aabb)
+
+	func set_world(w):
+		for mmi in multimesh_instances:
+			mmi.set_world(w)
+
+	func set_visible(v):
+		for mmi in multimesh_instances:
+			mmi.set_visible(v)
+
+
 class Layer:
 	var material = null
 	var texture = null
+
 
 var _view_distance = 100.0
 var _layers = []
@@ -25,11 +43,12 @@ var _terrain = null
 var _detail_shader = load(DETAIL_SHADER_PATH)
 var _multimesh = null
 var _multimesh_instance_pool = []
+
+# Chunks indexed by position in chunks
 var _chunks = {}
+
 # TODO Have an optimization baking process where we ignore chunks that have no grass
 # TODO Ability to choose a custom mesh instead of the built-in quad
-
-var _edit_manual_viewer_pos = Vector3()
 
 
 func set_terrain(terrain):
@@ -38,11 +57,30 @@ func set_terrain(terrain):
 
 
 func on_terrain_transform_changed(gt):
+	# Update materials
 	for i in range(len(_layers)):
 		var layer = _layers[i]
 		if layer != null:
 			if layer.material != null:
 				_update_layer_material(layer, i)
+
+	# Update AABBs
+	for k in _chunks:
+		var chunk = _chunks[k]
+		var aabb = _get_chunk_aabb(Vector3(chunk.cx * CHUNK_SIZE, 0, chunk.cz * CHUNK_SIZE))
+		chunk.set_aabb(aabb)
+
+
+func on_terrain_world_changed(w):
+	for k in _chunks:
+		var chunk = _chunks[k]
+		chunk.set_world(w)
+
+
+func on_terrain_visibility_changed(visible):
+	for k in _chunks:
+		var chunk = _chunks[k]
+		chunk.set_visible(visible)
 
 
 func serialize():
@@ -174,26 +212,25 @@ func process(viewer_pos):
 
 
 func _get_distance_to_chunk(viewer_pos, cx, cz):
+	assert(typeof(cx) == TYPE_INT)
+	assert(typeof(cz) == TYPE_INT)
 	return Vector3(cx * CHUNK_SIZE, 0, cz * CHUNK_SIZE).distance_to(viewer_pos)
-	
-	# TODO Should use AABB, but there is a bug here that offsets the chunks somehow
-#	var chunk_aabb = _terrain.get_data().get_region_aabb( \
-#		cx * CHUNK_SIZE, \
-#		cz * CHUNK_SIZE, \
-#		(cx + 1) * CHUNK_SIZE, \
-#		(cz + 1) * CHUNK_SIZE)
-#
-#	# TODO use distance to box, not center?
-#	var d = (chunk_aabb.position + chunk_aabb.size / 2.0).distance_to(viewer_pos)
-#	return d
+	# TODO use distance to box, not center?
+	#var aabb = _get_chunk_aabb(Vector3(cx * CHUNK_SIZE, 0, cz * CHUNK_SIZE))
+	#return (aabb.position + 0.5 * aabb.size).distance_to(viewer_pos)
 
 
-func _get_chunk_aabb(cx, cz):
-	return _terrain.get_data().get_region_aabb( \
-		cx * CHUNK_SIZE, \
-		cz * CHUNK_SIZE, \
-		(cx + 1) * CHUNK_SIZE, \
-		(cz + 1) * CHUNK_SIZE)
+func _get_chunk_aabb(lpos):
+	var terrain_scale = _terrain.map_scale
+	var terrain_data = _terrain.get_data()
+	var origin_cells_x = int(lpos.x / terrain_scale.x)
+	var origin_cells_z = int(lpos.z / terrain_scale.z)
+	var size_cells_x = int(CHUNK_SIZE / terrain_scale.x)
+	var size_cells_z = int(CHUNK_SIZE / terrain_scale.z)
+	var aabb = terrain_data.get_region_aabb(origin_cells_x, origin_cells_z, size_cells_x, size_cells_z)
+	aabb.position.x = 0
+	aabb.position.z = 0
+	return aabb
 
 
 func _load_chunk(cx, cz):
@@ -201,6 +238,12 @@ func _load_chunk(cx, cz):
 
 	var chunk = Chunk.new()
 	
+	var lpos = Vector3(cx * CHUNK_SIZE, 0, cz * CHUNK_SIZE)
+	# Terrain scale is not used on purpose. Rotation is not supported.
+	var trans = Transform(Basis(), _terrain.get_internal_transform().origin + lpos)
+
+	var aabb = _get_chunk_aabb(lpos)
+
 	for i in range(len(_layers)):
 		var layer = _layers[i]
 		
@@ -214,16 +257,15 @@ func _load_chunk(cx, cz):
 				_multimesh = _generate_multimesh(CHUNK_SIZE)
 				# TODO Have a different multimesh per layer to avoid triangle fights
 			
-			# TODO Use VisualServer directly?
-			mmi = MultiMeshInstance.new()
-			mmi.multimesh = _multimesh
-			_terrain.add_child(mmi)
+			mmi = DirectMultiMeshInstance.new()
+			mmi.set_world(_terrain.get_world())
+			mmi.set_multimesh(_multimesh)
 		
-		mmi.material_override = _get_layer_material(layer, i)
-		mmi.translation = Vector3(cx * CHUNK_SIZE, 0, cz * CHUNK_SIZE)
+		mmi.set_material_override(_get_layer_material(layer, i))
+		mmi.set_transform(trans)
+		mmi.set_aabb(aabb)
 		mmi.set_visible(true)
-		# TODO Set custom AABB to prevent bad culling
-	
+
 		chunk.multimesh_instances.append(mmi)
 	
 	chunk.cx = cx
@@ -233,9 +275,10 @@ func _load_chunk(cx, cz):
 
 func _recycle_chunk(cpos2d):
 	var chunk = _chunks[cpos2d]
-	
+
+	chunk.set_visible(false)
+
 	for mmi in chunk.multimesh_instances:
-		mmi.set_visible(false)
 		_multimesh_instance_pool.append(mmi)
 	
 	_chunks.erase(cpos2d)

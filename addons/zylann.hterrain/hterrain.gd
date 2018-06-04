@@ -211,12 +211,14 @@ func _notification(what):
 			if _collider != null:
 				_collider.set_world(get_world())
 				_collider.set_transform(get_internal_transform())
+			_details.on_terrain_world_changed(get_world())
 			
 		NOTIFICATION_EXIT_WORLD:
 			print("Exit world");
 			_for_all_chunks(ExitWorldAction.new())
 			if _collider != null:
 				_collider.set_world(null)
+			_details.on_terrain_world_changed(null)
 			
 		NOTIFICATION_TRANSFORM_CHANGED:
 			_on_transform_changed()
@@ -224,6 +226,8 @@ func _notification(what):
 		NOTIFICATION_VISIBILITY_CHANGED:
 			print("Visibility changed");
 			_for_all_chunks(VisibilityChangedAction.new(is_visible()))
+			_details.on_terrain_visibility_changed(is_visible())
+			# TODO Turn off processing if not visible?
 
 
 func _on_transform_changed():
@@ -856,6 +860,7 @@ func cell_raycast(origin_world, dir_world, out_cell_pos):
 		d += unit
 
 	return false
+	
 
 # TODO Rename these "splat textures"
 
