@@ -8,9 +8,12 @@ tool
 var HTerrain = load("res://addons/zylann.hterrain/hterrain.gd")
 var HTerrainData = load("res://addons/zylann.hterrain/hterrain_data.gd")
 const DirectMultiMeshInstance = preload("direct_multimesh_instance.gd")
+const DirectMeshInstance = preload("../tools/brush/direct_mesh_instance.gd")
+const Util = preload("../util.gd")
 
 const CHUNK_SIZE = 32
 const DETAIL_SHADER_PATH = "res://addons/zylann.hterrain/detail/detail.shader"
+const DEBUG = false
 
 class Chunk:
 	var cx = 0
@@ -47,6 +50,9 @@ var _multimesh_instance_pool = []
 # Chunks indexed by position in chunks
 var _chunks = {}
 
+var _debug_wirecube_mesh = null
+var _debug_cubes = []
+
 # TODO Have an optimization baking process where we ignore chunks that have no grass
 # TODO Ability to choose a custom mesh instead of the built-in quad
 
@@ -68,6 +74,9 @@ func on_terrain_transform_changed(gt):
 	for k in _chunks:
 		var chunk = _chunks[k]
 		var aabb = _get_chunk_aabb(Vector3(chunk.cx * CHUNK_SIZE, 0, chunk.cz * CHUNK_SIZE))
+		# Nullify XZ translation because that's done by transform already
+		aabb.position.x = 0
+		aabb.position.z = 0
 		chunk.set_aabb(aabb)
 
 
@@ -163,8 +172,10 @@ func process(viewer_pos):
 		print("DetailLayer processing while there are no layers!")
 		return
 
-	var viewer_cx = viewer_pos.x / CHUNK_SIZE
-	var viewer_cz = viewer_pos.z / CHUNK_SIZE
+	var local_viewer_pos = viewer_pos - _terrain.translation
+
+	var viewer_cx = local_viewer_pos.x / CHUNK_SIZE
+	var viewer_cz = local_viewer_pos.z / CHUNK_SIZE
 	
 	var cr = int(_view_distance) / CHUNK_SIZE + 1
 
@@ -173,8 +184,11 @@ func process(viewer_pos):
 	var cmax_x = viewer_cx + cr
 	var cmax_z = viewer_cz + cr
 	
-	var terrain_size_x = _terrain.get_data().get_resolution()
-	var terrain_size_z = _terrain.get_data().get_resolution()
+	var map_res = _terrain.get_data().get_resolution()
+	var map_scale = _terrain.map_scale
+
+	var terrain_size_x = map_res * map_scale.x
+	var terrain_size_z = map_res * map_scale.z
 
 	var terrain_chunks_x = terrain_size_x / CHUNK_SIZE
 	var terrain_chunks_z = terrain_size_z / CHUNK_SIZE
@@ -183,15 +197,21 @@ func process(viewer_pos):
 		cmin_x = 0
 	if cmin_z < 0:
 		cmin_z = 0
-	if cmin_x >= terrain_chunks_x:
-		cmin_x = terrain_chunks_x - 1
-	if cmax_z >= terrain_chunks_z:
-		cmax_z = terrain_chunks_z - 1
+	if cmax_x > terrain_chunks_x:
+		cmax_x = terrain_chunks_x
+	if cmax_z > terrain_chunks_z:
+		cmax_z = terrain_chunks_z
+
+	if DEBUG:
+		_debug_cubes.clear()
+		for cz in range(cmin_z, cmax_z):
+			for cx in range(cmin_x, cmax_x):
+				_add_debug_cube(_get_chunk_aabb(Vector3(cx * CHUNK_SIZE, 0, cz * CHUNK_SIZE)))
 	
 	for cz in range(cmin_z, cmax_z):
 		for cx in range(cmin_x, cmax_x):
 			
-			var d = _get_distance_to_chunk(viewer_pos, cx, cz)
+			var d = _get_distance_to_chunk(local_viewer_pos, cx, cz)
 			var cpos2d = Vector2(cx, cz)
 			
 			if d < _view_distance:
@@ -202,7 +222,7 @@ func process(viewer_pos):
 
 	for k in _chunks:
 		var chunk = _chunks[k]
-		var d = _get_distance_to_chunk(viewer_pos, chunk.cx, chunk.cz)
+		var d = _get_distance_to_chunk(local_viewer_pos, chunk.cx, chunk.cz)
 		if d > _view_distance:
 			var cpos2d = Vector2(chunk.cx, chunk.cz)
 			to_recycle.append(cpos2d)
@@ -211,13 +231,13 @@ func process(viewer_pos):
 		_recycle_chunk(k)
 
 
-func _get_distance_to_chunk(viewer_pos, cx, cz):
+func _get_distance_to_chunk(local_viewer_pos, cx, cz):
 	assert(typeof(cx) == TYPE_INT)
 	assert(typeof(cz) == TYPE_INT)
-	return Vector3(cx * CHUNK_SIZE, 0, cz * CHUNK_SIZE).distance_to(viewer_pos)
+	#return Vector3(cx * CHUNK_SIZE, 0, cz * CHUNK_SIZE).distance_to(local_viewer_pos)
 	# TODO use distance to box, not center?
-	#var aabb = _get_chunk_aabb(Vector3(cx * CHUNK_SIZE, 0, cz * CHUNK_SIZE))
-	#return (aabb.position + 0.5 * aabb.size).distance_to(viewer_pos)
+	var aabb = _get_chunk_aabb(Vector3(cx * CHUNK_SIZE, 0, cz * CHUNK_SIZE))
+	return (aabb.position + 0.5 * aabb.size).distance_to(local_viewer_pos)
 
 
 func _get_chunk_aabb(lpos):
@@ -228,8 +248,8 @@ func _get_chunk_aabb(lpos):
 	var size_cells_x = int(CHUNK_SIZE / terrain_scale.x)
 	var size_cells_z = int(CHUNK_SIZE / terrain_scale.z)
 	var aabb = terrain_data.get_region_aabb(origin_cells_x, origin_cells_z, size_cells_x, size_cells_z)
-	aabb.position.x = 0
-	aabb.position.z = 0
+	aabb.position = Vector3(lpos.x, lpos.y * terrain_scale.y, lpos.z)
+	aabb.size = Vector3(CHUNK_SIZE, aabb.size.y * terrain_scale.y, CHUNK_SIZE)
 	return aabb
 
 
@@ -237,12 +257,17 @@ func _load_chunk(cx, cz):
 	var cpos2d = Vector2(cx, cz)
 
 	var chunk = Chunk.new()
+	chunk.cx = cx
+	chunk.cz = cz
 	
 	var lpos = Vector3(cx * CHUNK_SIZE, 0, cz * CHUNK_SIZE)
 	# Terrain scale is not used on purpose. Rotation is not supported.
 	var trans = Transform(Basis(), _terrain.get_internal_transform().origin + lpos)
 
 	var aabb = _get_chunk_aabb(lpos)
+	# Nullify XZ translation because that's done by transform already
+	aabb.position.x = 0
+	aabb.position.z = 0
 
 	for i in range(len(_layers)):
 		var layer = _layers[i]
@@ -267,9 +292,7 @@ func _load_chunk(cx, cz):
 		mmi.set_visible(true)
 
 		chunk.multimesh_instances.append(mmi)
-	
-	chunk.cx = cx
-	chunk.cz = cz
+
 	_chunks[cpos2d] = chunk
 
 
@@ -405,3 +428,21 @@ func _update_layer_material(layer, index):
 	mat.set_shader_param("u_terrain_inverse_transform", it)
 	mat.set_shader_param("u_albedo_alpha", layer.texture)
 	mat.set_shader_param("u_view_distance", _view_distance)
+
+
+func _add_debug_cube(aabb):
+	var world = _terrain.get_world()
+
+	if _debug_wirecube_mesh == null:
+		_debug_wirecube_mesh = Util.create_wirecube_mesh()
+		var mat = SpatialMaterial.new()
+		mat.flags_unshaded = true
+		_debug_wirecube_mesh.surface_set_material(0, mat)
+
+	var debug_cube = DirectMeshInstance.new()
+	debug_cube.set_mesh(_debug_wirecube_mesh)
+	debug_cube.set_world(world)
+	#aabb.position.y += 0.2*randf()
+	debug_cube.set_transform(Transform(Basis().scaled(aabb.size), aabb.position))
+
+	_debug_cubes.append(debug_cube)

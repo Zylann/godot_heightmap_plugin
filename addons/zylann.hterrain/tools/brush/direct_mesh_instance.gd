@@ -30,6 +30,13 @@ func exit_world():
 	VisualServer.instance_set_scenario(_mesh_instance, RID())
 
 
+func set_world(world):
+	if world != null:
+		enter_world(world)
+	else:
+		exit_world()
+
+
 func set_transform(world_transform):
 	assert(_mesh_instance != RID())
 	VisualServer.instance_set_transform(_mesh_instance, world_transform)
