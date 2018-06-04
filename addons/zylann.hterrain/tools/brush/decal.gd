@@ -1,7 +1,7 @@
 tool
 # Shows a cursor on top of the terrain to preview where the brush will paint
 
-const DirectMeshInstance = preload("direct_mesh_instance.gd")
+const DirectMeshInstance = preload("../../util/direct_mesh_instance.gd")
 const HTerrainData = preload("../../hterrain_data.gd")
 
 var _mesh_instance = null

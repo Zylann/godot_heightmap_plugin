@@ -6,9 +6,9 @@ tool
 # Indeed, scaling the heightmap doesn't mean we want to scale grass blades (which is not a use case I know of).
 
 var HTerrainData = load("res://addons/zylann.hterrain/hterrain_data.gd")
-const DirectMultiMeshInstance = preload("direct_multimesh_instance.gd")
-const DirectMeshInstance = preload("../tools/brush/direct_mesh_instance.gd")
-const Util = preload("../util.gd")
+const DirectMultiMeshInstance = preload("../util/direct_multimesh_instance.gd")
+const DirectMeshInstance = preload("../util/direct_mesh_instance.gd")
+const Util = preload("../util/util.gd")
 
 const CHUNK_SIZE = 32
 const DETAIL_SHADER_PATH = "res://addons/zylann.hterrain/detail/detail.shader"

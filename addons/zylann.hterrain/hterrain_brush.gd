@@ -2,8 +2,8 @@ tool
 
 const HTerrain = preload("hterrain.gd")
 const HTerrainData = preload("hterrain_data.gd")
-const Util = preload("util.gd")
-const Grid = preload("grid.gd")
+const Util = preload("util/util.gd")
+const Grid = preload("util/grid.gd")
 
 # TODO Rename MODE_RAISE
 const MODE_ADD = 0

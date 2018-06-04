@@ -1,9 +1,9 @@
 tool
 extends Resource
 
-const Grid = preload("grid.gd")
+const Grid = preload("util/grid.gd")
 var HTerrain = load("res://addons/zylann.hterrain/hterrain.gd")
-const Util = preload("util.gd")
+const Util = preload("util/util.gd")
 
 # TODO Rename "CHANNEL" to "MAP", makes more sense and less confusing with RGBA channels
 const CHANNEL_HEIGHT = 0

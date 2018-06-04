@@ -1,12 +1,12 @@
 tool
 extends Spatial
 
-const QuadTreeLod = preload("quad_tree_lod.gd")
+const QuadTreeLod = preload("util/quad_tree_lod.gd")
 const Mesher = preload("hterrain_mesher.gd")
-const Grid = preload("grid.gd")
+const Grid = preload("util/grid.gd")
 var HTerrainData = load("res://addons/zylann.hterrain/hterrain_data.gd")
 const HTerrainChunk = preload("hterrain_chunk.gd")
-const Util = preload("util.gd")
+const Util = preload("util/util.gd")
 const HTerrainCollider = preload("hterrain_collider.gd")
 const DetailRenderer = preload("detail/detail_renderer.gd")
 
