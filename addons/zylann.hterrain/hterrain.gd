@@ -141,10 +141,19 @@ func _init():
 func _get_property_list():
 	var props = [
 		{
-			# Must do this to export a custom resource type
-			"name": "data",
+			# Terrain data is exposed only as a path in the editor,
+			# because it can only be saved if it has a directory selected.
+			# That property is not used in scene saving (data is instead).
+			"name": "data_directory",
+			"type": TYPE_STRING,
+			"usage": PROPERTY_USAGE_EDITOR,
+			"hint": PROPERTY_HINT_DIR
+		},
+		{
+			# The actual data resource is only exposed for storage
+			"name": "_data",
 			"type": TYPE_OBJECT,
-			"usage": PROPERTY_USAGE_STORAGE | PROPERTY_USAGE_EDITOR,
+			"usage": PROPERTY_USAGE_STORAGE,
 			"hint": PROPERTY_HINT_RESOURCE_TYPE,
 			"hint_string": "HTerrainData"
 		},
@@ -203,8 +212,16 @@ func _get_property_list():
 
 func _get(key):
 	
-	if key == "data":
-		return get_data()
+	if key == "data_directory":
+		return _get_data_directory()
+
+	if key == "_data":
+		if _data == null or _data.resource_path == "":
+			# Consider null if the data is not set or has no path,
+			# because in those cases we can't save the terrain properly
+			return null
+		else:
+			return _data
 	
 	if key.begins_with("ground/"):
 		for ground_texture_type in range(GROUND_TEXTURE_TYPE_COUNT):
@@ -231,9 +248,13 @@ func _get(key):
 
 
 func _set(key, value):
+	
+	if key == "data_directory":
+		_set_data_directory(value)
+
 	# Can't use setget when the exported type is custom,
 	# because we were also are forced to use _get_property_list...
-	if key == "data":
+	elif key == "_data":
 		set_data(value)
 	
 	if key.begins_with("ground/"):
@@ -266,6 +287,24 @@ func get_shader_param(param_name):
 
 func set_shader_param(param_name, v):
 	_material.set_shader_param(param_name, v)
+
+
+func _set_data_directory(dir):
+	if value != _get_data_directory():
+		if value == "":
+			set_data(null)
+		else:
+			var d = HTerrainData.new()
+			d.resource_path = value
+			set_data(d)
+	else:
+		print("WARNING: setting twice the same terrain directory??")
+
+
+func _get_data_directory():
+	if _data != null:
+		return _data.resource_path
+	return ""
 
 
 static func _check_heightmap_collider_support():
@@ -432,7 +471,7 @@ func _enter_tree():
 func _clear_all_chunks():
 
 	# The lodder has to be cleared because otherwise it will reference dangling pointers
-	_lodder.clear();
+	_lodder.clear()
 
 	#_for_all_chunks(DeleteChunkAction.new())
 
