@@ -227,7 +227,9 @@ func set_resolution2(p_res, update_normals):
 						_update_all_normals()
 				else:
 					im.resize(_resolution, _resolution)
-	
+			
+			map.modified = true
+
 	_update_all_vertical_bounds()
 
 	emit_signal("resolution_changed")
