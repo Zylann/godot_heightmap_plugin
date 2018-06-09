@@ -28,8 +28,10 @@ var _mode = MODE_ADD
 var _flatten_height = 0.0
 var _texture_index = 0
 var _detail_index = 0
+var _detail_density = 1.0
 var _texture_mode = HTerrain.SHADER_SIMPLE4
 var _color = Color(1, 1, 1)
+var _mask_flag = false
 var _undo_cache = {}
 
 
@@ -99,6 +101,14 @@ func set_detail_index(index):
 # 	return _detail_index
 
 
+func get_detail_density():
+	return _detail_density
+	
+
+func set_detail_density(v):
+	_detail_density = clamp(v, 0, 1)
+
+
 func set_color(c):
 	# Color might be useful for custom shading
 	_color = c
@@ -106,6 +116,15 @@ func set_color(c):
 
 func get_color():
 	return _color
+
+
+func get_mask_flag():
+	return _mask_flag
+
+
+func set_mask_flag(v):
+	assert(typeof(v) == TYPE_BOOL)
+	_mask_flag = v
 
 
 func _generate_procedural(radius):
@@ -481,7 +500,7 @@ func _paint_detail(data, origin_x, origin_y):
 	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
 
 	im.lock()
-	var op = OperatorLerpColor.new(Color(_opacity, _opacity, _opacity, 1.0), im)
+	var op = OperatorLerpColor.new(Color(_detail_density, _detail_density, _detail_density, 1.0), im)
 	_foreach_xy(op, data, origin_x, origin_y, 1, _opacity, _shape)
 	im.unlock()
 
@@ -509,6 +528,8 @@ func _paint_mask(data, origin_x, origin_y):
 	min_y = pmin[1]
 	max_x = pmax[0]
 	max_y = pmax[1]
+	
+	var mask_value = 1.0 if _mask_flag else 0.0
 
 	im.lock()
 
@@ -521,8 +542,10 @@ func _paint_mask(data, origin_x, origin_y):
 			var shape_value = _shape[py][px]
 			
 			var c = im.get_pixel(x, y)
-			c.a = lerp(c.a, _opacity, shape_value)
+			c.a = lerp(c.a, mask_value, shape_value)
 			im.set_pixel(x, y, c)
+
+	im.unlock()
 
 
 static func _fetch_redo_chunks(im, keys):

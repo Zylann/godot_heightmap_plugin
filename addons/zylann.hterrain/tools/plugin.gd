@@ -347,6 +347,7 @@ func _menu_item_selected(id):
 func _on_mode_selected(mode):
 	print("On mode selected ", mode)
 	_brush.set_mode(mode)
+	_panel.set_brush_editor_display_mode(mode)
 
 
 func _on_texture_selected(index):

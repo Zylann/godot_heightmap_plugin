@@ -35,3 +35,8 @@ func _on_TextureEditor_texture_selected(index):
 
 func _on_DetailEditor_detail_selected(index):
 	emit_signal("detail_selected", index)
+
+
+func set_brush_editor_display_mode(mode):
+	_brush_editor.set_display_mode(mode)
+
