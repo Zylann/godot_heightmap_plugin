@@ -95,7 +95,7 @@ func _enter_tree():
 	mode_icons[Brush.MODE_FLATTEN] = get_icon("heightmap_flatten")
 	# TODO Have different icons
 	mode_icons[Brush.MODE_SPLAT] = get_icon("heightmap_paint")
-	mode_icons[Brush.MODE_COLOR] = get_icon("heightmap_paint")
+	mode_icons[Brush.MODE_COLOR] = get_icon("heightmap_color")
 	mode_icons[Brush.MODE_DETAIL] = get_icon("grass")
 	mode_icons[Brush.MODE_MASK] = get_icon("heightmap_mask")
 	
@@ -107,7 +107,7 @@ func _enter_tree():
 	mode_tooltips[Brush.MODE_SPLAT] = "Texture paint"
 	mode_tooltips[Brush.MODE_COLOR] = "Color paint"
 	mode_tooltips[Brush.MODE_DETAIL] = "Grass paint"
-	mode_tooltips[Brush.MODE_MASK] = "Mask"
+	mode_tooltips[Brush.MODE_MASK] = "Cut holes"
 	
 	_toolbar.add_child(VSeparator.new())
 	
