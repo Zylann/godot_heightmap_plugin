@@ -117,4 +117,8 @@ color = Color( 0, 0, 0, 1 )
 script = ExtResource( 5 )
 _sections_unfolded = [ "Rect" ]
 
+[connection signal="texture_selected" from="HSplitContainer/HSplitContainer/HSplitContainer/TextureEditor" to="." method="_on_TextureEditor_texture_selected"]
+
+[connection signal="detail_selected" from="HSplitContainer/HSplitContainer/HSplitContainer/DetailEditor" to="." method="_on_DetailEditor_detail_selected"]
+
 

@@ -23,6 +23,7 @@ var _node = null
 
 var _panel = null
 var _toolbar = null
+var _toolbar_brush_buttons = {}
 var _brush = null
 var _brush_decal = null
 var _mouse_pressed = false
@@ -69,6 +70,8 @@ func _enter_tree():
 	# Apparently _ready() still isn't called at this point...
 	_panel.call_deferred("set_brush", _brush)
 	_panel.call_deferred("set_load_texture_dialog", load_texture_dialog)
+	_panel.connect("detail_selected", self, "_on_detail_selected")
+	_panel.connect("texture_selected", self, "_on_texture_selected")
 	
 	_toolbar = HBoxContainer.new()
 	add_control_to_container(EditorPlugin.CONTAINER_SPATIAL_EDITOR_MENU, _toolbar)
@@ -108,8 +111,6 @@ func _enter_tree():
 	
 	_toolbar.add_child(VSeparator.new())
 	
-	var mode_group = ButtonGroup.new()
-	
 	# I want modes to be in that order in the GUI
 	var ordered_brush_modes = [
 		Brush.MODE_ADD,
@@ -121,6 +122,8 @@ func _enter_tree():
 		Brush.MODE_DETAIL,
 		Brush.MODE_MASK
 	]
+	
+	var mode_group = ButtonGroup.new()
 	
 	for mode in ordered_brush_modes:
 		var button = ToolButton.new()
@@ -134,6 +137,8 @@ func _enter_tree():
 		
 		button.connect("pressed", self, "_on_mode_selected", [mode])
 		_toolbar.add_child(button)
+		
+		_toolbar_brush_buttons[mode] = button
 	
 	_import_dialog = FileDialog.new()
 	_import_dialog.connect("file_selected", self, "_import_file_selected")
@@ -342,6 +347,23 @@ func _menu_item_selected(id):
 func _on_mode_selected(mode):
 	print("On mode selected ", mode)
 	_brush.set_mode(mode)
+
+
+func _on_texture_selected(index):
+	# Switch to texture paint mode when a texture is selected
+	_select_brush_mode(Brush.MODE_SPLAT)
+	_brush.set_texture_index(index)
+
+
+func _on_detail_selected(index):
+	# Switch to detail paint mode when a detail item is selected
+	_select_brush_mode(Brush.MODE_DETAIL)
+	_brush.set_detail_index(index)
+
+
+func _select_brush_mode(mode):
+	_toolbar_brush_buttons[mode].pressed = true
+	_on_mode_selected(mode)
 
 
 static func get_size_from_raw_length(flen):

@@ -3,11 +3,12 @@ extends Control
 
 const HTerrain = preload("../../hterrain.gd")
 
+signal texture_selected(index)
+
 onready var _textures_list = get_node("TexturesContainer")
 onready var _edit_dialog = get_node("EditDialog")
 
 var _terrain = null
-var _brush = null
 
 var _load_dialog = null
 
@@ -38,10 +39,6 @@ func set_terrain(terrain):
 static func _get_slot_hint_name(i):
 	#if shader_type == HTerrain.SHADER_SIMPLE4:
 	return "cliff" if i == 3 else str("ground", i)
-
-
-func set_brush(brush):
-	_brush = brush
 
 
 func set_load_texture_dialog(dialog):
@@ -78,8 +75,7 @@ func _on_ClearButton_pressed():
 
 
 func _on_TexturesContainer_item_selected(index):
-	if _brush != null:
-		_brush.set_texture_index(index)
+	emit_signal("texture_selected", index)
 
 
 func _on_EditButton_pressed():
