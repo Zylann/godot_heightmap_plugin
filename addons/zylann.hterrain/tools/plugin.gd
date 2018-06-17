@@ -205,7 +205,7 @@ func make_visible(visible):
 
 
 func forward_spatial_gui_input(p_camera, p_event):
-	if _node == null:
+	if _node == null || _node.get_data() == null:
 		return false
 	
 	_node._edit_set_manual_viewer_pos(p_camera.global_transform.origin)
