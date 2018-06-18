@@ -339,7 +339,7 @@ func _on_ask_load_file(key, exts):
 	var filters = []
 	for ext in exts:
 		filters.append(str("*.", ext, " ; ", ext.to_upper(), " files"))
-	_open_file_dialog(filters, "_on_file_selected", [key], FileDialog.ACCES_FILESYSTEM)
+	_open_file_dialog(filters, "_on_file_selected", [key], FileDialog.ACCESS_FILESYSTEM)
 
 
 func _on_file_selected(path, key):

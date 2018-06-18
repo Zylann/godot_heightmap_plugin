@@ -158,6 +158,8 @@ text = "Cancel"
 flat = false
 align = 1
 
+[connection signal="property_changed" from="VBoxContainer/Inspector" to="." method="_on_Inspector_property_changed"]
+
 [connection signal="pressed" from="VBoxContainer/ButtonsArea/ImportButton" to="." method="_on_ImportButton_pressed"]
 
 [connection signal="pressed" from="VBoxContainer/ButtonsArea/CancelButton" to="." method="_on_CancelButton_pressed"]

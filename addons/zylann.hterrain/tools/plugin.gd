@@ -11,6 +11,7 @@ const LoadTextureDialog = preload("load_texture_dialog.gd")
 const EditPanel = preload("panel.tscn")
 const ProgressWindow = preload("progress_window.tscn")
 const GeneratorDialog = preload("generator/generator_dialog.tscn")
+const ImportDialog = preload("importer/importer_dialog.tscn")
 
 const MENU_IMPORT_MAPS = 0
 # TODO These two should not exist, they are workarounds to test saving!
@@ -30,6 +31,7 @@ var _brush_decal = null
 var _mouse_pressed = false
 
 var _generator_dialog = null
+var _import_dialog = null
 
 var _progress_window = null
 
@@ -134,11 +136,14 @@ func _enter_tree():
 		_toolbar.add_child(button)
 		
 		_toolbar_brush_buttons[mode] = button
-			
+	
 	_generator_dialog = GeneratorDialog.instance()
 	_generator_dialog.connect("progress_notified", self, "_terrain_progress_notified")
 	base_control.add_child(_generator_dialog)
-	
+
+	_import_dialog = ImportDialog.instance()
+	base_control.add_child(_import_dialog)
+
 	_progress_window = ProgressWindow.instance()
 	base_control.add_child(_progress_window)
 
@@ -170,6 +175,7 @@ func edit(object):
 	
 	_panel.set_terrain(_node)
 	_generator_dialog.set_terrain(_node)
+	_import_dialog.set_terrain(_node)
 	_brush_decal.set_terrain(_node)
 
 
@@ -306,8 +312,7 @@ func _menu_item_selected(id):
 	print("Menu item selected ", id)
 	match id:
 		MENU_IMPORT_MAPS:
-			# TODO Setup new import dialog
-			print("TODO Setup new import dialog")
+			_import_dialog.popup_centered_minsize()
 		MENU_SAVE:
 			var data = _node.get_data()
 			if data != null:

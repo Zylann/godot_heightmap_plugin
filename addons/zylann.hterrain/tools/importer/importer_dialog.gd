@@ -57,7 +57,7 @@ func _on_ImportButton_pressed():
 		params[HTerrainData.CHANNEL_COLOR] = colormap_path
 
 	var splatmap_path = _inspector.get_value("splatmap")
-	if splatmap_path != null:
+	if splatmap_path != "":
 		params[HTerrainData.CHANNEL_SPLAT] = splatmap_path
 
 	var data = _terrain.get_data()
@@ -71,6 +71,10 @@ func _on_ImportButton_pressed():
 
 func _on_CancelButton_pressed():
 	hide()
+
+
+func _on_Inspector_property_changed(key, value):
+	pass # replace with function body
 
 
 func _validate_form():
@@ -110,7 +114,7 @@ func _validate_form():
 		var adjusted_size = HTerrainData.get_adjusted_map_size(size.width, size.height)
 
 		if adjusted_size != size.width:
-			res.warnings(
+			res.warnings.append(
 				"The square resolution deduced from heightmap file size is not power of two + 1.\n" + \
 				"The heightmap will be cropped.")
 
@@ -135,7 +139,7 @@ static func _check_map_size(path, map_name, heightmap_size, res):
 		res.errors.append(str("The ", map_name, " must have the same resolution as the heightmap (", heightmap_size, ")"))
 	else:
 		if adjusted_size != size.width:
-			res.warnings(
+			res.warnings.append(
 				"The square resolution deduced from ", map_name, " file size is not power of two + 1.\n" + \
 				"The ", map_name, " will be cropped.")
 
@@ -181,6 +185,4 @@ static func _error_to_string(err):
 		return err
 	# TODO Humm...
 	return str("code ", err)
-
-
 
