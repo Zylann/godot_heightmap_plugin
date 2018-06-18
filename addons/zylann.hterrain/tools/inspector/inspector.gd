@@ -24,13 +24,14 @@ class ResourceEditor extends Editor:
 		label.text = "null" if v == null else v.resource_path
 
 
+# TODO Rename _schema
 var _prototype = null
 var _edit_signal = true
 var _editors = {}
 
 # Had to separate the container because otherwise I can't open dialogs properly...
 onready var _grid_container = get_node("GridContainer")
-onready var _open_file_dialog = get_node("OpenFileDialog")
+onready var _file_dialog = get_node("OpenFileDialog")
 
 
 # Test
@@ -44,6 +45,7 @@ onready var _open_file_dialog = get_node("OpenFileDialog")
 #	})
 
 
+# TODO Rename clear_schema
 func clear_prototype():
 	_editors.clear()
 	var i = _grid_container.get_child_count() - 1
@@ -81,6 +83,7 @@ func set_values(values):
 			editor.setter.call_func(v)
 
 
+# TODO Rename set_schema
 func set_prototype(proto):
 	clear_prototype()
 	
@@ -157,10 +160,31 @@ func _make_editor(key, prop):
 					editor.add_child(spinbox)
 			
 		TYPE_STRING:
-			editor = LineEdit.new()
-			editor.connect("text_entered", self, "_property_edited", [key])
-			getter = funcref(editor, "get_text")
-			setter = funcref(editor, "set_text")
+			if prop.has("usage") and prop.usage == "file":
+				editor = HBoxContainer.new()
+				
+				var line_edit = LineEdit.new()
+				line_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				editor.add_child(line_edit)
+				
+				var exts = []
+				if prop.has("exts"):
+					exts = prop.exts
+				
+				var load_button = Button.new()
+				load_button.text = "..."
+				load_button.connect("pressed", self, "_on_ask_load_file", [key, exts])
+				editor.add_child(load_button)
+				
+				line_edit.connect("text_entered", self, "_property_edited", [key])
+				getter = funcref(line_edit, "get_text")
+				setter = funcref(line_edit, "set_text")
+				
+			else:
+				editor = LineEdit.new()
+				editor.connect("text_entered", self, "_property_edited", [key])
+				getter = funcref(editor, "get_text")
+				setter = funcref(editor, "set_text")
 		
 		TYPE_COLOR:
 			editor = ColorPickerButton.new()
@@ -273,19 +297,26 @@ func _dummy_setter(v):
 
 
 func _on_ask_load_texture(key):
-	_open_file_dialog.add_filter("*.png ; PNG files")
-	_open_file_dialog.connect("popup_hide", self, "call_deferred", ["_on_file_dialog_close"], CONNECT_ONESHOT)
-	_open_file_dialog.connect("file_selected", self, "_on_texture_selected", [key])
-	_open_file_dialog.popup_centered_minsize()
+	_open_file_dialog(["*.png ; PNG files"], "_on_texture_selected", [key], FileDialog.ACCESS_RESOURCES)
+
+
+func _open_file_dialog(filters, callback, binds, access):
+	_file_dialog.access = access
+	_file_dialog.clear_filters()
+	for filter in filters:
+		_file_dialog.add_filter(filter)
+	_file_dialog.connect("popup_hide", self, "call_deferred", ["_on_file_dialog_close"], CONNECT_ONESHOT)
+	_file_dialog.connect("file_selected", self, callback, binds)
+	_file_dialog.popup_centered_minsize()
 
 
 func _on_file_dialog_close():
 	# Disconnect listeners automatically,
 	# so we can re-use the same dialog with different listeners
-	var cons = _open_file_dialog.get_signal_connection_list("file_selected")
+	var cons = _file_dialog.get_signal_connection_list("file_selected")
 	for con in cons:
 		#print("DDD Disconnect ", con.method)
-		_open_file_dialog.disconnect("file_selected", con.target, con.method)
+		_file_dialog.disconnect("file_selected", con.target, con.method)
 
 
 func _on_texture_selected(path, key):
@@ -303,3 +334,15 @@ func _on_ask_clear_texture(key):
 	ed.setter.call_func(null)
 	_property_edited(null, key)
 
+
+func _on_ask_load_file(key, exts):
+	var filters = []
+	for ext in exts:
+		filters.append(str("*.", ext, " ; ", ext.to_upper(), " files"))
+	_open_file_dialog(filters, "_on_file_selected", [key], FileDialog.ACCES_FILESYSTEM)
+
+
+func _on_file_selected(path, key):
+	var ed = _editors[key]
+	ed.setter.call_func(path)
+	_property_edited(path, key)
