@@ -14,7 +14,7 @@ const CHANNEL_DETAIL = 4
 const CHANNEL_COUNT = 5
 
 const MAX_RESOLUTION = 4096 + 1
-var MIN_RESOLUTION = HTerrain.CHUNK_SIZE + 1
+const MIN_RESOLUTION = 64 + 1 #HTerrain.CHUNK_SIZE + 1
 const DEFAULT_RESOLUTION = 512
 # TODO Have vertical bounds chunk size to emphasise the fact it's independent
 # TODO Have undo chunk size to emphasise the fact it's independent
@@ -1078,7 +1078,7 @@ func _edit_import_maps(input):
 
 	if input.has(CHANNEL_HEIGHT):
 		var params = input[CHANNEL_HEIGHT]
-		if not _import_heightmap(params.path, params.min_height, params.max_height)
+		if not _import_heightmap(params.path, params.min_height, params.max_height):
 			return false
 
 	var maptypes = [CHANNEL_COLOR, CHANNEL_SPLAT]
@@ -1108,7 +1108,7 @@ func _import_heightmap(fpath, min_y, max_y):
 		# so we have to bring it back to float in the wanted range
 
 		var src_image = Image.new()
-		var err = src_image.load(path)
+		var err = src_image.load(fpath)
 		if err != OK:
 			return false
 
@@ -1149,7 +1149,7 @@ func _import_heightmap(fpath, min_y, max_y):
 		# We also need to bring it back to float in the wanted range.
 
 		var f = File.new()
-		var err = f.open(path, File.READ)
+		var err = f.open(fpath, File.READ)
 		if err != OK:
 			return false
 
@@ -1193,18 +1193,18 @@ func _import_heightmap(fpath, min_y, max_y):
 				f.get_16()
 		
 		im.unlock()
-
+	
 	else:
 		# File extension not recognized
 		return false
-
+	
 	print("Updating normals...")
 	_update_all_normals()
 	
 	_locked = false
 	
 	print("Notify region change...")
-	notify_region_change([0, 0], [im.get_width(), im.get_height()], CHANNEL_HEIGHT)
+	notify_region_change([0, 0], [get_resolution(), get_resolution()], CHANNEL_HEIGHT)
 
 	return true
 

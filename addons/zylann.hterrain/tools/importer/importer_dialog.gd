@@ -84,7 +84,7 @@ func _validate_form():
 	var splatmap_path = _inspector.get_value("splatmap")
 	var colormap_path = _inspector.get_value("colormap")
 
-	if colormap == "" and heightmap == "" and splatmap == "":
+	if colormap_path == "" and heightmap_path == "" and splatmap_path == "":
 		res.errors.append("No maps specified.")
 		return res
 
@@ -151,7 +151,6 @@ static func _load_image_size(path):
 			print("An error occurred loading image ", path, ", code ", err)
 			return { "error": err }
 
-		_preloaded_images[path] = im
 		return { "width": im.get_width(), "heights": im.get_height() }
 
 	elif ext == "raw":
