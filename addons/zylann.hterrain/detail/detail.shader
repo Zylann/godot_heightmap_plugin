@@ -19,6 +19,18 @@ vec3 unpack_normal(vec4 rgba) {
 	return rgba.xzy * 2.0 - vec3(1.0);
 }
 
+vec3 get_ambient_wind_displacement(vec2 uv, float time, float hash) {
+	vec4 u_ambient_wind = vec4(0.1, 1.0, 0.0, 0.0); // amplitude, frequency, 0, 0
+	float amp = u_ambient_wind.x * (1.0 - uv.y);
+	float t = u_ambient_wind.y * time;
+	// Main displacement
+	vec3 disp = amp * vec3(cos(t), 0, sin(t * 1.2));
+	// Fine displacement
+	float fine_disp_frequency = 2.0;
+	disp += 0.2 * amp * vec3(cos(t * (fine_disp_frequency + hash)), 0, sin(t * (fine_disp_frequency + hash) * 1.2));
+	return disp;
+}
+
 void vertex() {
 	vec4 obj_pos = WORLD_MATRIX * vec4(0, 0, 0, 1);
 	vec2 cell_coords = (u_terrain_inverse_transform * obj_pos).xz;
@@ -29,10 +41,11 @@ void vertex() {
 	float hash = get_hash(obj_pos.xz);
 	
 	if(density > hash) {
-		float height = texture(u_terrain_heightmap, map_uv).r;
-	
 		// Snap model to the terrain
+		float height = texture(u_terrain_heightmap, map_uv).r;
 		VERTEX.y += height;
+		
+		VERTEX += get_ambient_wind_displacement(UV, TIME, hash);
 		
 		vec3 wpos = (WORLD_MATRIX * vec4(VERTEX, 1)).xyz;
 		vec3 campos = CAMERA_MATRIX[3].xyz;
