@@ -9,6 +9,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 ------
 
 - Collisions are now working with Godot 3.0.4 and later
+- Fix errors when clicking while the terrain has no data
 
 0.6
 -----
