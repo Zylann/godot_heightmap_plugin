@@ -40,6 +40,7 @@ class Layer:
 
 var _view_distance = 100.0
 var _layers = []
+var _ambient_wind = 0.0
 
 var _terrain = null
 var _detail_shader = load(DETAIL_SHADER_PATH)
@@ -133,6 +134,12 @@ func get_texture(i):
 	assert(i < len(_layers))
 	var layer = _layers[i]
 	return layer.texture if layer != null else null
+
+
+func set_ambient_wind(amplitude):
+	for layer in _layers:
+		# TODO Have stiffness per layer?
+		layer.material.set_shader_param("u_ambient_wind", Vector2(amplitude, 1.0))
 
 
 func _reset_layers():
@@ -419,6 +426,8 @@ func _update_layer_material(layer, index):
 
 	var gt = _terrain.get_internal_transform()
 	var it = gt.affine_inverse()
+	
+	var aw = _terrain.ambient_wind
 
 	var mat = layer.material
 	mat.set_shader_param("u_terrain_heightmap", heightmap_texture)
@@ -427,6 +436,7 @@ func _update_layer_material(layer, index):
 	mat.set_shader_param("u_terrain_inverse_transform", it)
 	mat.set_shader_param("u_albedo_alpha", layer.texture)
 	mat.set_shader_param("u_view_distance", _view_distance)
+	mat.set_shader_param("u_ambient_wind", aw)
 
 
 func _add_debug_cube(aabb):

@@ -50,6 +50,7 @@ export var cliff_triplanar = false
 export var ground_texture_scale = 20.0
 export var collision_enabled = false setget set_collision_enabled
 export var async_loading = false
+export var ambient_wind = 0.0 setget set_ambient_wind
 
 # Prefer using this instead of scaling the node's transform.
 # Spatial.scale isn't used because it's not suitable for terrains,
@@ -889,6 +890,13 @@ func set_detail_texture(slot, tex):
 
 func get_detail_texture(slot):
 	return _details.get_texture(slot)
+
+
+func set_ambient_wind(amplitude):
+	if ambient_wind == amplitude:
+		return
+	ambient_wind = amplitude
+	_details.set_ambient_wind(amplitude)
 
 
 func _check_slot(slot):

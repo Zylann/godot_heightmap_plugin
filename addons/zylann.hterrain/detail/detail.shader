@@ -9,6 +9,8 @@ uniform mat4 u_terrain_inverse_transform;
 uniform sampler2D u_albedo_alpha;
 uniform float u_view_distance;
 
+uniform vec2 u_ambient_wind; // amplitude, frequency
+
 varying vec3 v_normal;
 
 float get_hash(vec2 c) {
@@ -20,7 +22,6 @@ vec3 unpack_normal(vec4 rgba) {
 }
 
 vec3 get_ambient_wind_displacement(vec2 uv, float time, float hash) {
-	vec4 u_ambient_wind = vec4(0.1, 1.0, 0.0, 0.0); // amplitude, frequency, 0, 0
 	float amp = u_ambient_wind.x * (1.0 - uv.y);
 	float t = u_ambient_wind.y * time;
 	// Main displacement
