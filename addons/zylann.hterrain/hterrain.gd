@@ -156,8 +156,11 @@ func get_custom_material():
 # TODO Remove this once 3.x contains heightmap shape fix, because it's broken in 3.0.2
 # You need this PR: https://github.com/godotengine/godot/pull/17806
 static func _check_heightmap_collider_support():
-	print("Heightmap shape not supported in this version of Godot")
-	return false
+	var v = Engine.get_version_info()
+	if v.major == 3 and v.minor == 0 and v.patch < 4:
+		print("Heightmap collision shape not supported in this version of Godot, please upgrade to 3.0.4 or later")
+		return false
+	return true
 
 
 func set_collision_enabled(enabled):
