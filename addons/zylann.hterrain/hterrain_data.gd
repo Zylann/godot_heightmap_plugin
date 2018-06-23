@@ -14,6 +14,7 @@ const CHANNEL_DETAIL = 4
 const CHANNEL_COUNT = 5
 
 const MAX_RESOLUTION = 4096 + 1
+const MIN_RESOLUTION = 64 + 1 #HTerrain.CHUNK_SIZE + 1
 const DEFAULT_RESOLUTION = 512
 # TODO Have vertical bounds chunk size to emphasise the fact it's independent
 # TODO Have undo chunk size to emphasise the fact it's independent
@@ -190,8 +191,7 @@ func set_resolution2(p_res, update_normals):
 	if p_res == get_resolution():
 		return
 
-	if p_res < HTerrain.CHUNK_SIZE:
-		p_res = HTerrain.CHUNK_SIZE
+	p_res = Util.clamp_int(p_res, MIN_RESOLUTION, MAX_RESOLUTION)
 
 	# Power of two is important for LOD.
 	# Also, grid data is off by one,
@@ -303,10 +303,10 @@ func get_heights_region(x0, y0, w, h):
 	var im = get_image(CHANNEL_HEIGHT)
 	assert(im != null)
 	
-	var min_x = Util.clampi(x0, 0, im.get_width())
-	var min_y = Util.clampi(y0, 0, im.get_height())
-	var max_x = Util.clampi(x0 + w, 0, im.get_width() + 1)
-	var max_y = Util.clampi(y0 + h, 0, im.get_height() + 1)
+	var min_x = Util.clamp_int(x0, 0, im.get_width())
+	var min_y = Util.clamp_int(y0, 0, im.get_height())
+	var max_x = Util.clamp_int(x0 + w, 0, im.get_width() + 1)
+	var max_y = Util.clamp_int(y0 + h, 0, im.get_height() + 1)
 	
 	var heights = PoolRealArray()
 	
@@ -957,36 +957,6 @@ func load_data_async():
 	_notify_progress_complete()
 
 
-# func _scan_channel_instance_counts():
-
-# 	# TODO It would be probably more efficient to have a mapping in .tres instead,
-# 	# because removing/adding maps requires to rename all files to decrement their indexes
-
-# 	var counts = []
-# 	counts.resize(CHANNEL_COUNT)
-# 	for i in range(len(counts)):
-# 		counts[i] = 0
-
-# 	var dirpath = get_data_dir()
-
-# 	var dir = Directory.new()
-# 	assert(dir.open(dirpath) == OK)
-# 	assert(dir.list_dir_begin(true) == OK)
-
-# 	while true:
-# 		var fname = dir.get_next()
-# 		if fname == "":
-# 			break
-# 		var name = fname.get_basename()
-# 		var map_key = _get_channel_from_name(name)
-# 		if map_key == null:
-# 			print("Unknown map file '", fname, "'")
-# 			continue
-# 		counts[map_key[0]] += 1
-	
-# 	return counts
-
-
 func get_data_dir():
 	# TODO Eventually have that one configurable?
 	return resource_path.get_basename() + DATA_FOLDER_SUFFIX
@@ -1095,115 +1065,170 @@ func _load_channel(channel, index):
 	return true
 
 
-func _edit_import_heightmap_8bit_async(src_image, min_y, max_y):
-	# TODO Support clamping
-	if _edit_check_valid_map_size(src_image.get_width(), src_image.get_height()):
+# Imports images into the terrain data by converting them to the internal format.
+# It is possible to omit some of them, in which case those already setup will be used.
+# This function is quite permissive, and will only fail if there is really no way to import.
+# It may involve cropping, so preliminary checks should be done to inform the user.
+#
+# TODO Plan is to make this function threaded, in case import takes too long.
+# So anything that could mess with the main thread should be avoided.
+# Eventually, it would be temporarily removed from the terrain node to work in isolation during import.
+func _edit_import_maps(input):
+	assert(typeof(input) == TYPE_DICTIONARY)
+
+	if input.has(CHANNEL_HEIGHT):
+		var params = input[CHANNEL_HEIGHT]
+		if not _import_heightmap(params.path, params.min_height, params.max_height):
+			return false
+
+	var maptypes = [CHANNEL_COLOR, CHANNEL_SPLAT]
+
+	for map_type in maptypes:
+		if input.has(map_type):
+			var params = input[map_type]
+			if not _import_map(map_type, params.path):
+				return false
+
+	return true
+
+
+static func get_adjusted_map_size(width, height):
+	var width_po2 = Util.next_power_of_two(width - 1) + 1
+	var height_po2 = Util.next_power_of_two(height - 1) + 1
+	var size_po2 = Util.min_int(width_po2, height_po2)
+	size_po2 = Util.clamp_int(size_po2, MIN_RESOLUTION, MAX_RESOLUTION)
+	return size_po2
+
+
+func _import_heightmap(fpath, min_y, max_y):
+	var ext = fpath.get_extension().to_lower()
+
+	if ext == "png":
+		# Godot can only load 8-bit PNG,
+		# so we have to bring it back to float in the wanted range
+
+		var src_image = Image.new()
+		var err = src_image.load(fpath)
+		if err != OK:
+			return false
+
+		var res = get_adjusted_map_size(src_image.get_width(), src_image.get_height())
+		if res != src_image.get_width():
+			src_image.crop(res, res)
+		
+		_locked = true
+		
+		print("Resizing terrain to ", res, "x", res, "...")
+		set_resolution2(src_image.get_width(), false)
+		
+		var im = get_image(CHANNEL_HEIGHT)
+		assert(im != null)
+		
+		var hrange = max_y - min_y
+		
+		var width = Util.min_int(im.get_width(), src_image.get_width())
+		var height = Util.min_int(im.get_height(), src_image.get_height())
+		
+		print("Converting to internal format...", 0.2)
+		
+		im.lock()
+		src_image.lock()
+		
+		# Convert to internal format (from RGBA8 to RH16) with range scaling
+		for y in range(0, width):
+			for x in range(0, height):
+				var gs = src_image.get_pixel(x, y).r
+				var h = min_y + hrange * gs
+				im.set_pixel(x, y, Color(h, 0, 0))
+		
+		src_image.unlock()
+		im.unlock()
+
+	elif ext == "raw":
+		# RAW files don't contain size, so we have to deduce it from 16-bit size.
+		# We also need to bring it back to float in the wanted range.
+
+		var f = File.new()
+		var err = f.open(fpath, File.READ)
+		if err != OK:
+			return false
+
+		var file_len = f.get_len()
+		var file_res = Util.integer_square_root(file_len / 2)
+		if file_res == -1:
+			# Can't deduce size
+			return false
+
+		var res = get_adjusted_map_size(file_res, file_res)
+
+		var width = res
+		var height = res
+
+		_locked = true
+
+		print("Resizing terrain to ", width, "x", height, "...")
+		set_resolution2(res, false)
+		
+		var im = get_image(CHANNEL_HEIGHT)
+		assert(im != null)
+		
+		var hrange = max_y - min_y
+		
+		print("Converting to internal format...")
+		
+		im.lock()
+		
+		var rw = Util.min_int(res, file_res)
+		var rh = Util.min_int(res, file_res)
+		
+		# Convert to internal format (from bytes to RH16)
+		var h = 0.0
+		for y in range(0, rh):
+			for x in range(0, rw):
+				var gs = float(f.get_16()) / 65536.0
+				h = min_y + hrange * float(gs)
+				im.set_pixel(x, y, Color(h, 0, 0))
+			# Skip next pixels if the file is bigger than the accepted resolution
+			for x in range(rw, file_res):
+				f.get_16()
+		
+		im.unlock()
+	
+	else:
+		# File extension not recognized
 		return false
-	var res = src_image.get_width()
 	
-	_locked = true
-	
-	_notify_progress("Resizing terrain to " + str(res) + "x" + str(res) + "...", 0.1)
-	yield(self, "_internal_process")
-	set_resolution2(src_image.get_width(), false)
-	
-	var im = get_image(CHANNEL_HEIGHT)
-	assert(im != null)
-	
-	var hrange = max_y - min_y
-	
-	var width = Util.min_int(im.get_width(), src_image.get_width())
-	var height = Util.min_int(im.get_height(), src_image.get_height())
-	
-	_notify_progress("Converting to internal format...", 0.2)
-	yield(self, "_internal_process")
-	
-	im.lock()
-	src_image.lock()
-	
-	# Convert to internal format (from RGBA8 to RH16) with range scaling
-	for y in range(0, width):
-		for x in range(0, height):
-			var gs = src_image.get_pixel(x, y).r
-			var h = min_y + hrange * gs
-			im.set_pixel(x, y, Color(h, 0, 0))
-	
-	src_image.unlock()
-	im.unlock()
-	
-	_notify_progress("Updating normals...", 0.3)
-	yield(self, "_internal_process")
+	print("Updating normals...")
 	_update_all_normals()
 	
 	_locked = false
 	
-	_notify_progress("Notify region change...", 0.9)
-	yield(self, "_internal_process")
-	notify_region_change([0, 0], [im.get_width(), im.get_height()], CHANNEL_HEIGHT)
-	
-	_notify_progress_complete()
+	print("Notify region change...")
+	notify_region_change([0, 0], [get_resolution(), get_resolution()], CHANNEL_HEIGHT)
+
+	return true
 
 
-func _edit_import_heightmap_16bit_file_async(f, min_y, max_y):	
-	var file_len = f.get_len()
-	var file_res = int(round(sqrt(file_len / 2)))
-	var res = Util.next_power_of_two(file_res - 1) + 1
-	print("file_len: ", file_len, ", file_res: ", file_res, ", res: ", res)
-	var width = res
-	var height = res
+func _import_map(map_type, path):
+	# Heightmap requires special treatment
+	assert(map_type != CHANNEL_HEIGHT)
 
-	_locked = true
-
-	_notify_progress("Resizing terrain to " + str(width) + "x" + str(height) + "...", 0.1)
-	yield(self, "_internal_process")
-	set_resolution2(res, false)
-	
-	var im = get_image(CHANNEL_HEIGHT)
-	assert(im != null)
-	
-	var hrange = max_y - min_y
-	
-	_notify_progress("Converting to internal format...", 0.2)
-	yield(self, "_internal_process")
-	
-	im.lock()
-	
-	var rw = Util.min_int(res, file_res)
-	var rh = Util.min_int(res, file_res)
-	
-	# Convert to internal format (from bytes to RH16)
-	var h = 0.0
-	for y in range(0, rh):
-		for x in range(0, rw):
-			var gs = float(f.get_16()) / 65536.0
-			h = min_y + hrange * float(gs)
-			im.set_pixel(x, y, Color(h, 0, 0))
-		# Skip next pixels if the file is bigger than the accepted resolution
-		for x in range(rw, file_res):
-			f.get_16()
-	
-	im.unlock()
-
-	_notify_progress("Updating normals...", 0.3)
-	yield(self, "_internal_process")
-	_update_all_normals()
-	
-	_locked = false
-	_notify_progress("Notifying region change...", 0.9)
-	yield(self, "_internal_process")
-	
-	notify_region_change([0, 0], [im.get_width(), im.get_height()], CHANNEL_HEIGHT)
-	
-	_notify_progress_complete()
-
-
-static func _edit_check_valid_map_size(width, height):
-	if width != height:
-		print("Map is not square.")
+	var im = Image.new()
+	var err = im.load(path)
+	if err != OK:
 		return false
-	if Util.next_power_of_two(width) + 1 != width:
-		print("Map is not power of two + 1")
-		return false
+
+	var res = get_resolution()
+	if im.get_width() != res or im.get_height() != res:
+		im.crop(res, res)
+
+	if im.get_format() != _get_channel_format(map_type):
+		im.convert(_get_channel_format(map_type))
+
+	var map = _maps[map_type][0]
+	map.image = im
+
+	notify_region_change([0, 0], [im.get_width(), im.get_height()], map_type)
 	return true
 
 
@@ -1266,22 +1291,6 @@ func _get_map_filename(c, index):
 	if id > 0:
 		name += str(id + 1)
 	return name
-
-
-# static func _get_channel_from_name(name):
-# 	match name:
-# 		"color":
-# 			return [CHANNEL_COLOR, 0]
-# 		"splat":
-# 			return [CHANNEL_SPLAT, 0]
-# 		"normal":
-# 			return [CHANNEL_NORMAL, 0]
-# 		"height":
-# 			return [CHANNEL_HEIGHT, 0]
-# 		"detail":
-# 			return [CHANNEL_DETAIL, 0]
-# 	# TODO Use a regex?
-# 	return null
 
 
 static func _get_channel_default_fill(c):
