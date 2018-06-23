@@ -333,9 +333,7 @@ func _menu_item_selected(id):
 		MENU_IMPORT_IMAGE:
 			_import_dialog.popup_centered_minsize(Vector2(800, 600))
 		MENU_SAVE:
-			var data = _node.get_data()
-			if data != null:
-				data.save_data_async()
+			_terrain_save()
 		MENU_LOAD:
 			var data = _node.get_data()
 			if data != null:
@@ -524,4 +522,16 @@ func _terrain_progress_notified(info):
 		_progress_window.show_progress(info.message, info.progress)
 		# TODO Have builtin modal progress bar
 
+# Save when using save hotkey in editor
+func queue_save_layout():
+	_terrain_save()
 
+# Save when closing project and prompted to save
+func save_external_data():
+	_terrain_save()
+
+func _terrain_save():
+	if _node != null:
+		var data = _node.get_data()
+		if data != null:
+			data.save_data_async()
