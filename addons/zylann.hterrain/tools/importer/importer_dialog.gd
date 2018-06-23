@@ -6,6 +6,8 @@ const Util = preload("../../util/util.gd")
 const HTerrainData = preload("../../hterrain_data.gd")
 
 onready var _inspector = get_node("VBoxContainer/Inspector")
+onready var _errors_label = get_node("VBoxContainer/ColorRect/ScrollContainer/VBoxContainer/Errors")
+onready var _warnings_label = get_node("VBoxContainer/ColorRect/ScrollContainer/VBoxContainer/Warnings")
 
 var _terrain = null
 
@@ -18,10 +20,54 @@ func _ready():
 		"splatmap": { "type": TYPE_STRING, "usage": "file", "exts": ["png"] },
 		"colormap": { "type": TYPE_STRING, "usage": "file", "exts": ["png"] }
 	})
+	
+	# Testing
+#	_errors_label.text = "- Hello World!"
+#	_warnings_label.text = "- Yolo Jesus!"
 
 
 func set_terrain(terrain):
 	_terrain = terrain
+
+
+func _notification(what):
+	if what == NOTIFICATION_VISIBILITY_CHANGED:
+		if visible and is_inside_tree():
+			_clear_feedback()
+
+
+static func _format_feedbacks(feed):
+	var a = []
+	for s in feed:
+		a.append("- " + s)
+	return PoolStringArray(a).join("\n")
+
+
+func _clear_feedback():
+	_errors_label.text = ""
+	_warnings_label.text = ""
+
+
+func _show_feedback(res):
+
+	for e in res.errors:
+		print("ERROR: ", e)
+
+	for w in res.warnings:
+		print("WARNING: ", w)
+	
+	_clear_feedback()
+	
+	if len(res.errors) > 0:
+		_errors_label.text = _format_feedbacks(res.errors)
+
+	if len(res.warnings) > 0:
+		_warnings_label.text = _format_feedbacks(res.warnings)
+
+
+func _on_CheckButton_pressed():
+	var res = _validate_form()
+	_show_feedback(res)
 
 
 func _on_ImportButton_pressed():
@@ -29,14 +75,7 @@ func _on_ImportButton_pressed():
 
 	# Verify input to inform the user of potential issues
 	var res = _validate_form()
-
-	# TODO Print warnings and errors on the dialog
-
-	for e in res.errors:
-		print("ERROR: ", e)
-
-	for w in res.warnings:
-		print("WARNING: ", w)
+	_show_feedback(res)
 
 	if len(res.errors) != 0:
 		print("Cannot import due to errors, aborting")
@@ -155,7 +194,7 @@ static func _load_image_size(path):
 			print("An error occurred loading image ", path, ", code ", err)
 			return { "error": err }
 
-		return { "width": im.get_width(), "heights": im.get_height() }
+		return { "width": im.get_width(), "height": im.get_height() }
 
 	elif ext == "raw":
 
@@ -185,4 +224,3 @@ static func _error_to_string(err):
 		return err
 	# TODO Humm...
 	return str("code ", err)
-
