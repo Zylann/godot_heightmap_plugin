@@ -16,7 +16,7 @@ Creating a terrain from scratch in this version of Godot is really awkward, due 
 
 3) Create a HTerrain node
 
-4) Select its data property, and load the .tres resource you saved earlier. Doing that should make a terrain appear. If you can't see it, make sure you have a light or an environment in your scene.
+4) Select its data property, and load the .tres resource you saved earlier. Doing that should make a terrain appear. If you can't see it, make sure you have a light or an environment with ambient light enabled in your scene.
 
 5) Change the resolution if needed, then click the Heightmap menu --> Save
 
