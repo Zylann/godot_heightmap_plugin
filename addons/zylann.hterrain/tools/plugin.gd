@@ -11,14 +11,16 @@ const LoadTextureDialog = preload("load_texture_dialog.gd")
 const EditPanel = preload("panel.tscn")
 const ProgressWindow = preload("progress_window.tscn")
 const GeneratorDialog = preload("generator/generator_dialog.tscn")
+const ImportDialog = preload("importer/importer_dialog.tscn")
 
-const MENU_IMPORT_IMAGE = 0
+const MENU_IMPORT_MAPS = 0
 # TODO These two should not exist, they are workarounds to test saving!
 const MENU_SAVE = 1
 const MENU_LOAD = 2
 const MENU_GENERATE = 3
 
 
+# TODO Rename _terrain
 var _node = null
 
 var _panel = null
@@ -28,13 +30,8 @@ var _brush = null
 var _brush_decal = null
 var _mouse_pressed = false
 
-var _import_dialog = null
-var _import_confirmation_dialog = null
-var _accept_dialog = null
-var _import_file_path = ""
-var _import_preloaded_image = null
-
 var _generator_dialog = null
+var _import_dialog = null
 
 var _progress_window = null
 
@@ -78,8 +75,8 @@ func _enter_tree():
 	_toolbar.hide()
 	
 	var menu = MenuButton.new()
-	menu.set_text("HeightMap")
-	menu.get_popup().add_item("Import image...", MENU_IMPORT_IMAGE)
+	menu.set_text("Terrain")
+	menu.get_popup().add_item("Import maps...", MENU_IMPORT_MAPS)
 	menu.get_popup().add_separator()
 	menu.get_popup().add_item("Save", MENU_SAVE)
 	menu.get_popup().add_item("Load", MENU_LOAD)
@@ -140,30 +137,13 @@ func _enter_tree():
 		
 		_toolbar_brush_buttons[mode] = button
 	
-	_import_dialog = FileDialog.new()
-	_import_dialog.connect("file_selected", self, "_import_file_selected")
-	_import_dialog.mode = FileDialog.MODE_OPEN_FILE
-	_import_dialog.add_filter("*.raw ; RAW files")
-	_import_dialog.add_filter("*.png ; PNG files")
-	_import_dialog.resizable = true
-	_import_dialog.access = FileDialog.ACCESS_FILESYSTEM
-	base_control.add_child(_import_dialog)
-	
-	_import_confirmation_dialog = ConfirmationDialog.new()
-	_import_confirmation_dialog.get_ok().text = "Import anyways"
-	_import_confirmation_dialog.connect("confirmed", self, "_import_file_confirmed")
-	# TODO I need a "cancel" signal!
-	# Defer the call so it gets executed after the choice
-	_import_confirmation_dialog.connect("popup_hide", self, "call_deferred", ["_import_file_cancelled"])
-	base_control.add_child(_import_confirmation_dialog)
-	
-	_accept_dialog = AcceptDialog.new()
-	base_control.add_child(_accept_dialog)
-	
 	_generator_dialog = GeneratorDialog.instance()
 	_generator_dialog.connect("progress_notified", self, "_terrain_progress_notified")
 	base_control.add_child(_generator_dialog)
-	
+
+	_import_dialog = ImportDialog.instance()
+	base_control.add_child(_import_dialog)
+
 	_progress_window = ProgressWindow.instance()
 	base_control.add_child(_progress_window)
 
@@ -195,6 +175,7 @@ func edit(object):
 	
 	_panel.set_terrain(_node)
 	_generator_dialog.set_terrain(_node)
+	_import_dialog.set_terrain(_node)
 	_brush_decal.set_terrain(_node)
 
 
@@ -205,7 +186,7 @@ func make_visible(visible):
 
 
 func forward_spatial_gui_input(p_camera, p_event):
-	if _node == null:
+	if _node == null || _node.get_data() == null:
 		return false
 	
 	_node._edit_set_manual_viewer_pos(p_camera.global_transform.origin)
@@ -330,8 +311,8 @@ func _terrain_exited_scene():
 func _menu_item_selected(id):
 	print("Menu item selected ", id)
 	match id:
-		MENU_IMPORT_IMAGE:
-			_import_dialog.popup_centered_minsize(Vector2(800, 600))
+		MENU_IMPORT_MAPS:
+			_import_dialog.popup_centered_minsize()
 		MENU_SAVE:
 			var data = _node.get_data()
 			if data != null:
@@ -371,141 +352,6 @@ static func get_size_from_raw_length(flen):
 	var side_len = round(sqrt(float(flen/2)))
 	return int(side_len)
 
-
-func _import_file_selected(path):
-	print("Import file selected ", path)
-	
-	assert(_node != null)
-	var data = _node.get_data()
-	assert(data != null)
-	
-	var file_ext = path.get_extension()
-	
-	if file_ext == "raw":
-		_import_raw_file_selected(path)
-	elif file_ext == "png":
-		_import_png_file_selected(path)
-
-
-func _import_raw_file_selected(path):
-	
-	print("Importing RAW file")
-	
-	var f = File.new()
-	var err = f.open(path, File.READ)
-	if err != OK:
-		print("Error opening file ", path)
-		return
-	
-	# Assume the raw data is square, so its size is function of file length
-	var flen = f.get_len()
-	f.close()
-	var size = get_size_from_raw_length(flen)
-	
-	print("Deduced RAW heightmap resolution: {0}*{1}, for a length of {2}".format([size, size, flen]))
-
-	if flen / 2 != size * size:
-		_accept_dialog.window_title = "Import RAW heightmap error"
-		_accept_dialog.dialog_text = "The square resolution deducted from file size is not square."
-		_accept_dialog.popup_centered_minsize()
-		return
-	
-	_import_file_path = path
-	
-	if Util.next_power_of_two(size - 1) != size - 1:
-		_import_confirmation_dialog.window_title = "Import RAW heightmap"
-		_import_confirmation_dialog.dialog_text = \
-			"The square resolution deduced from file size is not power of two + 1.\n" + \
-			"The heightmap will be cropped.\n Continue?"
-		_import_confirmation_dialog.popup_centered_minsize()
-	else:
-		# Go!
-		_import_raw_file(path)
-
-
-func _import_png_file_selected(path):
-	var im = Image.new()
-	var err = im.load(path)
-	if err != OK:
-		print("An error occurred loading image ", path, ", code ", err)
-		return
-	
-	if im.get_width() != im.get_height():
-		_accept_dialog.window_title = "Import PNG heightmap error"
-		_accept_dialog.dialog_text = "The image must be square."
-		_accept_dialog.popup_centered_minsize()
-		return
-	
-	_import_file_path = path
-	_import_preloaded_image = im
-
-	var size = im.get_width()
-	
-	if Util.next_power_of_two(size - 1) != size - 1:
-		_import_confirmation_dialog.window_title = "Import PNG heightmap"
-		_import_confirmation_dialog.dialog_text = \
-			"The square resolution deduced from file size is not power of two + 1.\n" + \
-			"The heightmap will be cropped.\n Continue?"
-		_import_confirmation_dialog.popup_centered_minsize()
-	else:
-		# Go!
-		_import_png_file(path)
-
-
-func _import_file_cancelled():
-	# Cleanup image from memory, these can be really big
-	_import_preloaded_image = null
-
-
-func _import_file_confirmed():
-	var ext = _import_file_path.get_extension()
-	
-	if ext == "raw":
-		_import_raw_file(_import_file_path)
-	elif ext == "png":
-		_import_png_file(_import_file_path)
-
-
-func _import_raw_file(path):
-	print("Import raw file ", path)
-	
-	assert(_node != null)
-	var data = _node.get_data()
-	assert(data != null)
-	
-	var f = File.new()
-	var err = f.open(path, File.READ)
-	if err != OK:
-		print("Couldn't open file ", path, ", error ", err)
-		return
-
-	# TODO Have these configurable
-	var min_y = 0
-	var max_y = 500
-	
-	data._edit_import_heightmap_16bit_file_async(f, min_y, max_y)
-	
-	f.close()
-
-
-func _import_png_file(path):
-	print("Import png file ", path)
-	
-	var src_image = _import_preloaded_image
-	_import_preloaded_image = null
-	
-	assert(src_image != null)
-		
-	assert(_node != null)
-	var data = _node.get_data()
-	assert(data != null)
-
-	# TODO Have these configurable
-	var min_y = 0
-	var max_y = 100
-
-	data._edit_import_heightmap_8bit_async(src_image, min_y, max_y)
-	
 
 func _terrain_progress_notified(info):
 	#print("Plugin received: ", info.message, ", ", int(info.progress * 100.0), "%")

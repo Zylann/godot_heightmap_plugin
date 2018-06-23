@@ -38,6 +38,7 @@ func set_world(world):
 
 
 func create_from_terrain_data(terrain_data):
+	assert(terrain_data != null)
 	print("Creating terrain collider shape")
 	
 	_terrain_data = terrain_data
@@ -62,6 +63,10 @@ func create_from_terrain_data(terrain_data):
 
 
 func _update_transform(aabb=null):
+	if _terrain_data == null:
+		print("HTerrainCollider: terrain data not set yet")
+		return
+	
 	if aabb == null:
 		aabb = _terrain_data.get_aabb()
 
