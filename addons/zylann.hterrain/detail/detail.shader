@@ -22,8 +22,9 @@ vec3 unpack_normal(vec4 rgba) {
 }
 
 vec3 get_ambient_wind_displacement(vec2 uv, float time, float hash) {
+	// TODO This is an initial basic implementation. It may be improved in the future, especially for strong wind.
 	float amp = u_ambient_wind.x * (1.0 - uv.y);
-	float t = u_ambient_wind.y * time;
+	float t = (2.0 * u_ambient_wind.x + 1.0) * u_ambient_wind.y * time;
 	// Main displacement
 	vec3 disp = amp * vec3(cos(t), 0, sin(t * 1.2));
 	// Fine displacement
