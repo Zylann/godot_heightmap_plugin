@@ -436,7 +436,7 @@ func _update_layer_material(layer, index):
 	mat.set_shader_param("u_terrain_inverse_transform", it)
 	mat.set_shader_param("u_albedo_alpha", layer.texture)
 	mat.set_shader_param("u_view_distance", _view_distance)
-	mat.set_shader_param("u_ambient_wind", aw)
+	mat.set_shader_param("u_ambient_wind", Vector2(aw, 1.0))
 
 
 func _add_debug_cube(aabb):
