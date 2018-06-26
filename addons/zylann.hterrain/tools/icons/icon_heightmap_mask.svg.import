@@ -7,10 +7,7 @@ path="res://.import/icon_heightmap_mask.svg-3fad663c59a229c1c6c17c4e8d5bad09.ste
 [deps]
 
 source_file="res://addons/zylann.hterrain/tools/icons/icon_heightmap_mask.svg"
-source_md5="50e12f014ea17cfa01e739aad5336229"
-
 dest_files=[ "res://.import/icon_heightmap_mask.svg-3fad663c59a229c1c6c17c4e8d5bad09.stex" ]
-dest_md5="7e5259f72a8ed3a18fe37a86dccbaf61"
 
 [params]
 
