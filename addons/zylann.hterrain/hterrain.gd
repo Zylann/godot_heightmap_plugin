@@ -12,8 +12,6 @@ const DetailRenderer = preload("detail/detail_renderer.gd")
 
 const DefaultShader = preload("shaders/simple4.shader")
 
-const CHUNK_SIZE = 16
-
 const SHADER_PARAM_HEIGHT_TEXTURE = "u_terrain_heightmap"
 const SHADER_PARAM_NORMAL_TEXTURE = "u_terrain_normalmap"
 const SHADER_PARAM_COLOR_TEXTURE = "u_terrain_colormap"
@@ -69,6 +67,7 @@ var _pending_chunk_updates = []
 # [lod][pos]
 # This container owns chunks
 var _chunks = []
+var _chunk_size = 16
 
 var _collider = null
 
@@ -95,6 +94,13 @@ func _get_property_list():
 			"usage": PROPERTY_USAGE_STORAGE | PROPERTY_USAGE_EDITOR,
 			"hint": PROPERTY_HINT_RESOURCE_TYPE,
 			"hint_string": "HTerrainData"
+		},
+		{
+			"name": "chunk_size",
+			"type": TYPE_INT,
+			"usage": PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_STORAGE,
+			#"hint": PROPERTY_HINT_ENUM,
+			"hint_string": "16, 32"
 		}
 	]
 	
@@ -132,6 +138,9 @@ func _get(key):
 	if key == "_detail_objects_data":
 		return _details.serialize()
 
+	elif key == "chunk_size":
+		return _chunk_size
+
 
 func _set(key, value):
 	# Can't use setget when the exported type is custom,
@@ -147,6 +156,9 @@ func _set(key, value):
 
 	if key == "_detail_objects_data":
 		return _details.deserialize(value)
+
+	elif key == "chunk_size":
+		set_chunk_size(value)
 
 
 func get_custom_material():
@@ -184,6 +196,25 @@ func _for_all_chunks(action):
 				var chunk = row[x]
 				if chunk != null:
 					action.exec(chunk)
+
+
+func get_chunk_size():
+	return _chunk_size
+
+
+func set_chunk_size(cs):
+	assert(typeof(cs) == TYPE_INT)
+	print("Setting chunk size to ", cs)
+	cs = Util.next_power_of_two(cs)
+	if cs < 16:
+		cs = 16
+	if cs > 32:
+		cs = 32
+	print("Chunk size snapped to ", cs)
+	if cs == _chunk_size:
+		return
+	_chunk_size = cs
+	_reset_ground_chunks()
 
 
 func set_map_scale(p_map_scale):
@@ -371,16 +402,22 @@ func _on_data_progress_notified(info):
 
 
 func _on_data_resolution_changed():
+	_reset_ground_chunks()
+
+
+func _reset_ground_chunks():
+	if _data == null:
+		return
 
 	_clear_all_chunks();
 
 	_pending_chunk_updates.clear();
 
-	_lodder.create_from_sizes(CHUNK_SIZE, _data.get_resolution())
+	_lodder.create_from_sizes(_chunk_size, _data.get_resolution())
 
 	_chunks.resize(_lodder.get_lod_count())
 
-	var cres = _data.get_resolution() / CHUNK_SIZE
+	var cres = _data.get_resolution() / _chunk_size
 	var csize_x = cres
 	var csize_y = cres
 	
@@ -391,7 +428,7 @@ func _on_data_resolution_changed():
 		csize_x /= 2
 		csize_y /= 2
 
-	_mesher.configure(CHUNK_SIZE, CHUNK_SIZE, _lodder.get_lod_count())
+	_mesher.configure(_chunk_size, _chunk_size, _lodder.get_lod_count())
 	_update_material()
 
 
@@ -674,8 +711,8 @@ func _update_chunk(chunk, lod):
 
 	# Check for my own seams
 	var seams = 0;
-	var cpos_x = chunk.cell_origin_x / (CHUNK_SIZE << lod)
-	var cpos_y = chunk.cell_origin_y / (CHUNK_SIZE << lod)
+	var cpos_x = chunk.cell_origin_x / (_chunk_size << lod)
+	var cpos_y = chunk.cell_origin_y / (_chunk_size << lod)
 	var cpos_lower_x = cpos_x / 2
 	var cpos_lower_y = cpos_y / 2
 
@@ -693,7 +730,7 @@ func _update_chunk(chunk, lod):
 
 	# Because chunks are rendered using vertex shader displacement,
 	# the renderer cannot rely on the mesh's AABB.
-	var s = CHUNK_SIZE << lod;
+	var s = _chunk_size << lod;
 	var aabb = _data.get_region_aabb(chunk.cell_origin_x, chunk.cell_origin_y, s, s)
 	aabb.position.x = 0
 	aabb.position.z = 0
@@ -735,10 +772,10 @@ func _add_chunk_update(chunk, pos_x, pos_y, lod):
 
 func set_area_dirty(origin_in_cells_x, origin_in_cells_y, size_in_cells_x, size_in_cells_y):
 
-	var cpos0_x = origin_in_cells_x / CHUNK_SIZE
-	var cpos0_y = origin_in_cells_y / CHUNK_SIZE
-	var csize_x = (size_in_cells_x - 1) / CHUNK_SIZE + 1
-	var csize_y = (size_in_cells_y - 1) / CHUNK_SIZE + 1
+	var cpos0_x = origin_in_cells_x / _chunk_size
+	var cpos0_y = origin_in_cells_y / _chunk_size
+	var csize_x = (size_in_cells_x - 1) / _chunk_size + 1
+	var csize_y = (size_in_cells_y - 1) / _chunk_size + 1
 
 	# For each lod
 	for lod in range(_lodder.get_lod_count()):
@@ -779,8 +816,8 @@ func _cb_make_chunk(cpos_x, cpos_y, lod):
 		# This is the first time this chunk is required at this lod, generate it
 
 		var lod_factor = _lodder.get_lod_size(lod)
-		var origin_in_cells_x = cpos_x * CHUNK_SIZE * lod_factor
-		var origin_in_cells_y = cpos_y * CHUNK_SIZE * lod_factor
+		var origin_in_cells_x = cpos_x * _chunk_size * lod_factor
+		var origin_in_cells_y = cpos_y * _chunk_size * lod_factor
 		
 		chunk = HTerrainChunk.new(self, origin_in_cells_x, origin_in_cells_y, _material)
 		chunk.parent_transform_changed(get_internal_transform())

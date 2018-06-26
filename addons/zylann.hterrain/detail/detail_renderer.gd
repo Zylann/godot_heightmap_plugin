@@ -10,6 +10,7 @@ const DirectMultiMeshInstance = preload("../util/direct_multimesh_instance.gd")
 const DirectMeshInstance = preload("../util/direct_mesh_instance.gd")
 const Util = preload("../util/util.gd")
 
+# TODO Rename DETAIL_CHUNK_SIZE to avoid confusion?
 const CHUNK_SIZE = 32
 const DETAIL_SHADER_PATH = "res://addons/zylann.hterrain/detail/detail.shader"
 const DEBUG = false

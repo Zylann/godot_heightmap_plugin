@@ -280,13 +280,15 @@ func paint_completed():
 		"chunk_positions": ur_data.chunk_positions,
 		"data": ur_data.redo,
 		"channel": ur_data.channel,
-		"index": ur_data.index
+		"index": ur_data.index,
+		"chunk_size": ur_data.chunk_size
 	}
 	var redo_data = {
 		"chunk_positions": ur_data.chunk_positions,
 		"data": ur_data.undo,
 		"channel": ur_data.channel,
-		"index": ur_data.index
+		"index": ur_data.index,
+		"chunk_size": ur_data.chunk_size
 	}
 
 	ur.create_action(action_name)

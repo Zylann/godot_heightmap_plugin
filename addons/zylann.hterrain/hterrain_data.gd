@@ -14,8 +14,9 @@ const CHANNEL_DETAIL = 4
 const CHANNEL_COUNT = 5
 
 const MAX_RESOLUTION = 4096 + 1
-const MIN_RESOLUTION = 64 + 1 #HTerrain.CHUNK_SIZE + 1
+const MIN_RESOLUTION = 64 + 1 # must be higher than largest minimum chunk size
 const DEFAULT_RESOLUTION = 512
+const VERTICAL_BOUNDS_CHUNK_SIZE = 16
 # TODO Have vertical bounds chunk size to emphasise the fact it's independent
 # TODO Have undo chunk size to emphasise the fact it's independent
 
@@ -496,6 +497,7 @@ func _edit_apply_undo(undo_data):
 	var chunk_datas = undo_data["data"]
 	var channel = undo_data["channel"]
 	var index = undo_data["index"]
+	var chunk_size = undo_data["chunk_size"]
 
 	# Validate input
 
@@ -520,10 +522,10 @@ func _edit_apply_undo(undo_data):
 		var cpos_x = chunk_positions[2 * i]
 		var cpos_y = chunk_positions[2 * i + 1]
 
-		var min_x = cpos_x * HTerrain.CHUNK_SIZE
-		var min_y = cpos_y * HTerrain.CHUNK_SIZE
-		var max_x = min_x + 1 * HTerrain.CHUNK_SIZE
-		var max_y = min_y + 1 * HTerrain.CHUNK_SIZE
+		var min_x = cpos_x * chunk_size
+		var min_y = cpos_y * chunk_size
+		var max_x = min_x + 1 * chunk_size
+		var max_y = min_y + 1 * chunk_size
 
 		var data = chunk_datas[i]
 		assert(data != null)
@@ -732,11 +734,11 @@ func get_region_aabb(origin_in_cells_x, origin_in_cells_y, size_in_cells_x, size
 	# which is a lot faster than directly fetching heights from the map.
 	# It's not 100% accurate, but enough for culling use case if chunk size is decently chosen.
 
-	var cmin_x = origin_in_cells_x / HTerrain.CHUNK_SIZE
-	var cmin_y = origin_in_cells_y / HTerrain.CHUNK_SIZE
+	var cmin_x = origin_in_cells_x / VERTICAL_BOUNDS_CHUNK_SIZE
+	var cmin_y = origin_in_cells_y / VERTICAL_BOUNDS_CHUNK_SIZE
 	
-	var cmax_x = (origin_in_cells_x + size_in_cells_x - 1) / HTerrain.CHUNK_SIZE + 1
-	var cmax_y = (origin_in_cells_y + size_in_cells_y - 1) / HTerrain.CHUNK_SIZE + 1
+	var cmax_x = (origin_in_cells_x + size_in_cells_x - 1) / VERTICAL_BOUNDS_CHUNK_SIZE + 1
+	var cmax_y = (origin_in_cells_y + size_in_cells_y - 1) / VERTICAL_BOUNDS_CHUNK_SIZE + 1
 
 	if cmin_x < 0:
 		cmin_x = 0
@@ -769,8 +771,8 @@ func get_region_aabb(origin_in_cells_x, origin_in_cells_y, size_in_cells_x, size
 
 
 func _update_all_vertical_bounds():
-	var csize_x = _resolution / HTerrain.CHUNK_SIZE
-	var csize_y = _resolution / HTerrain.CHUNK_SIZE
+	var csize_x = _resolution / VERTICAL_BOUNDS_CHUNK_SIZE
+	var csize_y = _resolution / VERTICAL_BOUNDS_CHUNK_SIZE
 	print("Updating all vertical bounds... (", csize_x , "x", csize_y, " chunks)")
 	# TODO Could set `preserve_data` to true, but would require callback to construct new cells
 	Grid.resize_grid(_chunked_vertical_bounds, csize_x, csize_y)
@@ -781,11 +783,11 @@ func _update_all_vertical_bounds():
 
 func _update_vertical_bounds(origin_in_cells_x, origin_in_cells_y, size_in_cells_x, size_in_cells_y):
 
-	var cmin_x = origin_in_cells_x / HTerrain.CHUNK_SIZE
-	var cmin_y = origin_in_cells_y / HTerrain.CHUNK_SIZE
+	var cmin_x = origin_in_cells_x / VERTICAL_BOUNDS_CHUNK_SIZE
+	var cmin_y = origin_in_cells_y / VERTICAL_BOUNDS_CHUNK_SIZE
 	
-	var cmax_x = (origin_in_cells_x + size_in_cells_x - 1) / HTerrain.CHUNK_SIZE + 1
-	var cmax_y = (origin_in_cells_y + size_in_cells_y - 1) / HTerrain.CHUNK_SIZE + 1
+	var cmax_x = (origin_in_cells_x + size_in_cells_x - 1) / VERTICAL_BOUNDS_CHUNK_SIZE + 1
+	var cmax_y = (origin_in_cells_y + size_in_cells_y - 1) / VERTICAL_BOUNDS_CHUNK_SIZE + 1
 
 	var cmin = [cmin_x, cmin_y]
 	var cmax = [cmax_x, cmax_y]
@@ -795,12 +797,12 @@ func _update_vertical_bounds(origin_in_cells_x, origin_in_cells_y, size_in_cells
 	cmax_x = cmax[0]
 	cmax_y = cmax[1]
 
-	# Note: chunks in _chunked_vertical_bounds share their edge cells and have an actual size of CHUNK_SIZE+1.
-	var chunk_size_x = HTerrain.CHUNK_SIZE + 1
-	var chunk_size_y = HTerrain.CHUNK_SIZE + 1
+	# Note: chunks in _chunked_vertical_bounds share their edge cells and have an actual size of chunk size + 1.
+	var chunk_size_x = VERTICAL_BOUNDS_CHUNK_SIZE + 1
+	var chunk_size_y = VERTICAL_BOUNDS_CHUNK_SIZE + 1
 
 	for y in range(cmin_y, cmax_y):
-		var pmin_y = y * HTerrain.CHUNK_SIZE
+		var pmin_y = y * VERTICAL_BOUNDS_CHUNK_SIZE
 		
 		for x in range(cmin_x, cmax_y):
 			
@@ -809,7 +811,7 @@ func _update_vertical_bounds(origin_in_cells_x, origin_in_cells_y, size_in_cells
 				b = VerticalBounds.new()
 				_chunked_vertical_bounds[y][x] = b
 
-			var pmin_x = x * HTerrain.CHUNK_SIZE
+			var pmin_x = x * VERTICAL_BOUNDS_CHUNK_SIZE
 			_compute_vertical_bounds_at(pmin_x, pmin_y, chunk_size_x, chunk_size_y, b);
 
 
