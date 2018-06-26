@@ -608,7 +608,7 @@ func _process(delta):
 		if _data.get_map_count(HTerrainData.CHANNEL_DETAIL) > 0:
 			# Note: the detail system is not affected by map scale,
 			# so we have to send viewer position in world space
-			_details.process(viewer_pos)
+			_details.process(delta, viewer_pos)
 	
 	_updated_chunks = 0
 	
@@ -899,7 +899,7 @@ func set_ambient_wind(amplitude):
 	if ambient_wind == amplitude:
 		return
 	ambient_wind = amplitude
-	_details.set_ambient_wind(amplitude)
+	_details.update_ambient_wind()
 
 
 func _check_slot(slot):
