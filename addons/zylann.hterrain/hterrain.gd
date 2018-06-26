@@ -48,6 +48,7 @@ export var cliff_triplanar = false
 export var ground_texture_scale = 20.0
 export var collision_enabled = false setget set_collision_enabled
 export var async_loading = false
+export(float, 0.0, 1.0) var ambient_wind = 0.0 setget set_ambient_wind
 
 # Prefer using this instead of scaling the node's transform.
 # Spatial.scale isn't used because it's not suitable for terrains,
@@ -644,7 +645,7 @@ func _process(delta):
 		if _data.get_map_count(HTerrainData.CHANNEL_DETAIL) > 0:
 			# Note: the detail system is not affected by map scale,
 			# so we have to send viewer position in world space
-			_details.process(viewer_pos)
+			_details.process(delta, viewer_pos)
 	
 	_updated_chunks = 0
 	
@@ -929,6 +930,13 @@ func set_detail_texture(slot, tex):
 
 func get_detail_texture(slot):
 	return _details.get_texture(slot)
+
+
+func set_ambient_wind(amplitude):
+	if ambient_wind == amplitude:
+		return
+	ambient_wind = amplitude
+	_details.update_ambient_wind()
 
 
 func _check_slot(slot):
