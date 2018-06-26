@@ -55,6 +55,16 @@ static func get_icon(name):
 	return load("res://addons/zylann.hterrain/tools/icons/icon_" + name + ".svg")
 
 
+func enable_plugin():
+	add_custom_loader("res://addons/zylann.hterrain/hterrain_resource_loader.gd")
+	add_custom_saver("res://addons/zylann.hterrain/hterrain_resource_saver.gd")
+
+
+func disable_plugin():
+	remove_custom_loader("res://addons/zylann.hterrain/hterrain_resource_loader.gd")
+	remove_custom_saver("res://addons/zylann.hterrain/hterrain_resource_saver.gd")
+
+
 func _enter_tree():
 	print("HTerrain plugin Enter tree")
 	

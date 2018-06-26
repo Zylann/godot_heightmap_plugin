@@ -1,22 +1,20 @@
-extends ResourceFormatSaver
-
-func load(p_path, p_original_path = "", r_error = NULL):
-	return {
-		"resource": null,
-		"error": null
-	}
-
-func get_recognized_extensions():
-	return ["hterrain"]
-
-func handles_type(const String &p_type):
-	return p_type == "HTerrainData"
+tool
+extends CustomResourceSaver
 
 
-func get_resource_type(p_path):
-	if p_path.get_extension() == "hterrain":
-		return "HTerrainData"
-	# ??
-	return ""
+const HTerrainData = preload("hterrain_data.gd")
 
+
+func get_recognized_extensions(res):
+	if res != null and res is HTerrainData:
+		return PoolStringArray(["hterrain"])
+	return PoolStringArray()
+
+
+func recognize(res):
+	return res is HTerrainData
+
+
+func save(path, resource, flags):
+	resource.save_data(path.get_base_dir())
 
