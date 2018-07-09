@@ -11,6 +11,11 @@ const HTerrainCollider = preload("hterrain_collider.gd")
 const DetailRenderer = preload("detail/detail_renderer.gd")
 
 const DefaultShader = preload("shaders/simple4.shader")
+# See https://github.com/Zylann/godot_heightmap_native_plugin/issues/22
+# If the plugin yields no error and the terrain renders black or incorrectly,
+# switch this line to use `simple4_lite.shader`.
+# TODO Work on switching shaders
+#const DefaultShader = preload("shaders/simple4_lite.shader")
 
 const SHADER_PARAM_HEIGHT_TEXTURE = "u_terrain_heightmap"
 const SHADER_PARAM_NORMAL_TEXTURE = "u_terrain_normalmap"
@@ -24,6 +29,7 @@ const SHADER_PARAM_TRIPLANAR = "u_triplanar"
 const SHADER_PARAM_GROUND_TEXTURE_SCALE = "u_ground_uv_scale"
 
 const SHADER_SIMPLE4 = 0
+#const SHADER_SIMPLE4_LITE = 1
 #const SHADER_ARRAY = 1
 #const SHADER_ATLAS = 2
 
@@ -33,8 +39,8 @@ const GROUND_NORMAL_BUMP = 1
 const GROUND_TEXTURE_TYPE_COUNT = 2
 
 const _ground_enum_to_name = [
-	"albedo_roughness",
-	"normal_bump"
+	"albedo_bump",
+	"normal_roughness"
 ]
 
 signal progress_notified(info)

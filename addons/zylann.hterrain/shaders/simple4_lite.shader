@@ -1,4 +1,5 @@
-// This is the reference shader of the plugin.
+// This is a shader with less textures, in case the main one doesn't run on your GPU.
+// It's mostly a big copy/paste, because Godot doesn't support #include or #ifdef...
 
 shader_type spatial;
 
@@ -9,18 +10,10 @@ uniform sampler2D u_terrain_splatmap;
 uniform mat4 u_terrain_inverse_transform;
 uniform mat3 u_terrain_normal_basis;
 
-// the reason bump is preferred with albedo is, roughness looks better with normal maps.
-// If we want no normal mapping, roughness would only give flat mirror surfaces,
-// while bump still allows to do depth-blending for free.
 uniform sampler2D u_ground_albedo_bump_0 : hint_albedo;
 uniform sampler2D u_ground_albedo_bump_1 : hint_albedo;
 uniform sampler2D u_ground_albedo_bump_2 : hint_albedo;
 uniform sampler2D u_ground_albedo_bump_3 : hint_albedo;
-
-uniform sampler2D u_ground_normal_roughness_0;
-uniform sampler2D u_ground_normal_roughness_1;
-uniform sampler2D u_ground_normal_roughness_2;
-uniform sampler2D u_ground_normal_roughness_3;
 
 uniform float u_ground_uv_scale = 20.0;
 uniform bool u_depth_blending = true;
@@ -108,7 +101,6 @@ void fragment() {
 	vec2 ground_uv = v_ground_uv.xz;
 	
 	vec4 ab3;
-	vec4 nr3;
 	if (u_triplanar) {
 		// Only do triplanar on one texture slot,
 		// because otherwise it would be very expensive and cost many more ifs.
@@ -118,32 +110,19 @@ void fragment() {
 		vec3 blending = get_triplanar_blend(terrain_normal_world);
 
 		ab3 = texture_triplanar(u_ground_albedo_bump_3, v_ground_uv, blending);
-		nr3 = texture_triplanar(u_ground_normal_roughness_3, v_ground_uv, blending);
 
 	} else {
 		ab3 = texture(u_ground_albedo_bump_3, ground_uv);
-		nr3 = texture(u_ground_normal_roughness_3, ground_uv);
 	}
 
 	vec4 ab0 = texture(u_ground_albedo_bump_0, ground_uv);
 	vec4 ab1 = texture(u_ground_albedo_bump_1, ground_uv);
 	vec4 ab2 = texture(u_ground_albedo_bump_2, ground_uv);
-		
-	vec4 nr0 = texture(u_ground_normal_roughness_0, ground_uv);
-	vec4 nr1 = texture(u_ground_normal_roughness_1, ground_uv);
-	vec4 nr2 = texture(u_ground_normal_roughness_2, ground_uv);
 	
 	vec3 col0 = ab0.rgb;
 	vec3 col1 = ab1.rgb;
 	vec3 col2 = ab2.rgb;
 	vec3 col3 = ab3.rgb;
-	
-	vec4 rough = vec4(nr0.a, nr1.a, nr2.a, nr3.a);
-
-	vec3 normal0 = unpack_normal(nr0);
-	vec3 normal1 = unpack_normal(nr1);
-	vec3 normal2 = unpack_normal(nr2);
-	vec3 normal3 = unpack_normal(nr3);
 	
 	vec4 w;
 	// TODO An #ifdef macro would be nice! Or copy/paste everything in a different shader...
@@ -160,26 +139,10 @@ void fragment() {
 		w.g * col1.rgb + 
 		w.b * col2.rgb + 
 		w.a * col3.rgb) / w_sum;
-
-	ROUGHNESS = (
-		w.r * rough.r + 
-		w.g * rough.g + 
-		w.b * rough.b + 
-		w.a * rough.a) / w_sum;
 	
-	vec3 ground_normal = /*u_terrain_normal_basis **/ (
-		w.r * normal0 + 
-		w.g * normal1 + 
-		w.b * normal2 + 
-		w.a * normal3) / w_sum;
+	ROUGHNESS = 1.0;
 	
-	// Combine terrain normals with detail normals (not sure if correct but looks ok)
-	vec3 normal = normalize(vec3(
-		terrain_normal_world.x + ground_normal.x, 
-		terrain_normal_world.y, 
-		terrain_normal_world.z + ground_normal.z));
-
-	NORMAL = (INV_CAMERA_MATRIX * (vec4(normal, 0.0))).xyz;
+	NORMAL = (INV_CAMERA_MATRIX * (vec4(terrain_normal_world, 0.0))).xyz;
 
 	//ALBEDO = w.rgb;
 	//ALBEDO = vec3(v_ground_uv.y, 0, 0);
