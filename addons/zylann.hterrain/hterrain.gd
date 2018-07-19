@@ -56,14 +56,19 @@ export var collision_enabled = false setget set_collision_enabled
 export var async_loading = false
 export(float, 0.0, 1.0) var ambient_wind = 0.0 setget set_ambient_wind
 export(int, 2, 5) var lod_scale = 2 setget set_lod_scale, get_lod_scale
+export(ShaderMaterial) var custom_material setget set_custom_material, get_custom_material
 
 # Prefer using this instead of scaling the node's transform.
 # Spatial.scale isn't used because it's not suitable for terrains,
 # it would scale grass too and other environment objects.
 export var map_scale = Vector3(1, 1, 1) setget set_map_scale
 
-var _custom_material = null
+var _custom_shader = null
 var _material = ShaderMaterial.new()
+var _material_params_need_update = false
+# Array of 2-textures arrays
+var _ground_textures = []
+
 var _data = null
 
 var _mesher = Mesher.new()
@@ -91,6 +96,14 @@ func _init():
 	_lodder.set_callbacks(funcref(self, "_cb_make_chunk"), funcref(self,"_cb_recycle_chunk"))
 	_details.set_terrain(self)
 	set_notify_transform(true)
+	
+	_ground_textures.resize(get_ground_texture_slot_count())
+	for slot in len(_ground_textures):
+		var e = []
+		e.resize(GROUND_TEXTURE_TYPE_COUNT)
+		_ground_textures[slot] = e
+	
+	_material.shader = DefaultShader
 
 
 func _get_property_list():
@@ -170,15 +183,13 @@ func _set(key, value):
 
 
 func get_custom_material():
-	return _custom_material
+	return custom_material
 
 
-# TODO Remove this once 3.x contains heightmap shape fix, because it's broken in 3.0.2
-# You need this PR: https://github.com/godotengine/godot/pull/17806
 static func _check_heightmap_collider_support():
 	var v = Engine.get_version_info()
 	if v.major == 3 and v.minor == 0 and v.patch < 4:
-		print("Heightmap collision shape not supported in this version of Godot, please upgrade to 3.0.4 or later")
+		printerr("Heightmap collision shape not supported in this version of Godot, please upgrade to 3.0.4 or later")
 		return false
 	return true
 
@@ -278,7 +289,7 @@ func _on_transform_changed():
 
 	_for_all_chunks(TransformChangedAction.new(gt))
 
-	_update_material()
+	_material_params_need_update = true
 
 	if _collider != null:
 		_collider.set_transform(gt)
@@ -389,9 +400,8 @@ func set_data(new_data):
 		_data.connect("map_removed", self, "_on_data_map_removed")
 
 		_on_data_resolution_changed()
-
-		_update_material()
-
+	
+	_material_params_need_update = true
 	print("Set data done")
 
 
@@ -417,9 +427,9 @@ func _reset_ground_chunks():
 	if _data == null:
 		return
 
-	_clear_all_chunks();
+	_clear_all_chunks()
 
-	_pending_chunk_updates.clear();
+	_pending_chunk_updates.clear()
 
 	_lodder.create_from_sizes(_chunk_size, _data.get_resolution())
 
@@ -437,7 +447,6 @@ func _reset_ground_chunks():
 		csize_y /= 2
 
 	_mesher.configure(_chunk_size, _chunk_size, _lodder.get_lod_count())
-	_update_material()
 
 
 func _on_data_region_changed(min_x, min_y, max_x, max_y, channel):
@@ -466,83 +475,126 @@ func _on_data_map_removed(type, index):
 func set_custom_material(p_material):
 	assert(p_material == null or p_material is ShaderMaterial)
 	
-	if _custom_material != p_material:
-		_custom_material = p_material
+	var old_material = _material
+	
+	if custom_material != p_material:
+		
+		if custom_material != null:
+			custom_material.disconnect("changed", self, "_on_custom_material_changed")
+			_set_custom_shader(null)
+		
+		custom_material = p_material
 
-		if _custom_material != null:
+		if custom_material != null:
 
 			if is_inside_tree() and Engine.is_editor_hint():
-
 				# When the new shader is empty, allows to fork from the default shader
 
-				if _custom_material.get_shader() == null:
-					_custom_material.set_shader(Shader.new())
+				if custom_material.get_shader() == null:
+					custom_material.set_shader(Shader.new())
 
-				var shader = _custom_material.get_shader()
+				var shader = custom_material.get_shader()
 				if shader != null:
 					if shader.get_code().empty():
+						print("Populating custom shader with default code")
 						shader.set_code(DefaultShader.code)
 					
 					# TODO If code isn't empty,
 					# verify existing parameters and issue a warning if important ones are missing
-
-		_update_material()
-
-
-func _update_material():
-
-	var instance_changed = false;
-
-	if _custom_material != null:
-
-		if _custom_material != _material:
+			
+			custom_material.connect("changed", self, "_on_custom_material_changed")
+			_set_custom_shader(custom_material.shader)
+			
 			# Duplicate material but not the shader.
 			# This is to ensure that users don't end up with internal textures assigned in the editor,
 			# which could end up being saved as regular textures (which is not intented).
 			# Also the HeightMap may use multiple instances of the material in the future,
 			# if chunks need different params or use multiple textures (streaming)
-			_material = _custom_material.duplicate(false)
-			instance_changed = true
-
-	else:
-
-		if _material == null:
-			_material = ShaderMaterial.new()
-			instance_changed = true
+			_material = custom_material.duplicate(false)
 		
-		_material.set_shader(DefaultShader)
+		else:
+			_material = ShaderMaterial.new()
+			_material.shader = DefaultShader
+		
+		if old_material != _material:
+			_for_all_chunks(SetMaterialAction.new(_material))
+		
+		_material_params_need_update = true
 
-	if instance_changed:
-		_for_all_chunks(SetMaterialAction.new(_material))
 
-	_update_material_params()
+#func _update_material():
+#
+#	var instance_changed = false;
+#
+#	if _custom_material != null:
+#		if _custom_material != _material:
+#			# Duplicate material but not the shader.
+#			# This is to ensure that users don't end up with internal textures assigned in the editor,
+#			# which could end up being saved as regular textures (which is not intented).
+#			# Also the HeightMap may use multiple instances of the material in the future,
+#			# if chunks need different params or use multiple textures (streaming)
+#			_material = _custom_material.duplicate(false)
+#			instance_changed = true
+#
+#	else:
+#		# Custom material was removed
+#		if _material == null:
+#			_material = ShaderMaterial.new()
+#			instance_changed = true
+#		_material.set_shader(DefaultShader)
+#
+#	if instance_changed:
+#		_for_all_chunks(SetMaterialAction.new(_material))
+#
+#	_material_params_need_update = true
+
+
+# Called when the custom material was modified (not when it is added or removed)
+func _on_custom_material_changed():
+	_material_params_need_update = true
+
+	if custom_material != null:
+		if _custom_shader != custom_material.shader:
+			_set_custom_shader(custom_material.shader)
+			assert(_material != null)
+			_material.shader = custom_material.shader
+
+
+func _set_custom_shader(shader):
+	if _custom_shader != null:
+		_custom_shader.disconnect("changed", self, "_on_custom_shader_changed")
+	
+	_custom_shader = custom_material.shader
+	
+	if _custom_shader != null:
+		_custom_shader.connect("changed", self, "_on_custom_shader_changed")
+
+
+func _on_custom_shader_changed():
+	_material_params_need_update = true
 
 
 func _update_material_params():
 
 	assert(_material != null)
+	print("Updating material params")
 	
 	var material = _material
-
-	if _custom_material != null:
+	
+	if custom_material != null:
 		# Copy all parameters from the custom material into the internal one
-		# TODO We could get rid of this every frame if ShaderMaterial had a signal when a parameter changes...
 
-		var from_shader = _custom_material.get_shader();
-		var to_shader = _material.get_shader();
+		var from_shader = custom_material.get_shader();
+		var to_shader = material.get_shader();
 
 		assert(from_shader != null)
 		assert(to_shader != null)
-		# If that one fails, it means there is a bug in HeightMap code
+		# If that one fails, it means there is a bug
 		assert(from_shader == to_shader)
-
-		# TODO Getting params could be optimized, by connecting to the Shader.changed signal and caching them
 
 		var params_array = VisualServer.shader_get_param_list(from_shader.get_rid())
 
-		var custom_material = _custom_material
-
-		for i in range(len(params_array)):
+		for i in len(params_array):
 			var d = params_array[i]
 			var name = d["name"]
 			material.set_shader_param(name, custom_material.get_shader_param(name))
@@ -562,6 +614,8 @@ func _update_material_params():
 		splat_texture = _data.get_texture(HTerrainData.CHANNEL_SPLAT)
 		res.x = _data.get_resolution()
 		res.y = res.x
+	
+	# Set all parameters from the terrain sytem.
 
 	if is_inside_tree():
 		var gt = get_internal_transform()
@@ -576,9 +630,16 @@ func _update_material_params():
 	material.set_shader_param(SHADER_PARAM_NORMAL_TEXTURE, normal_texture)
 	material.set_shader_param(SHADER_PARAM_COLOR_TEXTURE, color_texture)
 	material.set_shader_param(SHADER_PARAM_SPLAT_TEXTURE, splat_texture)
+	
 	material.set_shader_param(SHADER_PARAM_DEPTH_BLENDING, depth_blending)
 	material.set_shader_param(SHADER_PARAM_TRIPLANAR, cliff_triplanar)
 	material.set_shader_param(SHADER_PARAM_GROUND_TEXTURE_SCALE, ground_texture_scale)
+	
+	for slot in len(_ground_textures):
+		var textures = _ground_textures[slot]
+		for type in len(textures):
+			var shader_param = get_ground_texture_shader_param(type, slot)
+			material.set_shader_param(shader_param, textures[type])
 
 
 func set_lod_scale(lod_scale):
@@ -703,12 +764,10 @@ func _process(delta):
 
 	_pending_chunk_updates.clear()
 
-	if Engine.editor_hint:
-		# TODO I would reaaaally like to get rid of this... it just looks inefficient,
-		# and it won't play nice if more materials are used internally.
-		# Initially needed so that custom materials can be tweaked in editor.
+	if _material_params_need_update:
 		_update_material_params()
-
+		_material_params_need_update = false
+	
 	# DEBUG
 #	if(_updated_chunks > 0):
 #		print("Updated {0} chunks".format(_updated_chunks))
@@ -915,7 +974,7 @@ func cell_raycast(origin_world, dir_world, out_cell_pos):
 static func get_ground_texture_shader_param(ground_texture_type, slot):
 	assert(typeof(slot) == TYPE_INT and slot >= 0)
 	_check_ground_texture_type(ground_texture_type)
-	return SHADER_PARAM_GROUND_PREFIX + _ground_enum_to_name[ground_texture_type] + "_" + str(slot)
+	return str(SHADER_PARAM_GROUND_PREFIX, _ground_enum_to_name[ground_texture_type], "_", slot)
 
 
 func get_ground_texture(slot, type):
@@ -929,6 +988,7 @@ func set_ground_texture(slot, type, tex):
 	assert(tex == null or tex is Texture)
 	var shader_param = get_ground_texture_shader_param(type, slot)
 	_material.set_shader_param(shader_param, tex)
+	_ground_textures[slot][type] = tex
 
 
 func set_detail_texture(slot, tex):
