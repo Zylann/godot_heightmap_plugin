@@ -139,8 +139,7 @@ func _get_property_list():
 			"hint_string": "16, 32"
 		},
 		{
-			# Had to specify it like this because need to be in category...
-			"name": "shading/shader_type",
+			"name": "shader_type",
 			"type": TYPE_STRING,
 			"usage": PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_STORAGE,
 			"hint": PROPERTY_HINT_ENUM,
@@ -148,7 +147,7 @@ func _get_property_list():
 		},
 		{
 			# Had to specify it like this because need to be in category...
-			"name": "shading/custom_shader",
+			"name": "custom_shader",
 			"type": TYPE_OBJECT,
 			"usage": PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_STORAGE,
 			"hint": PROPERTY_HINT_RESOURCE_TYPE,
@@ -161,7 +160,7 @@ func _get_property_list():
 		if _api_shader_params.has(p.name):
 			continue
 		props.append({
-			"name": str("shading/", p.name),
+			"name": str("shader_params/", p.name),
 			"type": p.type,
 			"usage": PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_STORAGE
 		})
@@ -196,18 +195,18 @@ func _get(key):
 			if key.begins_with(str("ground/", type_name, "_")):
 				var i = key.right(len(key) - 1).to_int()
 				return get_ground_texture(i, ground_texture_type)
-	
-	elif key.begins_with("shading/"):
-		var param_name = key.right(len("shading/"))
-		
-		if param_name == "shader_type":
-			return get_shader_type()
-		elif param_name == "custom_shader":
-			return get_custom_shader()
-		else:
-			return get_shader_param(param_name)
 
-	if key == "_detail_objects_data":
+	elif key == "shader_type":
+		return get_shader_type()
+	
+	elif key == "custom_shader":
+		return get_custom_shader()
+	
+	elif key.begins_with("shader_params/"):
+		var param_name = key.right(len("shader_params/"))
+		return get_shader_param(param_name)
+
+	elif key == "_detail_objects_data":
 		return _details.serialize()
 
 	elif key == "chunk_size":
@@ -227,15 +226,15 @@ func _set(key, value):
 				var i = key.right(len(key) - 1).to_int()
 				set_ground_texture(i, ground_texture_type, value)
 
-	elif key.begins_with("shading/"):
-		var param_name = key.right(len("shading/"))
-		
-		if param_name == "shader_type":
-			set_shader_type(value)
-		elif param_name == "custom_shader":
-			set_custom_shader(value)
-		else:
-			set_shader_param(param_name, value)
+	elif key == "shader_type":
+		set_shader_type(value)
+	
+	elif key == "custom_shader":
+		set_custom_shader(value)
+
+	elif key.begins_with("shader_params/"):
+		var param_name = key.right(len("shader_params/"))
+		set_shader_param(param_name, value)
 
 	if key == "_detail_objects_data":
 		return _details.deserialize(value)
