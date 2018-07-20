@@ -10,28 +10,43 @@ const Util = preload("util/util.gd")
 const HTerrainCollider = preload("hterrain_collider.gd")
 const DetailRenderer = preload("detail/detail_renderer.gd")
 
-const DefaultShader = preload("shaders/simple4.shader")
-# See https://github.com/Zylann/godot_heightmap_native_plugin/issues/22
-# If the plugin yields no error and the terrain renders black or incorrectly,
-# switch this line to use `simple4_lite.shader`.
-# TODO Work on switching shaders
-#const DefaultShader = preload("shaders/simple4_lite.shader")
+const CLASSIC4_SHADER_PATH = "res://addons/zylann.hterrain/shaders/simple4.shader"
+const CLASSIC4_LITE_SHADER_PATH = "res://addons/zylann.hterrain/shaders/simple4_lite.shader"
 
 const SHADER_PARAM_HEIGHT_TEXTURE = "u_terrain_heightmap"
 const SHADER_PARAM_NORMAL_TEXTURE = "u_terrain_normalmap"
 const SHADER_PARAM_COLOR_TEXTURE = "u_terrain_colormap"
 const SHADER_PARAM_SPLAT_TEXTURE = "u_terrain_splatmap"
+
 const SHADER_PARAM_INVERSE_TRANSFORM = "u_terrain_inverse_transform"
 const SHADER_PARAM_NORMAL_BASIS = "u_terrain_normal_basis"
-const SHADER_PARAM_GROUND_PREFIX = "u_ground_" # + name + _0, _1, _2, _3...
-const SHADER_PARAM_DEPTH_BLENDING = "u_depth_blending"
-const SHADER_PARAM_TRIPLANAR = "u_triplanar"
-const SHADER_PARAM_GROUND_TEXTURE_SCALE = "u_ground_uv_scale"
 
-const SHADER_SIMPLE4 = 0
-#const SHADER_SIMPLE4_LITE = 1
-#const SHADER_ARRAY = 1
-#const SHADER_ATLAS = 2
+const SHADER_PARAM_GROUND_PREFIX = "u_ground_" # + name + _0, _1, _2, _3...
+
+# Those parameters are filtered out in the inspector because they are not supposed to be set through it
+const _api_shader_params = {
+	"u_terrain_heightmap": true,
+	"u_terrain_normalmap": true,
+	"u_terrain_colormap": true,
+	"u_terrain_splatmap": true,
+	
+	"u_terrain_inverse_transform": true,
+	"u_terrain_normal_basis": true,
+	
+	"u_ground_albedo_bump_0": true,
+	"u_ground_albedo_bump_1": true,
+	"u_ground_albedo_bump_2": true,
+	"u_ground_albedo_bump_3": true,
+	
+	"u_ground_normal_roughness_0": true,
+	"u_ground_normal_roughness_1": true,
+	"u_ground_normal_roughness_2": true,
+	"u_ground_normal_roughness_3": true
+}
+
+const SHADER_SIMPLE4 = "Classic4"
+const SHADER_SIMPLE4_LITE = "Classic4Lite"
+const SHADER_CUSTOM = "Custom"
 
 # Note: the alpha channel is used to pack additional maps
 const GROUND_ALBEDO_ROUGHNESS = 0
@@ -48,15 +63,10 @@ signal progress_notified(info)
 signal progress_complete
 signal transform_changed(global_transform)
 
-
-export var depth_blending = false
-export var cliff_triplanar = false
-export var ground_texture_scale = 20.0
 export var collision_enabled = false setget set_collision_enabled
 export var async_loading = false
 export(float, 0.0, 1.0) var ambient_wind = 0.0 setget set_ambient_wind
 export(int, 2, 5) var lod_scale = 2 setget set_lod_scale, get_lod_scale
-export(ShaderMaterial) var custom_material setget set_custom_material, get_custom_material
 
 # Prefer using this instead of scaling the node's transform.
 # Spatial.scale isn't used because it's not suitable for terrains,
@@ -64,6 +74,7 @@ export(ShaderMaterial) var custom_material setget set_custom_material, get_custo
 export var map_scale = Vector3(1, 1, 1) setget set_map_scale
 
 var _custom_shader = null
+var _shader_type = SHADER_SIMPLE4
 var _material = ShaderMaterial.new()
 var _material_params_need_update = false
 # Array of 2-textures arrays
@@ -96,14 +107,18 @@ func _init():
 	_lodder.set_callbacks(funcref(self, "_cb_make_chunk"), funcref(self,"_cb_recycle_chunk"))
 	_details.set_terrain(self)
 	set_notify_transform(true)
-	
+
+	# TODO Temporary! This is a workaround for https://github.com/godotengine/godot/issues/20291
+	_material.set_shader_param("u_ground_uv_scale", 20)
+	_material.set_shader_param("u_depth_blending", true)
+
+	_material.shader = load(CLASSIC4_SHADER_PATH)
+
 	_ground_textures.resize(get_ground_texture_slot_count())
 	for slot in len(_ground_textures):
 		var e = []
 		e.resize(GROUND_TEXTURE_TYPE_COUNT)
 		_ground_textures[slot] = e
-	
-	_material.shader = DefaultShader
 
 
 func _get_property_list():
@@ -122,8 +137,34 @@ func _get_property_list():
 			"usage": PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_STORAGE,
 			#"hint": PROPERTY_HINT_ENUM,
 			"hint_string": "16, 32"
+		},
+		{
+			# Had to specify it like this because need to be in category...
+			"name": "shading/shader_type",
+			"type": TYPE_STRING,
+			"usage": PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_STORAGE,
+			"hint": PROPERTY_HINT_ENUM,
+			"hint_string": "Classic4,Classic4Lite,Custom"
+		},
+		{
+			# Had to specify it like this because need to be in category...
+			"name": "shading/custom_shader",
+			"type": TYPE_OBJECT,
+			"usage": PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_STORAGE,
+			"hint": PROPERTY_HINT_RESOURCE_TYPE,
+			"hint_string": "Shader"
 		}
 	]
+	
+	var shader_params = VisualServer.shader_get_param_list(_material.shader.get_rid())
+	for p in shader_params:
+		if _api_shader_params.has(p.name):
+			continue
+		props.append({
+			"name": str("shading/", p.name),
+			"type": p.type,
+			"usage": PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_STORAGE
+		})
 	
 	for i in range(get_ground_texture_slot_count()):
 		for t in _ground_enum_to_name:
@@ -155,6 +196,16 @@ func _get(key):
 			if key.begins_with(str("ground/", type_name, "_")):
 				var i = key.right(len(key) - 1).to_int()
 				return get_ground_texture(i, ground_texture_type)
+	
+	elif key.begins_with("shading/"):
+		var param_name = key.right(len("shading/"))
+		
+		if param_name == "shader_type":
+			return get_shader_type()
+		elif param_name == "custom_shader":
+			return get_custom_shader()
+		else:
+			return get_shader_param(param_name)
 
 	if key == "_detail_objects_data":
 		return _details.serialize()
@@ -169,11 +220,22 @@ func _set(key, value):
 	if key == "data":
 		set_data(value)
 	
-	for ground_texture_type in range(GROUND_TEXTURE_TYPE_COUNT):
-		var type_name = _ground_enum_to_name[ground_texture_type]
-		if key.begins_with(str("ground/", type_name, "_")):
-			var i = key.right(len(key) - 1).to_int()
-			set_ground_texture(i, ground_texture_type, value)
+	if key.begins_with("ground/"):
+		for ground_texture_type in range(GROUND_TEXTURE_TYPE_COUNT):
+			var type_name = _ground_enum_to_name[ground_texture_type]
+			if key.begins_with(str("ground/", type_name, "_")):
+				var i = key.right(len(key) - 1).to_int()
+				set_ground_texture(i, ground_texture_type, value)
+
+	elif key.begins_with("shading/"):
+		var param_name = key.right(len("shading/"))
+		
+		if param_name == "shader_type":
+			set_shader_type(value)
+		elif param_name == "custom_shader":
+			set_custom_shader(value)
+		else:
+			set_shader_param(param_name, value)
 
 	if key == "_detail_objects_data":
 		return _details.deserialize(value)
@@ -182,8 +244,12 @@ func _set(key, value):
 		set_chunk_size(value)
 
 
-func get_custom_material():
-	return custom_material
+func get_shader_param(param_name):
+	return _material.get_shader_param(param_name)
+
+
+func set_shader_param(param_name, v):
+	_material.set_shader_param(param_name, v)
 
 
 static func _check_heightmap_collider_support():
@@ -472,102 +538,60 @@ func _on_data_map_removed(type, index):
 		_details.remove_layer(index)
 
 
-func set_custom_material(p_material):
-	assert(p_material == null or p_material is ShaderMaterial)
+func get_shader_type():
+	return _shader_type
+
+
+func set_shader_type(type):
+	if type == _shader_type:
+		return
+	_shader_type = type
 	
-	var old_material = _material
+	match _shader_type:
+		SHADER_SIMPLE4:
+			_material.shader = load(CLASSIC4_SHADER_PATH)
+		SHADER_SIMPLE4_LITE:
+			_material.shader = load(CLASSIC4_LITE_SHADER_PATH)
+		SHADER_CUSTOM:
+			_material.shader = _custom_shader
+		_:
+			printerr("Unknown shader type: '", _shader_type, "'")
+			_material.shader = load(CLASSIC4_SHADER_PATH)
 	
-	if custom_material != p_material:
-		
-		if custom_material != null:
-			custom_material.disconnect("changed", self, "_on_custom_material_changed")
-			_set_custom_shader(null)
-		
-		custom_material = p_material
-
-		if custom_material != null:
-
-			if is_inside_tree() and Engine.is_editor_hint():
-				# When the new shader is empty, allows to fork from the default shader
-
-				if custom_material.get_shader() == null:
-					custom_material.set_shader(Shader.new())
-
-				var shader = custom_material.get_shader()
-				if shader != null:
-					if shader.get_code().empty():
-						print("Populating custom shader with default code")
-						shader.set_code(DefaultShader.code)
-					
-					# TODO If code isn't empty,
-					# verify existing parameters and issue a warning if important ones are missing
-			
-			custom_material.connect("changed", self, "_on_custom_material_changed")
-			_set_custom_shader(custom_material.shader)
-			
-			# Duplicate material but not the shader.
-			# This is to ensure that users don't end up with internal textures assigned in the editor,
-			# which could end up being saved as regular textures (which is not intented).
-			# Also the HeightMap may use multiple instances of the material in the future,
-			# if chunks need different params or use multiple textures (streaming)
-			_material = custom_material.duplicate(false)
-		
-		else:
-			_material = ShaderMaterial.new()
-			_material.shader = DefaultShader
-		
-		if old_material != _material:
-			_for_all_chunks(SetMaterialAction.new(_material))
-		
-		_material_params_need_update = true
-
-
-#func _update_material():
-#
-#	var instance_changed = false;
-#
-#	if _custom_material != null:
-#		if _custom_material != _material:
-#			# Duplicate material but not the shader.
-#			# This is to ensure that users don't end up with internal textures assigned in the editor,
-#			# which could end up being saved as regular textures (which is not intented).
-#			# Also the HeightMap may use multiple instances of the material in the future,
-#			# if chunks need different params or use multiple textures (streaming)
-#			_material = _custom_material.duplicate(false)
-#			instance_changed = true
-#
-#	else:
-#		# Custom material was removed
-#		if _material == null:
-#			_material = ShaderMaterial.new()
-#			instance_changed = true
-#		_material.set_shader(DefaultShader)
-#
-#	if instance_changed:
-#		_for_all_chunks(SetMaterialAction.new(_material))
-#
-#	_material_params_need_update = true
-
-
-# Called when the custom material was modified (not when it is added or removed)
-func _on_custom_material_changed():
 	_material_params_need_update = true
 
-	if custom_material != null:
-		if _custom_shader != custom_material.shader:
-			_set_custom_shader(custom_material.shader)
-			assert(_material != null)
-			_material.shader = custom_material.shader
+
+func get_custom_shader():
+	return _custom_shader
 
 
-func _set_custom_shader(shader):
+func set_custom_shader(shader):
+	if _custom_shader == shader:
+		return
+	
 	if _custom_shader != null:
 		_custom_shader.disconnect("changed", self, "_on_custom_shader_changed")
+
+	if Engine.is_editor_hint() and shader != null and is_inside_tree():
+		# When the new shader is empty, allow to fork from the previous shader
+		if shader.get_code().empty():
+			print("Populating custom shader with default code")
+			var src = _material.shader
+			if src == null:
+				src = load(CLASSIC4_SHADER_PATH)
+			shader.set_code(src.code)
+			# TODO If code isn't empty,
+			# verify existing parameters and issue a warning if important ones are missing			
 	
-	_custom_shader = custom_material.shader
+	_custom_shader = shader
+	
+	if _shader_type == SHADER_CUSTOM:
+		_material.shader = _custom_shader
 	
 	if _custom_shader != null:
 		_custom_shader.connect("changed", self, "_on_custom_shader_changed")
+		if _shader_type == SHADER_CUSTOM:
+			_material_params_need_update = true
 
 
 func _on_custom_shader_changed():
@@ -579,31 +603,11 @@ func _update_material_params():
 	assert(_material != null)
 	print("Updating material params")
 	
-	var material = _material
-	
-	if custom_material != null:
-		# Copy all parameters from the custom material into the internal one
-
-		var from_shader = custom_material.get_shader();
-		var to_shader = material.get_shader();
-
-		assert(from_shader != null)
-		assert(to_shader != null)
-		# If that one fails, it means there is a bug
-		assert(from_shader == to_shader)
-
-		var params_array = VisualServer.shader_get_param_list(from_shader.get_rid())
-
-		for i in len(params_array):
-			var d = params_array[i]
-			var name = d["name"]
-			material.set_shader_param(name, custom_material.get_shader_param(name))
-
 	var height_texture
 	var normal_texture
 	var color_texture
 	var splat_texture
-	var res = Vector2(-1,-1)
+	var res = Vector2(-1, -1)
 
 	# TODO Only get textures the shader supports
 
@@ -620,26 +624,22 @@ func _update_material_params():
 	if is_inside_tree():
 		var gt = get_internal_transform()
 		var t = gt.affine_inverse()
-		material.set_shader_param(SHADER_PARAM_INVERSE_TRANSFORM, t)
+		_material.set_shader_param(SHADER_PARAM_INVERSE_TRANSFORM, t)
 
 		# This is needed to properly transform normals if the terrain is scaled
 		var normal_basis = gt.basis.inverse().transposed()
-		material.set_shader_param(SHADER_PARAM_NORMAL_BASIS, normal_basis)
+		_material.set_shader_param(SHADER_PARAM_NORMAL_BASIS, normal_basis)
 
-	material.set_shader_param(SHADER_PARAM_HEIGHT_TEXTURE, height_texture)
-	material.set_shader_param(SHADER_PARAM_NORMAL_TEXTURE, normal_texture)
-	material.set_shader_param(SHADER_PARAM_COLOR_TEXTURE, color_texture)
-	material.set_shader_param(SHADER_PARAM_SPLAT_TEXTURE, splat_texture)
-	
-	material.set_shader_param(SHADER_PARAM_DEPTH_BLENDING, depth_blending)
-	material.set_shader_param(SHADER_PARAM_TRIPLANAR, cliff_triplanar)
-	material.set_shader_param(SHADER_PARAM_GROUND_TEXTURE_SCALE, ground_texture_scale)
-	
+	_material.set_shader_param(SHADER_PARAM_HEIGHT_TEXTURE, height_texture)
+	_material.set_shader_param(SHADER_PARAM_NORMAL_TEXTURE, normal_texture)
+	_material.set_shader_param(SHADER_PARAM_COLOR_TEXTURE, color_texture)
+	_material.set_shader_param(SHADER_PARAM_SPLAT_TEXTURE, splat_texture)
+		
 	for slot in len(_ground_textures):
 		var textures = _ground_textures[slot]
 		for type in len(textures):
 			var shader_param = get_ground_texture_shader_param(type, slot)
-			material.set_shader_param(shader_param, textures[type])
+			_material.set_shader_param(shader_param, textures[type])
 
 
 func set_lod_scale(lod_scale):
@@ -1017,17 +1017,21 @@ static func _check_ground_texture_type(ground_texture_type):
 
 
 static func get_ground_texture_slot_count_for_shader(mode):
+	# TODO Deduce these from the shader used
 	match mode:
-		SHADER_SIMPLE4:
+		SHADER_SIMPLE4, \
+		SHADER_SIMPLE4_LITE:
+			return 4
+		SHADER_CUSTOM:
 			return 4
 #		SHADER_ARRAY:
 #			return 256
-	print("Invalid shader type specified ", mode)
+	printerr("Invalid shader type specified ", mode)
 	return 0
 
 
 func get_ground_texture_slot_count():
-	return get_ground_texture_slot_count_for_shader(SHADER_SIMPLE4)
+	return get_ground_texture_slot_count_for_shader(_shader_type)
 
 
 func _edit_set_manual_viewer_pos(pos):
