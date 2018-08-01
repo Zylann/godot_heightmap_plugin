@@ -10,7 +10,7 @@ Creating a terrain in Godot 3.0.x
 
 Creating a terrain from scratch in this version of Godot is really awkward, due to a major lack in the script API. There is no way to define custom resource savers and loaders, so what the plugin should do automatically has to be done manually using workarounds:
 
-1) Create a new HTerrainData resource in the inspector (click on the `+` icon in the top right of the inspector). You don't need to modify anything on it.
+1) Create a new HTerrainData resource in the inspector (click on the `+` icon in the top left of the inspector). You don't need to modify anything on it.
 
 2) Save it as a .tres file (use save icon in the inspector)
 
