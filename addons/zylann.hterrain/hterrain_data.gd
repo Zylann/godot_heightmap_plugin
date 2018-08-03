@@ -631,7 +631,7 @@ func _upload_region(channel, index, min_x, min_y, size_x, size_y):
 				0, 0)
 
 		else:
-			# Godot 3.0.3 and earlier...
+			# Godot 3.0.6 and earlier...
 			# It is slow.
 
 			#               ..ooo@@@XXX%%%xx..

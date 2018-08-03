@@ -51,7 +51,7 @@ func _clear_feedback():
 func _show_feedback(res):
 
 	for e in res.errors:
-		print("ERROR: ", e)
+		printerr("ERROR: ", e)
 
 	for w in res.warnings:
 		print("WARNING: ", w)

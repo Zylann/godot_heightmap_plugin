@@ -78,7 +78,7 @@ func _notification(what):
 				
 				if _viewports[0] != null:
 					# TODO https://github.com/godotengine/godot/issues/18160
-					print("WHAAAAT? NOTIFICATION_VISIBILITY_CHANGED was called twice when made visible!!")
+					print("WHAAAAT? NOTIFICATION_VISIBILITY_CHANGED was called twice when made visible!! (Godot issue #18160)")
 					return
 				
 				if _noise_texture == null:
@@ -163,7 +163,6 @@ func _on_Inspector_property_changed(key, value):
 		else:
 			value = 1.0 / value
 	
-	
 	if key == "seed":
 		_regen_noise_perm_texture(value)
 	else:
@@ -177,22 +176,22 @@ func _on_Inspector_property_changed(key, value):
 
 func _apply():
 	if _terrain == null:
-		print("ERROR: cannot apply, terrain is null")
+		printerr("ERROR: cannot apply, terrain is null")
 		return
 	
 	var data = _terrain.get_data()
 	if data == null:
-		print("ERROR: cannot apply, terrain data is null")
+		printerr("ERROR: cannot apply, terrain data is null")
 		return
 
 	var dst_heights = data.get_image(HTerrainData.CHANNEL_HEIGHT)
 	if dst_heights == null:
-		print("ERROR: terrain heightmap image isn't loaded")
+		printerr("ERROR: terrain heightmap image isn't loaded")
 		return
 
 	var dst_normals = data.get_image(HTerrainData.CHANNEL_NORMAL)
 	if dst_normals == null:
-		print("ERROR: terrain normal image isn't loaded")
+		printerr("ERROR: terrain normal image isn't loaded")
 		return
 	
 	var cs = VIEWPORT_RESOLUTION
@@ -212,7 +211,7 @@ func _apply():
 	# Calculate by chunks so we don't completely freeze the editor
 	for cy in range(ch):
 		for cx in range(cw):
-			print(513.0 * Vector2(cx, cy) * vp_offby1)
+			print(VIEWPORT_RESOLUTION * Vector2(cx, cy) * vp_offby1)
 
 			for i in range(len(_viewports)):
 				_viewport_cis[i].material.set_shader_param("u_offset", Vector2(cx, cy) * vp_offby1)
