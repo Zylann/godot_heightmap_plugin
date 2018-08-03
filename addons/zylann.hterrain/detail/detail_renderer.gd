@@ -244,7 +244,10 @@ func process(delta, viewer_pos):
 	_ambient_wind_time += delta * ambient_wind_frequency
 	var awp = _get_ambient_wind_params()
 	for layer in _layers:
-		layer.material.set_shader_param("u_ambient_wind", awp)
+		# Layer materials are created only when a chunk is first needed in that layer,
+		# so it's possible they are still null at this point
+		if layer.material != null:
+			layer.material.set_shader_param("u_ambient_wind", awp)
 
 
 func _get_ambient_wind_params():
