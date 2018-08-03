@@ -272,7 +272,7 @@ func _get_chunk_aabb(lpos):
 	var size_cells_x = int(CHUNK_SIZE / terrain_scale.x)
 	var size_cells_z = int(CHUNK_SIZE / terrain_scale.z)
 	var aabb = terrain_data.get_region_aabb(origin_cells_x, origin_cells_z, size_cells_x, size_cells_z)
-	aabb.position = Vector3(lpos.x, lpos.y * terrain_scale.y, lpos.z)
+	aabb.position = Vector3(lpos.x, lpos.y + aabb.position.y * terrain_scale.y, lpos.z)
 	aabb.size = Vector3(CHUNK_SIZE, aabb.size.y * terrain_scale.y, CHUNK_SIZE)
 	return aabb
 

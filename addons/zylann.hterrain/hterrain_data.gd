@@ -748,8 +748,10 @@ func get_region_aabb(origin_in_cells_x, origin_in_cells_y, size_in_cells_x, size
 		cmax_x = _chunked_vertical_bounds_size[0]
 	if cmax_y >= _chunked_vertical_bounds_size[1]:
 		cmax_y = _chunked_vertical_bounds_size[1]
-
-	var min_height = _chunked_vertical_bounds[0][0].minv
+	
+	var min_height = 0
+	if cmin_x < _chunked_vertical_bounds_size[0] and cmin_y < _chunked_vertical_bounds_size[1]:
+		min_height = _chunked_vertical_bounds[cmin_y][cmin_x].minv
 	var max_height = min_height
 	
 	for y in range(cmin_y, cmax_y):
@@ -800,11 +802,11 @@ func _update_vertical_bounds(origin_in_cells_x, origin_in_cells_y, size_in_cells
 	# Note: chunks in _chunked_vertical_bounds share their edge cells and have an actual size of chunk size + 1.
 	var chunk_size_x = VERTICAL_BOUNDS_CHUNK_SIZE + 1
 	var chunk_size_y = VERTICAL_BOUNDS_CHUNK_SIZE + 1
-
+	
 	for y in range(cmin_y, cmax_y):
 		var pmin_y = y * VERTICAL_BOUNDS_CHUNK_SIZE
 		
-		for x in range(cmin_x, cmax_y):
+		for x in range(cmin_x, cmax_x):
 			
 			var b = _chunked_vertical_bounds[y][x]
 			if b == null:
