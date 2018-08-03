@@ -9,6 +9,9 @@ It supports texture painting, colouring, holes, level of detail and grass.
 Although the plugin can be used, it is still under development. Some features might be missing or bugs can occur.
 Please refer to the issue tracker if you have any problem.
 
+This repository holds the latest development version, which means it has the latest features but can also have bugs.
+For a "stable" version, use the asset library or download from a commit tagged with a version.
+
 
 Installation
 --------------
