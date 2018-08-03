@@ -525,16 +525,22 @@ func _on_data_region_changed(min_x, min_y, max_x, max_y, channel):
 func _on_data_map_changed(type, index):
 	if type == HTerrainData.CHANNEL_DETAIL:
 		_details.reset()
+	else:
+		_material_params_need_update = true
 
 
 func _on_data_map_added(type, index):
 	if type == HTerrainData.CHANNEL_DETAIL:
 		_details.reset()
+	else:
+		_material_params_need_update = true
 
 
 func _on_data_map_removed(type, index):
 	if type == HTerrainData.CHANNEL_DETAIL:
 		_details.remove_layer(index)
+	else:
+		_material_params_need_update = true
 
 
 func get_shader_type():
