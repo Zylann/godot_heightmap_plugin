@@ -5,7 +5,8 @@ const QuadTreeLod = preload("util/quad_tree_lod.gd")
 const Mesher = preload("hterrain_mesher.gd")
 const Grid = preload("util/grid.gd")
 var HTerrainData = load("res://addons/zylann.hterrain/hterrain_data.gd")
-const HTerrainChunk = preload("hterrain_chunk.gd")
+var HTerrainChunk = preload("hterrain_chunk.gd")
+const HTerrainChunkDebug = preload("hterrain_chunk_debug.gd")
 const Util = preload("util/util.gd")
 const HTerrainCollider = preload("hterrain_collider.gd")
 const DetailRenderer = preload("detail/detail_renderer.gd")
@@ -58,6 +59,8 @@ const _ground_enum_to_name = [
 	"normal_roughness"
 ]
 
+const DEBUG_AABB = true
+
 signal progress_notified(info)
 # Same as progress_notified once finished, but more convenient to yield
 signal progress_complete
@@ -88,19 +91,18 @@ var _details = DetailRenderer.new()
 
 var _pending_chunk_updates = []
 
-# [lod][pos]
+# [lod][z][x] -> chunk
 # This container owns chunks
 var _chunks = []
 var _chunk_size = 16
 
 var _collider = null
 
-# Stats
+# Stats & debug
 var _updated_chunks = 0
 
 # Editor-only
 var _edit_manual_viewer_pos = Vector3()
-
 
 func _init():
 	print("Create HeightMap")
@@ -119,6 +121,9 @@ func _init():
 		var e = []
 		e.resize(GROUND_TEXTURE_TYPE_COUNT)
 		_ground_textures[slot] = e
+	
+	if DEBUG_AABB:
+		HTerrainChunk = HTerrainChunkDebug
 
 
 func _get_property_list():
@@ -893,11 +898,11 @@ func _cb_make_chunk(cpos_x, cpos_y, lod):
 		
 		chunk = HTerrainChunk.new(self, origin_in_cells_x, origin_in_cells_y, _material)
 		chunk.parent_transform_changed(get_internal_transform())
-		
+
 		var grid = _chunks[lod]
 		var row = grid[cpos_y]
 		row[cpos_x] = chunk
-
+	
 	# Make sure it gets updated
 	_add_chunk_update(chunk, cpos_x, cpos_y, lod);
 

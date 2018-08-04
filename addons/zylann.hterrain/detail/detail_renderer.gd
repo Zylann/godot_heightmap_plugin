@@ -35,6 +35,7 @@ class Chunk:
 
 
 class Layer:
+	# This material can be null until it is really needed for rendering
 	var material = null
 	var texture = null
 
@@ -264,6 +265,8 @@ func _get_distance_to_chunk(local_viewer_pos, cx, cz):
 	return (aabb.position + 0.5 * aabb.size).distance_to(local_viewer_pos)
 
 
+# Gets local-space AABB of a detail chunk.
+# This only apply map_scale in Y, because details are not affected by X and Z map scale.
 func _get_chunk_aabb(lpos):
 	var terrain_scale = _terrain.map_scale
 	var terrain_data = _terrain.get_data()
