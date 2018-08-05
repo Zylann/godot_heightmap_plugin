@@ -24,7 +24,7 @@ static func create_grid(w, h, v=null):
 		row.resize(w)
 		if is_create_func:
 			for x in range(row.size()):
-				row[x] = v(x,y)
+				row[x] = v.call_func(x,y)
 		else:
 			for x in range(row.size()):
 				row[x] = v
