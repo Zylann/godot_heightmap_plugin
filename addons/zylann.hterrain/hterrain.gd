@@ -66,7 +66,7 @@ signal progress_notified(info)
 signal progress_complete
 signal transform_changed(global_transform)
 
-export var collision_enabled = false setget set_collision_enabled
+export var collision_enabled = true setget set_collision_enabled
 export var async_loading = false
 export(float, 0.0, 1.0) var ambient_wind = 0.0 setget set_ambient_wind
 export(int, 2, 5) var lod_scale = 2 setget set_lod_scale, get_lod_scale
@@ -124,6 +124,10 @@ func _init():
 	
 	if DEBUG_AABB:
 		HTerrainChunk = HTerrainChunkDebug
+
+	if collision_enabled:
+		if _check_heightmap_collider_support():
+			_collider = HTerrainCollider.new()
 
 
 func _get_property_list():
@@ -268,8 +272,13 @@ func set_collision_enabled(enabled):
 	if collision_enabled != enabled:
 		collision_enabled = enabled
 		if collision_enabled:
-			if not Engine.editor_hint and _check_heightmap_collider_support():
+			if _check_heightmap_collider_support():
 				_collider = HTerrainCollider.new()
+				# Collision is not updated with data here, because loading is quite a mess at the moment...
+				# 1) This function can be called while no data has been set yet
+				# 2) I don't want to update the collider more times than necessary because it's expensive
+				# 3) I would prefer not defer that to the moment the terrain is added to the tree,
+				#    because it would screw up threaded loading
 		else:
 			# Despite this object being a Reference,
 			# this should free it, as it should be the only reference
@@ -479,14 +488,22 @@ func _on_data_progress_notified(info):
 	emit_signal("progress_notified", info)
 	
 	if info.finished:
-		if not Engine.editor_hint:
-			# Update collider when data is loaded
-			if _collider != null:
-				_collider.create_from_terrain_data(_data)
+		# Update collider when data is loaded
+		if _collider != null:
+			_collider.create_from_terrain_data(_data)
 		
 		_details.reset()
 		
 		emit_signal("progress_complete")
+
+
+# The collider might be used in editor for other tools (like snapping to floor),
+# so the whole collider can be updated in one go.
+# It may be slow for ingame use, so prefer calling it when appropriate.
+func update_collider():
+	assert(collision_enabled)
+	assert(_collider != null)
+	_collider.create_from_terrain_data(_data)
 
 
 func _on_data_resolution_changed():

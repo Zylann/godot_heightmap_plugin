@@ -14,10 +14,11 @@ const GeneratorDialog = preload("generator/generator_dialog.tscn")
 const ImportDialog = preload("importer/importer_dialog.tscn")
 
 const MENU_IMPORT_MAPS = 0
-# TODO These two should not exist, they are workarounds to test saving!
+# TODO Save items two should not exist, they are workarounds to test saving!
 const MENU_SAVE = 1
 const MENU_LOAD = 2
 const MENU_GENERATE = 3
+const MENU_UPDATE_EDITOR_COLLIDER = 4
 
 
 # TODO Rename _terrain
@@ -77,11 +78,12 @@ func _enter_tree():
 	var menu = MenuButton.new()
 	menu.set_text("Terrain")
 	menu.get_popup().add_item("Import maps...", MENU_IMPORT_MAPS)
+	menu.get_popup().add_item("Generate...", MENU_GENERATE)
 	menu.get_popup().add_separator()
 	menu.get_popup().add_item("Save", MENU_SAVE)
 	menu.get_popup().add_item("Load", MENU_LOAD)
 	menu.get_popup().add_separator()
-	menu.get_popup().add_item("Generate...", MENU_GENERATE)
+	menu.get_popup().add_item("Update Editor Collider", MENU_UPDATE_EDITOR_COLLIDER)
 	menu.get_popup().connect("id_pressed", self, "_menu_item_selected")
 	_toolbar.add_child(menu)
 	
@@ -313,18 +315,37 @@ func _terrain_exited_scene():
 func _menu_item_selected(id):
 	print("Menu item selected ", id)
 	match id:
+		
 		MENU_IMPORT_MAPS:
 			_import_dialog.popup_centered_minsize()
+			
 		MENU_SAVE:
 			var data = _node.get_data()
 			if data != null:
 				data.save_data_async()
+			
 		MENU_LOAD:
 			var data = _node.get_data()
 			if data != null:
 				data.load_data_async()
+			
 		MENU_GENERATE:
 			_generator_dialog.popup_centered_minsize()
+			
+		MENU_UPDATE_EDITOR_COLLIDER:
+			# This is for editor tools to be able to use terrain collision.
+			# It's not automatic because keeping this collider up to date is expensive,
+			# but not too bad IMO because that feature is not often used in editor for now.
+			# If users complain too much about this, there are ways to improve it:
+			#
+			# 1) When the terrain gets deselected, update the terrain collider in a thread automatically.
+			#    This is still expensive but should be easy to do.
+			#
+			# 2) Bullet actually support modifying the heights dynamically as long as we stay within min and max bounds,
+			#    so PR a change to the Godot heightmap collider to support passing a Float Image directly,
+			#    and make it so the data is in sync (no CoW plz!!). It's trickier than 1).
+			#
+			_node.update_collider()
 
 
 func _on_mode_selected(mode):
