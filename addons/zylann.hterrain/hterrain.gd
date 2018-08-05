@@ -59,7 +59,7 @@ const _ground_enum_to_name = [
 	"normal_roughness"
 ]
 
-const DEBUG_AABB = true
+const DEBUG_AABB = false
 
 signal progress_notified(info)
 # Same as progress_notified once finished, but more convenient to yield

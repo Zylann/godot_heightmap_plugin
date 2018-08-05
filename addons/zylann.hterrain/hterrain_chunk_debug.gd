@@ -1,6 +1,10 @@
 tool
 extends "hterrain_chunk.gd"
 
+# I wrote this because Godot has no debug option to show AABBs.
+# https://github.com/godotengine/godot/issues/20722
+
+
 const DirectMeshInstance = preload("util/direct_mesh_instance.gd")
 const Util = preload("util/util.gd")
 
