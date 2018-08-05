@@ -717,12 +717,16 @@ const s_rdirs = [
 func _process(delta):
 	
 	# Get viewer pos
-	var viewer_pos = _edit_manual_viewer_pos
-	var viewport = get_viewport()
-	if viewport != null:
-		var camera = viewport.get_camera()
-		if camera != null:
-			viewer_pos = camera.get_global_transform().origin
+	var viewer_pos = Vector3()
+	if Engine.editor_hint:
+		# In editor, we would need to use the editor's camera, not the `current` one defined in the scene
+		viewer_pos = _edit_manual_viewer_pos
+	else:
+		var viewport = get_viewport()
+		if viewport != null:
+			var camera = viewport.get_camera()
+			if camera != null:
+				viewer_pos = camera.get_global_transform().origin
 	
 	if has_data():
 		# TODO I would like to do this without needing a ref to the scene tree...
