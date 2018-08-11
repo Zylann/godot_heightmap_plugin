@@ -184,7 +184,7 @@ func edit(object):
 func make_visible(visible):
 	_panel.set_visible(visible)
 	_toolbar.set_visible(visible)
-	_brush_decal.set_visible(visible)
+	_brush_decal.update_visibility()
 
 
 func forward_spatial_gui_input(p_camera, p_event):
@@ -225,7 +225,7 @@ func forward_spatial_gui_input(p_camera, p_event):
 		if _node.cell_raycast(origin, dir, hit_pos_in_cells):
 			
 			_brush_decal.set_position(Vector3(hit_pos_in_cells[0], 0, hit_pos_in_cells[1]))
-			
+						
 			if _mouse_pressed:
 				if Input.is_mouse_button_pressed(BUTTON_LEFT):
 					
@@ -235,6 +235,10 @@ func forward_spatial_gui_input(p_camera, p_event):
 					_pending_paint_action = [hit_pos_in_cells[0], hit_pos_in_cells[1]]
 					
 					captured_event = true
+
+		# This is in case the data or textures change as the user edits the terrain,
+		# to keep the decal working without having to noodle around with nested signals
+		_brush_decal.update_visibility()
 
 	return captured_event
 

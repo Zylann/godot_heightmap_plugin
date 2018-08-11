@@ -33,10 +33,6 @@ func set_shape(shape_grid):
 	set_size(len(shape_grid))
 
 
-func set_visible(visible):
-	_mesh_instance.set_visible(visible)
-
-
 func _on_terrain_transform_changed(terrain_global_trans):
 
 	var inv = terrain_global_trans.affine_inverse()
@@ -52,24 +48,16 @@ func set_terrain(terrain):
 
 	if _terrain != null:
 		_terrain.disconnect("transform_changed", self, "_on_terrain_transform_changed")
+		_mesh_instance.exit_world()
 
 	_terrain = terrain
 
 	if _terrain != null:
 		_terrain.connect("transform_changed", self, "_on_terrain_transform_changed")
 		_on_terrain_transform_changed(_terrain.get_internal_transform())
-
-	var heightmap = _get_heightmap(terrain)
-	
-	if heightmap == null:
-		_mesh_instance.exit_world()
-		# I do this for refcounting because heightmaps are large resources
-		_material.set_shader_param("u_terrain_heightmap", null)
-		
-	else:
 		_mesh_instance.enter_world(terrain.get_world())
-		
-		_material.set_shader_param("u_terrain_heightmap", heightmap)
+
+	update_visibility()
 
 
 func set_position(p_local_pos):
@@ -79,6 +67,18 @@ func set_position(p_local_pos):
 	var terrain_gt = _terrain.get_internal_transform()
 	trans = terrain_gt * trans
 	_mesh_instance.set_transform(trans)
+
+
+# This is called very often so it should be cheap
+func update_visibility():
+	var heightmap = _get_heightmap(_terrain)
+	if heightmap == null:
+		# I do this for refcounting because heightmaps are large resources
+		_material.set_shader_param("u_terrain_heightmap", null)
+		_mesh_instance.set_visible(false)
+	else:
+		_material.set_shader_param("u_terrain_heightmap", heightmap)
+		_mesh_instance.set_visible(true)
 
 
 func _get_heightmap(terrain):
