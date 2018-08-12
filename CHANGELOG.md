@@ -5,6 +5,13 @@ This is a high-level changelog for each released versions of the plugin.
 For a more detailed list of past and incoming changes, see the commit history.
 
 
+
+0.8.1
+------
+
+- Fixed cursor decal not showing when creating a terrain from scratch
+
+
 0.8
 -----
 
