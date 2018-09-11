@@ -7,10 +7,7 @@ path="res://.import/icon_heightmap_data.svg-00236b6035ce13dd687a19d98237bdbd.ste
 [deps]
 
 source_file="res://addons/zylann.hterrain/tools/icons/icon_heightmap_data.svg"
-source_md5="a8a69e2b1cf9e50f624f33d632909d11"
-
 dest_files=[ "res://.import/icon_heightmap_data.svg-00236b6035ce13dd687a19d98237bdbd.stex" ]
-dest_md5="ddafae41826e73ff91f81360dc2a0171"
 
 [params]
 
