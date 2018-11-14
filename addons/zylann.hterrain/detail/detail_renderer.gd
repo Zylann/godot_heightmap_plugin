@@ -10,6 +10,7 @@ const DirectMultiMeshInstance = preload("../util/direct_multimesh_instance.gd")
 const DirectMeshInstance = preload("../util/direct_mesh_instance.gd")
 const Util = preload("../util/util.gd")
 
+# TODO Rename DETAIL_CHUNK_SIZE to avoid confusion?
 const CHUNK_SIZE = 32
 const DETAIL_SHADER_PATH = "res://addons/zylann.hterrain/detail/detail.shader"
 const DEBUG = false
@@ -34,12 +35,14 @@ class Chunk:
 
 
 class Layer:
+	# This material can be null until it is really needed for rendering
 	var material = null
 	var texture = null
 
 
 var _view_distance = 100.0
 var _layers = []
+var _ambient_wind_time = 0.0
 
 var _terrain = null
 var _detail_shader = load(DETAIL_SHADER_PATH)
@@ -135,6 +138,13 @@ func get_texture(i):
 	return layer.texture if layer != null else null
 
 
+func update_ambient_wind():
+	var awp = _get_ambient_wind_params()
+	for layer in _layers:
+		# TODO Have stiffness per layer?
+		layer.material.set_shader_param("u_ambient_wind", awp)
+
+
 func _reset_layers():
 	print("Resetting detail layers")
 
@@ -161,7 +171,7 @@ func _reset_layers():
 				_update_layer_material(layer, i)
 
 
-func process(viewer_pos):
+func process(delta, viewer_pos):
 
 	if _terrain == null:
 		print("DetailLayer processing while terrain is null!")
@@ -229,6 +239,22 @@ func process(viewer_pos):
 	for k in to_recycle:
 		_recycle_chunk(k)
 
+	# Update time manually, so we can accelerate the animation when strength is increased,
+	# without causing phase jumps (which would be the case if we just scaled TIME)
+	var ambient_wind_frequency = 1.0 + 3.0 * _terrain.ambient_wind
+	_ambient_wind_time += delta * ambient_wind_frequency
+	var awp = _get_ambient_wind_params()
+	for layer in _layers:
+		# Layer materials are created only when a chunk is first needed in that layer,
+		# so it's possible they are still null at this point
+		if layer.material != null:
+			layer.material.set_shader_param("u_ambient_wind", awp)
+
+
+func _get_ambient_wind_params():
+	# amplitude, time
+	return Vector2(_terrain.ambient_wind, _ambient_wind_time)
+
 
 func _get_distance_to_chunk(local_viewer_pos, cx, cz):
 	assert(typeof(cx) == TYPE_INT)
@@ -239,6 +265,8 @@ func _get_distance_to_chunk(local_viewer_pos, cx, cz):
 	return (aabb.position + 0.5 * aabb.size).distance_to(local_viewer_pos)
 
 
+# Gets local-space AABB of a detail chunk.
+# This only apply map_scale in Y, because details are not affected by X and Z map scale.
 func _get_chunk_aabb(lpos):
 	var terrain_scale = _terrain.map_scale
 	var terrain_data = _terrain.get_data()
@@ -247,7 +275,7 @@ func _get_chunk_aabb(lpos):
 	var size_cells_x = int(CHUNK_SIZE / terrain_scale.x)
 	var size_cells_z = int(CHUNK_SIZE / terrain_scale.z)
 	var aabb = terrain_data.get_region_aabb(origin_cells_x, origin_cells_z, size_cells_x, size_cells_z)
-	aabb.position = Vector3(lpos.x, lpos.y * terrain_scale.y, lpos.z)
+	aabb.position = Vector3(lpos.x, lpos.y + aabb.position.y * terrain_scale.y, lpos.z)
 	aabb.size = Vector3(CHUNK_SIZE, aabb.size.y * terrain_scale.y, CHUNK_SIZE)
 	return aabb
 
@@ -419,7 +447,7 @@ func _update_layer_material(layer, index):
 
 	var gt = _terrain.get_internal_transform()
 	var it = gt.affine_inverse()
-
+	
 	var mat = layer.material
 	mat.set_shader_param("u_terrain_heightmap", heightmap_texture)
 	mat.set_shader_param("u_terrain_detailmap", detailmap_texture)
@@ -427,6 +455,7 @@ func _update_layer_material(layer, index):
 	mat.set_shader_param("u_terrain_inverse_transform", it)
 	mat.set_shader_param("u_albedo_alpha", layer.texture)
 	mat.set_shader_param("u_view_distance", _view_distance)
+	mat.set_shader_param("u_ambient_wind", _get_ambient_wind_params())
 
 
 func _add_debug_cube(aabb):

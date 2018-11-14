@@ -57,7 +57,7 @@ static func max_int(a, b):
 	return a if a > b else b
 
 
-static func clampi(x, a, b):
+static func clamp_int(x, a, b):
 	if x < a:
 		return a
 	if x >= b:
@@ -113,3 +113,12 @@ static func create_wirecube_mesh():
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_LINES, arrays)
 	return mesh
 
+
+static func integer_square_root(x):
+	assert(typeof(x) == TYPE_INT)
+	var r = int(round(sqrt(x)))
+	if r * r == x:
+		return r
+	# Does not exist
+	print("isqrt(", x, ") doesn't exist")
+	return -1

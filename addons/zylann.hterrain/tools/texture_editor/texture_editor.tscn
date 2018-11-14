@@ -7,9 +7,8 @@
 [ext_resource path="res://icon.png" type="Texture" id=5]
 [ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/display_alpha_material.tres" type="Material" id=6]
 
-[node name="TextureEditor" type="Control"]
+[node name="TextureEditor" type="Control" index="0"]
 
-editor/display_folded = true
 anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
@@ -164,7 +163,6 @@ _sections_unfolded = [ "Dialog", "Rect" ]
 
 [node name="GridContainer" type="GridContainer" parent="EditDialog" index="3"]
 
-editor/display_folded = true
 anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 1.0
@@ -201,7 +199,7 @@ percent_visible = 1.0
 lines_skipped = 0
 max_lines_visible = -1
 
-[node name="RoughnessLabel" type="Label" parent="EditDialog/GridContainer" index="1"]
+[node name="AlbedoExtraLabel" type="Label" parent="EditDialog/GridContainer" index="1"]
 
 anchor_left = 0.0
 anchor_top = 0.0
@@ -216,7 +214,7 @@ mouse_filter = 2
 mouse_default_cursor_shape = 0
 size_flags_horizontal = 1
 size_flags_vertical = 4
-text = "+ alpha roughness"
+text = "+ alpha bump"
 percent_visible = 1.0
 lines_skipped = 0
 max_lines_visible = -1
@@ -241,7 +239,7 @@ percent_visible = 1.0
 lines_skipped = 0
 max_lines_visible = -1
 
-[node name="BumpLabel" type="Label" parent="EditDialog/GridContainer" index="3"]
+[node name="NormalExtraLabel" type="Label" parent="EditDialog/GridContainer" index="3"]
 
 anchor_left = 0.0
 anchor_top = 0.0
@@ -256,7 +254,7 @@ mouse_filter = 2
 mouse_default_cursor_shape = 0
 size_flags_horizontal = 1
 size_flags_vertical = 4
-text = "+ alpha bump"
+text = "+ alpha roughness"
 percent_visible = 1.0
 lines_skipped = 0
 max_lines_visible = -1

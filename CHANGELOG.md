@@ -5,6 +5,37 @@ This is a high-level changelog for each released versions of the plugin.
 For a more detailed list of past and incoming changes, see the commit history.
 
 
+0.8
+-----
+
+- Custom ground shaders
+- Added a variant of the default shader which uses less texture samplers
+- Collision is active by default
+- Collision works in editor so other tools can use it (update is manual)
+
+Compatibility breakage:
+- packed bump and roughness were swapped in ground shader API
+
+- Fixed a few culling bugs
+- Fixed error when adding a detail layer while looking far away
+- Fixed normals not updating when generating a terrain over an existing one
+- Fixed terrain LOD updating around the game's camera instead of the editor's camera
+
+
+0.7
+---
+
+- Added basic ambient wind (waving grass)
+- Improved import of heightmaps, splatmaps and colormaps
+- Option to double chunk size (better quality and less draw calls but more vertices)
+- LOD scale can be changed (better quality but more draw calls)
+
+0.6.1
+------
+
+- Collisions are now working with Godot 3.0.4 and later
+- Fix errors when clicking while the terrain has no data
+
 0.6
 -----
 
@@ -13,7 +44,6 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Grass can be erased properly
 - Saving only saves what's needed
 - Fixed grass culling
-
 
 0.5: port to Godot 3.0.2
 ---------------------------

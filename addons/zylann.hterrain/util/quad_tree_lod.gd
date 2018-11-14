@@ -84,7 +84,7 @@ func set_split_scale(p_split_scale):
 	if p_split_scale > MAX:
 		p_split_scale = MAX
 
-	_split_scale = p_split_scale
+	_split_scale = float(p_split_scale)
 
 
 func get_split_scale():

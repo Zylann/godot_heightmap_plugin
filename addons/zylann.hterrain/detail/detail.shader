@@ -9,6 +9,8 @@ uniform mat4 u_terrain_inverse_transform;
 uniform sampler2D u_albedo_alpha;
 uniform float u_view_distance;
 
+uniform vec2 u_ambient_wind; // amplitude, time
+
 varying vec3 v_normal;
 
 float get_hash(vec2 c) {
@@ -17,6 +19,18 @@ float get_hash(vec2 c) {
 
 vec3 unpack_normal(vec4 rgba) {
 	return rgba.xzy * 2.0 - vec3(1.0);
+}
+
+vec3 get_ambient_wind_displacement(vec2 uv, float hash) {
+	// TODO This is an initial basic implementation. It may be improved in the future, especially for strong wind.
+	float t = u_ambient_wind.y;
+	float amp = u_ambient_wind.x * (1.0 - uv.y);
+	// Main displacement
+	vec3 disp = amp * vec3(cos(t), 0, sin(t * 1.2));
+	// Fine displacement
+	float fine_disp_frequency = 2.0;
+	disp += 0.2 * amp * vec3(cos(t * (fine_disp_frequency + hash)), 0, sin(t * (fine_disp_frequency + hash) * 1.2));
+	return disp;
 }
 
 void vertex() {
@@ -29,10 +43,11 @@ void vertex() {
 	float hash = get_hash(obj_pos.xz);
 	
 	if(density > hash) {
-		float height = texture(u_terrain_heightmap, map_uv).r;
-	
 		// Snap model to the terrain
+		float height = texture(u_terrain_heightmap, map_uv).r;
 		VERTEX.y += height;
+		
+		VERTEX += get_ambient_wind_displacement(UV, hash);
 		
 		vec3 wpos = (WORLD_MATRIX * vec4(VERTEX, 1)).xyz;
 		vec3 campos = CAMERA_MATRIX[3].xyz;

@@ -17,6 +17,9 @@ const MODE_MASK = 6
 const MODE_DETAIL = 7
 const MODE_COUNT = 8
 
+# Size of chunks used for undo/redo (so we don't backup the entire terrain everytime)
+const EDIT_CHUNK_SIZE = 16
+
 signal shape_changed(shape)
 
 var _radius = 0
@@ -319,14 +322,14 @@ func _backup_for_undo(im, undo_cache, rect_origin_x, rect_origin_y, rect_size_x,
 	# using chunks so that we don't save the entire grid everytime.
 	# This function won't do anything if all concerned chunks got backupped already.
 
-	var cmin_x = rect_origin_x / HTerrain.CHUNK_SIZE
-	var cmin_y = rect_origin_y / HTerrain.CHUNK_SIZE
-	var cmax_x = (rect_origin_x + rect_size_x - 1) / HTerrain.CHUNK_SIZE + 1
-	var cmax_y = (rect_origin_y + rect_size_y - 1) / HTerrain.CHUNK_SIZE + 1
+	var cmin_x = rect_origin_x / EDIT_CHUNK_SIZE
+	var cmin_y = rect_origin_y / EDIT_CHUNK_SIZE
+	var cmax_x = (rect_origin_x + rect_size_x - 1) / EDIT_CHUNK_SIZE + 1
+	var cmax_y = (rect_origin_y + rect_size_y - 1) / EDIT_CHUNK_SIZE + 1
 
 	for cpos_y in range(cmin_y, cmax_y):
-		var min_y = cpos_y * HTerrain.CHUNK_SIZE
-		var max_y = min_y + HTerrain.CHUNK_SIZE
+		var min_y = cpos_y * EDIT_CHUNK_SIZE
+		var max_y = min_y + EDIT_CHUNK_SIZE
 			
 		for cpos_x in range(cmin_x, cmax_x):
 		
@@ -335,8 +338,8 @@ func _backup_for_undo(im, undo_cache, rect_origin_x, rect_origin_y, rect_size_x,
 				# Already backupped
 				continue
 
-			var min_x = cpos_x * HTerrain.CHUNK_SIZE
-			var max_x = min_x + HTerrain.CHUNK_SIZE
+			var min_x = cpos_x * EDIT_CHUNK_SIZE
+			var max_x = min_x + EDIT_CHUNK_SIZE
 
 			var invalid_min = not _is_valid_pos(min_x, min_y, im)
 			var invalid_max = not _is_valid_pos(max_x - 1, max_y - 1, im) # Note: max is excluded
@@ -552,10 +555,10 @@ static func _fetch_redo_chunks(im, keys):
 	var output = []
 	for key in keys:
 		var cpos = Util.decode_v2i(key)
-		var min_x = cpos[0] * HTerrain.CHUNK_SIZE
-		var min_y = cpos[1] * HTerrain.CHUNK_SIZE
-		var max_x = min_x + 1 * HTerrain.CHUNK_SIZE
-		var max_y = min_y + 1 * HTerrain.CHUNK_SIZE
+		var min_x = cpos[0] * EDIT_CHUNK_SIZE
+		var min_y = cpos[1] * EDIT_CHUNK_SIZE
+		var max_x = min_x + 1 * EDIT_CHUNK_SIZE
+		var max_y = min_y + 1 * EDIT_CHUNK_SIZE
 		var sub_image = im.get_rect(Rect2(min_x, min_y, max_x - min_x, max_y - min_y))
 		output.append(sub_image)
 	return output
@@ -595,7 +598,8 @@ func _edit_pop_undo_redo_data(heightmap_data):
 		"redo": redo_data,
 		"chunk_positions": chunk_positions,
 		"channel": channel,
-		"index": 0
+		"index": 0,
+		"chunk_size": EDIT_CHUNK_SIZE
 	}
 
 	_undo_cache.clear()
