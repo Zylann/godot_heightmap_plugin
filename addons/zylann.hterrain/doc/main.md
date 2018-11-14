@@ -4,17 +4,6 @@ HTerrain plugin documentation
 This is a stub documentation to be written in the future.
 I may write a few things here for now, but they are subject to change and be improved when I'll get to work on a bigger documentation pass.
 
-An Overview of the plugin in action
--------------------------------------
-![Plugin in action](/addons/zylann.hterrain/doc/images/PluginInAction.png)
-1. HTerrain node in scene tree
-2. HTerrain properties in inspector
-3. HTerrain menu (usually this won't catch your eye, but its an important one)
-4. Toolbar
-5. Brush settings
-6. Texture settings
-7. Grass Setings
-8. Chunks preview (for debugging LOD).
 
 Creating a terrain in Godot 3.0.x
 --------------------------------------
@@ -31,11 +20,7 @@ Creating a terrain from scratch in this version of Godot is really awkward, due 
 
 5) Change the resolution if needed, then click the Terrain menu --> Save.
 
-![Menu Expanded](/addons/zylann.hterrain/doc/images/MenuExpanded.png)
-
 You will have to use that submenu to save the terrain, as the plugin currently cannot properly integrate to the scene saving process.
-
-Also if you find the terrain is not so responsive, click on "Update Editor Collider".
 
 
 Creating a terrain in Godot 3.1 (hopefully)
