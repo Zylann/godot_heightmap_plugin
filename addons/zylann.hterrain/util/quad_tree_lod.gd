@@ -131,7 +131,7 @@ func _join_recursively(node, lod):
 
 
 func _update_nodes_recursive(node, lod, viewer_pos):
-	#print_line(String("update_nodes_recursive lod={0}, o={1}, {2} ").format(varray(lod, node.origin.x, node.origin.y)));
+	#print("update_nodes_recursive lod={0}, o={1}, {2} ".format([lod, node.origin.x, node.origin.y]))
 
 	var lod_size = get_lod_size(lod)
 	var world_center = (_base_size * lod_size) * (Vector3(node.origin_x, 0, node.origin_y) + Vector3(0.5, 0, 0.5))

@@ -4,6 +4,7 @@ extends Resource
 const Grid = preload("util/grid.gd")
 var HTerrain = load("res://addons/zylann.hterrain/hterrain.gd")
 const Util = preload("util/util.gd")
+const Errors = preload("util/errors.gd")
 
 # TODO Rename "CHANNEL" to "MAP", makes more sense and less confusing with RGBA channels
 const CHANNEL_HEIGHT = 0
@@ -385,7 +386,8 @@ func update_normals(min_x, min_y, size_x, size_y):
 			max_y - min_y + min_pad_x + max_pad_x)
 
 		var sub = heights.get_rect(src_extract_rect)
-		# TODO Need a parameter for this function to NOT wrap pixels, it can cause lighting artifacts on map borders
+		# TODO Need a parameter for this function to NOT wrap pixels,
+		# it can cause lighting artifacts on map borders
 		sub.bumpmap_to_normalmap()
 		sub.convert(normals.get_format())
 
@@ -578,7 +580,10 @@ func _upload_region(channel, index, min_x, min_y, size_x, size_y):
 	assert(size_x > 0 and size_y > 0)
 
 	var flags = 0;
-	if channel == CHANNEL_NORMAL or channel == CHANNEL_COLOR or channel == CHANNEL_SPLAT or channel == CHANNEL_HEIGHT:
+	if channel == CHANNEL_NORMAL \
+	or channel == CHANNEL_COLOR \
+	or channel == CHANNEL_SPLAT \
+	or channel == CHANNEL_HEIGHT:
 		flags |= Texture.FLAG_FILTER
 
 	var texture = map.texture
@@ -991,24 +996,12 @@ func _save_channel(channel, index):
 		im.save_png(fpath)
 
 	else:
-		fpath += ".bin"
-		var f = File.new()
-		var err = f.open(fpath, File.WRITE)
+		fpath += ".res"
+		var err = ResourceSaver.save(fpath, im)
 		if err != OK:
-			print("Could not open ", fpath, " for writing")
+			printerr("Could not save ", fpath, ", error ", Errors.get_message(err))
 			return false
-		
-		# TODO Too lazy to save mipmaps in that format...
-		# only heights are using it for now anyways
-		assert(not im.has_mipmaps())
-
-		var data = im.get_data()
-		f.store_32(im.get_width())
-		f.store_32(im.get_height())
-		var pixel_size = data.size() / (im.get_width() * im.get_height())
-		f.store_32(pixel_size)
-		f.store_buffer(im.get_data())
-		f.close()
+		_try_delete_0_8_0_heightmap(fpath.get_basename())
 	
 	return true
 
@@ -1043,30 +1036,60 @@ func _load_channel(channel, index):
 		map.texture = tex
 
 	else:
-		fpath += ".bin"
-		var f = File.new()
-		var err = f.open(fpath, File.READ)
-		if err != OK:
-			print("Could not open ", fpath, " for reading")
+		var im = _try_load_0_8_0_heightmap(fpath, channel, map.image)
+		if typeof(im) == TYPE_BOOL:
+			return false
+		if im == null:
+			fpath += ".res"
+			im = load(fpath)
+		if im == null:
+			printerr("Could not load ", fpath)
 			return false
 		
-		var width = f.get_32()
-		var height = f.get_32()
-		var pixel_size = f.get_32()
-		var data_size = width * height * pixel_size
-		var data = f.get_buffer(data_size)
-		if data.size() != data_size:
-			print("Unexpected end of buffer, expected size ", data_size, ", got ", data.size())
-			return false
-
-		_resolution = width
+		print("W: ", im.get_width())
+		_resolution = im.get_width()
 		
-		if map.image == null:
-			map.image = Image.new()
-		map.image.create_from_data(_resolution, _resolution, false, _get_channel_format(channel), data)
+		map.image = im
 		_upload_channel(channel, index)
 
 	return true
+
+
+# Legacy
+# TODO Drop after a few versions
+static func _try_load_0_8_0_heightmap(fpath, channel, existing_image):
+	fpath += ".bin"
+	var f = File.new()
+	if not f.file_exists(fpath):
+		return null
+	var err = f.open(fpath, File.READ)
+	if err != OK:
+		printerr("Could not open ", fpath, " for reading, error ", Errors.get_message(err))
+		return false
+	
+	var width = f.get_32()
+	var height = f.get_32()
+	var pixel_size = f.get_32()
+	var data_size = width * height * pixel_size
+	var data = f.get_buffer(data_size)
+	if data.size() != data_size:
+		printerr("Unexpected end of buffer, expected size ", data_size, ", got ", data.size())
+		return false
+	
+	var im = existing_image
+	if im == null:
+		im = Image.new()
+	im.create_from_data(width, height, false, _get_channel_format(channel), data)
+	return im
+
+
+static func _try_delete_0_8_0_heightmap(fpath):
+	fpath += ".bin"
+	var d = Directory.new()
+	if d.file_exists(fpath):
+		var err = d.remove(fpath)
+		if err != OK:
+			printerr("Could not erase file ", fpath, ", error ", Errors.get_message(err))
 
 
 # Imports images into the terrain data by converting them to the internal format.
