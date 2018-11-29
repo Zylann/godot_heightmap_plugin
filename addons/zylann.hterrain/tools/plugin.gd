@@ -14,7 +14,7 @@ const GeneratorDialog = preload("generator/generator_dialog.tscn")
 const ImportDialog = preload("importer/importer_dialog.tscn")
 
 const MENU_IMPORT_MAPS = 0
-# TODO Save items two should not exist, they are workarounds to test saving!
+# TODO Save items should not exist, they are workarounds to test saving!
 const MENU_SAVE = 1
 const MENU_LOAD = 2
 const MENU_GENERATE = 3
@@ -27,15 +27,14 @@ var _node = null
 var _panel = null
 var _toolbar = null
 var _toolbar_brush_buttons = {}
+var _generator_dialog = null
+var _import_dialog = null
+var _progress_window = null
+var _load_texture_dialog = null
+
 var _brush = null
 var _brush_decal = null
 var _mouse_pressed = false
-
-var _generator_dialog = null
-var _import_dialog = null
-
-var _progress_window = null
-
 var _pending_paint_action = null
 var _pending_paint_completed = false
 
@@ -59,15 +58,15 @@ func _enter_tree():
 	
 	var editor_interface = get_editor_interface()
 	var base_control = editor_interface.get_base_control()
-	var load_texture_dialog = LoadTextureDialog.new()
-	base_control.add_child(load_texture_dialog)
+	_load_texture_dialog = LoadTextureDialog.new()
+	base_control.add_child(_load_texture_dialog)
 	
 	_panel = EditPanel.instance()
 	_panel.hide()
 	add_control_to_container(EditorPlugin.CONTAINER_SPATIAL_EDITOR_BOTTOM, _panel)
 	# Apparently _ready() still isn't called at this point...
 	_panel.call_deferred("set_brush", _brush)
-	_panel.call_deferred("set_load_texture_dialog", load_texture_dialog)
+	_panel.call_deferred("set_load_texture_dialog", _load_texture_dialog)
 	_panel.connect("detail_selected", self, "_on_detail_selected")
 	_panel.connect("texture_selected", self, "_on_texture_selected")
 	
@@ -151,7 +150,25 @@ func _enter_tree():
 
 
 func _exit_tree():
-	pass
+	print("Heightmap plugin Exit tree")
+	
+	_panel.queue_free()
+	_panel = null
+	
+	_toolbar.queue_free()
+	_toolbar = null
+	
+	_load_texture_dialog.queue_free()
+	_load_texture_dialog = null
+	
+	_generator_dialog.queue_free()
+	_generator_dialog = null
+	
+	_import_dialog.queue_free()
+	_import_dialog = null
+	
+	_progress_window.queue_free()
+	_progress_window = null
 
 
 func handles(object):
@@ -345,9 +362,10 @@ func _menu_item_selected(id):
 			# 1) When the terrain gets deselected, update the terrain collider in a thread automatically.
 			#    This is still expensive but should be easy to do.
 			#
-			# 2) Bullet actually support modifying the heights dynamically as long as we stay within min and max bounds,
+			# 2) Bullet actually support modifying the heights dynamically,
+			#    as long as we stay within min and max bounds,
 			#    so PR a change to the Godot heightmap collider to support passing a Float Image directly,
-			#    and make it so the data is in sync (no CoW plz!!). It's trickier than 1).
+			#    and make it so the data is in sync (no CoW plz!!). It's trickier than 1) but almost free.
 			#
 			_node.update_collider()
 
