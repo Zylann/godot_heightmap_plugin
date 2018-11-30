@@ -72,6 +72,10 @@ func _on_EditDetailDialog_confirmed(params):
 	if _dialog_target == -1:
 		_update_list()
 
+	_item_list.select(index)
+	# select() doesn't trigger the signal
+	emit_signal("detail_selected", index)
+
 
 func _on_ConfirmationDialog_confirmed():
 	var data = _terrain.get_data()

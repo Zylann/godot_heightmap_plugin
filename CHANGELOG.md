@@ -12,6 +12,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Heightmaps are now saved as `.res` so they are included in export
 - Fixed cursor decal not showing when creating a terrain from scratch
 - Fixed editor nodes not cleaned up when the plugin is disabled
+- Select grass tool after adding a new grass type
 
 
 0.8
