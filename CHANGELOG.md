@@ -10,6 +10,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 ---------
 
 - Added tool to generate a full mesh of the terrain so Godot can bake a navmesh
+- The strength of sculpting tools is now proportional to brush size
 - Fixed potential cleanup error when the editor closes
 
 

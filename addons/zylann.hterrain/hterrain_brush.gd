@@ -197,14 +197,17 @@ func paint(height_map, cell_pos_x, cell_pos_y, override_mode):
 
 	height_map.set_area_dirty(origin_x, origin_y, _shape_size, _shape_size)
 	var map_index = 0
+	
+	# When using sculpting tools, make it dependent on brush size
+	var raise_strength = 10.0 + 2.0 * float(_shape_size)
 
 	match mode:
 
 		MODE_ADD:
-			_paint_height(data, origin_x, origin_y, 50.0 * delta)
+			_paint_height(data, origin_x, origin_y, raise_strength * delta)
 
 		MODE_SUBTRACT:
-			_paint_height(data, origin_x, origin_y, -50.0 * delta)
+			_paint_height(data, origin_x, origin_y, -raise_strength * delta)
 
 		MODE_SMOOTH:
 			_smooth_height(data, origin_x, origin_y, delta)
@@ -225,7 +228,9 @@ func paint(height_map, cell_pos_x, cell_pos_y, override_mode):
 			_paint_detail(data, origin_x, origin_y)
 			map_index = _detail_index
 
-	data.notify_region_change([origin_x, origin_y], [_shape_size, _shape_size], _get_mode_channel(mode), map_index)
+	data.notify_region_change( \
+		[origin_x, origin_y], [_shape_size, _shape_size], \
+		_get_mode_channel(mode), map_index)
 
 	#var time_elapsed = OS.get_ticks_msec() - time_before
 	#print("Time elapsed painting: ", time_elapsed, "ms")
