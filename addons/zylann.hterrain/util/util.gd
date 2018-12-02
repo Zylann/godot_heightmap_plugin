@@ -122,3 +122,22 @@ static func integer_square_root(x):
 	# Does not exist
 	print("isqrt(", x, ") doesn't exist")
 	return -1
+
+
+static func format_integer(n, sep = ","):
+	assert(typeof(n) == TYPE_INT)
+	
+	var negative = false
+	if n < 0:
+		negative = true
+		n = -n
+	
+	var s = ""
+	while n >= 1000:
+		s = str(sep, str(n % 1000).pad_zeros(3), s)
+		n /= 1000
+	
+	if negative:
+		return str("-", str(n), s)
+	else:
+		return str(str(n), s)

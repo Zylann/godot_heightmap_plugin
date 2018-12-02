@@ -6,6 +6,13 @@ For a more detailed list of past and incoming changes, see the commit history.
 
 
 
+0.9
+----
+
+- Added tool to generate a full mesh of the terrain so Godot can bake a navmesh
+- Fixed potential cleanup error when the editor closes
+
+
 0.8.1
 ------
 

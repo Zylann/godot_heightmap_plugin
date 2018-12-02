@@ -73,12 +73,13 @@ func make_flat_chunk(chunk_size_x, chunk_size_y, stride, seams):
 
 # size: chunk size in quads (there are N+1 vertices)
 # seams: Bitfield for which seams are present
-func make_indices(chunk_size_x, chunk_size_y, seams):
+static func make_indices(chunk_size_x, chunk_size_y, seams):
 
 	var output_indices = PoolIntArray()
 
-	# LOD seams can't be made properly on uneven chunk sizes
-	assert(chunk_size_x % 2 == 0 and chunk_size_y % 2 == 0)
+	if seams != 0:
+		# LOD seams can't be made properly on uneven chunk sizes
+		assert(chunk_size_x % 2 == 0 and chunk_size_y % 2 == 0)
 
 	var reg_origin_x = 0
 	var reg_origin_y = 0
@@ -298,3 +299,50 @@ func make_indices(chunk_size_x, chunk_size_y, seams):
 
 	return output_indices
 
+
+static func get_mesh_size(width, height):
+	return {
+		"vertices": width * height,
+		"triangles": (width - 1) * (height - 1) * 2
+	}
+
+
+# Makes a full mesh from a heightmap, without any LOD considerations.
+# Using this mesh for rendering is very expensive on large terrains.
+# Initially used as a workaround for Godot to use for navmesh generation.
+static func make_heightmap_mesh(heightmap, stride, scale):
+	var size_x = heightmap.get_width() / stride
+	var size_z = heightmap.get_height() / stride
+
+	assert(size_x >= 2)
+	assert(size_z >= 2)
+	
+	var positions = PoolVector3Array()
+	positions.resize(size_x * size_z)
+	
+	heightmap.lock()
+
+	var i = 0
+	for mz in size_z:
+		for mx in size_x:
+			var x = mx * stride
+			var z = mz * stride
+			var y = heightmap.get_pixel(x, z).r
+			positions[i] = Vector3(x, y, z) * scale
+			i += 1
+	
+	heightmap.unlock()
+	
+	var indices = make_indices(size_x - 1, size_z - 1, 0)
+
+	var arrays = []
+	arrays.resize(Mesh.ARRAY_MAX);
+	arrays[Mesh.ARRAY_VERTEX] = positions
+	arrays[Mesh.ARRAY_INDEX] = indices
+	
+	print("Generated mesh has ", len(positions), " vertices and ", len(indices) / 3, " triangles")
+
+	var mesh = ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	
+	return mesh

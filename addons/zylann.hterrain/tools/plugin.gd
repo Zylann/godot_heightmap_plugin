@@ -4,6 +4,7 @@ extends EditorPlugin
 
 const HTerrain = preload("../hterrain.gd")#preload("hterrain.gdns")
 const HTerrainData = preload("../hterrain_data.gd")
+const HTerrainMesher = preload("../hterrain_mesher.gd")
 const Brush = preload("../hterrain_brush.gd")#preload("hterrain_brush.gdns")
 const BrushDecal = preload("brush/decal.gd")
 const Util = preload("../util/util.gd")
@@ -12,6 +13,7 @@ const EditPanel = preload("panel.tscn")
 const ProgressWindow = preload("progress_window.tscn")
 const GeneratorDialog = preload("generator/generator_dialog.tscn")
 const ImportDialog = preload("importer/importer_dialog.tscn")
+const GenerateMeshDialog = preload("generate_mesh_dialog.tscn")
 
 const MENU_IMPORT_MAPS = 0
 # TODO Save items should not exist, they are workarounds to test saving!
@@ -19,6 +21,7 @@ const MENU_SAVE = 1
 const MENU_LOAD = 2
 const MENU_GENERATE = 3
 const MENU_UPDATE_EDITOR_COLLIDER = 4
+const MENU_GENERATE_MESH = 5
 
 
 # TODO Rename _terrain
@@ -31,6 +34,7 @@ var _generator_dialog = null
 var _import_dialog = null
 var _progress_window = null
 var _load_texture_dialog = null
+var _generate_mesh_dialog = null
 
 var _brush = null
 var _brush_decal = null
@@ -44,7 +48,7 @@ static func get_icon(name):
 
 
 func _enter_tree():
-	print("Heightmap plugin Enter tree")
+	print("HTerrain plugin Enter tree")
 	
 	add_custom_type("HTerrain", "Spatial", HTerrain, get_icon("heightmap_node"))
 	add_custom_type("HTerrainData", "Resource", HTerrainData, get_icon("heightmap_data"))
@@ -83,6 +87,8 @@ func _enter_tree():
 	menu.get_popup().add_item("Load", MENU_LOAD)
 	menu.get_popup().add_separator()
 	menu.get_popup().add_item("Update Editor Collider", MENU_UPDATE_EDITOR_COLLIDER)
+	menu.get_popup().add_separator()
+	menu.get_popup().add_item("Generate mesh (heavy)", MENU_GENERATE_MESH)
 	menu.get_popup().connect("id_pressed", self, "_menu_item_selected")
 	_toolbar.add_child(menu)
 	
@@ -147,11 +153,17 @@ func _enter_tree():
 
 	_progress_window = ProgressWindow.instance()
 	base_control.add_child(_progress_window)
+	
+	_generate_mesh_dialog = GenerateMeshDialog.instance()
+	_generate_mesh_dialog.connect("generate_selected", self, "_on_GenerateMeshDialog_generate_selected")
+	base_control.add_child(_generate_mesh_dialog)
 
 
 func _exit_tree():
-	print("Heightmap plugin Exit tree")
+	print("HTerrain plugin Exit tree")
 	
+	edit(null)
+
 	_panel.queue_free()
 	_panel = null
 	
@@ -169,6 +181,9 @@ func _exit_tree():
 	
 	_progress_window.queue_free()
 	_progress_window = null
+	
+	_generate_mesh_dialog.queue_free()
+	_generate_mesh_dialog = null
 
 
 func handles(object):
@@ -196,6 +211,7 @@ func edit(object):
 	_generator_dialog.set_terrain(_node)
 	_import_dialog.set_terrain(_node)
 	_brush_decal.set_terrain(_node)
+	_generate_mesh_dialog.set_terrain(_node)
 
 
 func make_visible(visible):
@@ -368,6 +384,10 @@ func _menu_item_selected(id):
 			#    and make it so the data is in sync (no CoW plz!!). It's trickier than 1) but almost free.
 			#
 			_node.update_collider()
+		
+		MENU_GENERATE_MESH:
+			if _node != null and _node.get_data() != null:
+				_generate_mesh_dialog.popup_centered_minsize()
 
 
 func _on_mode_selected(mode):
@@ -416,3 +436,18 @@ func _terrain_progress_notified(info):
 		# TODO Have builtin modal progress bar
 
 
+func _on_GenerateMeshDialog_generate_selected(lod):
+	var data = _node.get_data()
+	if data == null:
+		printerr("Terrain has no data")
+		return
+	var heightmap = data.get_image(HTerrainData.CHANNEL_HEIGHT)
+	var scale = _node.map_scale
+	var mesh = HTerrainMesher.make_heightmap_mesh(heightmap, lod, scale)
+	var mi = MeshInstance.new()
+	mi.name = str(_node.name, "_FullMesh")
+	mi.mesh = mesh
+	_node.get_parent().add_child(mi)
+	mi.set_owner(get_editor_interface().get_edited_scene_root())
+
+ 
