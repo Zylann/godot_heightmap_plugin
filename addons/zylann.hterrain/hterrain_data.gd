@@ -1263,10 +1263,6 @@ static func _encode_normal(n):
 	return Color(0.5 * (n.x + 1.0), 0.5 * (n.z + 1.0), 0.5 * (n.y + 1.0), 1.0)
 
 
-#static func _decode_normal(c):
-#	return Vector3(2.0 * c.r - 1.0, 2.0 * c.b - 1.0, 2.0 * c.g - 1.0)
-
-
 static func _get_channel_format(channel):
 	match channel:
 		CHANNEL_HEIGHT:
@@ -1291,7 +1287,7 @@ static func _channel_can_be_saved_as_png(channel):
 	return true
 
 
-static func _get_channel_name(c):
+static func get_channel_name(c):
 	var name = null
 	match c:
 		CHANNEL_COLOR:

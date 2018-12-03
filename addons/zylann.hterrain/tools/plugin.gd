@@ -5,6 +5,7 @@ extends EditorPlugin
 const HTerrain = preload("../hterrain.gd")#preload("hterrain.gdns")
 const HTerrainData = preload("../hterrain_data.gd")
 const HTerrainMesher = preload("../hterrain_mesher.gd")
+const PreviewGenerator = preload("preview_generator.gd")
 const Brush = preload("../hterrain_brush.gd")#preload("hterrain_brush.gdns")
 const BrushDecal = preload("brush/decal.gd")
 const Util = preload("../util/util.gd")
@@ -35,6 +36,7 @@ var _import_dialog = null
 var _progress_window = null
 var _load_texture_dialog = null
 var _generate_mesh_dialog = null
+var _preview_generator = null
 
 var _brush = null
 var _brush_decal = null
@@ -52,6 +54,9 @@ func _enter_tree():
 	
 	add_custom_type("HTerrain", "Spatial", HTerrain, get_icon("heightmap_node"))
 	add_custom_type("HTerrainData", "Resource", HTerrainData, get_icon("heightmap_data"))
+	
+	_preview_generator = PreviewGenerator.new()
+	get_editor_interface().get_resource_previewer().add_preview_generator(_preview_generator)
 	
 	_brush = Brush.new()
 	_brush.set_radius(5)
@@ -184,6 +189,9 @@ func _exit_tree():
 	
 	_generate_mesh_dialog.queue_free()
 	_generate_mesh_dialog = null
+
+	get_editor_interface().get_resource_previewer().remove_preview_generator(_preview_generator)
+	_preview_generator = null
 
 
 func handles(object):
