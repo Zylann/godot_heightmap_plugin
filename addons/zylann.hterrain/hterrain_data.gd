@@ -1305,11 +1305,11 @@ static func get_channel_name(c):
 
 
 static func _get_map_debug_name(map_type, index):
-	return str(_get_channel_name(map_type), "[", index, "]")
+	return str(get_channel_name(map_type), "[", index, "]")
 
 
 func _get_map_filename(c, index):
-	var name = _get_channel_name(c)
+	var name = get_channel_name(c)
 	var id = _maps[c][index].id
 	if id > 0:
 		name += str(id + 1)
