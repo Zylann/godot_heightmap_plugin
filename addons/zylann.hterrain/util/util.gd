@@ -72,7 +72,7 @@ static func array_sum(a):
 	return s
 
 
-static func create_wirecube_mesh():
+static func create_wirecube_mesh(color = Color(1,1,1)):
 	var positions = PoolVector3Array([
 		Vector3(0, 0, 0),
 		Vector3(1, 0, 0),
@@ -83,10 +83,9 @@ static func create_wirecube_mesh():
 		Vector3(1, 1, 1),
 		Vector3(0, 1, 1),
 	])
-	var c = Color(1, 1, 1)
 	var colors = PoolColorArray([
-		c, c, c, c,
-		c, c, c, c
+		color, color, color, color,
+		color, color, color, color,
 	])
 	var indices = PoolIntArray([
 		0, 1,
@@ -120,7 +119,7 @@ static func integer_square_root(x):
 	if r * r == x:
 		return r
 	# Does not exist
-	print("isqrt(", x, ") doesn't exist")
+	printerr("isqrt(", x, ") doesn't exist")
 	return -1
 
 
@@ -141,3 +140,37 @@ static func format_integer(n, sep = ","):
 		return str("-", str(n), s)
 	else:
 		return str(str(n), s)
+
+
+static func get_node_in_parents(node, klass):
+	while node != null:
+		node = node.get_parent()
+		if node != null and node is klass:
+			return node
+	return null
+
+
+static func is_in_edited_scene(node):
+	#                               .___.
+	#           /)               ,-^     ^-. 
+	#          //               /           \
+	# .-------| |--------------/  __     __  \-------------------.__
+	# |WMWMWMW| |>>>>>>>>>>>>> | />>\   />>\ |>>>>>>>>>>>>>>>>>>>>>>:>
+	# `-------| |--------------| \__/   \__/ |-------------------'^^
+	#          \\               \    /|\    /
+	#           \)               \   \_/   /
+	#                             |       |
+	#                             |+H+H+H+|
+	#                             \       /
+	#                              ^-----^
+	# TODO https://github.com/godotengine/godot/issues/17592
+	# This may break some day, don't fly planes with this bullshit.
+	# Obviously it won't work for nested viewports since that's basically what this function checks.
+	if not node.is_inside_tree():
+		return false
+	var vp = get_node_in_parents(node, Viewport)
+	if vp == null:
+		return false
+	return vp.get_parent() != null
+
+

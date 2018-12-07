@@ -10,6 +10,7 @@ uniform int u_octaves = 5;
 uniform float u_roughness = 0.5;
 uniform float u_curve = 1.0;
 uniform int u_mode = 0; // 0: heights, 1: normals
+uniform vec3 u_preview_scale = vec3(1.0); // used for full-size preview, reset to 1 when doing final renders
 
 float get_noise(vec2 uv) {
 
@@ -63,6 +64,8 @@ float get_smooth_noise(vec2 uv, int extra_magic_rot) {
 
 float get_height(vec2 uv) {
 	
+	uv *= u_preview_scale.xz;
+
 	float h = get_smooth_noise(uv, 0);
 	h = pow(h, u_curve);
 	h = u_base_height + h * u_height_range;
@@ -72,7 +75,7 @@ float get_height(vec2 uv) {
 	// float h = u_base_height + 0.5 * u_height_range * (cos(s * uv.x) + sin(s * uv.y));
 	//float h = uv.x * 513.0;
 
-	return h;
+	return h * u_preview_scale.y;
 }
 
 vec3 pack_normal(vec3 n) {

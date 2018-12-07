@@ -1,3 +1,8 @@
+
+# GDScript implementation of an inspector.
+# It generates controls for a provided list of properties,
+# which is easier to maintain than placing them by hand and connecting things in the editor.
+
 tool
 extends Control
 
@@ -22,6 +27,26 @@ class ResourceEditor extends Editor:
 	func set_value(v):
 		value = v
 		label.text = "null" if v == null else v.resource_path
+
+
+class VectorEditor extends Editor:
+	signal value_changed(v)
+	
+	var value = Vector2()
+	var xed = null
+	var yed = null
+	
+	func get_value():
+		return value
+	
+	func set_value(v):
+		xed.value = v.x
+		yed.value = v.y
+		value = v
+	
+	func _component_changed(v, i):
+		value[i] = v
+		emit_signal("value_changed", value)		
 
 
 # TODO Rename _schema
@@ -224,6 +249,40 @@ func _make_editor(key, prop):
 				ed.label = label
 				getter = funcref(ed, "get_value")
 				setter = funcref(ed, "set_value")
+		
+		TYPE_VECTOR2:
+			editor = HBoxContainer.new()
+
+			ed = VectorEditor.new()
+
+			var xlabel = Label.new()
+			xlabel.text = "x"
+			editor.add_child(xlabel)
+			var xed = SpinBox.new()
+			xed.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			xed.step = 0.01
+			xed.min_value = -10000
+			xed.max_value = 10000
+			# TODO This will fire twice (for each coordinate), hmmm...
+			xed.connect("value_changed", ed, "_component_changed", [0])
+			editor.add_child(xed)
+			
+			var ylabel = Label.new()
+			ylabel.text = "y"
+			editor.add_child(ylabel)
+			var yed = SpinBox.new()
+			yed.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			yed.step = 0.01
+			yed.min_value = -10000
+			yed.max_value = 10000
+			yed.connect("value_changed", ed, "_component_changed", [1])
+			editor.add_child(yed)
+			
+			ed.xed = xed
+			ed.yed = yed
+			ed.connect("value_changed", self, "_property_edited", [key])
+			getter = funcref(ed, "get_value")
+			setter = funcref(ed, "set_value")
 		
 		_:
 			editor = Label.new()

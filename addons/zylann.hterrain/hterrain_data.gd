@@ -214,7 +214,7 @@ func set_resolution2(p_res, update_normals):
 			
 			if im == null:
 				im = Image.new()
-				im.create(_resolution, _resolution, false, _get_channel_format(channel))
+				im.create(_resolution, _resolution, false, get_channel_format(channel))
 				
 				var fill_color = _get_channel_default_fill(channel)
 				if fill_color != null:
@@ -224,7 +224,7 @@ func set_resolution2(p_res, update_normals):
 				
 			else:
 				if channel == CHANNEL_NORMAL:
-					im.create(_resolution, _resolution, false, _get_channel_format(channel))
+					im.create(_resolution, _resolution, false, get_channel_format(channel))
 					if update_normals:
 						_update_all_normals()
 				else:
@@ -675,7 +675,7 @@ func _edit_add_detail_map():
 	var detail_maps = _maps[map_type]
 	var map = Map.new(_get_free_id(map_type))
 	map.image = Image.new()
-	map.image.create(_resolution, _resolution, false, _get_channel_format(map_type))
+	map.image.create(_resolution, _resolution, false, get_channel_format(map_type))
 	var index = len(detail_maps)
 	detail_maps.append(map)
 	emit_signal("map_added", map_type, index)
@@ -1079,7 +1079,7 @@ static func _try_load_0_8_0_heightmap(fpath, channel, existing_image):
 	var im = existing_image
 	if im == null:
 		im = Image.new()
-	im.create_from_data(width, height, false, _get_channel_format(channel), data)
+	im.create_from_data(width, height, false, get_channel_format(channel), data)
 	return im
 
 
@@ -1249,8 +1249,8 @@ func _import_map(map_type, path):
 	if im.get_width() != res or im.get_height() != res:
 		im.crop(res, res)
 
-	if im.get_format() != _get_channel_format(map_type):
-		im.convert(_get_channel_format(map_type))
+	if im.get_format() != get_channel_format(map_type):
+		im.convert(get_channel_format(map_type))
 
 	var map = _maps[map_type][0]
 	map.image = im
@@ -1263,7 +1263,7 @@ static func _encode_normal(n):
 	return Color(0.5 * (n.x + 1.0), 0.5 * (n.z + 1.0), 0.5 * (n.y + 1.0), 1.0)
 
 
-static func _get_channel_format(channel):
+static func get_channel_format(channel):
 	match channel:
 		CHANNEL_HEIGHT:
 			return Image.FORMAT_RH

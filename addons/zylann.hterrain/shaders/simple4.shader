@@ -172,6 +172,10 @@ void fragment() {
 		w.g * normal1 + 
 		w.b * normal2 + 
 		w.a * normal3) / w_sum;
+	// If no splat textures are defined, normal vectors will default to (1,1,1), which is incorrect,
+	// and causes the terrain to be shaded wrongly in some directions.
+	// However, this should not be a problem to fix in the shader, because there MUST be at least one splat texture set.
+	//ground_normal = normalize(ground_normal);
 	
 	// Combine terrain normals with detail normals (not sure if correct but looks ok)
 	vec3 normal = normalize(vec3(

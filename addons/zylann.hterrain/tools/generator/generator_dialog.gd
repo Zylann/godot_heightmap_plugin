@@ -7,11 +7,13 @@ const VIEWPORT_RESOLUTION = 513
 const NOISE_PERM_TEXTURE_SIZE = 256
 
 const HTerrainData = preload("../../hterrain_data.gd")
+const HTerrainMesher = preload("../../hterrain_mesher.gd")
+const Util = preload("../../util/util.gd")
 
 signal progress_notified(info) # { "progress": real, "message": string, "finished": bool }
 
 onready var _inspector = get_node("VBoxContainer/Editor/Settings/Inspector")
-onready var _preview_topdown = get_node("VBoxContainer/Editor/Preview")
+onready var _preview = get_node("VBoxContainer/Editor/Preview/TerrainPreview")
 
 var _dummy_texture = load("res://addons/zylann.hterrain/tools/icons/empty.png")
 var _noise_texture = null
@@ -22,6 +24,7 @@ var _viewports = [null, null]
 var _viewport_cis = [null, null]
 
 var _terrain = null
+#var _test_terrain = null
 
 var _applying = false
 
@@ -29,6 +32,7 @@ var _applying = false
 func _ready():
 	_inspector.set_prototype({
 		"seed": { "type": TYPE_INT, "randomizable": true, "range": { "min": -100000, "max": 100000 }, "slidable": false},
+		"offset": { "type": TYPE_VECTOR2 },
 		"base_height": { "type": TYPE_REAL, "range": {"min": -500.0, "max": 500.0, "step": 0.1 }},
 		"height_range": { "type": TYPE_REAL, "range": {"min": 0.0, "max": 1000.0, "step": 0.1 }, "default_value": 100.0 },
 		"scale": { "type": TYPE_REAL, "range": {"min": 1.0, "max": 1000.0, "step": 1.0}, "default_value": 100.0 },
@@ -36,32 +40,39 @@ func _ready():
 		"curve": { "type": TYPE_REAL, "range": {"min": 1.0, "max": 10.0, "step": 0.1}, "default_value": 1.0 },
 		"octaves": { "type": TYPE_INT, "range": {"min": 1, "max": 10, "step": 1}, "default_value": 4 }
 	})
-	# TEST
-	#if _is_in_edited_scene():
-	#	return
-	#call_deferred("popup_centered_minsize")
+	
+	# TESTING
+#	if not Util.is_in_edited_scene(self):
+#		_setup_test_terrain(4096 + 1)
+
+
+#func _setup_test_terrain(resolution):
+#	var maptypes = [HTerrainData.CHANNEL_HEIGHT, HTerrainData.CHANNEL_NORMAL]
+#	var maps = []
+#	maps.resize(len(maptypes))
+#
+#	for maptype in maptypes:
+#		var map = Image.new()
+#		map.create(resolution, resolution, false, HTerrainData.get_channel_format(maptype))
+#		var texture = ImageTexture.new()
+#		texture.create_from_image(map, Texture.FLAG_FILTER)
+#		maps[maptype] = texture
+#
+#	_test_terrain = {
+#		"maps": maps
+#	}
+
+
+# TEST
+func _input(event):
+	if Engine.editor_hint:
+		return
+	if event is InputEventKey and event.pressed and not visible:
+		call_deferred("popup_centered_minsize")
 
 
 func set_terrain(terrain):
 	_terrain = terrain
-
-
-func _is_in_edited_scene():
-	#                               .___.
-	#           /)               ,-^     ^-. 
-	#          //               /           \
-	# .-------| |--------------/  __     __  \-------------------.__
-	# |WMWMWMW| |>>>>>>>>>>>>> | />>\   />>\ |>>>>>>>>>>>>>>>>>>>>>>:>
-	# `-------| |--------------| \__/   \__/ |-------------------'^^
-	#          \\               \    /|\    /
-	#           \)               \   \_/   /
-	#                             |       |
-	#                             |+H+H+H+|
-	#                             \       /
-	#                              ^-----^
-	# TODO https://github.com/godotengine/godot/issues/17592
-	# This may break some day, don't fly planes with this bullshit
-	return is_inside_tree() and ((get_parent() is Control) == false)
 
 
 func _notification(what):
@@ -70,66 +81,79 @@ func _notification(what):
 		NOTIFICATION_VISIBILITY_CHANGED:
 			
 			# We don't want any of this to run in an edited scene
-			if _is_in_edited_scene():
+			if Util.is_in_edited_scene(self):
 				return
 		
 			if visible:
-				assert(not _applying)
-				
-				if _viewports[0] != null:
-					# TODO https://github.com/godotengine/godot/issues/18160
-					print("WHAAAAT? NOTIFICATION_VISIBILITY_CHANGED was called twice when made visible!! (Godot issue #18160)")
-					return
-				
-				if _noise_texture == null:
-					print("Regenerating perm texture")
-					var random_seed = _inspector.get_value("seed")
-					_regen_noise_perm_texture(random_seed)
-				
-				print("Creating generator viewport")
-				
-				for map in [HTerrainData.CHANNEL_HEIGHT, HTerrainData.CHANNEL_NORMAL]:
-
-					# Create a viewport which renders a map of the terrain offscreen
-					var size = Vector2(VIEWPORT_RESOLUTION, VIEWPORT_RESOLUTION)
-					var viewport = Viewport.new()
-					viewport.size = size
-					viewport.render_target_update_mode = Viewport.UPDATE_ALWAYS
-					viewport.render_target_v_flip = true
-					
-					var mat = ShaderMaterial.new()
-					mat.shader = _generator_shader
-					mat.set_shader_param("noise_texture", _noise_texture)
-					mat.set_shader_param("u_mode", map)
-					
-					# Canvas item within the viewport to do the actual rendering
-					var viewport_ci = TextureRect.new()
-					viewport_ci.expand = true
-					viewport_ci.texture = _dummy_texture
-					viewport_ci.rect_size = size
-					viewport_ci.material = mat
-					viewport.add_child(viewport_ci)
-					
-					add_child(viewport)
-
-					_viewports[map] = viewport
-					_viewport_cis[map] = viewport_ci
+				_setup_generation_viewports()
 				
 				var heights_texture = _viewports[HTerrainData.CHANNEL_HEIGHT].get_texture()
 				var normals_texture = _viewports[HTerrainData.CHANNEL_NORMAL].get_texture()
 
 				heights_texture.flags = Texture.FLAG_FILTER
 				normals_texture.flags = Texture.FLAG_FILTER
-
-				# Assign output texture to display it in the editor with some effects
-				_preview_topdown.texture = heights_texture
-				_preview_topdown.material.set_shader_param("u_normal_texture", normals_texture)
+				
+				_preview.setup(heights_texture, normals_texture)
 				
 				_inspector.trigger_all_modified()
 			
 			else:
 				if not _applying:
 					_destroy_viewport()
+				_preview.cleanup()
+
+
+func _setup_generation_viewports():
+	assert(not _applying)
+	
+	if _viewports[0] != null:
+		# TODO https://github.com/godotengine/godot/issues/18160
+		print("WHAAAAT? NOTIFICATION_VISIBILITY_CHANGED " \
+			+ "was called twice when made visible!! (Godot issue #18160)")
+		return
+	
+	if _noise_texture == null:
+		print("Regenerating perm texture")
+		var random_seed = _inspector.get_value("seed")
+		_regen_noise_perm_texture(random_seed)
+	
+	print("Creating generation viewports")
+	
+	for map in [HTerrainData.CHANNEL_HEIGHT, HTerrainData.CHANNEL_NORMAL]:
+
+		# Create a viewport which renders a map of the terrain offscreen
+		var size = Vector2(VIEWPORT_RESOLUTION, VIEWPORT_RESOLUTION)
+		var viewport = Viewport.new()
+		viewport.size = size
+		viewport.render_target_update_mode = Viewport.UPDATE_ALWAYS
+		viewport.render_target_v_flip = true
+		
+		var mat = ShaderMaterial.new()
+		mat.shader = _generator_shader
+		mat.set_shader_param("noise_texture", _noise_texture)
+		mat.set_shader_param("u_mode", map)
+		
+		# When previewing the resolution does not span the entire terrain,
+		# so we apply a scale to make it cover it all.
+		# Allowing null terrain to make it testable.
+		var preview_scale = 8.0
+		if _terrain != null and _terrain.get_data() != null:
+			var terrain_size = _terrain.get_data().get_resolution()
+			preview_scale = float(terrain_size) / float(VIEWPORT_RESOLUTION)
+		mat.set_shader_param("u_preview_scale", Vector3(preview_scale, 1.0 / preview_scale, preview_scale))
+		
+		# Canvas item within the viewport to do the actual rendering
+		var viewport_ci = TextureRect.new()
+		viewport_ci.expand = true
+		viewport_ci.texture = _dummy_texture
+		viewport_ci.rect_size = size
+		viewport_ci.material = mat
+		viewport.add_child(viewport_ci)
+		
+		add_child(viewport)
+
+		_viewports[map] = viewport
+		_viewport_cis[map] = viewport_ci
 
 
 func _regen_noise_perm_texture(random_seed):
@@ -167,11 +191,19 @@ func _on_Inspector_property_changed(key, value):
 		_regen_noise_perm_texture(value)
 	else:
 		# TODO Remove seed param from the shader?
+		#print("Setting ", "u_" + key, "=", value)
 		for i in range(len(_viewports)):
 			_viewport_cis[i].material.set_shader_param("u_" + key, value)
 	
-	if key == "height_range" or key == "base_height":
-		_preview_topdown.material.set_shader_param("u_" + key, value)
+#	if key == "height_range" or key == "base_height":
+#		_preview_topdown.material.set_shader_param("u_" + key, value)
+
+
+func _on_TerrainPreview_dragged(relative, button_mask):
+	if button_mask & BUTTON_MASK_LEFT:
+		var offset = _inspector.get_value("offset")
+		offset += relative
+		_inspector.set_value("offset", offset)
 
 
 func _apply():
@@ -208,13 +240,20 @@ func _apply():
 	# So to avoid seams we need to slightly alter the offset for the render region
 	var vp_offby1 = float(cs - 1) / float(cs)
 	
+	var base_offset = _inspector.get_value("offset")
+	
+	# Reset preview params
+	for i in range(len(_viewport_cis)):
+		_viewport_cis[i].material.set_shader_param("u_preview_scale", Vector3(1, 1, 1))
+	yield(get_tree(), "idle_frame")
+	
 	# Calculate by chunks so we don't completely freeze the editor
 	for cy in range(ch):
 		for cx in range(cw):
 			print(VIEWPORT_RESOLUTION * Vector2(cx, cy) * vp_offby1)
 
 			for i in range(len(_viewports)):
-				_viewport_cis[i].material.set_shader_param("u_offset", Vector2(cx, cy) * vp_offby1)
+				_viewport_cis[i].material.set_shader_param("u_offset", base_offset + Vector2(cx, cy) * vp_offby1)
 			
 			var progress = float(cy * cw + cx) / float(cw * ch)
 			
@@ -223,6 +262,7 @@ func _apply():
 				"message": "Calculating heightmap (" + str(cx) + ", " + str(cy) + ")"
 			})
 			
+			# Wait one frame for the viewport to render with updated parameters...
 			yield(get_tree(), "idle_frame")
 			
 			var dst_x = cx * (cs - 1)
@@ -237,15 +277,18 @@ func _apply():
 			heights_im.convert(dst_heights.get_format())
 			normals_im.convert(dst_normals.get_format())
 
-			dst_heights.blit_rect(heights_im, Rect2(0, 0, heights_im.get_width(), heights_im.get_height()), Vector2(dst_x, dst_y))
-			dst_normals.blit_rect(normals_im, Rect2(0, 0, normals_im.get_width(), normals_im.get_height()), Vector2(dst_x, dst_y))
+			dst_heights.blit_rect(heights_im, \
+				Rect2(0, 0, heights_im.get_width(), heights_im.get_height()), Vector2(dst_x, dst_y))
+			dst_normals.blit_rect(normals_im, \
+				Rect2(0, 0, normals_im.get_width(), normals_im.get_height()), Vector2(dst_x, dst_y))
 
 	dst_heights.unlock()
 	dst_normals.unlock()
 	
 	_destroy_viewport()
 	
-	data.notify_region_change([0, 0], [dst_heights.get_width(), dst_heights.get_height()], HTerrainData.CHANNEL_HEIGHT)
+	data.notify_region_change( \
+		[0, 0], [dst_heights.get_width(), dst_heights.get_height()], HTerrainData.CHANNEL_HEIGHT)
 	
 	_applying = false
 
@@ -271,4 +314,3 @@ static func generate_perm_texture(tex, res, random_seed, tex_flags):
 	tex.create_from_image(im, tex_flags)
 	
 	return tex
-

@@ -1,15 +1,8 @@
-[gd_scene load_steps=5 format=2]
+[gd_scene load_steps=4 format=2]
 
 [ext_resource path="res://addons/zylann.hterrain/tools/generator/generator_dialog.gd" type="Script" id=1]
 [ext_resource path="res://addons/zylann.hterrain/tools/inspector/inspector.tscn" type="PackedScene" id=2]
-[ext_resource path="res://addons/zylann.hterrain/tools/generator/terrain_preview.shader" type="Shader" id=3]
-
-[sub_resource type="ShaderMaterial" id=1]
-
-render_priority = 0
-shader = ExtResource( 3 )
-shader_param/u_base_height = null
-shader_param/u_height_range = null
+[ext_resource path="res://addons/zylann.hterrain/tools/terrain_preview.tscn" type="PackedScene" id=3]
 
 [node name="GeneratorDialog" type="WindowDialog" index="0"]
 
@@ -21,7 +14,7 @@ margin_left = 77.0
 margin_top = 88.0
 margin_right = 727.0
 margin_bottom = 388.0
-rect_min_size = Vector2( 650, 300 )
+rect_min_size = Vector2( 800, 400 )
 rect_pivot_offset = Vector2( 0, 0 )
 rect_clip_content = false
 mouse_filter = 0
@@ -60,8 +53,8 @@ anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
 anchor_bottom = 0.0
-margin_right = 634.0
-margin_bottom = 248.0
+margin_right = 784.0
+margin_bottom = 348.0
 rect_pivot_offset = Vector2( 0, 0 )
 rect_clip_content = false
 mouse_filter = 1
@@ -73,12 +66,13 @@ _sections_unfolded = [ "Grow Direction", "Size Flags" ]
 
 [node name="Settings" type="Control" parent="VBoxContainer/Editor" index="0"]
 
+editor/display_folded = true
 anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
 anchor_bottom = 0.0
 margin_right = 350.0
-margin_bottom = 248.0
+margin_bottom = 348.0
 rect_min_size = Vector2( 350, 0 )
 rect_pivot_offset = Vector2( 0, 0 )
 rect_clip_content = false
@@ -96,25 +90,49 @@ margin_right = 0.0
 margin_bottom = 0.0
 _sections_unfolded = [ "Anchor", "Margin", "custom_constants" ]
 
-[node name="Preview" type="TextureRect" parent="VBoxContainer/Editor" index="1"]
+[node name="Preview" type="Control" parent="VBoxContainer/Editor" index="1"]
 
-material = SubResource( 1 )
 anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
 anchor_bottom = 0.0
 margin_left = 354.0
-margin_right = 634.0
-margin_bottom = 248.0
+margin_right = 784.0
+margin_bottom = 348.0
 rect_pivot_offset = Vector2( 0, 0 )
 rect_clip_content = false
 mouse_filter = 0
 mouse_default_cursor_shape = 0
 size_flags_horizontal = 3
 size_flags_vertical = 1
-expand = true
-stretch_mode = 5
 _sections_unfolded = [ "Material", "Rect", "Size Flags" ]
+
+[node name="TerrainPreview" parent="VBoxContainer/Editor/Preview" index="0" instance=ExtResource( 3 )]
+
+_sections_unfolded = [ "Rect" ]
+
+[node name="Label" type="Label" parent="VBoxContainer/Editor/Preview" index="1"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 5.0
+margin_top = 4.0
+margin_right = 207.0
+margin_bottom = 18.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 2
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 4
+custom_colors/font_color = Color( 1, 1, 1, 0.453608 )
+text = "LMB: offset, MMB: rotate"
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+_sections_unfolded = [ "custom_colors" ]
 
 [node name="Choices" type="HBoxContainer" parent="VBoxContainer" index="1"]
 
@@ -122,9 +140,9 @@ anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
 anchor_bottom = 0.0
-margin_top = 264.0
-margin_right = 634.0
-margin_bottom = 284.0
+margin_top = 364.0
+margin_right = 784.0
+margin_bottom = 384.0
 rect_pivot_offset = Vector2( 0, 0 )
 rect_clip_content = false
 mouse_filter = 1
@@ -141,8 +159,8 @@ anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
 anchor_bottom = 0.0
-margin_left = 218.0
-margin_right = 330.0
+margin_left = 293.0
+margin_right = 405.0
 margin_bottom = 20.0
 rect_pivot_offset = Vector2( 0, 0 )
 rect_clip_content = false
@@ -165,8 +183,8 @@ anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
 anchor_bottom = 0.0
-margin_left = 362.0
-margin_right = 416.0
+margin_left = 437.0
+margin_right = 491.0
 margin_bottom = 20.0
 rect_pivot_offset = Vector2( 0, 0 )
 rect_clip_content = false
@@ -184,6 +202,8 @@ flat = false
 align = 1
 
 [connection signal="property_changed" from="VBoxContainer/Editor/Settings/Inspector" to="." method="_on_Inspector_property_changed"]
+
+[connection signal="dragged" from="VBoxContainer/Editor/Preview/TerrainPreview" to="." method="_on_TerrainPreview_dragged"]
 
 [connection signal="pressed" from="VBoxContainer/Choices/ApplyButton" to="." method="_on_ApplyButton_pressed"]
 

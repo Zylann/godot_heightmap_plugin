@@ -47,7 +47,7 @@ func get_chunk(lod, seams):
 	return _mesh_cache[seams][lod]
 
 
-func make_flat_chunk(chunk_size_x, chunk_size_y, stride, seams):
+static func make_flat_chunk(chunk_size_x, chunk_size_y, stride, seams):
 
 	var positions = PoolVector3Array()
 	positions.resize((chunk_size_x + 1) * (chunk_size_y + 1))
