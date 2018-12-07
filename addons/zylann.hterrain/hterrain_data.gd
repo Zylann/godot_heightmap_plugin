@@ -62,6 +62,7 @@ var _resolution = 0
 # [map_type][instance_index] => map
 var _maps = [[]]
 
+# TODO Store vertical bounds in a RGF image? Where R is min amd G is max
 var _chunked_vertical_bounds = []
 var _chunked_vertical_bounds_size = [0, 0]
 var _locked = false
@@ -726,6 +727,28 @@ func get_texture(channel, index = 0):
 func get_aabb():
 	# TODO Why subtract 1? I forgot
 	return get_region_aabb(0, 0, _resolution - 1, _resolution - 1)
+
+
+# Not so useful in itself, but GDScript is slow,
+# so I needed it to speed up the LOD hack I had to do to take height into account
+func get_point_aabb(cell_x, cell_y):
+	assert(typeof(cell_x) == TYPE_INT)
+	assert(typeof(cell_y) == TYPE_INT)
+	
+	var cx = cell_x / VERTICAL_BOUNDS_CHUNK_SIZE
+	var cy = cell_y / VERTICAL_BOUNDS_CHUNK_SIZE
+	
+	if cx < 0:
+		cx = 0
+	if cy < 0:
+		cy = 0
+	if cx >= _chunked_vertical_bounds_size[0]:
+		cx = _chunked_vertical_bounds_size[0]
+	if cy >= _chunked_vertical_bounds_size[1]:
+		cy = _chunked_vertical_bounds_size[1]
+	
+	var b = _chunked_vertical_bounds[cy][cx]
+	return Vector2(b.minv, b.maxv)
 
 
 func get_region_aabb(origin_in_cells_x, origin_in_cells_y, size_in_cells_x, size_in_cells_y):

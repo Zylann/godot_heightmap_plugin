@@ -106,7 +106,12 @@ var _edit_manual_viewer_pos = Vector3()
 
 func _init():
 	print("Create HeightMap")
-	_lodder.set_callbacks(funcref(self, "_cb_make_chunk"), funcref(self,"_cb_recycle_chunk"))
+	
+	_lodder.set_callbacks( \
+		funcref(self, "_cb_make_chunk"), \
+		funcref(self,"_cb_recycle_chunk"), \
+		funcref(self, "_cb_get_vertical_bounds"))
+	
 	_details.set_terrain(self)
 	set_notify_transform(true)
 
@@ -934,8 +939,19 @@ func _cb_make_chunk(cpos_x, cpos_y, lod):
 
 # Called when a chunk is no longer seen
 func _cb_recycle_chunk(chunk, cx, cy, lod):
-	chunk.set_visible(false);
-	chunk.set_active(false);
+	chunk.set_visible(false)
+	chunk.set_active(false)
+
+
+func _cb_get_vertical_bounds(cpos_x, cpos_y, lod):
+	var chunk_size = _chunk_size * _lodder.get_lod_size(lod)
+	var origin_in_cells_x = cpos_x * chunk_size
+	var origin_in_cells_y = cpos_y * chunk_size
+	# This is a hack for speed, because the proper algorithm appears to be too slow for GDScript.
+	# It should be good enough for most common cases, unless you have super-sharp cliffs.
+	return _data.get_point_aabb(origin_in_cells_x + chunk_size / 2, origin_in_cells_y + chunk_size / 2)
+#	var aabb = _data.get_region_aabb(origin_in_cells_x, origin_in_cells_y, chunk_size, chunk_size)
+#	return Vector2(aabb.position.y, aabb.end.y)
 
 
 func _local_pos_to_cell(local_pos):

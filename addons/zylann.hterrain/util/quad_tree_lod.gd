@@ -32,15 +32,17 @@ var _split_scale = 2.0
 
 var _make_func = null
 var _recycle_func = null
+var _vertical_bounds_func = null
 
 
 func _init():
 	pass
 
 
-func set_callbacks(make_cb, recycle_cb):
+func set_callbacks(make_cb, recycle_cb, vbounds_cb):
 	_make_func = make_cb
 	_recycle_func = recycle_cb
+	_vertical_bounds_func = vbounds_cb
 
 
 func clear():
@@ -127,14 +129,20 @@ func _join_recursively(node, lod):
 		
 	elif node.chunk != null:
 		_recycle_chunk(node.chunk, node.origin_x, node.origin_y, lod)
-		node.chunk = null;
+		node.chunk = null
 
 
 func _update_nodes_recursive(node, lod, viewer_pos):
 	#print("update_nodes_recursive lod={0}, o={1}, {2} ".format([lod, node.origin.x, node.origin.y]))
 
 	var lod_size = get_lod_size(lod)
-	var world_center = (_base_size * lod_size) * (Vector3(node.origin_x, 0, node.origin_y) + Vector3(0.5, 0, 0.5))
+	var chunk_size = _base_size * lod_size
+	var world_center = chunk_size * (Vector3(node.origin_x, 0, node.origin_y) + Vector3(0.5, 0, 0.5))
+	
+	if _vertical_bounds_func != null:
+		var vbounds = _vertical_bounds_func.call_func(node.origin_x, node.origin_y, lod)
+		world_center.y = (vbounds.x + vbounds.y) / 2.0
+	
 	var split_distance = get_split_distance(lod)
 
 	if node.has_children():
