@@ -167,6 +167,7 @@ func _enter_tree():
 func _exit_tree():
 	print("HTerrain plugin Exit tree")
 	
+	# Make sure we release all references to edited stuff
 	edit(null)
 
 	_panel.queue_free()
@@ -192,6 +193,11 @@ func _exit_tree():
 
 	get_editor_interface().get_resource_previewer().remove_preview_generator(_preview_generator)
 	_preview_generator = null
+	
+	# https://github.com/godotengine/godot/issues/6254#issuecomment-246139694
+	# This was supposed to be automatic, but was never implemented it seems...
+	remove_custom_type("HTerrain")
+	remove_custom_type("HTerrainData")
 
 
 func handles(object):
