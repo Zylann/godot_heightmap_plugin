@@ -38,7 +38,8 @@ func _ready():
 		"scale": { "type": TYPE_REAL, "range": {"min": 1.0, "max": 1000.0, "step": 1.0}, "default_value": 100.0 },
 		"roughness": { "type": TYPE_REAL, "range": {"min": 0.0, "max": 1.0, "step": 0.01}, "default_value": 0.5 },
 		"curve": { "type": TYPE_REAL, "range": {"min": 1.0, "max": 10.0, "step": 0.1}, "default_value": 1.0 },
-		"octaves": { "type": TYPE_INT, "range": {"min": 1, "max": 10, "step": 1}, "default_value": 4 }
+		"octaves": { "type": TYPE_INT, "range": {"min": 1, "max": 10, "step": 1}, "default_value": 4 },
+		"show_sea": { "type": TYPE_BOOL, "default_value": true }
 	})
 	
 	# TESTING
@@ -94,6 +95,7 @@ func _notification(what):
 				normals_texture.flags = Texture.FLAG_FILTER
 				
 				_preview.setup(heights_texture, normals_texture)
+				_preview.set_sea_visible(_inspector.get_value("show_sea"))
 				
 				_inspector.trigger_all_modified()
 			
@@ -181,6 +183,10 @@ func _on_ApplyButton_pressed():
 
 
 func _on_Inspector_property_changed(key, value):
+	if key == "show_sea":
+		_preview.set_sea_visible(value)
+		return
+	
 	if key == "scale":
 		if abs(value) < 0.01:
 			value = 0.0

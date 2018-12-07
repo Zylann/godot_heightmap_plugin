@@ -19,6 +19,7 @@ var _pitch = -PI / 6.0
 var _distance = 0.0
 var _default_distance = 0.0
 var _sea_level_mesh = null
+var _sea_mesh = null
 
 
 func setup(heights_texture, normals_texture):
@@ -43,16 +44,36 @@ func setup(heights_texture, normals_texture):
 	mat.set_shader_param("u_terrain_normal_basis", Basis())
 	
 	if _sea_level_mesh == null:
-		_sea_level_mesh = MeshInstance.new()
 		var mesh = Util.create_wirecube_mesh()
 		var mat2 = SpatialMaterial.new()
 		mat2.flags_unshaded = true
 		mat2.albedo_color = Color(0, 0.5, 1)
 		mesh.surface_set_material(0, mat2)
+		_sea_level_mesh = MeshInstance.new()
 		_sea_level_mesh.mesh = mesh
 		var aabb = _mesh_instance.get_aabb()
 		_sea_level_mesh.scale = aabb.size
 		_viewport.add_child(_sea_level_mesh)
+	
+	if _sea_mesh == null:
+		var mesh = PlaneMesh.new()
+		mesh.size = Vector2(1, 1)
+		var mat2 = SpatialMaterial.new()
+		mat2.flags_unshaded = true
+		mat2.albedo_color = Color(0, 0.5, 1, 0.5)
+		mat2.flags_transparent = true
+		mesh.material = mat2
+		_sea_mesh = MeshInstance.new()
+		_sea_mesh.mesh = mesh
+		var aabb = _mesh_instance.get_aabb()
+		_sea_mesh.scale = Vector3(aabb.size.x, 1, aabb.size.z)
+		_sea_mesh.translation = Vector3(aabb.size.x, 0, aabb.size.z) / 2.0
+		_sea_mesh.hide()
+		_viewport.add_child(_sea_mesh)
+
+
+func set_sea_visible(visible):
+	_sea_mesh.visible = visible
 
 
 func _update_camera():
