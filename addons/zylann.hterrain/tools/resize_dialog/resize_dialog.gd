@@ -45,7 +45,7 @@ onready var _anchor_control = get_node("VBoxContainer/GridContainer/HBoxContaine
 var _anchor_buttons = []
 var _anchor_buttons_grid = {}
 var _anchor_button_group = null
-var _selected_anchor = ANCHOR_CENTER
+var _selected_anchor = ANCHOR_TOP_LEFT
 var _resolutions = [513, 1025, 2049, 4097]
 
 var _terrain = null
@@ -87,9 +87,9 @@ func _ready():
 			x = 0
 			y += 1
 
-	_anchor_buttons[ANCHOR_TOP_LEFT].pressed = true
+	_anchor_buttons[_selected_anchor].pressed = true
 	# The signal apparently doesn't trigger in this case
-	_on_AnchorButton_pressed(ANCHOR_TOP_LEFT, 0, 0)
+	_on_AnchorButton_pressed(_selected_anchor, 0, 0)
 
 
 func _notification(what):
