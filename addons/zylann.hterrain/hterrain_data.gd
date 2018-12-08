@@ -1017,6 +1017,7 @@ func _save_channel(channel, index):
 	if _channel_can_be_saved_as_png(channel):
 		fpath += ".png"
 		im.save_png(fpath)
+		_try_write_default_import_options(fpath, channel)
 
 	else:
 		fpath += ".res"
@@ -1027,6 +1028,65 @@ func _save_channel(channel, index):
 		_try_delete_0_8_0_heightmap(fpath.get_basename())
 	
 	return true
+
+
+static func _try_write_default_import_options(fpath, channel):
+	var imp_fpath = fpath + ".import"
+	var f = File.new()
+	if f.file_exists(imp_fpath):
+		# Already exists
+		return
+
+	var defaults = {
+		"remap": {
+			"importer": "texture",
+			"type": "StreamTexture"
+		},
+		"deps": {
+			"source_file": fpath
+		},
+		"params": {
+			# Don't compress. It ruins quality and makes the editor choke on big textures.
+			# I would have used ImageTexture.COMPRESS_LOSSLESS,
+			# but apparently what is saved in the .import file does not match,
+			# and rather corresponds TO THE UI IN THE IMPORT DOCK :facepalm:
+			"compress/mode": 0,
+			"compress/hdr_mode": 0,
+			"compress/normal_map": 0,
+			"flags/mipmaps": false,
+			"flags/filter": true,
+			# No need for this, the meaning of alpha is never transparency
+			"process/fix_alpha_border": false,
+			# Don't try to be smart.
+			# This can actually overwrite the settings with defaults...
+			# https://github.com/godotengine/godot/issues/24220
+			"detect_3d": false
+		}
+	}
+	
+	var err = f.open(imp_fpath, File.WRITE)
+	if err != OK:
+		printerr("Could not open `", imp_fpath, "` for write, error ", Errors.get_message(err))
+		return
+	
+	for section in defaults:
+		f.store_line(str("[", section, "]"))
+		f.store_line("")
+		var params = defaults[section]
+		for key in params:
+			var v = params[key]
+			var sv
+			match typeof(v):
+				TYPE_STRING:
+					sv = str('"', v.replace('"', '\"'), '"')
+				TYPE_BOOL:
+					sv = "true" if v else "false"
+				_:
+					sv = str(v)
+			f.store_line(str(key, "=", sv))
+		f.store_line("")
+	
+	f.close()
 
 
 func _load_channel(channel, index):

@@ -16,6 +16,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Fixed potential cleanup error when the editor closes
 - Fixed custom types not cleaned up when the plugin is disabled
 - Fixed LOD to take height into account on tall mountains
+- Fixed terrain textures being lossy-compressed when reopening the project
 
 
 0.8.1
