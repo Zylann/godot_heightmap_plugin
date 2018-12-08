@@ -174,3 +174,45 @@ static func is_in_edited_scene(node):
 	return vp.get_parent() != null
 
 
+# Get an extended or cropped version of an image,
+# with optional anchoring to decide in which direction to extend or crop.
+# New pixels are filled with the provided fill color.
+static func get_cropped_image(src, width, height, fill_color=null, anchor=Vector2(-1, -1)):
+	var im = Image.new()
+	im.create(width, height, false, src.get_format())
+	if fill_color != null:
+		im.fill(fill_color)
+	var p = get_cropped_image_params(src.get_width(), src.get_height(), width, height, anchor)
+	im.blit_rect(src, p.src_rect, p.dst_pos)
+	return im
+
+
+static func get_cropped_image_params(src_w, src_h, dst_w, dst_h, anchor):
+	var rel_anchor = (anchor + Vector2(1, 1)) / 2.0
+
+	var dst_x = (dst_w - src_w) * rel_anchor.x
+	var dst_y = (dst_h - src_h) * rel_anchor.y
+	
+	var src_x = 0
+	var src_y = 0
+	
+	if dst_x < 0:
+		src_x -= dst_x
+		src_w -= dst_x
+		dst_x = 0
+	
+	if dst_y < 0:
+		src_y -= dst_y
+		src_h -= dst_y
+		dst_y = 0
+	
+	if dst_x + src_w >= dst_w:
+		src_w = dst_w - dst_x
+
+	if dst_y + src_h >= dst_h:
+		src_h = dst_h - dst_y
+	
+	return {
+		"src_rect": Rect2(src_x, src_y, src_w, src_h),
+		"dst_pos": Vector2(dst_x, dst_y)
+	}

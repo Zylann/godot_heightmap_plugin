@@ -79,12 +79,6 @@ func _init():
 func _get_property_list():
 	var props = [
 		{
-			# TODO Only allow predefined resolutions, because that's currently the case
-			"name": "resolution",
-			"type": TYPE_INT,
-			"usage": PROPERTY_USAGE_EDITOR
-		},
-		{
 			# I can't use `_maps` because otherwise Godot takes the member variable directly,
 			# and ignores whatever I've put in `_get`
 			"name": "_maps_data",
@@ -97,9 +91,6 @@ func _get_property_list():
 
 func _get(key):
 	match key:
-		"resolution":
-			return get_resolution()
-
 		"_maps_data":
 			var data = []
 			data.resize(len(_maps))
@@ -119,15 +110,6 @@ func _get(key):
 
 func _set(key, v):
 	match key:
-		# TODO Should we even allow this to be set if there is existing data which isn't loaded yet?
-		"resolution":
-			# Setting resolution has only effect when set from editor or a script.
-			# It's not part of the saved resource variables because it is
-			# deduced from the height texture,
-			# and resizing on load wouldn't make sense.
-			assert(typeof(v) == TYPE_INT)
-			set_resolution(v)
-
 		"_maps_data":
 			# Parse metadata that we'll then use to load the actual terrain
 			# (How many maps, which files to load etc...)
@@ -168,7 +150,7 @@ func _set_default_maps():
 func _edit_load_default():
 	print("Loading default data")
 	_set_default_maps()
-	set_resolution(DEFAULT_RESOLUTION)
+	resize(DEFAULT_RESOLUTION)
 	_update_all_normals()
 
 
@@ -181,12 +163,22 @@ func get_resolution():
 	return _resolution
 
 
+# @obsolete
 func set_resolution(p_res):
-	set_resolution2(p_res, true)
+	print("`HTerrainData.set_resolution()` is obsolete, use `resize()` instead")
+	resize(p_res)
 
 
+# @obsolete
 func set_resolution2(p_res, update_normals):
+	print("`HTerrainData.set_resolution2()` is obsolete, use `resize()` instead")
+	resize(p_res, true, Vector2(-1, -1), update_normals)
+
+
+func resize(p_res, stretch=true, anchor=Vector2(-1, -1), update_normals=true):
 	assert(typeof(p_res) == TYPE_INT)
+	assert(typeof(stretch) == TYPE_BOOL)
+	assert(typeof(anchor) == TYPE_VECTOR2)
 	assert(typeof(update_normals) == TYPE_BOOL)
 	
 	print("HeightMapData::set_resolution ", p_res)
@@ -203,6 +195,8 @@ func set_resolution2(p_res, update_normals):
 	p_res = Util.next_power_of_two(p_res - 1) + 1
 
 	_resolution = p_res;
+
+	var need_to_update_all_normals = false
 	
 	for channel in range(CHANNEL_COUNT):
 		var maps = _maps[channel]
@@ -224,16 +218,24 @@ func set_resolution2(p_res, update_normals):
 				map.image = im
 				
 			else:
-				if channel == CHANNEL_NORMAL:
+				if stretch and channel == CHANNEL_NORMAL:
 					im.create(_resolution, _resolution, false, get_channel_format(channel))
 					if update_normals:
-						_update_all_normals()
+						# Deferring to make the code more robust, as we may modify heights as part of the resize
+						need_to_update_all_normals = true
 				else:
-					im.resize(_resolution, _resolution)
+					if stretch:
+						im.resize(_resolution, _resolution)
+					else:
+						map.image = Util.get_cropped_image( \
+							im, _resolution, _resolution, _get_channel_default_fill(channel), anchor)
 			
 			map.modified = true
 
 	_update_all_vertical_bounds()
+
+	if need_to_update_all_normals:
+		_update_all_normals()
 
 	emit_signal("resolution_changed")
 
@@ -485,6 +487,19 @@ func notify_region_change(p_min, p_size, channel, index = 0):
 			print("Unrecognized channel\n")
 
 	emit_signal("region_changed", p_min[0], p_min[1], p_size[0], p_size[1], channel)
+
+
+func notify_full_change():
+	for maptype in range(CHANNEL_COUNT):
+		
+		# Ignore normals because they get updated along with heights
+		if maptype == CHANNEL_NORMAL:
+			continue
+
+		var maps = _maps[maptype]
+		
+		for index in len(maps):
+			notify_region_change([0, 0], [_resolution, _resolution], maptype, index)
 
 
 func _edit_set_disable_apply_undo(e):
@@ -1229,7 +1244,7 @@ func _import_heightmap(fpath, min_y, max_y):
 		_locked = true
 		
 		print("Resizing terrain to ", res, "x", res, "...")
-		set_resolution2(src_image.get_width(), false)
+		resize(src_image.get_width(), true, Vector2(), false)
 		
 		var im = get_image(CHANNEL_HEIGHT)
 		assert(im != null)
@@ -1277,7 +1292,7 @@ func _import_heightmap(fpath, min_y, max_y):
 		_locked = true
 
 		print("Resizing terrain to ", width, "x", height, "...")
-		set_resolution2(res, false)
+		resize(res, true, Vector2(), false)
 		
 		var im = get_image(CHANNEL_HEIGHT)
 		assert(im != null)
@@ -1407,6 +1422,8 @@ static func _get_channel_default_fill(c):
 			return Color(1, 0, 0, 0)
 		CHANNEL_DETAIL:
 			return Color(0, 0, 0, 0)
+		CHANNEL_NORMAL:
+			return _encode_normal(Vector3(0, 1, 0))
 		_:
 			# No need to fill
 			return null

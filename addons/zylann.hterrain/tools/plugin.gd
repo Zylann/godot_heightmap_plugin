@@ -15,14 +15,16 @@ const ProgressWindow = preload("progress_window.tscn")
 const GeneratorDialog = preload("generator/generator_dialog.tscn")
 const ImportDialog = preload("importer/importer_dialog.tscn")
 const GenerateMeshDialog = preload("generate_mesh_dialog.tscn")
+const ResizeDialog = preload("resize_dialog/resize_dialog.tscn")
 
 const MENU_IMPORT_MAPS = 0
 # TODO Save items should not exist, they are workarounds to test saving!
 const MENU_SAVE = 1
 const MENU_LOAD = 2
 const MENU_GENERATE = 3
-const MENU_UPDATE_EDITOR_COLLIDER = 4
-const MENU_GENERATE_MESH = 5
+const MENU_RESIZE = 4
+const MENU_UPDATE_EDITOR_COLLIDER = 5
+const MENU_GENERATE_MESH = 6
 
 
 # TODO Rename _terrain
@@ -37,6 +39,7 @@ var _progress_window = null
 var _load_texture_dialog = null
 var _generate_mesh_dialog = null
 var _preview_generator = null
+var _resize_dialog = null
 
 var _brush = null
 var _brush_decal = null
@@ -87,6 +90,7 @@ func _enter_tree():
 	menu.set_text("Terrain")
 	menu.get_popup().add_item("Import maps...", MENU_IMPORT_MAPS)
 	menu.get_popup().add_item("Generate...", MENU_GENERATE)
+	menu.get_popup().add_item("Resize...", MENU_RESIZE)
 	menu.get_popup().add_separator()
 	menu.get_popup().add_item("Save", MENU_SAVE)
 	menu.get_popup().add_item("Load", MENU_LOAD)
@@ -162,6 +166,9 @@ func _enter_tree():
 	_generate_mesh_dialog = GenerateMeshDialog.instance()
 	_generate_mesh_dialog.connect("generate_selected", self, "_on_GenerateMeshDialog_generate_selected")
 	base_control.add_child(_generate_mesh_dialog)
+	
+	_resize_dialog = ResizeDialog.instance()
+	base_control.add_child(_resize_dialog)
 
 
 func _exit_tree():
@@ -190,6 +197,9 @@ func _exit_tree():
 	
 	_generate_mesh_dialog.queue_free()
 	_generate_mesh_dialog = null
+	
+	_resize_dialog.queue_free()
+	_resize_dialog = null
 
 	get_editor_interface().get_resource_previewer().remove_preview_generator(_preview_generator)
 	_preview_generator = null
@@ -226,6 +236,7 @@ func edit(object):
 	_import_dialog.set_terrain(_node)
 	_brush_decal.set_terrain(_node)
 	_generate_mesh_dialog.set_terrain(_node)
+	_resize_dialog.set_terrain(_node)
 
 
 func make_visible(visible):
@@ -382,6 +393,9 @@ func _menu_item_selected(id):
 			
 		MENU_GENERATE:
 			_generator_dialog.popup_centered_minsize()
+		
+		MENU_RESIZE:
+			_resize_dialog.popup_centered_minsize()
 			
 		MENU_UPDATE_EDITOR_COLLIDER:
 			# This is for editor tools to be able to use terrain collision.
@@ -448,6 +462,7 @@ func _terrain_progress_notified(info):
 		
 		_progress_window.show_progress(info.message, info.progress)
 		# TODO Have builtin modal progress bar
+		# https://github.com/godotengine/godot/issues/17763
 
 
 func _on_GenerateMeshDialog_generate_selected(lod):

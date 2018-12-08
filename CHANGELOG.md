@@ -13,6 +13,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Added tool to generate a full mesh of the terrain so Godot can bake a navmesh
 - The strength of sculpting tools is now proportional to brush size
 - Terrain resources generate a greyscale thumbnail
+- Resizing can be done by cropping or expanding in a given direction (Terrain menu)
 - Fixed potential cleanup error when the editor closes
 - Fixed custom types not cleaned up when the plugin is disabled
 - Fixed LOD to take height into account on tall mountains
