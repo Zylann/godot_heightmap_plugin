@@ -92,6 +92,18 @@ func _ready():
 	_on_AnchorButton_pressed(ANCHOR_TOP_LEFT, 0, 0)
 
 
+func _notification(what):
+	if what == NOTIFICATION_VISIBILITY_CHANGED:
+		if visible:
+			# Select current resolution
+			if _terrain != null and _terrain.get_data() != null:
+				var res = _terrain.get_data().get_resolution()
+				for i in len(_resolutions):
+					if res == _resolutions[i]:
+						_resolution_dropdown.select(i)
+						break
+
+
 func _on_AnchorButton_pressed(anchor0, x0, y0):
 	_selected_anchor = anchor0
 	
