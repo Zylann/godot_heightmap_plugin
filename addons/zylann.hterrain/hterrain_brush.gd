@@ -24,8 +24,9 @@ signal shape_changed(shape)
 
 var _radius = 0
 var _opacity = 1.0
-var _shape = [] #Grid2D<float> _shape;
+var _shape = null # Image
 var _shape_sum = 0.0
+var _shape_source = null
 var _shape_size = 0
 var _mode = MODE_ADD
 var _flatten_height = 0.0
@@ -55,17 +56,27 @@ func set_radius(p_radius):
 	if p_radius != _radius:
 		assert(p_radius > 0)
 		_radius = p_radius
-		_generate_procedural(_radius)
-		# TODO Allow to set a texture as shape
+		_update_shape()
 
 
 func get_radius():
 	return _radius
 
 
-# TODO returns a grid, but in the future it should be a texture
 func get_shape():
 	return _shape
+
+
+func set_shape(im):
+	_shape_source = im
+	_update_shape()
+
+
+func _update_shape():
+	if _shape_source != null:
+		_generate_from_image(_shape_source, _radius)
+	else:
+		_generate_procedural(_radius)
 
 
 func set_opacity(opacity):
@@ -136,10 +147,13 @@ func _generate_procedural(radius):
 	
 	var size = 2 * radius
 	
-	_shape = Grid.create_grid(size, size)
+	_shape = Image.new()
+	_shape.create(size, size, 0, Image.FORMAT_RF)
 	_shape_size = size
 
 	_shape_sum = 0.0;
+	
+	_shape.lock()
 
 	for y in range(-radius, radius):
 		for x in range(-radius, radius):
@@ -151,10 +165,37 @@ func _generate_procedural(radius):
 			if v < 0.0:
 				v = 0.0
 			
-			_shape[y + radius][x + radius] = v
+			_shape.set_pixel(x + radius, y + radius, Color(v, v, v))
 			_shape_sum += v;
 
+	_shape.unlock()
+
 	emit_signal("shape_changed", _shape)
+
+
+func _generate_from_image(im, radius):
+	assert(typeof(radius) == TYPE_INT)
+	assert(radius > 0)
+	assert(im.get_width() == im.get_height())
+	
+	var size = 2 * radius
+	
+	im = im.duplicate()
+	im.convert(Image.FORMAT_RF)
+	im.resize(size, size)
+	_shape = im
+	_shape_size = size
+	
+	_shape.lock()
+	
+	var sum = 0.0
+	for y in _shape.get_height():
+		for x in _shape.get_width():
+			sum += _shape.get_pixel(x, y).r
+	
+	_shape.unlock()
+	
+	_shape_sum = sum
 
 
 static func _get_mode_channel(mode):
@@ -239,7 +280,8 @@ func paint(height_map, cell_pos_x, cell_pos_y, override_mode):
 # TODO Erk!
 static func _foreach_xy(op, data, origin_x, origin_y, speed, opacity, shape):
 	
-	var shape_size = shape.size()
+	var shape_size = shape.get_width()
+	assert(shape.get_width() == shape.get_height())
 
 	var s = opacity * speed
 
@@ -258,14 +300,18 @@ static func _foreach_xy(op, data, origin_x, origin_y, speed, opacity, shape):
 	max_x = pmax[0]
 	max_y = pmax[1]
 
+	shape.lock()
+
 	for y in range(min_y, max_y):
 		var py = y - min_noclamp_y
 		
 		for x in range(min_x, max_x):
 			var px = x - min_noclamp_x
 
-			var shape_value = shape[py][px]
+			var shape_value = shape.get_pixel(px, py).r
 			op.exec(data, x, y, s * shape_value)
+	
+	shape.unlock()
 
 
 class OperatorAdd:
@@ -451,6 +497,8 @@ func _paint_splat(data, origin_x, origin_y):
 		
 		var target_color = Color(0, 0, 0, 0)
 		target_color[_texture_index] = 1.0
+
+		_shape.lock()
 		
 		for y in range(min_y, max_y):
 			var py = y - min_noclamp_y
@@ -458,11 +506,13 @@ func _paint_splat(data, origin_x, origin_y):
 			for x in range(min_x, max_x):
 				var px = x - min_noclamp_x
 				
-				var shape_value = _shape[py][px]
+				var shape_value = _shape.get_pixel(px, py).r
 	
 				var c = im.get_pixel(x, y)
 				c = c.linear_interpolate(target_color, shape_value * _opacity)
 				im.set_pixel(x, y, c)
+		
+		_shape.unlock()
 	
 #	elif _texture_mode == HTerrain.SHADER_ARRAY:
 #		var shape_threshold = 0.1
@@ -540,6 +590,7 @@ func _paint_mask(data, origin_x, origin_y):
 	var mask_value = 1.0 if _mask_flag else 0.0
 
 	im.lock()
+	_shape.lock()
 
 	for y in range(min_y, max_y):
 		for x in range(min_x, max_x):
@@ -547,12 +598,13 @@ func _paint_mask(data, origin_x, origin_y):
 			var px = x - min_noclamp_x
 			var py = y - min_noclamp_y
 			
-			var shape_value = _shape[py][px]
+			var shape_value = _shape.get_pixel(px, py).r
 			
 			var c = im.get_pixel(x, y)
 			c.a = lerp(c.a, mask_value, shape_value)
 			im.set_pixel(x, y, c)
 
+	_shape.unlock()
 	im.unlock()
 
 

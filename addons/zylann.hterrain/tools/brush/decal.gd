@@ -28,9 +28,8 @@ func set_size(size):
 	_mesh.subdivide_depth = size - 1
 
 
-func set_shape(shape_grid):
-	# TODO In the future, this might be a texture
-	set_size(len(shape_grid))
+func set_shape(shape_image):
+	set_size(shape_image.get_width())
 
 
 func _on_terrain_transform_changed(terrain_global_trans):
