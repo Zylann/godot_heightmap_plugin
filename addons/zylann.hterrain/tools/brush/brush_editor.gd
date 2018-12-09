@@ -2,29 +2,49 @@ tool
 extends Control
 
 const Brush = preload("../../hterrain_brush.gd")
+const Errors = preload("../../util/errors.gd")
 
-onready var _size_slider = get_node("GridContainer/BrushSizeControl/Slider")
-onready var _size_value_label = get_node("GridContainer/BrushSizeControl/Label")
-onready var _size_label = get_node("GridContainer/BrushSizeLabel")
+const SHAPES_DIR = "addons/zylann.hterrain/tools/brush/shapes"
+const DEFAULT_BRUSH = "round2.exr"
 
-onready var _opacity_slider = get_node("GridContainer/BrushOpacityControl/Slider")
-onready var _opacity_value_label = get_node("GridContainer/BrushOpacityControl/Label")
-onready var _opacity_control = get_node("GridContainer/BrushOpacityControl")
-onready var _opacity_label = get_node("GridContainer/BrushOpacityLabel")
+onready var _params_container = get_node("GridContainer")
 
-onready var _flatten_height_box = get_node("GridContainer/FlattenHeightControl")
-onready var _flatten_height_label = get_node("GridContainer/FlattenHeightLabel")
+onready var _size_slider = _params_container.get_node("BrushSizeControl/Slider")
+onready var _size_value_label = _params_container.get_node("BrushSizeControl/Label")
+onready var _size_label = _params_container.get_node("BrushSizeLabel")
 
-onready var _color_picker = get_node("GridContainer/ColorPickerButton")
-onready var _color_label = get_node("GridContainer/ColorLabel")
+onready var _opacity_slider = _params_container.get_node("BrushOpacityControl/Slider")
+onready var _opacity_value_label = _params_container.get_node("BrushOpacityControl/Label")
+onready var _opacity_control = _params_container.get_node("BrushOpacityControl")
+onready var _opacity_label = _params_container.get_node("BrushOpacityLabel")
 
-onready var _density_slider = get_node("GridContainer/DensitySlider")
-onready var _density_label = get_node("GridContainer/DensityLabel")
+onready var _flatten_height_box = _params_container.get_node("FlattenHeightControl")
+onready var _flatten_height_label = _params_container.get_node("FlattenHeightLabel")
 
-onready var _holes_label = get_node("GridContainer/HoleLabel")
-onready var _holes_checkbox = get_node("GridContainer/HoleCheckbox")
+onready var _color_picker = _params_container.get_node("ColorPickerButton")
+onready var _color_label = _params_container.get_node("ColorLabel")
+
+onready var _density_slider = _params_container.get_node("DensitySlider")
+onready var _density_label = _params_container.get_node("DensityLabel")
+
+onready var _holes_label = _params_container.get_node("HoleLabel")
+onready var _holes_checkbox = _params_container.get_node("HoleCheckbox")
+
+onready var _shape_texture_rect = get_node("BrushShapeButton/TextureRect")
 
 var _brush = null
+var _load_image_dialog = null
+
+# TODO This is an ugly workaround for https://github.com/godotengine/godot/issues/19479
+onready var _temp_node = get_node("Temp")
+onready var _grid_container = get_node("GridContainer")
+func _set_visibility_of(node, v):
+	node.get_parent().remove_child(node)
+	if v:
+		_grid_container.add_child(node)
+	else:
+		_temp_node.add_child(node)
+	node.visible = v
 
 
 func _ready():
@@ -34,6 +54,24 @@ func _ready():
 	_color_picker.connect("color_changed", self, "_on_color_picker_color_changed")
 	_density_slider.connect("value_changed", self, "_on_density_slider_changed")
 	_holes_checkbox.connect("toggled", self, "_on_holes_checkbox_toggled")
+
+
+func setup_dialogs(base_control):
+	assert(_load_image_dialog == null)
+	_load_image_dialog = EditorFileDialog.new()
+	_load_image_dialog.mode = EditorFileDialog.MODE_OPEN_FILE
+	_load_image_dialog.add_filter("*.exr ; EXR files")
+	_load_image_dialog.resizable = true
+	_load_image_dialog.access = EditorFileDialog.ACCESS_FILESYSTEM
+	_load_image_dialog.current_dir = SHAPES_DIR
+	_load_image_dialog.connect("file_selected", self, "_on_LoadImageDialog_file_selected")
+	base_control.add_child(_load_image_dialog)
+
+
+func _exit_tree():
+	if _load_image_dialog != null:
+		_load_image_dialog.queue_free()
+		_load_image_dialog = null
 
 # Testing display modes
 #var mode = 0
@@ -56,6 +94,7 @@ func set_brush(brush):
 		_holes_checkbox.pressed = not brush.get_mask_flag()
 		
 		set_display_mode(brush.get_mode())
+		set_brush_shape_from_file(SHAPES_DIR.plus_file(DEFAULT_BRUSH))
 		
 	_brush = brush
 
@@ -98,18 +137,6 @@ func set_display_mode(mode):
 #	_holes_checkbox.visible = show_holes
 
 
-# TODO This is an ugly workaround for https://github.com/godotengine/godot/issues/19479
-onready var _temp_node = get_node("Temp")
-onready var _grid_container = get_node("GridContainer")
-func _set_visibility_of(node, v):
-	node.get_parent().remove_child(node)
-	if v:
-		_grid_container.add_child(node)
-	else:
-		_temp_node.add_child(node)
-	node.visible = v
-
-
 func _on_size_slider_value_changed(v):
 	if _brush != null:
 		_brush.set_radius(int(v))
@@ -141,3 +168,37 @@ func _on_holes_checkbox_toggled(v):
 	if _brush != null:
 		# When checked, we draw holes. When unchecked, we clear holes
 		_brush.set_mask_flag(not v)
+
+
+func _on_BrushShapeButton_pressed():
+	_load_image_dialog.popup_centered_ratio(0.7)
+
+
+func _on_LoadImageDialog_file_selected(path):
+	set_brush_shape_from_file(path)
+
+
+func set_brush_shape_from_file(path):
+	var im = Image.new()
+	var err = im.load(path)
+	if err != OK:
+		printerr("Could not load inage at `", path, "`, error ", Errors.get_message(err))
+		return
+	
+	if _brush != null:
+		
+		# TODO Revert this in Godot 3.1
+		# because forcing image brushes would ruin resized ones,
+		# due to https://github.com/godotengine/godot/issues/24244 
+		var im2 = im
+		var v = Engine.get_version_info()
+		if v.major == 3 and v.minor < 1:
+			if path.find(SHAPES_DIR.plus_file(DEFAULT_BRUSH)) != -1:
+				im2 = null
+		
+		_brush.set_shape(im2)
+	
+	var tex = ImageTexture.new()
+	tex.create_from_image(im, Texture.FLAG_FILTER)
+	_shape_texture_rect.texture = tex
+

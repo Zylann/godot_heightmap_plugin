@@ -40,12 +40,15 @@ mouse_filter = 0
 mouse_default_cursor_shape = 0
 size_flags_horizontal = 1
 size_flags_vertical = 1
-split_offset = 40
+split_offset = 60
 collapsed = false
 dragger_visibility = 0
 _sections_unfolded = [ "Rect" ]
 
 [node name="BrushEditor" parent="HSplitContainer" index="0" instance=ExtResource( 2 )]
+
+margin_right = 260.0
+margin_bottom = 104.0
 
 [node name="HSplitContainer" type="HSplitContainer" parent="HSplitContainer" index="1"]
 
@@ -53,7 +56,7 @@ anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
 anchor_bottom = 0.0
-margin_left = 252.0
+margin_left = 272.0
 margin_right = 885.0
 margin_bottom = 104.0
 rect_pivot_offset = Vector2( 0, 0 )
@@ -73,7 +76,7 @@ anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
 anchor_bottom = 0.0
-margin_right = 521.0
+margin_right = 501.0
 margin_bottom = 104.0
 rect_pivot_offset = Vector2( 0, 0 )
 rect_clip_content = false
@@ -94,7 +97,7 @@ size_flags_horizontal = 1
 [node name="DetailEditor" parent="HSplitContainer/HSplitContainer/HSplitContainer" index="1" instance=ExtResource( 4 )]
 
 margin_left = 262.0
-margin_right = 521.0
+margin_right = 501.0
 margin_bottom = 104.0
 
 [node name="Minimap" type="ColorRect" parent="HSplitContainer/HSplitContainer" index="1"]
@@ -103,8 +106,8 @@ anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
 anchor_bottom = 0.0
-margin_left = 533.0
-margin_right = 633.0
+margin_left = 513.0
+margin_right = 613.0
 margin_bottom = 104.0
 rect_min_size = Vector2( 100, 0 )
 rect_pivot_offset = Vector2( 0, 0 )

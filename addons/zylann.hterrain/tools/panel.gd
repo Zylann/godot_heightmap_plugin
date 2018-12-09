@@ -15,6 +15,10 @@ onready var _texture_editor = get_node("HSplitContainer/HSplitContainer/HSplitCo
 onready var _detail_editor = get_node("HSplitContainer/HSplitContainer/HSplitContainer/DetailEditor")
 
 
+func setup_dialogs(base_control):
+	_brush_editor.setup_dialogs(base_control)
+
+
 func set_terrain(terrain):
 	_minimap.set_terrain(terrain)
 	_texture_editor.set_terrain(terrain)

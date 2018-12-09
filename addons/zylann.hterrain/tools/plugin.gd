@@ -79,6 +79,7 @@ func _enter_tree():
 	# Apparently _ready() still isn't called at this point...
 	_panel.call_deferred("set_brush", _brush)
 	_panel.call_deferred("set_load_texture_dialog", _load_texture_dialog)
+	_panel.call_deferred("setup_dialogs", base_control)
 	_panel.connect("detail_selected", self, "_on_detail_selected")
 	_panel.connect("texture_selected", self, "_on_texture_selected")
 	

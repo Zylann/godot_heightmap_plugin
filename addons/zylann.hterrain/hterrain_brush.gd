@@ -196,6 +196,7 @@ func _generate_from_image(im, radius):
 	_shape.unlock()
 	
 	_shape_sum = sum
+	emit_signal("shape_changed", _shape)
 
 
 static func _get_mode_channel(mode):

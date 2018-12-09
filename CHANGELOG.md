@@ -9,6 +9,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 0.9 (WIP)
 ---------
 
+- Bring back configurable brush shapes
 - Improved terrain generator UI with 3D preview, baseline and draggable offset
 - Added tool to generate a full mesh of the terrain so Godot can bake a navmesh
 - The strength of sculpting tools is now proportional to brush size
