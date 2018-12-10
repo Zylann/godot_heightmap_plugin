@@ -156,7 +156,7 @@ static func is_in_edited_scene(node):
 	var edited_scene = node.get_tree().edited_scene_root
 	if node == edited_scene:
 		return true
-	return edited_scene.is_parent_of(node)
+	return edited_scene != null and edited_scene.is_a_parent_of(node)
 
 
 # Get an extended or cropped version of an image,
