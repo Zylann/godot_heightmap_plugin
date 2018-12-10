@@ -252,7 +252,7 @@ func paint(height_map, cell_pos_x, cell_pos_y, override_mode):
 			_paint_height(data, origin_x, origin_y, -raise_strength * delta)
 
 		MODE_SMOOTH:
-			_smooth_height(data, origin_x, origin_y, delta)
+			_smooth_height(data, origin_x, origin_y, 10.0 * delta)
 
 		MODE_FLATTEN:
 			_flatten(data, origin_x, origin_y)
