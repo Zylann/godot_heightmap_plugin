@@ -6,7 +6,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 
 
 
-0.9 (WIP)
+0.9
 ---------
 
 - Bring back configurable brush shapes
