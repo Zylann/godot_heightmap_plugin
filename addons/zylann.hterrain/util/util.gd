@@ -151,27 +151,16 @@ static func get_node_in_parents(node, klass):
 
 
 static func is_in_edited_scene(node):
-	#                               .___.
-	#           /)               ,-^     ^-. 
-	#          //               /           \
-	# .-------| |--------------/  __     __  \-------------------.__
-	# |WMWMWMW| |>>>>>>>>>>>>> | />>\   />>\ |>>>>>>>>>>>>>>>>>>>>>>:>
-	# `-------| |--------------| \__/   \__/ |-------------------'^^
-	#          \\               \    /|\    /
-	#           \)               \   \_/   /
-	#                             |       |
-	#                             |+H+H+H+|
-	#                             \       /
-	#                              ^-----^
-	# TODO https://github.com/godotengine/godot/issues/17592
-	# This may break some day, don't fly planes with this bullshit.
-	# Obviously it won't work for nested viewports since that's basically what this function checks.
 	if not node.is_inside_tree():
 		return false
-	var vp = get_node_in_parents(node, Viewport)
-	if vp == null:
-		return false
-	return vp.get_parent() != null
+	var edited_scene = node.get_tree().edited_scene_root
+	if node == edited_scene:
+		return true
+	while node.get_parent() != null:
+		node = node.get_parent()
+		if node == edited_scene:
+			return true
+	return false
 
 
 # Get an extended or cropped version of an image,
