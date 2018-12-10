@@ -19,6 +19,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Fixed custom types not cleaned up when the plugin is disabled
 - Fixed LOD to take height into account on tall mountains
 - Fixed terrain textures being lossy-compressed when reopening the project
+- Fixed grass painting being available when there are no detail layers
 
 
 0.8.1

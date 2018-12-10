@@ -82,6 +82,7 @@ func _enter_tree():
 	_panel.call_deferred("setup_dialogs", base_control)
 	_panel.connect("detail_selected", self, "_on_detail_selected")
 	_panel.connect("texture_selected", self, "_on_texture_selected")
+	_panel.connect("detail_list_changed", self, "_update_brush_buttons_availability")
 	
 	_toolbar = HBoxContainer.new()
 	add_control_to_container(EditorPlugin.CONTAINER_SPATIAL_EDITOR_MENU, _toolbar)
@@ -232,12 +233,31 @@ func edit(object):
 		_node.connect("tree_exited", self, "_terrain_exited_scene")
 		_node.connect("progress_notified", self, "_terrain_progress_notified")
 	
+	_update_brush_buttons_availability()
+	
 	_panel.set_terrain(_node)
 	_generator_dialog.set_terrain(_node)
 	_import_dialog.set_terrain(_node)
 	_brush_decal.set_terrain(_node)
 	_generate_mesh_dialog.set_terrain(_node)
 	_resize_dialog.set_terrain(_node)
+
+
+func _update_brush_buttons_availability():
+	if _node == null:
+		return
+	if _node.get_data() != null:
+		var data = _node.get_data()
+		var has_details = (data.get_map_count(HTerrainData.CHANNEL_DETAIL) > 0)
+		
+		if has_details:
+			var button = _toolbar_brush_buttons[Brush.MODE_DETAIL]
+			button.disabled = false
+		else:
+			var button = _toolbar_brush_buttons[Brush.MODE_DETAIL]
+			if button.pressed:
+				_select_brush_mode(Brush.MODE_ADD)
+			button.disabled = true
 
 
 func make_visible(visible):

@@ -681,6 +681,8 @@ func _upload_region(channel, index, min_x, min_y, size_x, size_y):
 	#print("Texture upload time: ", time_elapsed, "ms")
 
 
+# Gets how many instances of a given map are present in the terrain data.
+# A return value of 0 means there is no such map, and querying for it might cause errors.
 func get_map_count(map_type):
 	return len(_maps[map_type])
 
@@ -722,13 +724,13 @@ func _get_map_by_id(map_type, id):
 	return null
 
 
-func get_image(channel, index = 0):
-	var maps = _maps[channel]
+func get_image(maptype, index = 0):
+	var maps = _maps[maptype]
 	return maps[index].image
 
 
-func _get_texture(channel, index):
-	var maps = _maps[channel]
+func _get_texture(maptype, index):
+	var maps = _maps[maptype]
 	return maps[index].texture
 
 

@@ -4,6 +4,8 @@ extends Control
 const HTerrainData = preload("res://addons/zylann.hterrain/hterrain_data.gd")
 
 signal detail_selected(index)
+# Emitted when the tool added or removed a detail map
+signal detail_list_changed
 
 onready var _item_list = get_node("ItemList")
 onready var _edit_dialog = get_node("EditDetailDialog")
@@ -66,6 +68,7 @@ func _on_EditDetailDialog_confirmed(params):
 	if _dialog_target == -1:
 		var data = _terrain.get_data()
 		index = data._edit_add_detail_map()
+		emit_signal("detail_list_changed")
 
 	_terrain.set_detail_texture(index, params.texture)
 
@@ -81,6 +84,7 @@ func _on_ConfirmationDialog_confirmed():
 	var data = _terrain.get_data()
 	data._edit_remove_detail_map(_dialog_target)
 	_update_list()
+	emit_signal("detail_list_changed")
 
 
 func _on_ItemList_item_selected(index):
