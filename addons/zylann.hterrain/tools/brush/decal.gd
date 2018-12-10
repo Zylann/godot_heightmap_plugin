@@ -3,10 +3,13 @@ tool
 
 const DirectMeshInstance = preload("../../util/direct_mesh_instance.gd")
 const HTerrainData = preload("../../hterrain_data.gd")
+const Util = preload("../../util/util.gd")
 
 var _mesh_instance = null
 var _mesh = null
 var _material = ShaderMaterial.new()
+#var _debug_mesh = CubeMesh.new()
+#var _debug_mesh_instance = null
 
 var _terrain = null
 
@@ -15,9 +18,12 @@ func _init():
 	_material.shader = load("res://addons/zylann.hterrain/tools/brush/decal.shader")
 	_mesh_instance = DirectMeshInstance.new()
 	_mesh_instance.set_material(_material)
-	
+		
 	_mesh = PlaneMesh.new()
 	_mesh_instance.set_mesh(_mesh)
+	
+	#_debug_mesh_instance = DirectMeshInstance.new()
+	#_debug_mesh_instance.set_mesh(_debug_mesh)
 
 
 func set_size(size):
@@ -48,6 +54,7 @@ func set_terrain(terrain):
 	if _terrain != null:
 		_terrain.disconnect("transform_changed", self, "_on_terrain_transform_changed")
 		_mesh_instance.exit_world()
+		#_debug_mesh_instance.exit_world()
 
 	_terrain = terrain
 
@@ -55,6 +62,7 @@ func set_terrain(terrain):
 		_terrain.connect("transform_changed", self, "_on_terrain_transform_changed")
 		_on_terrain_transform_changed(_terrain.get_internal_transform())
 		_mesh_instance.enter_world(terrain.get_world())
+		#_debug_mesh_instance.enter_world(terrain.get_world())
 
 	update_visibility()
 
@@ -62,10 +70,25 @@ func set_terrain(terrain):
 func set_position(p_local_pos):
 	assert(_terrain != null)
 	assert(typeof(p_local_pos) == TYPE_VECTOR3)
+	
+	# Set custom AABB (in local cells) because the decal is displaced by shader
+	var data = _terrain.get_data()
+	if data != null:
+		var r = _mesh.size / 2
+		var aabb = data.get_region_aabb( \
+			int(p_local_pos.x - r.x), \
+			int(p_local_pos.z - r.y), \
+			int(2 * r.x), \
+			int(2 * r.y))
+		aabb.position = Vector3(-r.x, aabb.position.y, -r.y)
+		_mesh.custom_aabb = aabb
+		#_debug_mesh.size = aabb.size
+	
 	var trans = Transform(Basis(), p_local_pos)
 	var terrain_gt = _terrain.get_internal_transform()
 	trans = terrain_gt * trans
 	_mesh_instance.set_transform(trans)
+	#_debug_mesh_instance.set_transform(trans)
 
 
 # This is called very often so it should be cheap
@@ -75,9 +98,11 @@ func update_visibility():
 		# I do this for refcounting because heightmaps are large resources
 		_material.set_shader_param("u_terrain_heightmap", null)
 		_mesh_instance.set_visible(false)
+		#_debug_mesh_instance.set_visible(false)
 	else:
 		_material.set_shader_param("u_terrain_heightmap", heightmap)
 		_mesh_instance.set_visible(true)
+		#_debug_mesh_instance.set_visible(true)
 
 
 func _get_heightmap(terrain):
