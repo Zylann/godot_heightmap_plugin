@@ -11,6 +11,7 @@ signal dragged(relative, button_mask)
 onready var _viewport = get_node("Viewport")
 onready var _mesh_instance = get_node("Viewport/MeshInstance")
 onready var _camera = get_node("Viewport/Camera")
+onready var _light = get_node("Viewport/DirectionalLight")
 
 # Use the simplest shader
 var _shader = load("res://addons/zylann.hterrain/shaders/simple4_lite.shader")
@@ -18,8 +19,33 @@ var _yaw = 0.0
 var _pitch = -PI / 6.0
 var _distance = 0.0
 var _default_distance = 0.0
-var _sea_level_mesh = null
-var _sea_mesh = null
+var _sea_outline = null
+var _sea_plane = null
+
+
+func _ready():
+	if _sea_outline == null:
+		var mesh = Util.create_wirecube_mesh()
+		var mat2 = SpatialMaterial.new()
+		mat2.flags_unshaded = true
+		mat2.albedo_color = Color(0, 0.5, 1)
+		mesh.surface_set_material(0, mat2)
+		_sea_outline = MeshInstance.new()
+		_sea_outline.mesh = mesh
+		_viewport.add_child(_sea_outline)
+	
+	if _sea_plane == null:
+		var mesh = PlaneMesh.new()
+		mesh.size = Vector2(1, 1)
+		var mat2 = SpatialMaterial.new()
+		mat2.flags_unshaded = true
+		mat2.albedo_color = Color(0, 0.5, 1, 0.5)
+		mat2.flags_transparent = true
+		mesh.material = mat2
+		_sea_plane = MeshInstance.new()
+		_sea_plane.mesh = mesh
+		_sea_plane.hide()
+		_viewport.add_child(_sea_plane)
 
 
 func setup(heights_texture, normals_texture):
@@ -42,38 +68,21 @@ func setup(heights_texture, normals_texture):
 	mat.set_shader_param("u_terrain_normalmap", normals_texture)
 	mat.set_shader_param("u_terrain_inverse_transform", Transform())
 	mat.set_shader_param("u_terrain_normal_basis", Basis())
-	
-	if _sea_level_mesh == null:
-		var mesh = Util.create_wirecube_mesh()
-		var mat2 = SpatialMaterial.new()
-		mat2.flags_unshaded = true
-		mat2.albedo_color = Color(0, 0.5, 1)
-		mesh.surface_set_material(0, mat2)
-		_sea_level_mesh = MeshInstance.new()
-		_sea_level_mesh.mesh = mesh
-		var aabb = _mesh_instance.get_aabb()
-		_sea_level_mesh.scale = aabb.size
-		_viewport.add_child(_sea_level_mesh)
-	
-	if _sea_mesh == null:
-		var mesh = PlaneMesh.new()
-		mesh.size = Vector2(1, 1)
-		var mat2 = SpatialMaterial.new()
-		mat2.flags_unshaded = true
-		mat2.albedo_color = Color(0, 0.5, 1, 0.5)
-		mat2.flags_transparent = true
-		mesh.material = mat2
-		_sea_mesh = MeshInstance.new()
-		_sea_mesh.mesh = mesh
-		var aabb = _mesh_instance.get_aabb()
-		_sea_mesh.scale = Vector3(aabb.size.x, 1, aabb.size.z)
-		_sea_mesh.translation = Vector3(aabb.size.x, 0, aabb.size.z) / 2.0
-		_sea_mesh.hide()
-		_viewport.add_child(_sea_mesh)
+
+	var aabb = _mesh_instance.get_aabb()
+	_sea_outline.scale = aabb.size
+
+	aabb = _mesh_instance.get_aabb()
+	_sea_plane.scale = Vector3(aabb.size.x, 1, aabb.size.z)
+	_sea_plane.translation = Vector3(aabb.size.x, 0, aabb.size.z) / 2.0
 
 
 func set_sea_visible(visible):
-	_sea_mesh.visible = visible
+	_sea_plane.visible = visible
+
+
+func set_shadows_enabled(enabled):
+	_light.shadow_enabled = enabled
 
 
 func _update_camera():
@@ -87,10 +96,11 @@ func _update_camera():
 
 
 func cleanup():
-	var mat = _mesh_instance.mesh.surface_get_material(0)
-	assert(mat != null)
-	mat.set_shader_param("u_terrain_heightmap", null)
-	mat.set_shader_param("u_terrain_normalmap", null)
+	if _mesh_instance != null:
+		var mat = _mesh_instance.mesh.surface_get_material(0)
+		assert(mat != null)
+		mat.set_shader_param("u_terrain_heightmap", null)
+		mat.set_shader_param("u_terrain_normalmap", null)
 
 
 func _gui_input(event):
@@ -112,7 +122,7 @@ func _gui_input(event):
 	elif event is InputEventMouseButton:
 		if event.pressed:
 			
-			var factor = 1.5
+			var factor = 1.2
 			var max_factor = 10.0
 			var min_distance = _default_distance / max_factor
 			var max_distance = _default_distance
