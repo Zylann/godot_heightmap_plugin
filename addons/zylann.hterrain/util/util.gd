@@ -163,6 +163,10 @@ static func is_in_edited_scene(node):
 # with optional anchoring to decide in which direction to extend or crop.
 # New pixels are filled with the provided fill color.
 static func get_cropped_image(src, width, height, fill_color=null, anchor=Vector2(-1, -1)):
+	width = int(width)
+	height = int(height)
+	if width == src.get_width() and height == src.get_height():
+		return src
 	var im = Image.new()
 	im.create(width, height, false, src.get_format())
 	if fill_color != null:
@@ -196,7 +200,7 @@ static func get_cropped_image_params(src_w, src_h, dst_w, dst_h, anchor):
 
 	if dst_y + src_h >= dst_h:
 		src_h = dst_h - dst_y
-	
+
 	return {
 		"src_rect": Rect2(src_x, src_y, src_w, src_h),
 		"dst_pos": Vector2(dst_x, dst_y)
