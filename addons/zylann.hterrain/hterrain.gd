@@ -173,11 +173,11 @@ func _get_property_list():
 	for p in shader_params:
 		if _api_shader_params.has(p.name):
 			continue
-		props.append({
-			"name": str("shader_params/", p.name),
-			"type": p.type,
-			"usage": PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_STORAGE
-		})
+		var cp = {}
+		for k in p:
+			cp[k] = p[k]
+		cp.name = str("shader_params/", p.name)
+		props.append(cp)
 	
 	for i in range(get_ground_texture_slot_count()):
 		for t in _ground_enum_to_name:
