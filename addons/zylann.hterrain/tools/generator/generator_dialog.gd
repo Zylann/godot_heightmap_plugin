@@ -15,6 +15,7 @@ signal progress_notified(info) # { "progress": real, "message": string, "finishe
 
 onready var _inspector = get_node("VBoxContainer/Editor/Settings/Inspector")
 onready var _preview = get_node("VBoxContainer/Editor/Preview/TerrainPreview")
+onready var _progress_bar = get_node("VBoxContainer/Editor/Preview/ProgressBar")
 
 var _dummy_texture = load("res://addons/zylann.hterrain/tools/icons/empty.png")
 var _noise_texture = null
@@ -42,10 +43,12 @@ func _ready():
 		"roughness": { "type": TYPE_REAL, "range": {"min": 0.0, "max": 1.0, "step": 0.01}, "default_value": 0.5 },
 		"curve": { "type": TYPE_REAL, "range": {"min": 1.0, "max": 10.0, "step": 0.1}, "default_value": 1.0 },
 		"octaves": { "type": TYPE_INT, "range": {"min": 1, "max": 10, "step": 1}, "default_value": 4 },
-		"erosion": { "type": TYPE_INT, "range": {"min": 0, "max": 50, "step": 1}, "default_value": 5 },
-		"erosion_invert": { "type": TYPE_BOOL, "default_value": false },
-		"erosion_moore": { "type": TYPE_BOOL, "default_value": true },
-		"erosion_slope": { "type": TYPE_BOOL, "default_value": true },
+		"erosion_steps": { "type": TYPE_INT, "range": {"min": 0, "max": 100, "step": 1}, "default_value": 5 },
+		"erosion_weight": { "type": TYPE_REAL, "range": { "min": 0.0, "max": 1.0 }, "default_value": 0.5 },
+		"erosion_slope_factor": { "type": TYPE_REAL, "range": { "min": 0.0, "max": 1.0 }, "default_value": 0.0 },
+		"erosion_slope_direction": { "type": TYPE_VECTOR2, "default_value": Vector2(0, 0) },
+		"erosion_slope_invert": { "type": TYPE_BOOL, "default_value": false },
+		"dilation": { "type": TYPE_REAL, "range": { "min": 0.0, "max": 1.0 }, "default_value": 0.0 },
 		"show_sea": { "type": TYPE_BOOL, "default_value": true },
 		"shadows": { "type": TYPE_BOOL, "default_value": true }
 	})
@@ -58,6 +61,7 @@ func _ready():
 	_generator.set_output_padding([0, 1, 0, 1])
 	_generator.connect("output_generated", self, "_on_TextureGenerator_output_generated")
 	_generator.connect("completed", self, "_on_TextureGenerator_completed")
+	_generator.connect("progress_reported", self, "_on_TextureGenerator_progress_reported")
 	add_child(_generator)
 
 
@@ -140,7 +144,7 @@ func _update_generator(preview=true):
 				for x in cw:
 					sectors.append(Vector2(x, y))
 	
-	var erosion_iterations = int(_inspector.get_value("erosion"))
+	var erosion_iterations = int(_inspector.get_value("erosion_steps"))
 	erosion_iterations /= int(preview_scale)
 	
 	_generator.clear_passes()
@@ -182,11 +186,12 @@ func _update_generator(preview=true):
 			p.shader = get_shader("erode")
 			# TODO More erosion config
 			p.params = {
-				"u_slope": _inspector.get_value("erosion_slope"),
-				"u_invert": _inspector.get_value("erosion_invert"),
-				"u_moore": _inspector.get_value("erosion_moore")
+				"u_slope_factor": _inspector.get_value("erosion_slope_factor"),
+				"u_slope_invert": _inspector.get_value("erosion_slope_invert"),
+				"u_slope_up": _inspector.get_value("erosion_slope_direction"),
+				"u_weight": _inspector.get_value("erosion_weight"),
+				"u_dilation": _inspector.get_value("dilation")
 			}
-			print(p.params)
 			p.iterations = erosion_iterations
 			p.padding = p.iterations
 			_generator.add_pass(p)
@@ -272,6 +277,16 @@ func _apply():
 	_update_generator(false)
 
 
+func _on_TextureGenerator_progress_reported(info):
+	if _applying:
+		return
+	var p = 0.0
+	if info.pass_index == 1:
+		p = float(info.iteration) / float(info.iteration_count)
+	_progress_bar.show()
+	_progress_bar.ratio = p
+
+
 func _on_TextureGenerator_output_generated(image, info):
 	if not _applying:
 		# Update preview
@@ -313,6 +328,8 @@ func _on_TextureGenerator_output_generated(image, info):
 
 
 func _on_TextureGenerator_completed():
+	_progress_bar.hide()
+	
 	if not _applying:
 		return
 	_applying = false
