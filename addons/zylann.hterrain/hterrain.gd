@@ -744,7 +744,11 @@ func _process(delta):
 		if _data.get_resolution() != 0:
 			var gt = get_internal_transform()
 			var local_viewer_pos = gt.affine_inverse() * viewer_pos
+			#var time_before = OS.get_ticks_msec()
 			_lodder.update(local_viewer_pos)
+			#var time_elapsed = OS.get_ticks_msec() - time_before
+			#if Engine.get_frames_drawn() % 60 == 0:
+			#	print("Lodder time: ", time_elapsed)
 		
 		if _data.get_map_count(HTerrainData.CHANNEL_DETAIL) > 0:
 			# Note: the detail system is not affected by map scale,

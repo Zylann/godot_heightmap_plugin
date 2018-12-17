@@ -1,42 +1,34 @@
 tool
 # Independent quad tree designed to handle LOD
 
-class TreeNode:
+class Quad:
 	var children = null
 	var origin_x = 0
 	var origin_y = 0
-
-	var chunk = null
+	var data = null
 
 	func _init():
 		pass
 	
 	func clear():
 		clear_children()
-		chunk = null
+		data = null
 	
 	func clear_children():
-		if has_children():
-			for i in range(4):
-				children[i] = null
 		children = null
 	
 	func has_children():
 		return children != null
 
 
-var _tree = TreeNode.new()
+var _tree = Quad.new()
 var _max_depth = 0
-var _base_size = 0
+var _base_size = 16
 var _split_scale = 2.0
 
 var _make_func = null
 var _recycle_func = null
 var _vertical_bounds_func = null
-
-
-func _init():
-	pass
 
 
 func set_callbacks(make_cb, recycle_cb, vbounds_cb):
@@ -46,7 +38,7 @@ func set_callbacks(make_cb, recycle_cb, vbounds_cb):
 
 
 func clear():
-	_join_recursively(_tree, _max_depth)
+	_join_all_recursively(_tree, _max_depth)
 	
 	_tree.clear_children()
 	
@@ -54,7 +46,7 @@ func clear():
 	_base_size = 0
 
 
-func compute_lod_count(base_size, full_size):
+static func compute_lod_count(base_size, full_size):
 	var po = 0
 	while full_size > base_size:
 		full_size = full_size >> 1
@@ -93,9 +85,8 @@ func get_split_scale():
 	return _split_scale
 
 
-func update(viewer_pos):
-	_update_nodes_recursive(_tree, _max_depth, viewer_pos)
-	_make_chunks_recursively(_tree, _max_depth)
+func update(view_pos):
+	_update(_tree, _max_depth, view_pos)
 
 
 # TODO Should be renamed get_lod_factor
@@ -103,8 +94,68 @@ func get_lod_size(lod):
 	return 1 << lod
 
 
-func get_split_distance(lod):
-	return _base_size * get_lod_size(lod) * _split_scale
+func _update(quad, lod, view_pos):
+	# This function should be called regularly over frames.
+	
+	var lod_factor = get_lod_size(lod)
+	var chunk_size = _base_size * lod_factor
+	var world_center = chunk_size * (Vector3(quad.origin_x, 0, quad.origin_y) + Vector3(0.5, 0, 0.5))
+	
+	if _vertical_bounds_func != null:
+		var vbounds = _vertical_bounds_func.call_func(quad.origin_x, quad.origin_y, lod)
+		world_center.y = (vbounds.x + vbounds.y) / 2.0
+	
+	var split_distance = _base_size * lod_factor * _split_scale
+	
+	if not quad.has_children():
+		if lod > 0 and world_center.distance_to(view_pos) < split_distance:
+			# Split
+			quad.children = [null, null, null, null]
+
+			for i in 4:
+				var child = Quad.new()
+				child.origin_x = quad.origin_x * 2 + (i & 1)
+				child.origin_y = quad.origin_y * 2 + ((i & 2) >> 1)
+				quad.children[i] = child
+				child.data = _make_chunk(lod - 1, child.origin_x, child.origin_y)
+				# If the quad needs to split more, we'll ask more recycling...
+
+			if quad.data != null:
+				_recycle_chunk(quad.data, quad.origin_x, quad.origin_y, lod)
+				quad.data = null
+	
+	else:
+		var no_split_child = true
+		
+		for child in quad.children:
+			_update(child, lod - 1, view_pos)
+			if child.has_children():
+				no_split_child = false
+		
+		if no_split_child and world_center.distance_to(view_pos) > split_distance:
+			# Join
+			if quad.has_children():
+				for i in 4:
+					var child = quad.children[i]
+					_recycle_chunk(child.data, child.origin_x, child.origin_y, lod - 1)
+					quad.data = null
+				quad.clear_children()
+
+				assert(quad.data == null)
+				quad.data = _make_chunk(lod, quad.origin_x, quad.origin_y)
+
+
+func _join_all_recursively(quad, lod):
+	if quad.has_children():
+		for i in range(4):
+			var child = quad.children[i]
+			_join_all_recursively(child, lod - 1)
+
+		quad.clear_children()
+		
+	elif quad.data != null:
+		_recycle_chunk(quad.data, quad.origin_x, quad.origin_y, lod)
+		quad.data = null
 
 
 func _make_chunk(lod, origin_x, origin_y):
@@ -119,86 +170,15 @@ func _recycle_chunk(chunk, origin_x, origin_y, lod):
 		_recycle_func.call_func(chunk, origin_x, origin_y, lod)
 
 
-func _join_recursively(node, lod):
-	if node.has_children():
-		for i in range(4):
-			var child = node.children[i]
-			_join_recursively(child, lod - 1)
-
-		node.clear_children()
-		
-	elif node.chunk != null:
-		_recycle_chunk(node.chunk, node.origin_x, node.origin_y, lod)
-		node.chunk = null
-
-
-func _update_nodes_recursive(node, lod, viewer_pos):
-	#print("update_nodes_recursive lod={0}, o={1}, {2} ".format([lod, node.origin.x, node.origin.y]))
-
-	var lod_size = get_lod_size(lod)
-	var chunk_size = _base_size * lod_size
-	var world_center = chunk_size * (Vector3(node.origin_x, 0, node.origin_y) + Vector3(0.5, 0, 0.5))
-	
-	if _vertical_bounds_func != null:
-		var vbounds = _vertical_bounds_func.call_func(node.origin_x, node.origin_y, lod)
-		world_center.y = (vbounds.x + vbounds.y) / 2.0
-	
-	var split_distance = get_split_distance(lod)
-
-	if node.has_children():
-		# Test if it should be joined
-		# TODO Distance should take the chunk's Y dimension into account
-		if world_center.distance_to(viewer_pos) > split_distance:
-			_join_recursively(node, lod)
-
-	elif lod > 0:
-		# Test if it should split
-		if world_center.distance_to(viewer_pos) < split_distance:
-			# Split
-			
-			node.children = [null, null, null, null]
-
-			for i in range(4):
-				var child = TreeNode.new()
-				child.origin_x = node.origin_x * 2 + (i & 1)
-				child.origin_y = node.origin_y * 2 + ((i & 2) >> 1)
-				node.children[i] = child
-
-			if node.chunk != null:
-				_recycle_chunk(node.chunk, node.origin_x, node.origin_y, lod)
-
-			node.chunk = null
-
-	# TODO This will check all chunks every frame,
-	# we could find a way to recursively update chunks as they get joined/split,
-	# but in C++ that would be not even needed.
-	if node.has_children():
-		for i in range(4):
-			_update_nodes_recursive(node.children[i], lod - 1, viewer_pos)
-
-
-func _make_chunks_recursively(node, lod):
-	assert(lod >= 0)
-	if node.has_children():
-		for i in range(4):
-			var child = node.children[i]
-			_make_chunks_recursively(child, lod - 1)
-	else:
-		if node.chunk == null:
-			node.chunk = _make_chunk(lod, node.origin_x, node.origin_y)
-			# Note: if you don't return anything here,
-			# _make_chunk will continue being called
-
-
 func debug_draw_tree(ci):
-	var node = _tree
-	_debug_draw_tree_recursive(ci, node, _max_depth, 0)
+	var quad = _tree
+	_debug_draw_tree_recursive(ci, quad, _max_depth, 0)
 
 
-func _debug_draw_tree_recursive(ci, node, lod_index, child_index):
-	if node.has_children():
-		for i in range(0, node.children.size()):
-			var child = node.children[i]
+func _debug_draw_tree_recursive(ci, quad, lod_index, child_index):
+	if quad.has_children():
+		for i in range(0, quad.children.size()):
+			var child = quad.children[i]
 			_debug_draw_tree_recursive(ci, child, lod_index - 1, i)	
 	else:
 		var size = get_lod_size(lod_index)
@@ -206,9 +186,8 @@ func _debug_draw_tree_recursive(ci, node, lod_index, child_index):
 		if child_index == 1 or child_index == 2:
 			checker = 1
 		var chunk_indicator = 0
-		if node.chunk != null:
+		if quad.data != null:
 			chunk_indicator = 1
-		var r = Rect2(Vector2(node.origin_x, node.origin_y) * size, Vector2(size, size))
+		var r = Rect2(Vector2(quad.origin_x, quad.origin_y) * size, Vector2(size, size))
 		ci.draw_rect(r, Color(1.0 - lod_index * 0.2, 0.2 * checker, chunk_indicator, 1))
-
 
