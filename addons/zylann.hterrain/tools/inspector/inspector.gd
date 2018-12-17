@@ -162,6 +162,7 @@ func _make_editor(key, prop):
 			_setup_range_control(spinbox, prop)
 			spinbox.connect("value_changed", self, "_property_edited", [key])
 			
+			# TODO In case the type is INT, the getter should return an integer!
 			getter = funcref(spinbox, "get_value")
 			setter = funcref(spinbox, "set_value")
 			
@@ -218,7 +219,7 @@ func _make_editor(key, prop):
 			setter = funcref(editor, "set_pick_color")
 			
 		TYPE_BOOL:
-			editor = CheckButton.new()
+			editor = CheckBox.new()
 			editor.connect("toggled", self, "_property_edited", [key])
 			getter = funcref(editor, "is_pressed")
 			setter = funcref(editor, "set_pressed")
