@@ -8,7 +8,11 @@ For a more detailed list of past and incoming changes, see the commit history.
 0.9.1 (WIP)
 ------------
 
+- Reduce checkbox size in generator tool
+- Make zoom slower in generator tool
 - Fixed brush decal not showing up at certain angles
+- Fixed script error in some of the tools
+- Fixed terrain inspector not allowing to set shader textures
 
 
 0.9
