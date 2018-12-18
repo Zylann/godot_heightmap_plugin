@@ -10,6 +10,7 @@ const HTerrainChunkDebug = preload("hterrain_chunk_debug.gd")
 const Util = preload("util/util.gd")
 const HTerrainCollider = preload("hterrain_collider.gd")
 const DetailRenderer = preload("detail/detail_renderer.gd")
+const _NORMAL_BAKER_PATH = "res://addons/zylann.hterrain/tools/normalmap_baker.gd"
 
 const CLASSIC4_SHADER_PATH = "res://addons/zylann.hterrain/shaders/simple4.shader"
 const CLASSIC4_LITE_SHADER_PATH = "res://addons/zylann.hterrain/shaders/simple4_lite.shader"
@@ -103,6 +104,7 @@ var _updated_chunks = 0
 
 # Editor-only
 var _edit_manual_viewer_pos = Vector3()
+var _normals_baker = null
 
 func _init():
 	print("Create HeightMap")
@@ -462,6 +464,11 @@ func set_data(new_data):
 		_data.disconnect("map_changed", self, "_on_data_map_changed")
 		_data.disconnect("map_added", self, "_on_data_map_added")
 		_data.disconnect("map_removed", self, "_on_data_map_removed")
+		
+		if _normals_baker != null:
+			_normals_baker.set_terrain_data(null)
+			_normals_baker.queue_free()
+			_normals_baker = null
 
 	_data = new_data
 
@@ -498,6 +505,11 @@ func _on_data_progress_notified(info):
 			_collider.create_from_terrain_data(_data)
 		
 		_details.reset()
+		
+		if Engine.editor_hint and _normals_baker == null:
+			_normals_baker = load(_NORMAL_BAKER_PATH).new()
+			add_child(_normals_baker)
+			_normals_baker.set_terrain_data(_data)
 		
 		emit_signal("progress_complete")
 
@@ -541,12 +553,15 @@ func _reset_ground_chunks():
 	_mesher.configure(_chunk_size, _chunk_size, _lodder.get_lod_count())
 
 
-func _on_data_region_changed(min_x, min_y, max_x, max_y, channel):
+func _on_data_region_changed(min_x, min_y, size_x, size_y, channel):
 	#print_line(String("_on_data_region_changed {0}, {1}, {2}, {3}").format(varray(min_x, min_y, max_x, max_y)));
 
 	# Testing only heights because it's the only channel that can impact geometry and LOD
 	if channel == HTerrainData.CHANNEL_HEIGHT:
-		set_area_dirty(min_x, min_y, max_x - min_x, max_y - min_y)
+		set_area_dirty(min_x, min_y, size_x, size_y)
+		
+		if _normals_baker != null:
+			_normals_baker.request_tiles_in_region(Vector2(min_x, min_y), Vector2(size_x, size_y))
 
 
 func _on_data_map_changed(type, index):

@@ -151,7 +151,6 @@ func _edit_load_default():
 	print("Loading default data")
 	_set_default_maps()
 	resize(DEFAULT_RESOLUTION)
-	_update_all_normals()
 
 
 # Don't use the data if this getter returns false
@@ -172,14 +171,13 @@ func set_resolution(p_res):
 # @obsolete
 func set_resolution2(p_res, update_normals):
 	print("`HTerrainData.set_resolution2()` is obsolete, use `resize()` instead")
-	resize(p_res, true, Vector2(-1, -1), update_normals)
+	resize(p_res, true, Vector2(-1, -1))
 
 
-func resize(p_res, stretch=true, anchor=Vector2(-1, -1), update_normals=true):
+func resize(p_res, stretch=true, anchor=Vector2(-1, -1)):
 	assert(typeof(p_res) == TYPE_INT)
 	assert(typeof(stretch) == TYPE_BOOL)
 	assert(typeof(anchor) == TYPE_VECTOR2)
-	assert(typeof(update_normals) == TYPE_BOOL)
 	
 	print("HeightMapData::set_resolution ", p_res)
 	
@@ -196,8 +194,6 @@ func resize(p_res, stretch=true, anchor=Vector2(-1, -1), update_normals=true):
 
 	_resolution = p_res;
 
-	var need_to_update_all_normals = false
-	
 	for channel in range(CHANNEL_COUNT):
 		var maps = _maps[channel]
 		
@@ -220,9 +216,6 @@ func resize(p_res, stretch=true, anchor=Vector2(-1, -1), update_normals=true):
 			else:
 				if stretch and channel == CHANNEL_NORMAL:
 					im.create(_resolution, _resolution, false, get_channel_format(channel))
-					if update_normals:
-						# Deferring to make the code more robust, as we may modify heights as part of the resize
-						need_to_update_all_normals = true
 				else:
 					if stretch:
 						im.resize(_resolution, _resolution)
@@ -233,9 +226,6 @@ func resize(p_res, stretch=true, anchor=Vector2(-1, -1), update_normals=true):
 			map.modified = true
 
 	_update_all_vertical_bounds()
-
-	if need_to_update_all_normals:
-		_update_all_normals()
 
 	emit_signal("resolution_changed")
 
@@ -342,116 +332,6 @@ func get_all_heights():
 	return get_heights_region(0, 0, _resolution, _resolution)
 
 
-# TODO Have an async version that uses the GPU
-func _update_all_normals():
-	update_normals(0, 0, _resolution, _resolution)
-
-
-func update_normals(min_x, min_y, size_x, size_y):	
-	#var time_before = OS.get_ticks_msec()
-
-	assert(typeof(min_x) == TYPE_INT)
-	assert(typeof(min_y) == TYPE_INT)
-	assert(typeof(size_x) == TYPE_INT)
-	assert(typeof(size_x) == TYPE_INT)
-	
-	var heights = get_image(CHANNEL_HEIGHT)
-	var normals = get_image(CHANNEL_NORMAL)
-	
-	assert(heights != null)
-	assert(normals != null)
-
-	var max_x = min_x + size_x
-	var max_y = min_y + size_y
-
-	var p_min = [min_x, min_y]
-	var p_max = [max_x, max_y]
-	Util.clamp_min_max_excluded(p_min, p_max, [0, 0], [heights.get_width(), heights.get_height()])
-	min_x = p_min[0]
-	min_y = p_min[1]
-	max_x = p_max[0]
-	max_y = p_max[1]
-
-	if normals.has_method("bumpmap_to_normalmap"):
-
-		# Calculating normals using this function will make border pixels invalid,
-		# so we must pick a region 1 pixel larger in all directions to be sure we have neighboring information.
-		# Then, we'll blit the result by cropping away this margin.
-		var min_pad_x = 0 if min_x == 0 else 1
-		var min_pad_y = 0 if min_y == 0 else 1
-		var max_pad_x = 0 if max_x == normals.get_width() else 1
-		var max_pad_y = 0 if max_y == normals.get_height() else 1
-
-		var src_extract_rect = Rect2( \
-			min_x - min_pad_x, \
-			min_y - min_pad_y, \
-			max_x - min_x + min_pad_x + max_pad_x, \
-			max_y - min_y + min_pad_x + max_pad_x)
-
-		var sub = heights.get_rect(src_extract_rect)
-		# TODO Need a parameter for this function to NOT wrap pixels,
-		# it can cause lighting artifacts on map borders
-		sub.bumpmap_to_normalmap()
-		sub.convert(normals.get_format())
-
-		var src_blit_rect = Rect2( \
-			min_pad_x, \
-			min_pad_x, \
-			sub.get_width() - min_pad_x - max_pad_x, \
-			sub.get_height() - min_pad_x - max_pad_y)
-
-		normals.blit_rect(sub, src_blit_rect, Vector2(min_x, min_y))
-
-	else:
-		# Godot 3.0.3 or earlier...
-		# It is slow.
-
-		#                             __________
-		#                          .~#########%%;~.
-		#                         /############%%;`\
-		#                        /######/~\/~\%%;,;,\
-		#                       |#######\    /;;;;.,.|
-		#                       |#########\/%;;;;;.,.|
-		#              XX       |##/~~\####%;;;/~~\;,|       XX
-		#            XX..X      |#|  o  \##%;/  o  |.|      X..XX
-		#          XX.....X     |##\____/##%;\____/.,|     X.....XX
-		#     XXXXX.....XX      \#########/\;;;;;;,, /      XX.....XXXXX
-		#    X |......XX%,.@      \######/%;\;;;;, /      @#%,XX......| X
-		#    X |.....X  @#%,.@     |######%%;;;;,.|     @#%,.@  X.....| X
-		#    X  \...X     @#%,.@   |# # # % ; ; ;,|   @#%,.@     X.../  X
-		#     X# \.X        @#%,.@                  @#%,.@        X./  #
-		#      ##  X          @#%,.@              @#%,.@          X   #
-		#    , "# #X            @#%,.@          @#%,.@            X ##
-		#       `###X             @#%,.@      @#%,.@             ####'
-		#      . ' ###              @#%.,@  @#%,.@              ###`"
-		#        . ";"                @#%.@#%,.@                ;"` ' .
-		#          '                    @#%,.@                   ,.
-		#          ` ,                @#%,.@  @@                `
-		#                              @@@  @@@  
-
-		heights.lock();
-		normals.lock();
-
-		for y in range(min_y, max_y):
-			for x in range(min_x, max_x):
-				
-				var left = _get_clamped(heights, x - 1, y).r
-				var right = _get_clamped(heights, x + 1, y).r
-				var fore = _get_clamped(heights, x, y + 1).r
-				var back = _get_clamped(heights, x, y - 1).r
-
-				var n = Vector3(left - right, 2.0, fore - back).normalized()
-
-				normals.set_pixel(x, y, _encode_normal(n))
-				
-		heights.unlock()
-		normals.unlock()
-
-	#var time_elapsed = OS.get_ticks_msec() - time_before
-	#print("Elapsed updating normals: ", time_elapsed, "ms")
-	#print("Was from ", min_x, ", ", min_y, " to ", max_x, ", ", max_y)
-
-
 # Call this function after you end modifying a map.
 # It will commit the change to the GPU so the change will take effect.
 # In the editor, it will also mark the map as modified so it will be saved when needed.
@@ -471,9 +351,6 @@ func notify_region_change(p_min, p_size, channel, index = 0):
 			_update_vertical_bounds(p_min[0], p_min[1], p_size[0], p_size[1])
 
 			_upload_region(channel, 0, p_min[0], p_min[1], p_size[0], p_size[1])
-			_upload_region(CHANNEL_NORMAL, 0, p_min[0], p_min[1], p_size[0], p_size[1])
-
-			_maps[CHANNEL_NORMAL][index].modified = true
 			_maps[channel][index].modified = true
 
 		CHANNEL_NORMAL, \
@@ -555,12 +432,7 @@ func _edit_apply_undo(undo_data):
 
 		match channel:
 
-			CHANNEL_HEIGHT:
-				dst_image.blit_rect(data, data_rect, Vector2(min_x, min_y))
-				# Padding is needed because normals are calculated using neighboring,
-				# so a change in height X also requires normals in X-1 and X+1 to be updated
-				update_normals(min_x - 1, min_y - 1, max_x - min_x + 2, max_y - min_y + 2)
-
+			CHANNEL_HEIGHT, \
 			CHANNEL_SPLAT, \
 			CHANNEL_COLOR, \
 			CHANNEL_DETAIL:
@@ -1246,7 +1118,7 @@ func _import_heightmap(fpath, min_y, max_y):
 		_locked = true
 		
 		print("Resizing terrain to ", res, "x", res, "...")
-		resize(src_image.get_width(), true, Vector2(), false)
+		resize(src_image.get_width(), true, Vector2())
 		
 		var im = get_image(CHANNEL_HEIGHT)
 		assert(im != null)
@@ -1294,7 +1166,7 @@ func _import_heightmap(fpath, min_y, max_y):
 		_locked = true
 
 		print("Resizing terrain to ", width, "x", height, "...")
-		resize(res, true, Vector2(), false)
+		resize(res, true, Vector2())
 		
 		var im = get_image(CHANNEL_HEIGHT)
 		assert(im != null)
@@ -1324,9 +1196,6 @@ func _import_heightmap(fpath, min_y, max_y):
 	else:
 		# File extension not recognized
 		return false
-	
-	print("Updating normals...")
-	_update_all_normals()
 	
 	_locked = false
 	

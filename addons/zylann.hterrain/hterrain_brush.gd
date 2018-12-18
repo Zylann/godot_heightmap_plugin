@@ -427,10 +427,6 @@ func _paint_height(data, origin_x, origin_y, speed):
 	#print("Raster time: ", (OS.get_ticks_msec() - time_before))
 	#time_before = OS.get_ticks_msec()
 
-	data.update_normals(origin_x, origin_y, _shape_size, _shape_size)
-	#print("Normals time: ", (OS.get_ticks_msec() - time_before))
-	#time_before = OS.get_ticks_msec()
-
 	
 func _smooth_height(data, origin_x, origin_y, speed):
 
@@ -450,8 +446,6 @@ func _smooth_height(data, origin_x, origin_y, speed):
 	
 	im.unlock()
 
-	data.update_normals(origin_x, origin_y, _shape_size, _shape_size)
-
 
 func _flatten(data, origin_x, origin_y):
 
@@ -464,8 +458,6 @@ func _flatten(data, origin_x, origin_y):
 	var op = OperatorLerp.new(_flatten_height, im)
 	_foreach_xy(op, data, origin_x, origin_y, 1, 1, _shape)
 	im.unlock()
-
-	data.update_normals(origin_x, origin_y, _shape_size, _shape_size)
 
 
 func _paint_splat(data, origin_x, origin_y):
