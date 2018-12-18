@@ -7,7 +7,7 @@ extends Node
 const HTerrainData = preload("../hterrain_data.gd")
 const HTerrainMesher = preload("../hterrain_mesher.gd")
 
-const VIEWPORT_SIZE = 256
+const VIEWPORT_SIZE = 512
 
 signal progress_notified(info)
 
