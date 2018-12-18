@@ -47,18 +47,18 @@ func get_chunk(lod, seams):
 	return _mesh_cache[seams][lod]
 
 
-static func make_flat_chunk(chunk_size_x, chunk_size_y, stride, seams):
+static func make_flat_chunk(quad_count_x, quad_count_y, stride, seams):
 
 	var positions = PoolVector3Array()
-	positions.resize((chunk_size_x + 1) * (chunk_size_y + 1))
+	positions.resize((quad_count_x + 1) * (quad_count_y + 1))
 
 	var i = 0
-	for y in range(chunk_size_y + 1):
-		for x in range(chunk_size_x + 1):
+	for y in range(quad_count_y + 1):
+		for x in range(quad_count_x + 1):
 			positions[i] = Vector3(x * stride, 0, y * stride)
 			i += 1
 		
-	var indices = make_indices(chunk_size_x, chunk_size_y, seams)
+	var indices = make_indices(quad_count_x, quad_count_y, seams)
 
 	var arrays = []
 	arrays.resize(Mesh.ARRAY_MAX);
