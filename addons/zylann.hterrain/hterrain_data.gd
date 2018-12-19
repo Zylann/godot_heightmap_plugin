@@ -174,6 +174,12 @@ func set_resolution2(p_res, update_normals):
 	resize(p_res, true, Vector2(-1, -1))
 
 
+# Resizes all maps of the terrain. This may take some time to complete.
+# Note that no upload to GPU is done, you have to do it once you're done with all changes,
+# by calling `notify_region_change` or `notify_full_change`.
+# p_res: new resolution. Must be a power of two + 1.
+# stretch: if true, the terrain will be stretched in X and Z axes. If false, it will be cropped or expanded.
+# anchor: if stretch is false, decides which side or corner to crop/expand the terrain from.
 func resize(p_res, stretch=true, anchor=Vector2(-1, -1)):
 	assert(typeof(p_res) == TYPE_INT)
 	assert(typeof(stretch) == TYPE_BOOL)
@@ -228,8 +234,6 @@ func resize(p_res, stretch=true, anchor=Vector2(-1, -1)):
 	_update_all_vertical_bounds()
 
 	emit_signal("resolution_changed")
-
-	# TODO No upload to GPU? I wonder how this worked so far, maybe I didn't intend this?
 
 
 static func _get_clamped(im, x, y):
