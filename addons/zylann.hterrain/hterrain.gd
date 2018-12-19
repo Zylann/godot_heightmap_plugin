@@ -31,6 +31,7 @@ const _api_shader_params = {
 	"u_terrain_normalmap": true,
 	"u_terrain_colormap": true,
 	"u_terrain_splatmap": true,
+	"u_terrain_globalmap": true,
 	
 	"u_terrain_inverse_transform": true,
 	"u_terrain_normal_basis": true,
@@ -654,6 +655,7 @@ func _update_material_params():
 	var normal_texture
 	var color_texture
 	var splat_texture
+	var global_texture
 	var res = Vector2(-1, -1)
 
 	# TODO Only get textures the shader supports
@@ -663,11 +665,13 @@ func _update_material_params():
 		normal_texture = _data.get_texture(HTerrainData.CHANNEL_NORMAL)
 		color_texture = _data.get_texture(HTerrainData.CHANNEL_COLOR)
 		splat_texture = _data.get_texture(HTerrainData.CHANNEL_SPLAT)
+		if _data.get_map_count(HTerrainData.CHANNEL_GLOBAL_ALBEDO) != 0:
+			global_texture = _data.get_texture(HTerrainData.CHANNEL_GLOBAL_ALBEDO)
 		res.x = _data.get_resolution()
 		res.y = res.x
 	
 	# Set all parameters from the terrain sytem.
-
+	
 	if is_inside_tree():
 		var gt = get_internal_transform()
 		var t = gt.affine_inverse()
@@ -681,12 +685,36 @@ func _update_material_params():
 	_material.set_shader_param(SHADER_PARAM_NORMAL_TEXTURE, normal_texture)
 	_material.set_shader_param(SHADER_PARAM_COLOR_TEXTURE, color_texture)
 	_material.set_shader_param(SHADER_PARAM_SPLAT_TEXTURE, splat_texture)
-		
+	_material.set_shader_param("u_terrain_globalmap", global_texture)
+	
 	for slot in len(_ground_textures):
 		var textures = _ground_textures[slot]
 		for type in len(textures):
 			var shader_param = get_ground_texture_shader_param(type, slot)
 			_material.set_shader_param(shader_param, textures[type])
+
+
+# Helper used for globalmap baking
+func setup_globalmap_material(mat):
+
+	var color_texture
+	var splat_texture
+
+	if has_data():
+		color_texture = _data.get_texture(HTerrainData.CHANNEL_COLOR)
+		splat_texture = _data.get_texture(HTerrainData.CHANNEL_SPLAT)
+
+	mat.set_shader_param("u_terrain_splatmap", splat_texture)
+	mat.set_shader_param("u_terrain_colormap", color_texture)
+	mat.set_shader_param("u_depth_blending", get_shader_param("u_depth_blending"))
+	mat.set_shader_param("u_ground_uv_scale", get_shader_param("u_ground_uv_scale"))
+
+	for slot in len(_ground_textures):
+		var textures = _ground_textures[slot]
+		for type in len(textures):
+			var shader_param = get_ground_texture_shader_param(type, slot)
+			var tex = textures[type]
+			mat.set_shader_param(shader_param, tex)
 
 
 func set_lod_scale(lod_scale):

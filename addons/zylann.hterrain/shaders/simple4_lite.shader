@@ -1,7 +1,7 @@
+shader_type spatial;
+
 // This is a shader with less textures, in case the main one doesn't run on your GPU.
 // It's mostly a big copy/paste, because Godot doesn't support #include or #ifdef...
-
-shader_type spatial;
 
 uniform sampler2D u_terrain_heightmap;
 uniform sampler2D u_terrain_normalmap;
@@ -33,11 +33,11 @@ vec3 unpack_normal(vec4 rgba) {
 vec4 get_depth_blended_weights(vec4 splat, vec4 bumps) {
 	float dh = 0.2;
 
-	vec4 h = bumps + v_splat;
+	vec4 h = bumps + splat;
 	
 	// TODO Keep improving multilayer blending, there are still some edge cases...
 	// Mitigation: nullify layers with near-zero splat
-	h *= smoothstep(0, 0.05, v_splat);
+	h *= smoothstep(0, 0.05, splat);
 	
 	vec4 d = h + dh;
 	d.r -= max(h.g, max(h.b, h.a));
@@ -145,6 +145,6 @@ void fragment() {
 	NORMAL = (INV_CAMERA_MATRIX * (vec4(terrain_normal_world, 0.0))).xyz;
 
 	//ALBEDO = w.rgb;
-	//ALBEDO = vec3(v_ground_uv.y, 0, 0);
+	//ALBEDO = v_ground_uv.xyz;
 }
 

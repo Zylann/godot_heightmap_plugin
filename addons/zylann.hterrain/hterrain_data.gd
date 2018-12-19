@@ -12,7 +12,8 @@ const CHANNEL_NORMAL = 1
 const CHANNEL_SPLAT = 2
 const CHANNEL_COLOR = 3
 const CHANNEL_DETAIL = 4
-const CHANNEL_COUNT = 5
+const CHANNEL_GLOBAL_ALBEDO = 5
+const CHANNEL_COUNT = 6
 
 const MAX_RESOLUTION = 4096 + 1
 const MIN_RESOLUTION = 64 + 1 # must be higher than largest minimum chunk size
@@ -360,12 +361,13 @@ func notify_region_change(p_min, p_size, channel, index = 0):
 		CHANNEL_NORMAL, \
 		CHANNEL_SPLAT, \
 		CHANNEL_COLOR, \
-		CHANNEL_DETAIL:
+		CHANNEL_DETAIL, \
+		CHANNEL_GLOBAL_ALBEDO:
 			_upload_region(channel, index, p_min[0], p_min[1], p_size[0], p_size[1])
 			_maps[channel][index].modified = true
 
 		_:
-			print("Unrecognized channel\n")
+			printerr("Unrecognized channel\n")
 
 	emit_signal("region_changed", p_min[0], p_min[1], p_size[0], p_size[1], channel)
 
@@ -442,10 +444,11 @@ func _edit_apply_undo(undo_data):
 			CHANNEL_DETAIL:
 				dst_image.blit_rect(data, data_rect, Vector2(min_x, min_y))
 
-			CHANNEL_NORMAL:
-				print("This is a calculated channel!, no undo on this one\n")
+			CHANNEL_NORMAL, \
+			CHANNEL_GLOBAL_ALBEDO:
+				printerr("This is a calculated channel!, no undo on this one\n")
 			_:
-				print("Wut? Unsupported undo channel\n");
+				printerr("Wut? Unsupported undo channel\n");
 		
 		# Defer this to a second pass, otherwise it causes order-dependent artifacts on the normal map
 		regions_changed.append([[min_x, min_y], [max_x - min_x, max_y - min_y], channel, index])
@@ -474,8 +477,12 @@ func _upload_region(channel, index, min_x, min_y, size_x, size_y):
 	if channel == CHANNEL_NORMAL \
 	or channel == CHANNEL_COLOR \
 	or channel == CHANNEL_SPLAT \
-	or channel == CHANNEL_HEIGHT:
+	or channel == CHANNEL_HEIGHT \
+	or channel == CHANNEL_GLOBAL_ALBEDO:
 		flags |= Texture.FLAG_FILTER
+	
+	if channel == CHANNEL_GLOBAL_ALBEDO:
+		flags |= Texture.FLAG_MIPMAPS
 
 	var texture = map.texture
 
@@ -559,27 +566,41 @@ func _upload_region(channel, index, min_x, min_y, size_x, size_y):
 # Gets how many instances of a given map are present in the terrain data.
 # A return value of 0 means there is no such map, and querying for it might cause errors.
 func get_map_count(map_type):
-	return len(_maps[map_type])
+	if map_type < len(_maps):
+		return len(_maps[map_type])
+	return 0
 
 
+# TODO Deprecated
 func _edit_add_detail_map():
-	print("Adding detail map")
-	var map_type = CHANNEL_DETAIL
-	var detail_maps = _maps[map_type]
+	return _edit_add_map(CHANNEL_DETAIL)
+
+
+# TODO Deprecated
+func _edit_remove_detail_map(index):
+	_edit_remove_map(CHANNEL_DETAIL, index)
+
+
+func _edit_add_map(map_type):
+	# TODO Check minimum and maximum instances of a given map
+	print("Adding map of type ", get_channel_name(map_type))
+	while map_type >= len(_maps):
+		_maps.append([])
+	var maps = _maps[map_type]
 	var map = Map.new(_get_free_id(map_type))
 	map.image = Image.new()
 	map.image.create(_resolution, _resolution, false, get_channel_format(map_type))
-	var index = len(detail_maps)
-	detail_maps.append(map)
+	var index = len(maps)
+	maps.append(map)
 	emit_signal("map_added", map_type, index)
 	return index
 
 
-func _edit_remove_detail_map(index):
-	print("Removing detail map ", index)
-	var map_type = CHANNEL_DETAIL
-	var detail_maps = _maps[map_type]
-	detail_maps.remove(index)
+func _edit_remove_map(map_type, index):
+	# TODO Check minimum and maximum instances of a given map
+	print("Removing map ", get_channel_name(map_type), " at index ", index)
+	var maps = _maps[map_type]
+	maps.remove(index)
 	emit_signal("map_removed", map_type, index)
 
 
@@ -1247,6 +1268,8 @@ static func get_channel_format(channel):
 			return Image.FORMAT_RGBA8
 		CHANNEL_DETAIL:
 			return Image.FORMAT_L8
+		CHANNEL_GLOBAL_ALBEDO:
+			return Image.FORMAT_RGB8
 	
 	printerr("Unrecognized channel\n")
 	return Image.FORMAT_MAX
@@ -1272,6 +1295,8 @@ static func get_channel_name(c):
 			name = "height"
 		CHANNEL_DETAIL:
 			name = "detail"
+		CHANNEL_GLOBAL_ALBEDO:
+			name = "global_albedo"
 	assert(name != null)
 	return name
 
