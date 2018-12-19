@@ -525,7 +525,7 @@ func _paint_splat(data, origin_x, origin_y):
 #					c.g = clamp(_opacity, 0.0, 1.0)
 #					im.set_pixel(x, y, c)
 	else:
-		print("Unknown texture mode ", _texture_mode)
+		printerr("Unknown texture mode ", _texture_mode)
 
 	im.unlock()
 

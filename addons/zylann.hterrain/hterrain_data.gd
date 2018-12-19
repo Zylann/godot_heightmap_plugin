@@ -461,7 +461,6 @@ func _upload_channel(channel, index):
 
 
 func _upload_region(channel, index, min_x, min_y, size_x, size_y):
-
 	#print("Upload ", min_x, ", ", min_y, ", ", size_x, "x", size_y)
 	#var time_before = OS.get_ticks_msec()
 
@@ -771,7 +770,7 @@ func _compute_vertical_bounds_at(origin_x, origin_y, size_x, size_y, out_b):
 
 func _notify_progress(message, progress, finished = false):
 	_progress_complete = finished
-	print("[", int(100.0 * progress), "%] ", message)
+	#print("[", int(100.0 * progress), "%] ", message)
 	emit_signal("progress_notified", {
 		"message": message, 
 		"progress": progress,
@@ -1249,7 +1248,7 @@ static func get_channel_format(channel):
 		CHANNEL_DETAIL:
 			return Image.FORMAT_L8
 	
-	print("Unrecognized channel\n")
+	printerr("Unrecognized channel\n")
 	return Image.FORMAT_MAX
 
 
