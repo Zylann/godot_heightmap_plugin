@@ -367,7 +367,7 @@ func _open_file_dialog(filters, callback, binds, access):
 		_file_dialog.add_filter(filter)
 	_file_dialog.connect("popup_hide", self, "call_deferred", ["_on_file_dialog_close"], CONNECT_ONESHOT)
 	_file_dialog.connect("file_selected", self, callback, binds)
-	_file_dialog.popup_centered_minsize()
+	_file_dialog.popup_centered_ratio(0.7)
 
 
 func _on_file_dialog_close():
