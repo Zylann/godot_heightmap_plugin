@@ -19,11 +19,14 @@
 # Godot
 .import/
 logs/
+default_env.tres
 
 # VSCode
 *.vs/
 
+# Windows
+*.bat
+
 # Misc
-debug.bat
 _draft/
 _old/
