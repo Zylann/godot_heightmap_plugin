@@ -4,6 +4,19 @@ Changelog
 This is a high-level changelog for each released versions of the plugin.
 For a more detailed list of past and incoming changes, see the commit history.
 
+0.10 (WIP)
+----------
+
+- Added morphologic erosion to terrain generator
+- Added global map baking
+- Added ground shader parameter to blend towards global map over distance
+- Added properties to tint grass using the global map
+- Added property to tweak shading at the bottom of grass
+- Speed up sculpting by moving normals baking to GPU
+- Slightly improved LOD performance
+- Increased default file dialog size when selecting grass texture
+- Fixed issue with grass shading based on ground normals
+- Fixed grass preview lighting (was too dark)
 
 0.9.1
 ------------
