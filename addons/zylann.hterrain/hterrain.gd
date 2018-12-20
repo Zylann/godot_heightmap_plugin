@@ -89,14 +89,14 @@ var _data = null
 
 var _mesher = Mesher.new()
 var _lodder = QuadTreeLod.new()
-var _details = DetailRenderer.new()
-
-var _pending_chunk_updates = []
 
 # [lod][z][x] -> chunk
 # This container owns chunks
 var _chunks = []
 var _chunk_size = 16
+var _pending_chunk_updates = []
+
+var _detail_layers = []
 
 var _collider = null
 
@@ -115,7 +115,6 @@ func _init():
 		funcref(self,"_cb_recycle_chunk"), \
 		funcref(self, "_cb_get_vertical_bounds"))
 	
-	_details.set_terrain(self)
 	set_notify_transform(true)
 
 	# TODO Temporary! This is a workaround for https://github.com/godotengine/godot/issues/20291
@@ -223,9 +222,6 @@ func _get(key):
 		var param_name = key.right(len("shader_params/"))
 		return get_shader_param(param_name)
 
-	elif key == "_detail_objects_data":
-		return _details.serialize()
-
 	elif key == "chunk_size":
 		return _chunk_size
 
@@ -252,9 +248,6 @@ func _set(key, value):
 	elif key.begins_with("shader_params/"):
 		var param_name = key.right(len("shader_params/"))
 		set_shader_param(param_name, value)
-
-	if key == "_detail_objects_data":
-		return _details.deserialize(value)
 
 	elif key == "chunk_size":
 		set_chunk_size(value)
@@ -351,14 +344,12 @@ func _notification(what):
 			if _collider != null:
 				_collider.set_world(get_world())
 				_collider.set_transform(get_internal_transform())
-			_details.on_terrain_world_changed(get_world())
 			
 		NOTIFICATION_EXIT_WORLD:
 			print("Exit world");
 			_for_all_chunks(ExitWorldAction.new())
 			if _collider != null:
 				_collider.set_world(null)
-			_details.on_terrain_world_changed(null)
 			
 		NOTIFICATION_TRANSFORM_CHANGED:
 			_on_transform_changed()
@@ -366,8 +357,6 @@ func _notification(what):
 		NOTIFICATION_VISIBILITY_CHANGED:
 			print("Visibility changed");
 			_for_all_chunks(VisibilityChangedAction.new(is_visible()))
-			_details.on_terrain_visibility_changed(is_visible())
-			# TODO Turn off processing if not visible?
 
 
 func _on_transform_changed():
@@ -380,8 +369,6 @@ func _on_transform_changed():
 
 	if _collider != null:
 		_collider.set_transform(gt)
-
-	_details.on_terrain_transform_changed(gt)
 
 	emit_signal("transform_changed", gt)
 
@@ -505,7 +492,8 @@ func _on_data_progress_notified(info):
 		if _collider != null:
 			_collider.create_from_terrain_data(_data)
 		
-		_details.reset()
+		for layer in _detail_layers:
+			layer.update_material()
 		
 		if Engine.editor_hint and _normals_baker == null:
 			_normals_baker = load(_NORMAL_BAKER_PATH).new()
@@ -570,7 +558,8 @@ func _on_data_map_changed(type, index):
 	or type == HTerrainData.CHANNEL_HEIGHT \
 	or type == HTerrainData.CHANNEL_NORMAL \
 	or type == HTerrainData.CHANNEL_GLOBAL_ALBEDO:
-		_details.reset()
+		for layer in _detail_layers:
+			layer.update_material()
 	
 	if type != HTerrainData.CHANNEL_DETAIL:
 		_material_params_need_update = true
@@ -578,14 +567,16 @@ func _on_data_map_changed(type, index):
 
 func _on_data_map_added(type, index):
 	if type == HTerrainData.CHANNEL_DETAIL:
-		_details.reset()
+		for layer in _detail_layers:
+			layer.update_material()
 	else:
 		_material_params_need_update = true
 
 
 func _on_data_map_removed(type, index):
 	if type == HTerrainData.CHANNEL_DETAIL:
-		_details.remove_layer(index)
+		for layer in _detail_layers:
+			layer.update_material()
 	else:
 		_material_params_need_update = true
 
@@ -800,7 +791,8 @@ func _process(delta):
 		if _data.get_map_count(HTerrainData.CHANNEL_DETAIL) > 0:
 			# Note: the detail system is not affected by map scale,
 			# so we have to send viewer position in world space
-			_details.process(delta, viewer_pos)
+			for layer in _detail_layers:
+				layer.process(delta, viewer_pos)
 	
 	_updated_chunks = 0
 	
@@ -1089,27 +1081,40 @@ func set_ground_texture(slot, type, tex):
 	_ground_textures[slot][type] = tex
 
 
+func _internal_add_detail_layer(layer):
+	assert(_detail_layers.find(layer) == -1)
+	_detail_layers.append(layer)
+
+
+func _internal_remove_detail_layer(layer):
+	assert(_detail_layers.find(layer) != -1)
+	_detail_layers.erase(layer)
+
+
+func get_detail_layers():
+	var layers = []
+	layers.resize(len(_detail_layers))
+	for i in len(_detail_layers):
+		layers[i] = _detail_layers[i]
+	return layers
+
+
+# @obsolete
 func set_detail_texture(slot, tex):
-	_details.set_texture(slot, tex)
+	printerr("HTerrain.set_detail_texture is obsolete, use HTerrainLayer.texture instead")
 
 
+# @obsolete
 func get_detail_texture(slot):
-	return _details.get_texture(slot)
-
-
-func set_detail_shader_param(slot, param_name, value):
-	_details.set_shader_param(slot, param_name, value)
-
-
-func get_detail_shader_param(slot, param_name):
-	return _details.get_shader_param(slot, param_name)
+	printerr("HTerrain.get_detail_texture is obsolete, use HTerrainLayer.texture instead")
 
 
 func set_ambient_wind(amplitude):
 	if ambient_wind == amplitude:
 		return
 	ambient_wind = amplitude
-	_details.update_ambient_wind()
+	for layer in _detail_layers:
+		layer.update_material()
 
 
 func _check_slot(slot):

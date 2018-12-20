@@ -2,11 +2,12 @@ tool
 extends EditorPlugin
 
 
-const HTerrain = preload("../hterrain.gd")#preload("hterrain.gdns")
+const HTerrain = preload("../hterrain.gd")
+const HTerrainDetailLayer = preload("../hterrain_detail_layer.gd")
 const HTerrainData = preload("../hterrain_data.gd")
 const HTerrainMesher = preload("../hterrain_mesher.gd")
 const PreviewGenerator = preload("preview_generator.gd")
-const Brush = preload("../hterrain_brush.gd")#preload("hterrain_brush.gdns")
+const Brush = preload("../hterrain_brush.gd")
 const BrushDecal = preload("brush/decal.gd")
 const Util = preload("../util/util.gd")
 const LoadTextureDialog = preload("load_texture_dialog.gd")
@@ -59,6 +60,7 @@ func _enter_tree():
 	print("HTerrain plugin Enter tree")
 	
 	add_custom_type("HTerrain", "Spatial", HTerrain, get_icon("heightmap_node"))
+	add_custom_type("HTerrainDetailLayer", "Spatial", HTerrainDetailLayer, get_icon("detail_layer_node"))
 	add_custom_type("HTerrainData", "Resource", HTerrainData, get_icon("heightmap_data"))
 	
 	_preview_generator = PreviewGenerator.new()
@@ -214,22 +216,21 @@ func _exit_tree():
 	get_editor_interface().get_resource_previewer().remove_preview_generator(_preview_generator)
 	_preview_generator = null
 	
-	# https://github.com/godotengine/godot/issues/6254#issuecomment-246139694
+	# TODO https://github.com/godotengine/godot/issues/6254#issuecomment-246139694
 	# This was supposed to be automatic, but was never implemented it seems...
 	remove_custom_type("HTerrain")
+	remove_custom_type("HTerrainDetailLayer")
 	remove_custom_type("HTerrainData")
 
 
 func handles(object):
-	return object is HTerrain
+	return _get_terrain_from_object(object) != null
 
 
 func edit(object):
 	print("Edit ", object)
 	
-	var node = null
-	if object != null and object is HTerrain:
-		node = object
+	var node = _get_terrain_from_object(object)
 	
 	if _node != null:
 		_node.disconnect("tree_exited", self, "_terrain_exited_scene")
@@ -249,6 +250,15 @@ func edit(object):
 	_brush_decal.set_terrain(_node)
 	_generate_mesh_dialog.set_terrain(_node)
 	_resize_dialog.set_terrain(_node)
+
+
+static func _get_terrain_from_object(object):
+	if object != null and object is Spatial:
+		if object is HTerrain:
+			return object
+		if object is HTerrainDetailLayer and object.is_inside_tree() and object.get_parent() is HTerrain:
+			return object.get_parent()
+	return null
 
 
 func _update_brush_buttons_availability():
