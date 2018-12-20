@@ -1042,7 +1042,6 @@ func _load_channel(channel, index):
 			printerr("Could not load ", fpath)
 			return false
 		
-		print("W: ", im.get_width())
 		_resolution = im.get_width()
 		
 		map.image = im
