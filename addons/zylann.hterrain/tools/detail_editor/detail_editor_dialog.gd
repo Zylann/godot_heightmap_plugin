@@ -16,6 +16,7 @@ var _is_ready = false
 var _dummy_heightmap = null
 var _dummy_normalmap = null
 var _dummy_detailmap = null
+var _dummy_globalmap = null
 
 
 func _ready():
@@ -23,14 +24,19 @@ func _ready():
 	_dummy_heightmap = _create_dummy_texture(Image.FORMAT_RH, Color(0, 0, 0, 0))
 	_dummy_normalmap = _create_dummy_texture(Image.FORMAT_RGB8, Color(0.5, 0.5, 1.0, 0.0))
 	_dummy_detailmap = _create_dummy_texture(Image.FORMAT_L8, Color(1, 1, 1, 1))
+	_dummy_globalmap = _create_dummy_texture(Image.FORMAT_RGB8, Color(0.4, 0.8, 0.4))
 	
 	_inspector.set_prototype({
-		"texture": { "type": TYPE_OBJECT, "object_type": Resource }
+		"texture": { "type": TYPE_OBJECT, "object_type": Resource },
+		"bottom_shade": { "type": TYPE_REAL, "range": { "min": 0.0, "max": 1.0 }, "default_value": 0.0 },
+		"global_map_tint_bottom": { "type": TYPE_REAL, "range": { "min": 0.0, "max": 1.0 }, "default_value": 0.0 },
+		"global_map_tint_top": { "type": TYPE_REAL, "range": { "min": 0.0, "max": 1.0 }, "default_value": 0.0 }
 	})
 
 
-func set_params(texture):
-	_inspector.set_value("texture", texture)
+func set_params(params):
+	for k in params:
+		_inspector.set_value(k, params[k])
 
 
 static func _create_dummy_texture(format, color):
@@ -44,16 +50,23 @@ static func _create_dummy_texture(format, color):
 
 func _on_OkButton_pressed():
 	hide()
-	emit_signal("confirmed", {
-		"texture": _inspector.get_value("texture")
-	})
+	emit_signal("confirmed", _inspector.get_values())
 
 
 func _on_Inspector_property_changed(key, value):
 	if _viewport == null:
 		return
-	if key == "texture":
-		_preview_mesh_instance.material_override.set_shader_param("u_albedo_alpha", value)
+	
+	match key:
+		# TODO Mapping params all over the place isn't ideal. Custom shaders may need arbitrary params.
+		"texture":
+			_preview_mesh_instance.material_override.set_shader_param("u_albedo_alpha", value)
+		"bottom_shade":
+			_preview_mesh_instance.material_override.set_shader_param("u_bottom_ao", value)
+		"global_map_tint_bottom":
+			_preview_mesh_instance.material_override.set_shader_param("u_globalmap_tint_bottom", value)
+		"global_map_tint_top":
+			_preview_mesh_instance.material_override.set_shader_param("u_globalmap_tint_top", value)
 
 
 func _notification(what):
@@ -80,7 +93,11 @@ func _notification(what):
 				mat.set_shader_param("u_terrain_heightmap", _dummy_heightmap)
 				mat.set_shader_param("u_terrain_detailmap", _dummy_detailmap)
 				mat.set_shader_param("u_terrain_normalmap", _dummy_normalmap)
+				mat.set_shader_param("u_terrain_globalmap", _dummy_globalmap)
 				mat.set_shader_param("u_albedo_alpha", _inspector.get_value("texture"))
+				mat.set_shader_param("u_globalmap_tint_bottom", _inspector.get_value("global_map_tint_bottom"))
+				mat.set_shader_param("u_globalmap_tint_top", _inspector.get_value("global_map_tint_top"))
+				mat.set_shader_param("u_bottom_ao", _inspector.get_value("bottom_shade"))
 				mat.set_shader_param("u_view_distance", 100)
 				
 				var mi = MeshInstance.new()
@@ -90,7 +107,7 @@ func _notification(what):
 				_viewport.add_child(mi)
 				
 				var light = DirectionalLight.new()
-				light.rotation = Vector3(-60, -35, 0)
+				light.rotation_degrees = Vector3(-60, -35, 0)
 				_viewport.add_child(light)
 				
 				var camera = Camera.new()
@@ -102,7 +119,7 @@ func _notification(what):
 				# Doing this at the end because it doesn't work until inside the tree
 				var aabb = mi.get_aabb()
 				var target_pos = aabb.position + aabb.size / 2.0
-				camera.look_at_from_position(Vector3(0, 1, -1), target_pos, Vector3(0, 1, 0)) 
+				camera.look_at_from_position(Vector3(0, 1, -1), target_pos, Vector3(0, 1, 0))
 			
 			else:
 				if _viewport == null:

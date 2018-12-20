@@ -205,3 +205,32 @@ static func get_cropped_image_params(src_w, src_h, dst_w, dst_h, anchor):
 		"src_rect": Rect2(src_x, src_y, src_w, src_h),
 		"dst_pos": Vector2(dst_x, dst_y)
 	}
+
+# TODO Workaround for https://github.com/godotengine/godot/issues/24488
+# TODO Simplify in Godot 3.1 if that's still not fixed, using https://github.com/godotengine/godot/pull/21806
+static func get_shader_param_or_default(mat, name):
+	var v = mat.get_shader_param(name)
+	if v != null:
+		return v
+	var params = VisualServer.shader_get_param_list(mat.shader)
+	for p in params:
+		print(p)
+		if p.name == name:
+			match p.type:
+				TYPE_OBJECT:
+					return null
+				# I should normally check default values,
+				# however they are not accessible
+				TYPE_BOOL:
+					return false
+				TYPE_REAL:
+					return 0.0
+				TYPE_VECTOR2:
+					return Vector2()
+				TYPE_VECTOR3:
+					return Vector3()
+				TYPE_COLOR:
+					return Color()
+	return null
+
+

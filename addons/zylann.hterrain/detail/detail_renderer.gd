@@ -15,6 +15,19 @@ const CHUNK_SIZE = 32
 const DETAIL_SHADER_PATH = "res://addons/zylann.hterrain/detail/detail.shader"
 const DEBUG = false
 
+# These parameters are considered built-in,
+# they are managed internally so they are not treated the same
+const _API_SHADER_PARAMS = {
+	"u_terrain_heightmap": true,
+	"u_terrain_detailmap": true,
+	"u_terrain_normalmap": true,
+	"u_terrain_globalmap": true,
+	"u_terrain_inverse_transform": true,
+	"u_albedo_alpha": true,
+	"u_view_distance": true,
+	"u_ambient_wind": true
+}
+
 class Chunk:
 	var cx = 0
 	var cz = 0
@@ -97,15 +110,38 @@ func on_terrain_visibility_changed(visible):
 func serialize():
 	var data = []
 	for layer in _layers:
-		data.append({ "texture": layer.texture })
+		
+		var props = {
+			"texture": layer.texture,
+			"shader_params": {}
+		}
+		
+		var shader_params = VisualServer.shader_get_param_list(layer.material.shader.get_rid())
+		for p in shader_params:
+			if _API_SHADER_PARAMS.has(p.name):
+				continue
+			props.shader_params[p.name] = layer.material.get_shader_param(p.name)
+		
+		data.append(props)
+
 	return data
 
 
 func deserialize(data):
 	_layers.clear()
 	for layer_data in data:
+
 		var layer = Layer.new()
 		layer.texture = layer_data.texture
+
+		if layer_data.has("shader_params"):
+			if layer.material == null:
+				layer.material = ShaderMaterial.new()
+				layer.material.shader = _detail_shader
+			for param_name in layer_data.shader_params:
+				var v = layer_data.shader_params[param_name]
+				layer.material.set_shader_param(param_name, v)
+
 		_layers.append(layer)
 
 
@@ -138,6 +174,18 @@ func get_texture(i):
 	return layer.texture if layer != null else null
 
 
+func set_shader_param(i, param_name, value):
+	assert(i < len(_layers))
+	var layer = _layers[i]
+	layer.material.set_shader_param(param_name, value)
+
+
+func get_shader_param(i, param_name):
+	assert(i < len(_layers))
+	var layer = _layers[i]
+	return Util.get_shader_param_or_default(layer.material, param_name)
+
+
 func update_ambient_wind():
 	var awp = _get_ambient_wind_params()
 	for layer in _layers:
@@ -152,6 +200,7 @@ func _reset_layers():
 		_recycle_chunk(k)
 	
 	if _terrain == null:
+		print("Clearing layers because _terrain is null")
 		_layers.clear()
 		return
 	
@@ -435,27 +484,39 @@ func _get_layer_material(layer, index):
 
 
 func _update_layer_material(layer, index):
+	# Sets API shader properties. Custom properties are assumed to be set already
 
 	assert(_terrain != null)
 	assert(_terrain.get_data() != null)
-	var terrain_data = _terrain.get_data()
-	assert(not terrain_data.is_locked())
-
-	var heightmap_texture = _terrain.get_data().get_texture(HTerrainData.CHANNEL_HEIGHT)
-	var detailmap_texture = _terrain.get_data().get_texture(HTerrainData.CHANNEL_DETAIL, index)
-	var normalmap_texture = _terrain.get_data().get_texture(HTerrainData.CHANNEL_NORMAL)
 
 	var gt = _terrain.get_internal_transform()
 	var it = gt.affine_inverse()
-	
 	var mat = layer.material
-	mat.set_shader_param("u_terrain_heightmap", heightmap_texture)
-	mat.set_shader_param("u_terrain_detailmap", detailmap_texture)
-	mat.set_shader_param("u_terrain_normalmap", normalmap_texture)
+
 	mat.set_shader_param("u_terrain_inverse_transform", it)
 	mat.set_shader_param("u_albedo_alpha", layer.texture)
 	mat.set_shader_param("u_view_distance", _view_distance)
 	mat.set_shader_param("u_ambient_wind", _get_ambient_wind_params())
+
+	var terrain_data = _terrain.get_data()
+	if terrain_data.is_locked():
+		print("Terrain data locked, can't update detail layer now")
+		return
+
+	var heightmap_texture = terrain_data.get_texture(HTerrainData.CHANNEL_HEIGHT)
+	var normalmap_texture = terrain_data.get_texture(HTerrainData.CHANNEL_NORMAL)
+
+	# This texture must exist. If not, there is a bug in how the layer was added in the first place
+	var detailmap_texture = terrain_data.get_texture(HTerrainData.CHANNEL_DETAIL, index)
+	
+	var globalmap_texture = null
+	if terrain_data.get_map_count(HTerrainData.CHANNEL_GLOBAL_ALBEDO) > 0:
+		globalmap_texture = terrain_data.get_texture(HTerrainData.CHANNEL_GLOBAL_ALBEDO)
+
+	mat.set_shader_param("u_terrain_heightmap", heightmap_texture)
+	mat.set_shader_param("u_terrain_detailmap", detailmap_texture)
+	mat.set_shader_param("u_terrain_normalmap", normalmap_texture)
+	mat.set_shader_param("u_terrain_globalmap", globalmap_texture)
 
 
 func _add_debug_cube(aabb):

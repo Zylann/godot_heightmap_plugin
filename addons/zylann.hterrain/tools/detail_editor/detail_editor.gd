@@ -42,8 +42,14 @@ func _edit_detail(index):
 	_dialog_target = index
 	
 	var texture = _terrain.get_detail_texture(_dialog_target)
-	
-	_edit_dialog.set_params(texture)
+	var params = {
+		"texture": texture,
+		"bottom_shade": _terrain.get_detail_shader_param(_dialog_target, "u_bottom_ao"),
+		"global_map_tint_bottom": _terrain.get_detail_shader_param(_dialog_target, "u_globalmap_tint_bottom"),
+		"global_map_tint_top": _terrain.get_detail_shader_param(_dialog_target, "u_globalmap_tint_top")
+	}
+
+	_edit_dialog.set_params(params)
 	_edit_dialog.popup_centered_minsize()
 
 
@@ -71,6 +77,9 @@ func _on_EditDetailDialog_confirmed(params):
 		emit_signal("detail_list_changed")
 
 	_terrain.set_detail_texture(index, params.texture)
+	_terrain.set_detail_shader_param(index, "u_globalmap_tint_bottom", params.global_map_tint_bottom)
+	_terrain.set_detail_shader_param(index, "u_globalmap_tint_top", params.global_map_tint_top)
+	_terrain.set_detail_shader_param(index, "u_bottom_ao", params.bottom_shade)
 
 	if _dialog_target == -1:
 		_update_list()

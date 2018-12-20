@@ -566,9 +566,13 @@ func _on_data_region_changed(min_x, min_y, size_x, size_y, channel):
 
 
 func _on_data_map_changed(type, index):
-	if type == HTerrainData.CHANNEL_DETAIL:
+	if type == HTerrainData.CHANNEL_DETAIL \
+	or type == HTerrainData.CHANNEL_HEIGHT \
+	or type == HTerrainData.CHANNEL_NORMAL \
+	or type == HTerrainData.CHANNEL_GLOBAL_ALBEDO:
 		_details.reset()
-	else:
+	
+	if type != HTerrainData.CHANNEL_DETAIL:
 		_material_params_need_update = true
 
 
@@ -1091,6 +1095,14 @@ func set_detail_texture(slot, tex):
 
 func get_detail_texture(slot):
 	return _details.get_texture(slot)
+
+
+func set_detail_shader_param(slot, param_name, value):
+	_details.set_shader_param(slot, param_name, value)
+
+
+func get_detail_shader_param(slot, param_name):
+	return _details.get_shader_param(slot, param_name)
 
 
 func set_ambient_wind(amplitude):
