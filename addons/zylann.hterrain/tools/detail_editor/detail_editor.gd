@@ -14,6 +14,7 @@ onready var _confirmation_dialog = get_node("ConfirmationDialog")
 var _terrain = null
 var _dialog_target = -1
 var _placeholder_icon = load("res://addons/zylann.hterrain/tools/icons/icon_grass.svg")
+var _detail_layer_icon = load("res://addons/zylann.hterrain/tools/icons/icon_detail_layer_node.svg")
 
 
 func set_terrain(terrain):
@@ -35,7 +36,7 @@ func _update_list():
 		if not layers_by_index.has(layer.layer_index):
 			layers_by_index[layer.layer_index] = []
 		layers_by_index[layer.layer_index].append(layer.name)
-	
+
 	var data = _terrain.get_data()
 	if data != null:
 		# Display layers from what terrain data actually contains,
@@ -49,9 +50,9 @@ func _update_list():
 				# TODO How to keep names updated with node names?
 				var names = PoolStringArray(layers_by_index[i]).join(", ")
 				if len(names) == 1:
-					_item_list.set_item_tooltip(i, "Rendered by layer " + names)
+					_item_list.set_item_tooltip(i, "Used by " + names)
 				else:
-					_item_list.set_item_tooltip(i, "Rendered by layers " + names)
+					_item_list.set_item_tooltip(i, "Used by " + names)
 				# Remove custom color
 				# TODO Use fg version when available in Godot 3.1, I want to only highlight text
 				_item_list.set_item_custom_bg_color(i, Color(0, 0, 0, 0))
@@ -68,8 +69,11 @@ func _on_Add_pressed():
 	
 	# TODO Make undoable
 	var layer = HTerrainDetailLayer.new()
-	layer.owner = get_tree().edited_scene_root
+	# TODO Workarounds for https://github.com/godotengine/godot/issues/21410
+	layer.set_meta("_editor_icon", _detail_layer_icon)
+	layer.name = "HTerrainDetailLayer"
 	_terrain.add_child(layer)
+	layer.owner = get_tree().edited_scene_root
 	# Note: detail layers auto-add their data map in the editor,
 	# and may also pick an unused one if available
 	
