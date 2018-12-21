@@ -283,6 +283,11 @@ func make_visible(visible):
 	_toolbar.set_visible(visible)
 	_brush_decal.update_visibility()
 
+	# TODO Workaround https://github.com/godotengine/godot/issues/6459
+	# When the user selects another node, I want the plugin to release its references to the terrain.
+	if not visible:
+		edit(null)
+
 
 func forward_spatial_gui_input(p_camera, p_event):
 	if _node == null || _node.get_data() == null:
