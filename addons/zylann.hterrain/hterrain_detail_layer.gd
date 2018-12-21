@@ -14,7 +14,7 @@ const DirectMeshInstance = preload("util/direct_mesh_instance.gd")
 const Util = preload("util/util.gd")
 
 const CHUNK_SIZE = 32
-const DEFAULT_SHADER_PATH = "res://addons/zylann.hterrain/detail/detail.shader"
+const DEFAULT_SHADER_PATH = "res://addons/zylann.hterrain/shaders/detail.shader"
 const DEBUG = false
 
 # These parameters are considered built-in,
