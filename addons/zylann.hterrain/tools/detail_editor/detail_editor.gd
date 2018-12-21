@@ -1,97 +1,110 @@
 tool
 extends Control
 
-const HTerrainData = preload("res://addons/zylann.hterrain/hterrain_data.gd")
+const HTerrainData = preload("../../hterrain_data.gd")
+const HTerrainDetailLayer = preload("../../hterrain_detail_layer.gd")
 
 signal detail_selected(index)
 # Emitted when the tool added or removed a detail map
 signal detail_list_changed
 
 onready var _item_list = get_node("ItemList")
-onready var _edit_dialog = get_node("EditDetailDialog")
 onready var _confirmation_dialog = get_node("ConfirmationDialog")
 
 var _terrain = null
 var _dialog_target = -1
-var _empty_texture = load("res://addons/zylann.hterrain/tools/icons/empty.png")
 var _placeholder_icon = load("res://addons/zylann.hterrain/tools/icons/icon_grass.svg")
 
 
 func set_terrain(terrain):
 	if _terrain == terrain:
 		return
-	
 	_terrain = terrain
-	
 	_update_list()
 
 
 func _update_list():
 	_item_list.clear()
 	
-	if _terrain != null:
-		var data = _terrain.get_data()
-		if data != null:
-			var layer_count = data.get_map_count(HTerrainData.CHANNEL_DETAIL)
-			for i in range(layer_count):
-				# TODO How do I make a preview here?
-				_item_list.add_item(str(i), _placeholder_icon)
-
-
-func _edit_detail(index):
-	_dialog_target = index
+	if _terrain == null:
+		return
 	
-	var texture = _terrain.get_detail_texture(_dialog_target)
-	var params = {
-		"texture": texture,
-		"bottom_shade": _terrain.get_detail_shader_param(_dialog_target, "u_bottom_ao"),
-		"global_map_tint_bottom": _terrain.get_detail_shader_param(_dialog_target, "u_globalmap_tint_bottom"),
-		"global_map_tint_top": _terrain.get_detail_shader_param(_dialog_target, "u_globalmap_tint_top")
-	}
-
-	_edit_dialog.set_params(params)
-	_edit_dialog.popup_centered_minsize()
+	var layers = _terrain.get_detail_layers()
+	var layers_by_index = {}
+	for layer in layers:
+		if not layers_by_index.has(layer.layer_index):
+			layers_by_index[layer.layer_index] = []
+		layers_by_index[layer.layer_index].append(layer.name)
+	
+	var data = _terrain.get_data()
+	if data != null:
+		# Display layers from what terrain data actually contains,
+		# because layer nodes are just what makes them rendered and aren't much restricted.
+		var layer_count = data.get_map_count(HTerrainData.CHANNEL_DETAIL)
+		for i in layer_count:
+			# TODO Show a preview icon
+			_item_list.add_item(str("Map ", i), _placeholder_icon)
+			
+			if layers_by_index.has(i):
+				# TODO How to keep names updated with node names?
+				var names = PoolStringArray(layers_by_index[i]).join(", ")
+				if len(names) == 1:
+					_item_list.set_item_tooltip(i, "Rendered by layer " + names)
+				else:
+					_item_list.set_item_tooltip(i, "Rendered by layers " + names)
+				# Remove custom color
+				# TODO Use fg version when available in Godot 3.1, I want to only highlight text
+				_item_list.set_item_custom_bg_color(i, Color(0, 0, 0, 0))
+			else:
+				# TODO Use fg version when available in Godot 3.1, I want to only highlight text
+				_item_list.set_item_custom_bg_color(i, Color(1.0, 0.2, 0.2, 0.3))
+				_item_list.set_item_tooltip(i, "This map isn't used by any layer. " \
+					+ "Add a HTerrainDetailLayer node as child of the terrain.")
 
 
 func _on_Add_pressed():
-	_dialog_target = -1
-	_edit_dialog.set_params(null)
-	_edit_dialog.popup_centered_minsize()
-
-
-func _on_Remove_pressed():
-	_dialog_target = _item_list.get_selected_items()[0]
-	_confirmation_dialog.popup_centered_minsize()
-
-
-func _on_Edit_pressed():
-	_edit_detail(_item_list.get_selected_items()[0])
-
-
-func _on_EditDetailDialog_confirmed(params):
-	var index = _dialog_target
+	assert(_terrain != null)
+	assert(_terrain.get_data() != null)
 	
-	if _dialog_target == -1:
-		var data = _terrain.get_data()
-		index = data._edit_add_detail_map()
-		emit_signal("detail_list_changed")
-
-	_terrain.set_detail_texture(index, params.texture)
-	_terrain.set_detail_shader_param(index, "u_globalmap_tint_bottom", params.global_map_tint_bottom)
-	_terrain.set_detail_shader_param(index, "u_globalmap_tint_top", params.global_map_tint_top)
-	_terrain.set_detail_shader_param(index, "u_bottom_ao", params.bottom_shade)
-
-	if _dialog_target == -1:
-		_update_list()
-
+	# TODO Make undoable
+	var layer = HTerrainDetailLayer.new()
+	layer.owner = get_tree().edited_scene_root
+	_terrain.add_child(layer)
+	# Note: detail layers auto-add their data map in the editor,
+	# and may also pick an unused one if available
+	
+	_update_list()
+	emit_signal("detail_list_changed")
+	
+	var index = layer.layer_index
 	_item_list.select(index)
 	# select() doesn't trigger the signal
 	emit_signal("detail_selected", index)
 
 
+func _on_Remove_pressed():
+	var selected = _item_list.get_selected_items()
+	if len(selected) == 0:
+		return
+	_dialog_target = _item_list.get_selected_items()[0]
+	_confirmation_dialog.popup_centered_minsize()
+
+
 func _on_ConfirmationDialog_confirmed():
 	var data = _terrain.get_data()
-	data._edit_remove_detail_map(_dialog_target)
+	data._edit_remove_map(HTerrainData.CHANNEL_DETAIL, _dialog_target)
+	
+	# Delete nodes that were referencing that map.
+	var layers = _terrain.get_detail_layers()
+	for layer in layers:
+		if layer.layer_index == _dialog_target:
+			layer.get_parent().remove_child(layer)
+			layer.call_deferred("free")
+		else:
+			# Shift down layer indexes
+			if layer.layer_index > _dialog_target:
+				layer.layer_index -= 1
+	
 	_update_list()
 	emit_signal("detail_list_changed")
 

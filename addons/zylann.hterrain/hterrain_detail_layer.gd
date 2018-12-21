@@ -2,8 +2,10 @@ tool
 extends Spatial
 
 # Child node of the terrain, used to render numerous small objects on the ground such as grass or rocks.
-# Details use their own chunk grid, scattered around the player.
-# Importantly, they also do NOT scale with map scale.
+# They do so by using a texture covering the terrain (a "detail map"), which is found in the terrain data itself.
+# A terrain can have multiple detail maps, and you can choose which one will be used with `layer_index`.
+# Details use instanced rendering within their own chunk grid, scattered around the player.
+# Importantly, the position and rotation of this node don't matter, and they also do NOT scale with map scale.
 # Indeed, scaling the heightmap doesn't mean we want to scale grass blades (which is not a use case I know of).
 
 const HTerrainData = preload("hterrain_data.gd")
@@ -16,7 +18,7 @@ const DEFAULT_SHADER_PATH = "res://addons/zylann.hterrain/detail/detail.shader"
 const DEBUG = false
 
 # These parameters are considered built-in,
-# they are managed internally so they are not treated the same
+# they are managed internally so they are not directly exposed
 const _API_SHADER_PARAMS = {
 	"u_terrain_heightmap": true,
 	"u_terrain_detailmap": true,
@@ -31,7 +33,8 @@ const _API_SHADER_PARAMS = {
 export(int) var layer_index = 0 setget set_layer_index, get_layer_index
 export(Texture) var texture setget set_texture, get_texture;
 export(float) var view_distance = 100.0 setget set_view_distance, get_view_distance
-export(Shader) var custom_shader setget set_shader, get_shader
+export(Shader) var custom_shader setget set_custom_shader, get_custom_shader
+# TODO allow to choose max density
 
 var _material = null
 var _custom_shader = null
@@ -83,7 +86,7 @@ func _edit_auto_pick_index():
 	if terrain == null:
 		return
 	
-	var terrain_data = terrain.get_data
+	var terrain_data = terrain.get_data()
 	if terrain_data == null or terrain_data.is_locked():
 		return
 		
@@ -111,7 +114,7 @@ func _edit_auto_pick_index():
 
 
 func _get_property_list():
-	var props = {}
+	var props = []
 	if _material != null:
 		var shader_params = VisualServer.shader_get_param_list(_material.shader.get_rid())
 		for p in shader_params:
@@ -172,14 +175,19 @@ func get_layer_index():
 
 
 func set_view_distance(v):
-	view_distance = v
+	if view_distance == v:
+		return
+	view_distance = max(v, 1.0)
+	_update_material()
 
 
 func get_view_distance():
 	return view_distance
 
 
-func set_shader(shader):
+func set_custom_shader(shader):
+	if custom_shader == shader:
+		return
 	custom_shader = shader
 	if custom_shader == null:
 		_material.shader = load(DEFAULT_SHADER_PATH)
@@ -192,13 +200,16 @@ func set_shader(shader):
 				shader.code = _default_shader.code
 
 
-func get_shader():
-	return _material.shader
+func get_custom_shader():
+	return _custom_shader
 
 
-# update_ambient_wind, reset
+# Updates texture references and values that come from the terrain itself.
+# This is typically used when maps are being swapped around in terrain data,
+# so we can restore texture references that may break.
 func update_material():
 	_update_material()
+	# Formerly update_ambient_wind, reset
 
 
 func _notification(what):
@@ -288,12 +299,13 @@ func process(delta, viewer_pos):
 	
 	for cz in range(cmin_z, cmax_z):
 		for cx in range(cmin_x, cmax_x):
+			
+			var cpos2d = Vector2(cx, cz)
 			if _chunks.has(cpos2d):
 				continue
 		
 			var aabb = _get_chunk_aabb(terrain, Vector3(cx, 0, cz) * CHUNK_SIZE)
 			var d = (aabb.position + 0.5 * aabb.size).distance_to(local_viewer_pos)
-			var cpos2d = Vector2(cx, cz)
 			
 			if d < view_distance:
 				_load_chunk(terrain, cx, cz, aabb)
@@ -302,11 +314,10 @@ func process(delta, viewer_pos):
 
 	for k in _chunks:
 		var chunk = _chunks[k]
-		var aabb = _get_chunk_aabb(terrain, Vector3(cx, 0, cz) * CHUNK_SIZE)
+		var aabb = _get_chunk_aabb(terrain, Vector3(k.x, 0, k.y) * CHUNK_SIZE)
 		var d = (aabb.position + 0.5 * aabb.size).distance_to(local_viewer_pos)
 		if d > view_distance:
-			var cpos2d = Vector2(chunk.cx, chunk.cz)
-			to_recycle.append(cpos2d)
+			to_recycle.append(k)
 
 	for k in to_recycle:
 		_recycle_chunk(k)
@@ -381,6 +392,7 @@ func _get_ambient_wind_params():
 
 func _update_material():
 	# Sets API shader properties. Custom properties are assumed to be set already
+	print("Updating detail layer material")
 
 	var terrain_data = null
 	var terrain = _get_terrain()
@@ -389,6 +401,7 @@ func _update_material():
 	if terrain != null:
 		var gt = terrain.get_internal_transform()
 		it = gt.affine_inverse()
+		terrain_data = terrain.get_data()
 	
 	var mat = _material
 
@@ -412,14 +425,29 @@ func _update_material():
 		
 		if layer_index < terrain_data.get_map_count(HTerrainData.CHANNEL_DETAIL):
 			detailmap_texture = terrain_data.get_texture(HTerrainData.CHANNEL_DETAIL, layer_index)
-		
+
 		if terrain_data.get_map_count(HTerrainData.CHANNEL_GLOBAL_ALBEDO) > 0:
 			globalmap_texture = terrain_data.get_texture(HTerrainData.CHANNEL_GLOBAL_ALBEDO)
+	else:
+		print("Terrain data is null, can't update detail layer completely")
 
 	mat.set_shader_param("u_terrain_heightmap", heightmap_texture)
 	mat.set_shader_param("u_terrain_detailmap", detailmap_texture)
 	mat.set_shader_param("u_terrain_normalmap", normalmap_texture)
 	mat.set_shader_param("u_terrain_globalmap", globalmap_texture)
+
+
+# TODO Uncomment in Godot 3.1
+#func get_configuration_warning():
+#	var terrain = _get_terrain()
+#	if terrain == null:
+#		return "This node must be under a HTerrain parent"
+#	var terrain_data = terrain.get_data()
+#	if terrain_data == null:
+#		return "The terrain needs data to be assigned"
+#	if layer_index <= terrain_data.get_map_count(HTerrainData.CHANNEL_DETAIL):
+#		return "This layer's index is out of the range of maps the terrain has"
+#	return ""
 
 
 func _add_debug_cube(terrain, aabb):

@@ -48,7 +48,8 @@ class Map:
 	# Reference used in case we need the data CPU-side
 	var image
 	# ID used for saving, because when adding/removing maps,
-	# we shouldn't rename texture files just because the indexes change
+	# we shouldn't rename texture files just because the indexes change.
+	# This is mostly for internal keeping. The API still uses indexes that may shift if your remove a map.
 	var id = -1
 	# Should be set to true if the map has unsaved modifications.
 	var modified = true

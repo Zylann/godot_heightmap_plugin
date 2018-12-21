@@ -644,7 +644,7 @@ func _on_custom_shader_changed():
 func _update_material_params():
 
 	assert(_material != null)
-	print("Updating material params")
+	print("Updating terrain material params")
 	
 	var height_texture
 	var normal_texture
@@ -1091,22 +1091,20 @@ func _internal_remove_detail_layer(layer):
 	_detail_layers.erase(layer)
 
 
+# Returns a list copy of all child HTerrainDetailLayer nodes.
+# The order in that list has no relevance.
 func get_detail_layers():
-	var layers = []
-	layers.resize(len(_detail_layers))
-	for i in len(_detail_layers):
-		layers[i] = _detail_layers[i]
-	return layers
+	return _detail_layers.duplicate()
 
 
 # @obsolete
 func set_detail_texture(slot, tex):
-	printerr("HTerrain.set_detail_texture is obsolete, use HTerrainLayer.texture instead")
+	printerr("HTerrain.set_detail_texture is obsolete, use HTerrainDetailLayer.texture instead")
 
 
 # @obsolete
 func get_detail_texture(slot):
-	printerr("HTerrain.get_detail_texture is obsolete, use HTerrainLayer.texture instead")
+	printerr("HTerrain.get_detail_texture is obsolete, use HTerrainDetailLayer.texture instead")
 
 
 func set_ambient_wind(amplitude):

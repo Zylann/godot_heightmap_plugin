@@ -1,8 +1,6 @@
-[gd_scene load_steps=4 format=2]
+[gd_scene load_steps=2 format=2]
 
 [ext_resource path="res://addons/zylann.hterrain/tools/detail_editor/detail_editor.gd" type="Script" id=1]
-[ext_resource path="res://addons/zylann.hterrain/tools/detail_editor/detail_editor_dialog.gd" type="Script" id=2]
-[ext_resource path="res://addons/zylann.hterrain/tools/inspector/inspector.tscn" type="PackedScene" id=3]
 
 [node name="DetailEditor" type="Control" index="0"]
 
@@ -108,39 +106,15 @@ text = "Remove"
 flat = false
 align = 1
 
-[node name="Edit" type="Button" parent="HBoxContainer" index="2"]
+[node name="Label" type="Label" parent="HBoxContainer" index="2"]
 
 anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
 anchor_bottom = 0.0
 margin_left = 109.0
-margin_right = 145.0
-margin_bottom = 24.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-focus_mode = 2
-mouse_filter = 0
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
-toggle_mode = false
-enabled_focus_mode = 2
-shortcut = null
-group = null
-text = "Edit"
-flat = false
-align = 1
-
-[node name="Label" type="Label" parent="HBoxContainer" index="3"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
-margin_left = 149.0
 margin_top = 5.0
-margin_right = 194.0
+margin_right = 154.0
 margin_bottom = 19.0
 rect_pivot_offset = Vector2( 0, 0 )
 rect_clip_content = false
@@ -153,181 +127,7 @@ percent_visible = 1.0
 lines_skipped = 0
 max_lines_visible = -1
 
-[node name="EditDetailDialog" type="WindowDialog" parent="." index="2"]
-
-visible = false
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
-margin_left = 85.0
-margin_top = 227.0
-margin_right = 685.0
-margin_bottom = 477.0
-rect_min_size = Vector2( 600, 250 )
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 0
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
-popup_exclusive = false
-window_title = "Edit detail object"
-resizable = false
-script = ExtResource( 2 )
-_sections_unfolded = [ "Rect", "custom_constants" ]
-
-[node name="VBoxContainer" type="VBoxContainer" parent="EditDetailDialog" index="1"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-margin_left = 8.0
-margin_top = 8.0
-margin_right = -8.0
-margin_bottom = -8.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 1
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
-custom_constants/separation = 15
-alignment = 0
-_sections_unfolded = [ "Anchor", "Margin", "custom_constants" ]
-
-[node name="HBoxContainer" type="HBoxContainer" parent="EditDetailDialog/VBoxContainer" index="0"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
-margin_right = 584.0
-margin_bottom = 200.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 1
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 3
-size_flags_vertical = 3
-custom_constants/separation = 8
-alignment = 0
-_sections_unfolded = [ "Anchor", "Margin", "Size Flags", "custom_constants" ]
-
-[node name="Properties" type="Control" parent="EditDetailDialog/VBoxContainer/HBoxContainer" index="0"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
-margin_right = 376.0
-margin_bottom = 200.0
-rect_min_size = Vector2( 200, 0 )
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 0
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 3
-size_flags_vertical = 1
-_sections_unfolded = [ "Anchor", "Margin", "Rect", "Size Flags" ]
-
-[node name="Inspector" parent="EditDetailDialog/VBoxContainer/HBoxContainer/Properties" index="0" instance=ExtResource( 3 )]
-
-anchor_right = 1.0
-anchor_bottom = 1.0
-margin_right = 0.0
-margin_bottom = 0.0
-_sections_unfolded = [ "Anchor", "Margin", "custom_constants" ]
-
-[node name="Preview" type="ViewportContainer" parent="EditDetailDialog/VBoxContainer/HBoxContainer" index="1"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
-margin_left = 384.0
-margin_right = 584.0
-margin_bottom = 200.0
-rect_min_size = Vector2( 200, 200 )
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 0
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
-stretch = false
-stretch_shrink = 1
-_sections_unfolded = [ "Rect", "Size Flags" ]
-
-[node name="HBoxContainer2" type="HBoxContainer" parent="EditDetailDialog/VBoxContainer" index="1"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
-margin_top = 215.0
-margin_right = 584.0
-margin_bottom = 235.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 1
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
-custom_constants/separation = 32
-alignment = 1
-_sections_unfolded = [ "Rect", "custom_constants" ]
-
-[node name="OkButton" type="Button" parent="EditDetailDialog/VBoxContainer/HBoxContainer2" index="0"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
-margin_left = 234.0
-margin_right = 264.0
-margin_bottom = 20.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-focus_mode = 2
-mouse_filter = 0
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
-toggle_mode = false
-enabled_focus_mode = 2
-shortcut = null
-group = null
-text = "Ok"
-flat = false
-align = 1
-
-[node name="CancelButton" type="Button" parent="EditDetailDialog/VBoxContainer/HBoxContainer2" index="1"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
-margin_left = 296.0
-margin_right = 350.0
-margin_bottom = 20.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-focus_mode = 2
-mouse_filter = 0
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
-toggle_mode = false
-enabled_focus_mode = 2
-shortcut = null
-group = null
-text = "Cancel"
-flat = false
-align = 1
-
-[node name="ConfirmationDialog" type="ConfirmationDialog" parent="." index="3"]
+[node name="ConfirmationDialog" type="ConfirmationDialog" parent="." index="2"]
 
 visible = false
 anchor_left = 0.0
@@ -360,16 +160,6 @@ _sections_unfolded = [ "Dialog" ]
 [connection signal="pressed" from="HBoxContainer/Add" to="." method="_on_Add_pressed"]
 
 [connection signal="pressed" from="HBoxContainer/Remove" to="." method="_on_Remove_pressed"]
-
-[connection signal="pressed" from="HBoxContainer/Edit" to="." method="_on_Edit_pressed"]
-
-[connection signal="confirmed" from="EditDetailDialog" to="." method="_on_EditDetailDialog_confirmed"]
-
-[connection signal="property_changed" from="EditDetailDialog/VBoxContainer/HBoxContainer/Properties/Inspector" to="EditDetailDialog" method="_on_Inspector_property_changed"]
-
-[connection signal="pressed" from="EditDetailDialog/VBoxContainer/HBoxContainer2/OkButton" to="EditDetailDialog" method="_on_OkButton_pressed"]
-
-[connection signal="pressed" from="EditDetailDialog/VBoxContainer/HBoxContainer2/CancelButton" to="EditDetailDialog" method="hide"]
 
 [connection signal="confirmed" from="ConfirmationDialog" to="." method="_on_ConfirmationDialog_confirmed"]
 
