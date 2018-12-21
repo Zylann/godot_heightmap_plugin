@@ -2,7 +2,6 @@ tool
 extends Resource
 
 const Grid = preload("util/grid.gd")
-var HTerrain = load("res://addons/zylann.hterrain/hterrain.gd")
 const Util = preload("util/util.gd")
 const Errors = preload("util/errors.gd")
 

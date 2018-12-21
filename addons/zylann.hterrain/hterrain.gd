@@ -4,15 +4,15 @@ extends Spatial
 const QuadTreeLod = preload("util/quad_tree_lod.gd")
 const Mesher = preload("hterrain_mesher.gd")
 const Grid = preload("util/grid.gd")
-var HTerrainData = load("res://addons/zylann.hterrain/hterrain_data.gd")
-var HTerrainChunk = preload("hterrain_chunk.gd")
+const HTerrainData = preload("hterrain_data.gd")
+const HTerrainChunk = preload("hterrain_chunk.gd")
 const HTerrainChunkDebug = preload("hterrain_chunk_debug.gd")
 const Util = preload("util/util.gd")
 const HTerrainCollider = preload("hterrain_collider.gd")
-const _NORMAL_BAKER_PATH = "res://addons/zylann.hterrain/tools/normalmap_baker.gd"
 
 const CLASSIC4_SHADER_PATH = "res://addons/zylann.hterrain/shaders/simple4.shader"
 const CLASSIC4_LITE_SHADER_PATH = "res://addons/zylann.hterrain/shaders/simple4_lite.shader"
+const _NORMAL_BAKER_PATH = "res://addons/zylann.hterrain/tools/normalmap_baker.gd"
 
 const SHADER_PARAM_HEIGHT_TEXTURE = "u_terrain_heightmap"
 const SHADER_PARAM_NORMAL_TEXTURE = "u_terrain_normalmap"
