@@ -341,8 +341,6 @@ func _on_TextureGenerator_completed():
 	
 	emit_signal("progress_notified", { "finished": true })
 	print("Done")
-	# TESTING
-	data.get_image(HTerrainData.CHANNEL_NORMAL).save_png("test_normals.png")
 
 
 static func generate_perm_texture(tex, res, random_seed, tex_flags):
