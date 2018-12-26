@@ -18,6 +18,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Fixed issue with grass shading based on ground normals
 - Fixed grass preview lighting (was too dark)
 
+
 0.9.1
 ------------
 

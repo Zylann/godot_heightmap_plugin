@@ -19,7 +19,7 @@ var _processing_tile = null
 var _terrain_data = null
 
 
-func _ready():
+func _init():
 	_viewport = Viewport.new()
 	_viewport.size = Vector2(VIEWPORT_SIZE + 2, VIEWPORT_SIZE + 2)
 	_viewport.render_target_update_mode = Viewport.UPDATE_DISABLED

@@ -421,6 +421,11 @@ func _enter_tree():
 			# The game will freeze until enough data is ready
 			_data.load_data()
 	
+	if Engine.editor_hint and _normals_baker == null:
+		_normals_baker = load(_NORMAL_BAKER_PATH).new()
+		add_child(_normals_baker)
+		_normals_baker.set_terrain_data(_data)
+	
 	set_process(true)
 
 
@@ -491,6 +496,9 @@ func set_data(new_data):
 		_data.connect("map_added", self, "_on_data_map_added")
 		_data.connect("map_removed", self, "_on_data_map_removed")
 
+		if _normals_baker != null:
+			_normals_baker.set_terrain_data(_data)
+
 		_on_data_resolution_changed()
 	
 	_material_params_need_update = true
@@ -506,11 +514,6 @@ func _on_data_progress_notified(info):
 			_collider.create_from_terrain_data(_data)
 		
 		_details.reset()
-		
-		if Engine.editor_hint and _normals_baker == null:
-			_normals_baker = load(_NORMAL_BAKER_PATH).new()
-			add_child(_normals_baker)
-			_normals_baker.set_terrain_data(_data)
 		
 		emit_signal("progress_complete")
 
