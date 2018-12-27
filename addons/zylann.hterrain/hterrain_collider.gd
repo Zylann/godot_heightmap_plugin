@@ -10,10 +10,13 @@ func _init():
 	print("Create HTerrainCollider")
 	_shape_rid = PhysicsServer.shape_create(PhysicsServer.SHAPE_HEIGHTMAP)
 	_body_rid = PhysicsServer.body_create(PhysicsServer.BODY_MODE_STATIC)
-	
+
 	# TODO Let user configure layer and mask
 	PhysicsServer.body_set_collision_layer(_body_rid, 1)
 	PhysicsServer.body_set_collision_mask(_body_rid, 1)
+
+	# TODO This is an attempt to workaround https://github.com/godotengine/godot/issues/24390
+	PhysicsServer.body_set_ray_pickable(_body_rid, false)
 
 	PhysicsServer.body_add_shape(_body_rid, _shape_rid)
 
@@ -40,11 +43,11 @@ func set_world(world):
 func create_from_terrain_data(terrain_data):
 	assert(terrain_data != null)
 	print("Creating terrain collider shape")
-	
+
 	_terrain_data = terrain_data
 
 	var aabb = terrain_data.get_aabb()
-	
+
 	var width = terrain_data.get_resolution()
 	var depth = terrain_data.get_resolution()
 	var height = aabb.size.y
@@ -58,7 +61,7 @@ func create_from_terrain_data(terrain_data):
 	}
 
 	PhysicsServer.shape_set_data(_shape_rid, shape_data)
-	
+
 	_update_transform(aabb)
 
 
@@ -66,7 +69,7 @@ func _update_transform(aabb=null):
 	if _terrain_data == null:
 		print("HTerrainCollider: terrain data not set yet")
 		return
-	
+
 	if aabb == null:
 		aabb = _terrain_data.get_aabb()
 
