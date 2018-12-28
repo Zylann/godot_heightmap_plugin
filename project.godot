@@ -9,12 +9,12 @@
 config_version=4
 
 _global_script_classes=[ {
-"base": "CustomResourceLoader",
+"base": "ResourceFormatLoader",
 "class": "HTerrainDataLoader",
 "language": "GDScript",
 "path": "res://addons/zylann.hterrain/hterrain_resource_loader.gd"
 }, {
-"base": "CustomResourceSaver",
+"base": "ResourceFormatSaver",
 "class": "HTerrainDataSaver",
 "language": "GDScript",
 "path": "res://addons/zylann.hterrain/hterrain_resource_saver.gd"
@@ -42,10 +42,6 @@ enabled=PoolStringArray( "zylann.hterrain" )
 
 singletons=[  ]
 
-[loaders]
-
-enabled=PoolStringArray( "res://addons/zylann.hterrain/hterrain_resource_loader.gd" )
-
 [memory]
 
 multithread/thread_rid_pool_prealloc=60
@@ -53,7 +49,3 @@ multithread/thread_rid_pool_prealloc=60
 [rendering]
 
 viewport/default_clear_color=Color( 0.407806, 0.628906, 0.618542, 1 )
-
-[savers]
-
-enabled=PoolStringArray( "res://addons/zylann.hterrain/hterrain_resource_saver.gd" )
