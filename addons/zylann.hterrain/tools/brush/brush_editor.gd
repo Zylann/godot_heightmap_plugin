@@ -92,10 +92,10 @@ func set_brush(brush):
 		_color_picker.get_picker().color = brush.get_color()
 		_density_slider.value = brush.get_detail_density()
 		_holes_checkbox.pressed = not brush.get_mask_flag()
-		
+
 		set_display_mode(brush.get_mode())
 		set_brush_shape_from_file(SHAPES_DIR.plus_file(DEFAULT_BRUSH))
-		
+
 	_brush = brush
 
 
@@ -105,7 +105,7 @@ func set_display_mode(mode):
 	var show_density = mode == Brush.MODE_DETAIL
 	var show_opacity = mode != Brush.MODE_MASK
 	var show_holes = mode == Brush.MODE_MASK
-	
+
 	_set_visibility_of(_opacity_label, show_opacity)
 	_set_visibility_of(_opacity_control, show_opacity)
 
@@ -120,7 +120,7 @@ func set_display_mode(mode):
 
 	_set_visibility_of(_holes_label, show_holes)
 	_set_visibility_of(_holes_checkbox, show_holes)
-	
+
 #	_opacity_label.visible = show_opacity
 #	_opacity_control.visible = show_opacity
 #
@@ -180,25 +180,25 @@ func _on_LoadImageDialog_file_selected(path):
 
 func set_brush_shape_from_file(path):
 	var im = Image.new()
-	var err = im.load(path)
+	# TODO Need engine fix https://github.com/godotengine/godot/issues/24641
+	var err = ERR_BUG #im.load(path)
 	if err != OK:
-		printerr("Could not load inage at `", path, "`, error ", Errors.get_message(err))
+		printerr("Could not load image at `", path, "`, error ", Errors.get_message(err))
 		return
-	
+
 	if _brush != null:
-		
+
 		# TODO Revert this in Godot 3.1
 		# because forcing image brushes would ruin resized ones,
-		# due to https://github.com/godotengine/godot/issues/24244 
+		# due to https://github.com/godotengine/godot/issues/24244
 		var im2 = im
 		var v = Engine.get_version_info()
 		if v.major == 3 and v.minor < 1:
 			if path.find(SHAPES_DIR.plus_file(DEFAULT_BRUSH)) != -1:
 				im2 = null
-		
+
 		_brush.set_shape(im2)
-	
+
 	var tex = ImageTexture.new()
 	tex.create_from_image(im, Texture.FLAG_FILTER)
 	_shape_texture_rect.texture = tex
-
