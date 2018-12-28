@@ -1,6 +1,6 @@
 tool
 class_name HTerrainDataLoader
-extends CustomResourceLoader
+extends ResourceFormatLoader
 
 
 const HTerrainData = preload("hterrain_data.gd")
@@ -25,4 +25,3 @@ func load(path, original_path):
 	var res = HTerrainData.new()
 	res.load_data(path.get_base_dir())
 	return res
-

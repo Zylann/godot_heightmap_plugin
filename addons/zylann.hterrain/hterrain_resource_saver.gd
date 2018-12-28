@@ -1,6 +1,6 @@
 tool
 class_name HTerrainDataSaver
-extends CustomResourceSaver
+extends ResourceFormatSaver
 
 
 const HTerrainData = preload("hterrain_data.gd")
@@ -18,4 +18,3 @@ func recognize(res):
 
 func save(path, resource, flags):
 	resource.save_data(path.get_base_dir())
-
