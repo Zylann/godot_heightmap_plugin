@@ -19,7 +19,6 @@ onready var _progress_bar = get_node("VBoxContainer/Editor/Preview/ProgressBar")
 
 var _dummy_texture = load("res://addons/zylann.hterrain/tools/icons/empty.png")
 var _noise_texture = null
-var _generator_shader = load("res://addons/zylann.hterrain/tools/generator/shaders/terrain_generator.shader")
 var _terrain = null
 var _applying = false
 var _generator = null
@@ -52,7 +51,7 @@ func _ready():
 		"show_sea": { "type": TYPE_BOOL, "default_value": true },
 		"shadows": { "type": TYPE_BOOL, "default_value": true }
 	})
-	
+
 	_generator = TextureGenerator.new()
 	_generator.set_resolution(Vector2(VIEWPORT_RESOLUTION, VIEWPORT_RESOLUTION))
 	# Setup the extra pixels we want on max edges for terrain
@@ -79,27 +78,27 @@ func set_terrain(terrain):
 
 func _notification(what):
 	match what:
-		
+
 		NOTIFICATION_VISIBILITY_CHANGED:
-			
+
 			# We don't want any of this to run in an edited scene
 			if Util.is_in_edited_scene(self):
 				return
-			
+
 			if visible:
 				# TODO https://github.com/godotengine/godot/issues/18160
 				if _dialog_visible:
 					return
 				_dialog_visible = true
-		
+
 				_preview.set_sea_visible(_inspector.get_value("show_sea"))
 				_preview.set_shadows_enabled(_inspector.get_value("shadows"))
-				
+
 				if _noise_texture == null:
 					_regen_noise_perm_texture(_inspector.get_value("seed"))
-				
+
 				_update_generator()
-			
+
 			else:
 #				if not _applying:
 #					_destroy_viewport()
@@ -116,53 +115,53 @@ func _update_generator(preview=true):
 		scale = 0.0
 	else:
 		scale = 1.0 / scale
-	
+
 	# When previewing the resolution does not span the entire terrain,
 	# so we apply a scale to some of the passes to make it cover it all.
 	var preview_scale = 4.0 # As if 2049x2049
-	
+
 	# And when we get to generate it fully, sectors are used,
 	# so the size or shape of the terrain doesn't matter
 	var sectors = []
-	
+
 	# Get preview scale and sectors to generate.
 	# Allowing null terrain to make it testable.
 	if _terrain != null and _terrain.get_data() != null:
 		var terrain_size = _terrain.get_data().get_resolution()
-		
+
 		if preview:
 			preview_scale = float(terrain_size) / float(VIEWPORT_RESOLUTION)
 			sectors.append(Vector2(0, 0))
-			
+
 		else:
 			preview_scale = 1.0
-	
+
 			var cw = terrain_size / VIEWPORT_RESOLUTION
 			var ch = terrain_size / VIEWPORT_RESOLUTION
-			
+
 			for y in ch:
 				for x in cw:
 					sectors.append(Vector2(x, y))
-	
+
 	var erosion_iterations = int(_inspector.get_value("erosion_steps"))
 	erosion_iterations /= int(preview_scale)
-	
+
 	_generator.clear_passes()
-	
+
 	# Terrain textures need to have an off-by-one on their max edge,
 	# which is shared with the other sectors.
 	var base_offset_ndc = _inspector.get_value("offset")
 	#var sector_size_offby1_ndc = float(VIEWPORT_RESOLUTION - 1) / padded_viewport_resolution
-	
+
 	for i in len(sectors):
 		var sector = sectors[i]
 		#var offset = sector * sector_size_offby1_ndc - Vector2(pad_offset_ndc, pad_offset_ndc)
-		
+
 #		var offset_px = sector * (VIEWPORT_RESOLUTION - 1) - Vector2(pad_offset_px, pad_offset_px)
 #		var offset_ndc = offset_px / padded_viewport_resolution
-		
+
 		var progress = float(i) / len(sectors)
-	
+
 		var p = TextureGenerator.Pass.new()
 		p.clear = true
 		p.shader = get_shader("perlin_noise")
@@ -180,7 +179,7 @@ func _update_generator(preview=true):
 			"u_curve": _inspector.get_value("curve")
 		}
 		_generator.add_pass(p)
-		
+
 		if erosion_iterations > 0:
 			p = TextureGenerator.Pass.new()
 			p.shader = get_shader("erode")
@@ -195,24 +194,24 @@ func _update_generator(preview=true):
 			p.iterations = erosion_iterations
 			p.padding = p.iterations
 			_generator.add_pass(p)
-	
+
 		_generator.add_output({
 			"maptype": HTerrainData.CHANNEL_HEIGHT,
 			"sector": sector,
 			"progress": progress
 		})
-	
+
 		p = TextureGenerator.Pass.new()
 		p.shader = get_shader("bump2normal")
 		p.padding = 1
 		_generator.add_pass(p)
-	
+
 		_generator.add_output({
 			"maptype": HTerrainData.CHANNEL_NORMAL,
 			"sector": sector,
 			"progress": progress
 		})
-	
+
 	# TODO AO generation
 	# TODO Splat generation
 	_generator.run()
@@ -256,7 +255,7 @@ func _apply():
 	if _terrain == null:
 		printerr("ERROR: cannot apply, terrain is null")
 		return
-	
+
 	var data = _terrain.get_data()
 	if data == null:
 		printerr("ERROR: cannot apply, terrain data is null")
@@ -273,7 +272,7 @@ func _apply():
 		return
 
 	_applying = true
-	
+
 	_update_generator(false)
 
 
@@ -296,7 +295,7 @@ func _on_TextureGenerator_output_generated(image, info):
 			tex = ImageTexture.new()
 		tex.create_from_image(image, Texture.FLAG_FILTER)
 		_generated_textures[info.maptype] = tex
-		
+
 		var num_set = 0
 		for v in _generated_textures:
 			if v != null:
@@ -311,9 +310,9 @@ func _on_TextureGenerator_output_generated(image, info):
 		assert(data != null)
 		var dst = data.get_image(info.maptype)
 		assert(dst != null)
-		
+
 		image.convert(dst.get_format())
-		
+
 		dst.blit_rect(image, \
 			Rect2(0, 0, image.get_width(), image.get_height()), \
 			info.sector * VIEWPORT_RESOLUTION)
@@ -322,23 +321,23 @@ func _on_TextureGenerator_output_generated(image, info):
 			"progress": info.progress,
 			"message": "Calculating sector (" + str(info.sector.x) + ", " + str(info.sector.y) + ")"
 		})
-		
+
 #		if info.maptype == HTerrainData.CHANNEL_NORMAL:
 #			image.save_png(str("normal_sector_", info.sector.x, "_", info.sector.y, ".png"))
 
 
 func _on_TextureGenerator_completed():
 	_progress_bar.hide()
-	
+
 	if not _applying:
 		return
 	_applying = false
-	
+
 	assert(_terrain != null)
 	var data = _terrain.get_data()
 	var resolution = data.get_resolution()
 	data.notify_region_change([0, 0], [resolution, resolution], HTerrainData.CHANNEL_HEIGHT)
-	
+
 	emit_signal("progress_notified", { "finished": true })
 	print("Done")
 
@@ -346,18 +345,18 @@ func _on_TextureGenerator_completed():
 static func generate_perm_texture(tex, res, random_seed, tex_flags):
 	var im = Image.new()
 	im.create(res, res, false, Image.FORMAT_RF)
-	
+
 	seed(random_seed)
-	
+
 	im.lock()
 	for y in range(0, im.get_height()):
 		for x in range(0, im.get_width()):
 			var r = randf()
 			im.set_pixel(x, y, Color(r, r, r, 1.0))
 	im.unlock()
-	
+
 	if tex == null:
 		tex = ImageTexture.new()
 	tex.create_from_image(im, tex_flags)
-	
+
 	return tex
