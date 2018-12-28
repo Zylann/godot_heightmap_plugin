@@ -8,7 +8,7 @@ const HTerrainData = preload("hterrain_data.gd")
 
 func get_recognized_extensions(res):
 	if res != null and res is HTerrainData:
-		return PoolStringArray(["hterrain"])
+		return PoolStringArray([HTerrainData.META_EXTENSION])
 	return PoolStringArray()
 
 

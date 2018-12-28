@@ -22,7 +22,9 @@ const VERTICAL_BOUNDS_CHUNK_SIZE = 16
 # TODO Have vertical bounds chunk size to emphasise the fact it's independent
 # TODO Have undo chunk size to emphasise the fact it's independent
 
+const META_EXTENSION = "hterrain"
 const META_FILENAME = "data.hterrain"
+const META_VERSION = "0.11"
 
 
 signal resolution_changed
@@ -75,67 +77,6 @@ var _edit_disable_apply_undo = false
 func _init():
 	# Initialize default maps
 	_set_default_maps()
-
-
-func _get_property_list():
-	var props = [
-		{
-			# I can't use `_maps` because otherwise Godot takes the member variable directly,
-			# and ignores whatever I've put in `_get`
-			"name": "_maps_data",
-			"type": TYPE_ARRAY,
-			"usage": PROPERTY_USAGE_STORAGE
-		}
-	]
-	return props
-
-
-func _get(key):
-	match key:
-		"_maps_data":
-			var data = []
-			data.resize(len(_maps))
-
-			for i in range(len(_maps)):
-				var maps = _maps[i]
-				var maps_data = []
-
-				for j in range(len(maps)):
-					var map = maps[j]
-					maps_data.append({ "id": map.id })
-
-				data[i] = maps_data
-
-			return data
-
-
-func _set(key, v):
-	match key:
-		"_maps_data":
-			# Parse metadata that we'll then use to load the actual terrain
-			# (How many maps, which files to load etc...)
-			var data = v
-			_maps.resize(len(data))
-
-			for i in range(len(data)):
-				var maps = _maps[i]
-
-				if maps == null:
-					maps = []
-					_maps[i] = maps
-
-				var maps_data = data[i]
-				if len(maps) != len(maps_data):
-					maps.resize(len(maps_data))
-
-				for j in range(len(maps)):
-					var map = maps[j]
-					var id = maps_data[j].id
-					if map == null:
-						map = Map.new(id)
-						maps[j] = map
-					else:
-						map.id = id
 
 
 func _set_default_maps():
@@ -907,7 +848,7 @@ func _serialize_metadata():
 		data[i] = maps_data
 
 	return {
-		"version": "0.7",
+		"version": META_VERSION,
 		"maps": data
 	}
 
@@ -915,6 +856,14 @@ func _serialize_metadata():
 # Parse metadata that we'll then use to load the actual terrain
 # (How many maps, which files to load etc...)
 func _deserialize_metadata(dict):
+
+	if not dict.has("version"):
+		printerr("Terrain metadata has no version")
+		return false
+
+	if dict.version != META_VERSION:
+		printerr("Terrain metadata version mismatch. Got ", dict.version, ", expected ", META_VERSION)
+		return false
 
 	var data = dict["maps"]
 	_maps.resize(len(data))
@@ -938,6 +887,8 @@ func _deserialize_metadata(dict):
 				maps[j] = map
 			else:
 				map.id = id
+
+	return true
 
 
 func load_data_async(dir_path):

@@ -7,12 +7,12 @@ const HTerrainData = preload("hterrain_data.gd")
 
 
 func get_recognized_extensions():
-	return PoolStringArray(["hterrain"])
+	return PoolStringArray([HTerrainData.META_EXTENSION])
 
 
 func get_resource_type(path):
 	var ext = path.get_extension().to_lower()
-	if ext == "hterrain":
+	if ext == HTerrainData.META_EXTENSION:
 		return "Resource"
 	return ""
 
