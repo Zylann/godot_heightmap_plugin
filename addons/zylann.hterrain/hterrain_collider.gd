@@ -7,7 +7,7 @@ var _terrain_data = null
 
 
 func _init():
-	print("Create HTerrainCollider")
+	print("HTerrainCollider: creating body")
 	_shape_rid = PhysicsServer.shape_create(PhysicsServer.SHAPE_HEIGHTMAP)
 	_body_rid = PhysicsServer.body_create(PhysicsServer.BODY_MODE_STATIC)
 
@@ -42,7 +42,8 @@ func set_world(world):
 
 func create_from_terrain_data(terrain_data):
 	assert(terrain_data != null)
-	print("Creating terrain collider shape")
+	assert(not terrain_data.is_locked())
+	print("HTerrainCollider: setting up heightmap")
 
 	_terrain_data = terrain_data
 

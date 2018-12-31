@@ -69,8 +69,6 @@ signal progress_complete
 signal transform_changed(global_transform)
 
 export var collision_enabled = true setget set_collision_enabled
-# TODO Deprecate this, now users can load the data as a normal resource and use a thread if wanted
-export var async_loading = false
 export(float, 0.0, 1.0) var ambient_wind = 0.0 setget set_ambient_wind
 export(int, 2, 5) var lod_scale = 2 setget set_lod_scale, get_lod_scale
 
@@ -506,6 +504,9 @@ func set_data(new_data):
 		if is_inside_tree() and Engine.is_editor_hint():
 			if _data.get_resolution() == 0:
 				_data._edit_load_default()
+
+		if _collider != null:
+			_collider.create_from_terrain_data(_data)
 
 		_data.connect("resolution_changed", self, "_on_data_resolution_changed")
 		_data.connect("region_changed", self, "_on_data_region_changed")
