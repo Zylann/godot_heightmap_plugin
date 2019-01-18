@@ -122,6 +122,26 @@ func set_resolution2(p_res, update_normals):
 # p_res: new resolution. Must be a power of two + 1.
 # stretch: if true, the terrain will be stretched in X and Z axes. If false, it will be cropped or expanded.
 # anchor: if stretch is false, decides which side or corner to crop/expand the terrain from.
+#
+# There is an off-by-one in the data, so for example a map of 512x512 will actually have 513x513 cells.
+# Here is why:
+# If we had an even amount of cells, it would produce this situation when making LOD chunks:
+#
+#   x---x---x---x      x---x---x---x
+#   |   |   |   |      |       |
+#   x---x---x---x      x   x   x   x
+#   |   |   |   |      |       |
+#   x---x---x---x      x---x---x---x
+#   |   |   |   |      |       |
+#   x---x---x---x      x   x   x   x
+#
+#       LOD 0              LOD 1
+#
+# We would be forced to ignore the last cells because they would produce an irregular chunk.
+# We need an off-by-one because quads making up chunks SHARE their consecutive vertices.
+# One quad needs at least 2x2 cells to exist. Two quads of the heightmap share an edge, which needs a total of 3x3 cells, not 4x4.
+# One chunk has 16x16 quads, so it needs 17x17 cells, not 16, where the last cell is shared with the next chunk.
+# As a result, a map of 4x4 chunks needs 65x65 cells, not 64x64.
 func resize(p_res, stretch=true, anchor=Vector2(-1, -1)):
 	assert(typeof(p_res) == TYPE_INT)
 	assert(typeof(stretch) == TYPE_BOOL)
