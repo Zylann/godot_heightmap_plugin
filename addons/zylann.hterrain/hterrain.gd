@@ -917,10 +917,6 @@ func _update_chunk(chunk, lod):
 	chunk.set_visible(is_visible())
 	chunk.set_pending_update(false)
 
-#	if (get_tree()->is_editor_hint() == false) {
-#		// TODO Generate collider? Or delegate this to another node
-#	}
-
 
 func _add_chunk_update(chunk, pos_x, pos_y, lod):
 
