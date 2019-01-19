@@ -117,7 +117,7 @@ func _init():
 	_details.set_terrain(self)
 	set_notify_transform(true)
 
-	# TODO Temporary! This is a workaround for https://github.com/godotengine/godot/issues/20291
+	# TODO Temporary! This is a workaround for https://github.com/godotengine/godot/issues/24488
 	_material.set_shader_param("u_ground_uv_scale", 20)
 	_material.set_shader_param("u_depth_blending", true)
 

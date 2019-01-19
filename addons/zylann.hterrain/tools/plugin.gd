@@ -2,11 +2,11 @@ tool
 extends EditorPlugin
 
 
-const HTerrain = preload("../hterrain.gd")#preload("hterrain.gdns")
+const HTerrain = preload("../hterrain.gd")
 const HTerrainData = preload("../hterrain_data.gd")
 const HTerrainMesher = preload("../hterrain_mesher.gd")
 const PreviewGenerator = preload("preview_generator.gd")
-const Brush = preload("../hterrain_brush.gd")#preload("hterrain_brush.gdns")
+const Brush = preload("../hterrain_brush.gd")
 const BrushDecal = preload("brush/decal.gd")
 const Util = preload("../util/util.gd")
 const LoadTextureDialog = preload("load_texture_dialog.gd")
