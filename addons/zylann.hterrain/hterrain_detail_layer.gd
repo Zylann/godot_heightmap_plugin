@@ -37,7 +37,6 @@ export(Shader) var custom_shader setget set_custom_shader, get_custom_shader
 # TODO allow to choose max density
 
 var _material = null
-var _custom_shader = null
 var _default_shader = null
 var _chunks = {}
 var _multimesh = null
@@ -201,7 +200,7 @@ func set_custom_shader(shader):
 
 
 func get_custom_shader():
-	return _custom_shader
+	return custom_shader
 
 
 # Updates texture references and values that come from the terrain itself.
