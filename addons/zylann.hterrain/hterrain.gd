@@ -31,15 +31,15 @@ const _api_shader_params = {
 	"u_terrain_colormap": true,
 	"u_terrain_splatmap": true,
 	"u_terrain_globalmap": true,
-	
+
 	"u_terrain_inverse_transform": true,
 	"u_terrain_normal_basis": true,
-	
+
 	"u_ground_albedo_bump_0": true,
 	"u_ground_albedo_bump_1": true,
 	"u_ground_albedo_bump_2": true,
 	"u_ground_albedo_bump_3": true,
-	
+
 	"u_ground_normal_roughness_0": true,
 	"u_ground_normal_roughness_1": true,
 	"u_ground_normal_roughness_2": true,
@@ -68,7 +68,6 @@ signal progress_complete
 signal transform_changed(global_transform)
 
 export var collision_enabled = true setget set_collision_enabled
-export var async_loading = false
 export(float, 0.0, 1.0) var ambient_wind = 0.0 setget set_ambient_wind
 export(int, 2, 5) var lod_scale = 2 setget set_lod_scale, get_lod_scale
 
@@ -108,15 +107,15 @@ var _normals_baker = null
 
 func _init():
 	print("Create HeightMap")
-	
+
 	_lodder.set_callbacks( \
 		funcref(self, "_cb_make_chunk"), \
 		funcref(self,"_cb_recycle_chunk"), \
 		funcref(self, "_cb_get_vertical_bounds"))
-	
+
 	set_notify_transform(true)
 
-	# TODO Temporary! This is a workaround for https://github.com/godotengine/godot/issues/20291
+	# TODO Temporary! This is a workaround for https://github.com/godotengine/godot/issues/24488
 	_material.set_shader_param("u_ground_uv_scale", 20)
 	_material.set_shader_param("u_depth_blending", true)
 
@@ -127,7 +126,7 @@ func _init():
 		var e = []
 		e.resize(GROUND_TEXTURE_TYPE_COUNT)
 		_ground_textures[slot] = e
-	
+
 	if DEBUG_AABB:
 		HTerrainChunk = HTerrainChunkDebug
 
@@ -139,10 +138,21 @@ func _init():
 func _get_property_list():
 	var props = [
 		{
-			# Must do this to export a custom resource type
-			"name": "data",
+			# Terrain data is exposed only as a path in the editor,
+			# because it can only be saved if it has a directory selected.
+			# That property is not used in scene saving (data is instead).
+			"name": "data_directory",
+			"type": TYPE_STRING,
+			"usage": PROPERTY_USAGE_EDITOR,
+			"hint": PROPERTY_HINT_DIR
+		},
+		{
+			# The actual data resource is only exposed for storage.
+			# I had to name it so that Godot won't try to assign _data directly
+			# instead of using the setter I made...
+			"name": "_terrain_data",
 			"type": TYPE_OBJECT,
-			"usage": PROPERTY_USAGE_STORAGE | PROPERTY_USAGE_EDITOR,
+			"usage": PROPERTY_USAGE_STORAGE,
 			"hint": PROPERTY_HINT_RESOURCE_TYPE,
 			"hint_string": "HTerrainData"
 		},
@@ -169,7 +179,7 @@ func _get_property_list():
 			"hint_string": "Shader"
 		}
 	]
-	
+
 	var shader_params = VisualServer.shader_get_param_list(_material.shader.get_rid())
 	for p in shader_params:
 		if _api_shader_params.has(p.name):
@@ -179,7 +189,7 @@ func _get_property_list():
 			cp[k] = p[k]
 		cp.name = str("shader_params/", p.name)
 		props.append(cp)
-	
+
 	for i in range(get_ground_texture_slot_count()):
 		for t in _ground_enum_to_name:
 			props.append({
@@ -195,15 +205,23 @@ func _get_property_list():
 		"type": TYPE_ARRAY,
 		"usage": PROPERTY_USAGE_STORAGE
 	})
-	
+
 	return props
 
 
 func _get(key):
-	
-	if key == "data":
-		return get_data()
-	
+
+	if key == "data_directory":
+		return _get_data_directory()
+
+	if key == "_terrain_data":
+		if _data == null or _data.resource_path == "":
+			# Consider null if the data is not set or has no path,
+			# because in those cases we can't save the terrain properly
+			return null
+		else:
+			return _data
+
 	if key.begins_with("ground/"):
 		for ground_texture_type in range(GROUND_TEXTURE_TYPE_COUNT):
 			var type_name = _ground_enum_to_name[ground_texture_type]
@@ -213,10 +231,10 @@ func _get(key):
 
 	elif key == "shader_type":
 		return get_shader_type()
-	
+
 	elif key == "custom_shader":
 		return get_custom_shader()
-	
+
 	elif key.begins_with("shader_params/"):
 		var param_name = key.right(len("shader_params/"))
 		return get_shader_param(param_name)
@@ -226,11 +244,15 @@ func _get(key):
 
 
 func _set(key, value):
+
+	if key == "data_directory":
+		_set_data_directory(value)
+
 	# Can't use setget when the exported type is custom,
 	# because we were also are forced to use _get_property_list...
-	if key == "data":
+	elif key == "_terrain_data":
 		set_data(value)
-	
+
 	if key.begins_with("ground/"):
 		for ground_texture_type in range(GROUND_TEXTURE_TYPE_COUNT):
 			var type_name = _ground_enum_to_name[ground_texture_type]
@@ -240,7 +262,7 @@ func _set(key, value):
 
 	elif key == "shader_type":
 		set_shader_type(value)
-	
+
 	elif key == "custom_shader":
 		set_custom_shader(value)
 
@@ -258,6 +280,32 @@ func get_shader_param(param_name):
 
 func set_shader_param(param_name, v):
 	_material.set_shader_param(param_name, v)
+
+
+func _set_data_directory(dir):
+	if dir != _get_data_directory():
+		if dir == "":
+			set_data(null)
+		else:
+			var fpath = dir.plus_file(HTerrainData.META_FILENAME)
+			var f = File.new()
+			if f.file_exists(fpath):
+				# Load existing
+				var d = load(fpath)
+				set_data(d)
+			else:
+				# Create new
+				var d = HTerrainData.new()
+				d.resource_path = fpath
+				set_data(d)
+	else:
+		print("WARNING: setting twice the same terrain directory??")
+
+
+func _get_data_directory():
+	if _data != null:
+		return _data.resource_path.get_base_dir()
+	return ""
 
 
 static func _check_heightmap_collider_support():
@@ -331,7 +379,7 @@ func get_internal_transform():
 
 func _notification(what):
 	match what:
-		
+
 		NOTIFICATION_PREDELETE:
 			print("Destroy HTerrain")
 			# Note: might get rid of a circular ref in GDScript port
@@ -343,16 +391,16 @@ func _notification(what):
 			if _collider != null:
 				_collider.set_world(get_world())
 				_collider.set_transform(get_internal_transform())
-			
+
 		NOTIFICATION_EXIT_WORLD:
 			print("Exit world");
 			_for_all_chunks(ExitWorldAction.new())
 			if _collider != null:
 				_collider.set_world(null)
-			
+
 		NOTIFICATION_TRANSFORM_CHANGED:
 			_on_transform_changed()
-			
+
 		NOTIFICATION_VISIBILITY_CHANGED:
 			print("Visibility changed");
 			_for_all_chunks(VisibilityChangedAction.new(is_visible()))
@@ -374,46 +422,19 @@ func _on_transform_changed():
 
 func _enter_tree():
 	print("Enter tree")
-		
-	#   .                                                      .
-	#          .n                   .                 .                  n.
-	#    .   .dP                  dP                   9b                 9b.    .
-	#   4    qXb         .       dX                     Xb       .        dXp     t
-	#  dX.    9Xb      .dXb    __                         __    dXb.     dXP     .Xb
-	#  9XXb._       _.dXXXXb dXXXXbo.                 .odXXXXb dXXXXb._       _.dXXP
-	#   9XXXXXXXXXXXXXXXXXXXVXXXXXXXXOo.           .oOXXXXXXXXVXXXXXXXXXXXXXXXXXXXP
-	#    `9XXXXXXXXXXXXXXXXXXXXX'~   ~`OOO8b   d8OOO'~   ~`XXXXXXXXXXXXXXXXXXXXXP'
-	#      `9XXXXXXXXXXXP' `9XX'   DIE    `98v8P'  HUMAN   `XXP' `9XXXXXXXXXXXP'
-	#          ~~~~~~~       9X.          .db|db.          .XP       ~~~~~~~
-	#                          )b.  .dbo.dP'`v'`9b.odb.  .dX(
-	#                        ,dXXXXXXXXXXXb     dXXXXXXXXXXXb.
-	#                       dXXXXXXXXXXXP'   .   `9XXXXXXXXXXXb
-	#                      dXXXXXXXXXXXXb   d|b   dXXXXXXXXXXXXb
-	#                      9XXb'   `XXXXXb.dX|Xb.dXXXXX'   `dXXP
-	#                       `'      9XXXXXX(   )XXXXXXP      `'
-	#                                XXXX X.`v'.X XXXX
-	#                                XP^X'`b   d'`X^XX
-	#                                X. 9  `   '  P )X
-	#                                `b  `       '  d'
-	#                                 `             '
-	# TODO This is temporary until I get saving and loading to work the proper way!
-	# Terrain data should be able to load even before being assigned to its node.
-	# This makes the terrain load automatically
-	if _data != null and _data.get_resolution() == 0:
-		# Note: async loading in editor is better UX
-		if Engine.editor_hint or async_loading:
-			_data.load_data_async()
-		else:
-			# The game will freeze until enough data is ready
-			_data.load_data()
-	
+
+	if Engine.editor_hint and _normals_baker == null:
+		_normals_baker = load(_NORMAL_BAKER_PATH).new()
+		add_child(_normals_baker)
+		_normals_baker.set_terrain_data(_data)
+
 	set_process(true)
 
 
 func _clear_all_chunks():
 
 	# The lodder has to be cleared because otherwise it will reference dangling pointers
-	_lodder.clear();
+	_lodder.clear()
 
 	#_for_all_chunks(DeleteChunkAction.new())
 
@@ -451,7 +472,7 @@ func set_data(new_data):
 		_data.disconnect("map_changed", self, "_on_data_map_changed")
 		_data.disconnect("map_added", self, "_on_data_map_added")
 		_data.disconnect("map_removed", self, "_on_data_map_removed")
-		
+
 		if _normals_baker != null:
 			_normals_baker.set_terrain_data(null)
 			_normals_baker.queue_free()
@@ -470,6 +491,9 @@ func set_data(new_data):
 			if _data.get_resolution() == 0:
 				_data._edit_load_default()
 
+		if _collider != null:
+			_collider.create_from_terrain_data(_data)
+
 		_data.connect("resolution_changed", self, "_on_data_resolution_changed")
 		_data.connect("region_changed", self, "_on_data_region_changed")
 		_data.connect("progress_notified", self, "_on_data_progress_notified")
@@ -477,15 +501,18 @@ func set_data(new_data):
 		_data.connect("map_added", self, "_on_data_map_added")
 		_data.connect("map_removed", self, "_on_data_map_removed")
 
+		if _normals_baker != null:
+			_normals_baker.set_terrain_data(_data)
+
 		_on_data_resolution_changed()
-	
+
 	_material_params_need_update = true
 	print("Set data done")
 
 
 func _on_data_progress_notified(info):
 	emit_signal("progress_notified", info)
-	
+
 	if info.finished:
 		# Update collider when data is loaded
 		if _collider != null:
@@ -493,12 +520,7 @@ func _on_data_progress_notified(info):
 		
 		for layer in _detail_layers:
 			layer.update_material()
-		
-		if Engine.editor_hint and _normals_baker == null:
-			_normals_baker = load(_NORMAL_BAKER_PATH).new()
-			add_child(_normals_baker)
-			_normals_baker.set_terrain_data(_data)
-		
+
 		emit_signal("progress_complete")
 
 
@@ -530,7 +552,7 @@ func _reset_ground_chunks():
 	var cres = _data.get_resolution() / _chunk_size
 	var csize_x = cres
 	var csize_y = cres
-	
+
 	for lod in range(_lodder.get_lod_count()):
 		print("Create grid for lod ", lod, ", ", csize_x, "x", csize_y)
 		var grid = Grid.create_grid(csize_x, csize_y)
@@ -547,7 +569,7 @@ func _on_data_region_changed(min_x, min_y, size_x, size_y, channel):
 	# Testing only heights because it's the only channel that can impact geometry and LOD
 	if channel == HTerrainData.CHANNEL_HEIGHT:
 		set_area_dirty(min_x, min_y, size_x, size_y)
-		
+
 		if _normals_baker != null:
 			_normals_baker.request_tiles_in_region(Vector2(min_x, min_y), Vector2(size_x, size_y))
 
@@ -557,9 +579,10 @@ func _on_data_map_changed(type, index):
 	or type == HTerrainData.CHANNEL_HEIGHT \
 	or type == HTerrainData.CHANNEL_NORMAL \
 	or type == HTerrainData.CHANNEL_GLOBAL_ALBEDO:
+
 		for layer in _detail_layers:
 			layer.update_material()
-	
+
 	if type != HTerrainData.CHANNEL_DETAIL:
 		_material_params_need_update = true
 
@@ -588,7 +611,7 @@ func set_shader_type(type):
 	if type == _shader_type:
 		return
 	_shader_type = type
-	
+
 	match _shader_type:
 		SHADER_SIMPLE4:
 			_material.shader = load(CLASSIC4_SHADER_PATH)
@@ -599,7 +622,7 @@ func set_shader_type(type):
 		_:
 			printerr("Unknown shader type: '", _shader_type, "'")
 			_material.shader = load(CLASSIC4_SHADER_PATH)
-	
+
 	_material_params_need_update = true
 
 
@@ -610,7 +633,7 @@ func get_custom_shader():
 func set_custom_shader(shader):
 	if _custom_shader == shader:
 		return
-	
+
 	if _custom_shader != null:
 		_custom_shader.disconnect("changed", self, "_on_custom_shader_changed")
 
@@ -623,13 +646,13 @@ func set_custom_shader(shader):
 				src = load(CLASSIC4_SHADER_PATH)
 			shader.set_code(src.code)
 			# TODO If code isn't empty,
-			# verify existing parameters and issue a warning if important ones are missing			
-	
+			# verify existing parameters and issue a warning if important ones are missing
+
 	_custom_shader = shader
-	
+
 	if _shader_type == SHADER_CUSTOM:
 		_material.shader = _custom_shader
-	
+
 	if _custom_shader != null:
 		_custom_shader.connect("changed", self, "_on_custom_shader_changed")
 		if _shader_type == SHADER_CUSTOM:
@@ -644,7 +667,7 @@ func _update_material_params():
 
 	assert(_material != null)
 	print("Updating terrain material params")
-	
+
 	var height_texture
 	var normal_texture
 	var color_texture
@@ -663,9 +686,9 @@ func _update_material_params():
 			global_texture = _data.get_texture(HTerrainData.CHANNEL_GLOBAL_ALBEDO)
 		res.x = _data.get_resolution()
 		res.y = res.x
-	
+
 	# Set all parameters from the terrain sytem.
-	
+
 	if is_inside_tree():
 		var gt = get_internal_transform()
 		var t = gt.affine_inverse()
@@ -680,7 +703,7 @@ func _update_material_params():
 	_material.set_shader_param(SHADER_PARAM_COLOR_TEXTURE, color_texture)
 	_material.set_shader_param(SHADER_PARAM_SPLAT_TEXTURE, splat_texture)
 	_material.set_shader_param("u_terrain_globalmap", global_texture)
-	
+
 	for slot in len(_ground_textures):
 		var textures = _ground_textures[slot]
 		for type in len(textures):
@@ -757,7 +780,7 @@ const s_rdirs = [
 ]
 
 func _process(delta):
-	
+
 	# Get viewer pos
 	var viewer_pos = Vector3()
 	if Engine.editor_hint:
@@ -769,15 +792,15 @@ func _process(delta):
 			var camera = viewport.get_camera()
 			if camera != null:
 				viewer_pos = camera.get_global_transform().origin
-	
+
 	if has_data():
 		# TODO I would like to do this without needing a ref to the scene tree...
 		_data.emit_signal("_internal_process")
-		
+
 		if _data.is_locked():
 			# Can't use the data for now
 			return
-		
+
 		if _data.get_resolution() != 0:
 			var gt = get_internal_transform()
 			var local_viewer_pos = gt.affine_inverse() * viewer_pos
@@ -786,15 +809,16 @@ func _process(delta):
 			#var time_elapsed = OS.get_ticks_msec() - time_before
 			#if Engine.get_frames_drawn() % 60 == 0:
 			#	print("Lodder time: ", time_elapsed)
-		
+
 		if _data.get_map_count(HTerrainData.CHANNEL_DETAIL) > 0:
 			# Note: the detail system is not affected by map scale,
 			# so we have to send viewer position in world space
+
 			for layer in _detail_layers:
 				layer.process(delta, viewer_pos)
-	
+
 	_updated_chunks = 0
-	
+
 	# Add more chunk updates for neighboring (seams):
 	# This adds updates to higher-LOD chunks around lower-LOD ones,
 	# because they might not needed to update by themselves, but the fact a neighbor
@@ -808,7 +832,7 @@ func _process(delta):
 
 			var ncpos_x = u.pos_x + s_dirs[d][0]
 			var ncpos_y = u.pos_y + s_dirs[d][1]
-			
+
 			var nchunk = _get_chunk_at(ncpos_x, ncpos_y, u.lod)
 
 			if nchunk != null and nchunk.is_active():
@@ -826,7 +850,7 @@ func _process(delta):
 
 				var ncpos_upper_x = cpos_upper_x + s_rdirs[rd][0]
 				var ncpos_upper_y = cpos_upper_y + s_rdirs[rd][1]
-				
+
 				var nchunk = _get_chunk_at(ncpos_upper_x, ncpos_upper_y, nlod)
 
 				if nchunk != null and nchunk.is_active():
@@ -834,7 +858,7 @@ func _process(delta):
 
 	# Update chunks
 	for i in range(len(_pending_chunk_updates)):
-		
+
 		var u = _pending_chunk_updates[i]
 		var chunk = _get_chunk_at(u.pos_x, u.pos_y, u.lod)
 		assert(chunk != null)
@@ -845,7 +869,7 @@ func _process(delta):
 	if _material_params_need_update:
 		_update_material_params()
 		_material_params_need_update = false
-	
+
 	# DEBUG
 #	if(_updated_chunks > 0):
 #		print("Updated {0} chunks".format(_updated_chunks))
@@ -885,10 +909,6 @@ func _update_chunk(chunk, lod):
 
 	chunk.set_visible(is_visible())
 	chunk.set_pending_update(false)
-
-#	if (get_tree()->is_editor_hint() == false) {
-#		// TODO Generate collider? Or delegate this to another node
-#	}
 
 
 func _add_chunk_update(chunk, pos_x, pos_y, lod):
@@ -941,15 +961,15 @@ func set_area_dirty(origin_in_cells_x, origin_in_cells_y, size_in_cells_x, size_
 		while cy < max_y:
 			var cx = min_x
 			while cx < max_x:
-				
+
 				var chunk = Grid.grid_get_or_default(grid, cx, cy, null)
 
 				if chunk != null and chunk.is_active():
 					_add_chunk_update(chunk, cx, cy, lod)
-				
+
 				cx += 1
 			cy += 1
-		
+
 
 # Called when a chunk is needed to be seen
 func _cb_make_chunk(cpos_x, cpos_y, lod):
@@ -963,14 +983,14 @@ func _cb_make_chunk(cpos_x, cpos_y, lod):
 		var lod_factor = _lodder.get_lod_size(lod)
 		var origin_in_cells_x = cpos_x * _chunk_size * lod_factor
 		var origin_in_cells_y = cpos_y * _chunk_size * lod_factor
-		
+
 		chunk = HTerrainChunk.new(self, origin_in_cells_x, origin_in_cells_y, _material)
 		chunk.parent_transform_changed(get_internal_transform())
 
 		var grid = _chunks[lod]
 		var row = grid[cpos_y]
 		row[cpos_x] = chunk
-	
+
 	# Make sure it gets updated
 	_add_chunk_update(chunk, cpos_x, cpos_y, lod);
 
@@ -1052,11 +1072,11 @@ func cell_raycast(origin_world, dir_world, out_cell_pos):
 			out_cell_pos[0] = cpos[0]
 			out_cell_pos[1] = cpos[1]
 			return true
-		
+
 		d += unit
 
 	return false
-	
+
 
 # TODO Rename these "splat textures"
 
@@ -1196,4 +1216,3 @@ class SetMaterialAction:
 		material = m
 	func exec(chunk):
 		chunk.set_material(material)
-

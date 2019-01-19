@@ -3,7 +3,6 @@ tool
 const HTerrain = preload("hterrain.gd")
 const HTerrainData = preload("hterrain_data.gd")
 const Util = preload("util/util.gd")
-const Grid = preload("util/grid.gd")
 
 # TODO Rename MODE_RAISE
 const MODE_ADD = 0
@@ -117,7 +116,7 @@ func set_detail_index(index):
 
 func get_detail_density():
 	return _detail_density
-	
+
 
 func set_detail_density(v):
 	_detail_density = clamp(v, 0, 1)
@@ -144,27 +143,27 @@ func set_mask_flag(v):
 func _generate_procedural(radius):
 	assert(typeof(radius) == TYPE_INT)
 	assert(radius > 0)
-	
+
 	var size = 2 * radius
-	
+
 	_shape = Image.new()
 	_shape.create(size, size, 0, Image.FORMAT_RF)
 	_shape_size = size
 
 	_shape_sum = 0.0;
-	
+
 	_shape.lock()
 
 	for y in range(-radius, radius):
 		for x in range(-radius, radius):
-			
+
 			var d = Vector2(x, y).distance_to(Vector2(0, 0)) / float(radius)
 			var v = 1.0 - d * d * d
 			if v > 1.0:
 				v = 1.0
 			if v < 0.0:
 				v = 0.0
-			
+
 			_shape.set_pixel(x + radius, y + radius, Color(v, v, v))
 			_shape_sum += v;
 
@@ -177,24 +176,24 @@ func _generate_from_image(im, radius):
 	assert(typeof(radius) == TYPE_INT)
 	assert(radius > 0)
 	assert(im.get_width() == im.get_height())
-	
+
 	var size = 2 * radius
-	
+
 	im = im.duplicate()
 	im.convert(Image.FORMAT_RF)
 	im.resize(size, size)
 	_shape = im
 	_shape_size = size
-	
+
 	_shape.lock()
-	
+
 	var sum = 0.0
 	for y in _shape.get_height():
 		for x in _shape.get_width():
 			sum += _shape.get_pixel(x, y).r
-	
+
 	_shape.unlock()
-	
+
 	_shape_sum = sum
 	emit_signal("shape_changed", _shape)
 
@@ -205,7 +204,7 @@ static func _get_mode_channel(mode):
 		MODE_SUBTRACT, \
 		MODE_SMOOTH, \
 		MODE_FLATTEN:
-			return HTerrainData.CHANNEL_HEIGHT	
+			return HTerrainData.CHANNEL_HEIGHT
 		MODE_COLOR:
 			return HTerrainData.CHANNEL_COLOR
 		MODE_SPLAT:
@@ -239,7 +238,7 @@ func paint(height_map, cell_pos_x, cell_pos_y, override_mode):
 
 	height_map.set_area_dirty(origin_x, origin_y, _shape_size, _shape_size)
 	var map_index = 0
-	
+
 	# When using sculpting tools, make it dependent on brush size
 	var raise_strength = 10.0 + 2.0 * float(_shape_size)
 
@@ -265,7 +264,7 @@ func paint(height_map, cell_pos_x, cell_pos_y, override_mode):
 
 		MODE_MASK:
 			_paint_mask(data, origin_x, origin_y)
-		
+
 		MODE_DETAIL:
 			_paint_detail(data, origin_x, origin_y)
 			map_index = _detail_index
@@ -280,7 +279,7 @@ func paint(height_map, cell_pos_x, cell_pos_y, override_mode):
 
 # TODO Erk!
 static func _foreach_xy(op, data, origin_x, origin_y, speed, opacity, shape):
-	
+
 	var shape_size = shape.get_width()
 	assert(shape.get_width() == shape.get_height())
 
@@ -305,13 +304,13 @@ static func _foreach_xy(op, data, origin_x, origin_y, speed, opacity, shape):
 
 	for y in range(min_y, max_y):
 		var py = y - min_noclamp_y
-		
+
 		for x in range(min_x, max_x):
 			var px = x - min_noclamp_x
 
 			var shape_value = shape.get_pixel(px, py).r
 			op.exec(data, x, y, s * shape_value)
-	
+
 	shape.unlock()
 
 
@@ -357,7 +356,7 @@ class OperatorLerpColor:
 	func _init(p_target, im):
 		target = p_target
 		_im = im
-	
+
 	func exec(data, pos_x, pos_y, v):
 		var c = _im.get_pixel(pos_x, pos_y)
 		c = c.linear_interpolate(target, v)
@@ -382,9 +381,9 @@ func _backup_for_undo(im, undo_cache, rect_origin_x, rect_origin_y, rect_size_x,
 	for cpos_y in range(cmin_y, cmax_y):
 		var min_y = cpos_y * EDIT_CHUNK_SIZE
 		var max_y = min_y + EDIT_CHUNK_SIZE
-			
+
 		for cpos_x in range(cmin_x, cmax_x):
-		
+
 			var k = Util.encode_v2i(cpos_x, cpos_y)
 			if undo_cache.has(k):
 				# Already backupped
@@ -427,7 +426,7 @@ func _paint_height(data, origin_x, origin_y, speed):
 	#print("Raster time: ", (OS.get_ticks_msec() - time_before))
 	#time_before = OS.get_ticks_msec()
 
-	
+
 func _smooth_height(data, origin_x, origin_y, speed):
 
 	var im = data.get_image(HTerrainData.CHANNEL_HEIGHT)
@@ -443,7 +442,7 @@ func _smooth_height(data, origin_x, origin_y, speed):
 
 	var lerp_op = OperatorLerp.new(target_value, im)
 	_foreach_xy(lerp_op, data, origin_x, origin_y, speed, _opacity, _shape)
-	
+
 	im.unlock()
 
 
@@ -483,30 +482,30 @@ func _paint_splat(data, origin_x, origin_y):
 	min_y = pmin[1]
 	max_x = pmax[0]
 	max_y = pmax[1]
-	
+
 	im.lock()
-	
+
 	if _texture_mode == HTerrain.SHADER_SIMPLE4:
-		
+
 		var target_color = Color(0, 0, 0, 0)
 		target_color[_texture_index] = 1.0
 
 		_shape.lock()
-		
+
 		for y in range(min_y, max_y):
 			var py = y - min_noclamp_y
-			
+
 			for x in range(min_x, max_x):
 				var px = x - min_noclamp_x
-				
+
 				var shape_value = _shape.get_pixel(px, py).r
-	
+
 				var c = im.get_pixel(x, y)
 				c = c.linear_interpolate(target_color, shape_value * _opacity)
 				im.set_pixel(x, y, c)
-		
+
 		_shape.unlock()
-	
+
 #	elif _texture_mode == HTerrain.SHADER_ARRAY:
 #		var shape_threshold = 0.1
 #
@@ -560,7 +559,7 @@ func _paint_mask(data, origin_x, origin_y):
 
 	var im = data.get_image(HTerrainData.CHANNEL_COLOR)
 	assert(im != null)
-	
+
 	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size);
 
 	var shape_size = _shape_size
@@ -579,7 +578,7 @@ func _paint_mask(data, origin_x, origin_y):
 	min_y = pmin[1]
 	max_x = pmax[0]
 	max_y = pmax[1]
-	
+
 	var mask_value = 1.0 if _mask_flag else 0.0
 
 	im.lock()
@@ -590,9 +589,9 @@ func _paint_mask(data, origin_x, origin_y):
 
 			var px = x - min_noclamp_x
 			var py = y - min_noclamp_y
-			
+
 			var shape_value = _shape.get_pixel(px, py).r
-			
+
 			var c = im.get_pixel(x, y)
 			c.a = lerp(c.a, mask_value, shape_value)
 			im.set_pixel(x, y, c)
@@ -626,14 +625,14 @@ func _edit_pop_undo_redo_data(heightmap_data):
 
 	var im = heightmap_data.get_image(channel)
 	assert(im != null)
-	
+
 	var redo_data = _fetch_redo_chunks(im, chunk_positions_keys)
 
 	# Convert chunk positions to flat int array
 	var undo_data = []
 	var chunk_positions = PoolIntArray()
 	chunk_positions.resize(chunk_positions_keys.size() * 2)
-	
+
 	var i = 0
 	for key in chunk_positions_keys:
 		var cpos = Util.decode_v2i(key)
@@ -655,4 +654,3 @@ func _edit_pop_undo_redo_data(heightmap_data):
 	_undo_cache.clear()
 
 	return data
-

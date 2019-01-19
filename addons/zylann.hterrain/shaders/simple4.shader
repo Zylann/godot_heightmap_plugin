@@ -29,9 +29,8 @@ uniform float u_ground_uv_scale = 20.0;
 uniform bool u_depth_blending = true;
 uniform bool u_triplanar = false;
 
-// x = start distance, y = transition distance.
-// To disable or if the map isn't set, leave at (0, 0).
-uniform vec2 u_globalmap_blend;
+uniform float u_globalmap_blend_start;
+uniform float u_globalmap_blend_distance;
 
 varying vec4 v_tint;
 varying vec4 v_splat;
@@ -49,17 +48,17 @@ vec4 get_depth_blended_weights(vec4 splat, vec4 bumps) {
 	float dh = 0.2;
 
 	vec4 h = bumps + splat;
-	
+
 	// TODO Keep improving multilayer blending, there are still some edge cases...
 	// Mitigation: nullify layers with near-zero splat
 	h *= smoothstep(0, 0.05, splat);
-	
+
 	vec4 d = h + dh;
 	d.r -= max(h.g, max(h.b, h.a));
 	d.g -= max(h.r, max(h.b, h.a));
 	d.b -= max(h.g, max(h.r, h.a));
 	d.a -= max(h.g, max(h.b, h.r));
-	
+
 	return clamp(d, 0, 1);
 }
 
@@ -84,21 +83,21 @@ void vertex() {
 
 	// Normalized UV
 	UV = cell_coords / vec2(textureSize(u_terrain_heightmap, 0));
-	
+
 	// Height displacement
 	float h = texture(u_terrain_heightmap, UV).r;
 	VERTEX.y = h;
 	wpos.y = h;
 
 	v_ground_uv = vec3(cell_coords.x, h * WORLD_MATRIX[1][1], cell_coords.y) / u_ground_uv_scale;
-	
+
 	// Putting this in vertex saves 2 fetches from the fragment shader,
 	// which is good for performance at a negligible quality cost,
 	// provided that geometry is a regular grid that decimates with LOD.
 	// (downside is LOD will also decimate tint and splat, but it's not bad overall)
 	v_tint = texture(u_terrain_colormap, UV);
 	v_splat = texture(u_terrain_splatmap, UV);
-	
+
 	// Need to use u_terrain_normal_basis to handle scaling.
 	// For some reason I also had to invert Z when sampling terrain normals... not sure why
 	NORMAL = u_terrain_normal_basis * (unpack_normal(texture(u_terrain_normalmap, UV)) * vec3(1,1,-1));
@@ -116,8 +115,8 @@ void fragment() {
 	vec3 terrain_normal_world = u_terrain_normal_basis * (unpack_normal(texture(u_terrain_normalmap, UV)) * vec3(1,1,-1));
 	terrain_normal_world = normalize(terrain_normal_world);
 	vec3 normal = terrain_normal_world;
-	
-	float globalmap_factor = clamp((v_distance - u_globalmap_blend.x) * u_globalmap_blend.y, 0.0, 1.0);
+
+	float globalmap_factor = clamp((v_distance - u_globalmap_blend_start) * u_globalmap_blend_distance, 0.0, 1.0);
 	globalmap_factor *= globalmap_factor; // slower start, faster transition but far away
 	vec3 global_albedo = texture(u_terrain_globalmap, UV).rgb;
 	ALBEDO = global_albedo;
@@ -125,7 +124,7 @@ void fragment() {
 	// Doing this branch allows to spare a bunch of texture fetches for distant pixels.
 	// Eventually, there could be a split between near and far shaders in the future, if relevant on high-end GPUs
 	if (globalmap_factor < 1.0) {
-		
+
 		vec2 ground_uv = v_ground_uv.xz;
 
 		vec4 ab3;
@@ -145,27 +144,27 @@ void fragment() {
 			ab3 = texture(u_ground_albedo_bump_3, ground_uv);
 			nr3 = texture(u_ground_normal_roughness_3, ground_uv);
 		}
-		
+
 		vec4 ab0 = texture(u_ground_albedo_bump_0, ground_uv);
 		vec4 ab1 = texture(u_ground_albedo_bump_1, ground_uv);
 		vec4 ab2 = texture(u_ground_albedo_bump_2, ground_uv);
-		
+
 		vec4 nr0 = texture(u_ground_normal_roughness_0, ground_uv);
 		vec4 nr1 = texture(u_ground_normal_roughness_1, ground_uv);
 		vec4 nr2 = texture(u_ground_normal_roughness_2, ground_uv);
-		
+
 		vec3 col0 = ab0.rgb;
 		vec3 col1 = ab1.rgb;
 		vec3 col2 = ab2.rgb;
 		vec3 col3 = ab3.rgb;
-		
+
 		vec4 rough = vec4(nr0.a, nr1.a, nr2.a, nr3.a);
 
 		vec3 normal0 = unpack_normal(nr0);
 		vec3 normal1 = unpack_normal(nr1);
 		vec3 normal2 = unpack_normal(nr2);
 		vec3 normal3 = unpack_normal(nr3);
-		
+
 		vec4 w;
 		// TODO An #ifdef macro would be nice! Or copy/paste everything in a different shader...
 		if (u_depth_blending) {
@@ -173,43 +172,43 @@ void fragment() {
 		} else {
 			w = v_splat.rgba;
 		}
-		
+
 		float w_sum = (w.r + w.g + w.b + w.a);
-		
+
 		ALBEDO = v_tint.rgb * (
-			w.r * col0.rgb + 
-			w.g * col1.rgb + 
-			w.b * col2.rgb + 
+			w.r * col0.rgb +
+			w.g * col1.rgb +
+			w.b * col2.rgb +
 			w.a * col3.rgb) / w_sum;
 
 		ROUGHNESS = (
-			w.r * rough.r + 
-			w.g * rough.g + 
-			w.b * rough.b + 
+			w.r * rough.r +
+			w.g * rough.g +
+			w.b * rough.b +
 			w.a * rough.a) / w_sum;
-		
+
 		vec3 ground_normal = /*u_terrain_normal_basis **/ (
-			w.r * normal0 + 
-			w.g * normal1 + 
-			w.b * normal2 + 
+			w.r * normal0 +
+			w.g * normal1 +
+			w.b * normal2 +
 			w.a * normal3) / w_sum;
 		// If no splat textures are defined, normal vectors will default to (1,1,1), which is incorrect,
 		// and causes the terrain to be shaded wrongly in some directions.
 		// However, this should not be a problem to fix in the shader, because there MUST be at least one splat texture set.
 		//ground_normal = normalize(ground_normal);
 		// TODO Make the plugin insert a default normalmap if it's empty
-		
+
 		// Combine terrain normals with detail normals (not sure if correct but looks ok)
 		normal = normalize(vec3(
-			terrain_normal_world.x + ground_normal.x, 
-			terrain_normal_world.y, 
+			terrain_normal_world.x + ground_normal.x,
+			terrain_normal_world.y,
 			terrain_normal_world.z + ground_normal.z));
 
 		normal = mix(normal, terrain_normal_world, globalmap_factor);
 
 		ALBEDO = mix(ALBEDO, global_albedo, globalmap_factor);
 		ROUGHNESS = mix(ROUGHNESS, 1.0, globalmap_factor);
-		
+
 		// Show splatmap weights
 		//ALBEDO = w.rgb;
 	}
@@ -220,4 +219,3 @@ void fragment() {
 
 	NORMAL = (INV_CAMERA_MATRIX * (vec4(normal, 0.0))).xyz;
 }
-
