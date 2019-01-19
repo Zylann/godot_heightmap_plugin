@@ -117,9 +117,4 @@ func _on_ItemList_item_selected(index):
 	emit_signal("detail_selected", index)
 
 
-func _on_ItemList_item_activated(index):
-	# Edit on double-click
-	_edit_detail(index)
-
-
 	
