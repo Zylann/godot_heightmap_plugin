@@ -8,7 +8,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 0.11 Switching to Godot 3.1 (WIP)
 -------------------------------------
 
-- [WIP] Saving a scene now saves terrains properly
+- Saving a scene now saves terrains properly
 - [WIP] Grass layers are now nodes for ease of use
 - [WIP] Customizable grass shaders
 - [WIP] Customizable grass distance
