@@ -127,9 +127,6 @@ func _init():
 		e.resize(GROUND_TEXTURE_TYPE_COUNT)
 		_ground_textures[slot] = e
 
-	if DEBUG_AABB:
-		HTerrainChunk = HTerrainChunkDebug
-
 	if collision_enabled:
 		if _check_heightmap_collider_support():
 			_collider = HTerrainCollider.new()
@@ -984,7 +981,10 @@ func _cb_make_chunk(cpos_x, cpos_y, lod):
 		var origin_in_cells_x = cpos_x * _chunk_size * lod_factor
 		var origin_in_cells_y = cpos_y * _chunk_size * lod_factor
 
-		chunk = HTerrainChunk.new(self, origin_in_cells_x, origin_in_cells_y, _material)
+		if DEBUG_AABB:
+			chunk = HTerrainChunkDebug.new(self, origin_in_cells_x, origin_in_cells_y, _material)
+		else:
+			chunk = HTerrainChunk.new(self, origin_in_cells_x, origin_in_cells_y, _material)
 		chunk.parent_transform_changed(get_internal_transform())
 
 		var grid = _chunks[lod]
@@ -996,7 +996,7 @@ func _cb_make_chunk(cpos_x, cpos_y, lod):
 
 	chunk.set_active(true)
 
-	return chunk;
+	return chunk
 
 
 # Called when a chunk is no longer seen
