@@ -18,6 +18,15 @@ func _init():
 	# TODO This is an attempt to workaround https://github.com/godotengine/godot/issues/24390
 	PhysicsServer.body_set_ray_pickable(_body_rid, false)
 
+	# TODO This is a workaround to https://github.com/godotengine/godot/issues/25304
+	PhysicsServer.shape_set_data(_shape_rid, {
+		"width": 1,
+		"depth": 1,
+		"heights": PoolRealArray([0]),
+		"min_height": -1,
+		"max_height": 1
+	})
+
 	PhysicsServer.body_add_shape(_body_rid, _shape_rid)
 
 
