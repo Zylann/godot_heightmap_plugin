@@ -12,6 +12,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Grass layers are now nodes for ease of use
 - Customizable grass shaders
 - Customizable grass distance
+- New documentation
 - Fixed resize causing artifacts on heightmap and brushes (engine side)
 - Fixed pickable collider causing a huge slowdown (raycasting is still slow but needs a fix in Bullet Physics)
 

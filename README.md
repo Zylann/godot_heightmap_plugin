@@ -28,11 +28,9 @@ https://github.com/Zylann/godot_hterrain_demo
 Usage
 ----------
 
-I haven't written much docs yet, but I wrote a note about creating a terrain because there are some gotchas:
-https://github.com/Zylann/godot_heightmap_native_plugin/blob/master/addons/zylann.hterrain/doc/main.md
+- ![General documentation](addons/zylann.hterrain/doc/main.md)
 
-I also made a video about the 0.8 version of the plugin:
-https://www.youtube.com/watch?v=eZuvfIHDeT4&
+- I also made a video about the 0.8 version of the plugin: https://www.youtube.com/watch?v=eZuvfIHDeT4&
 
 
 Why this is a plugin
