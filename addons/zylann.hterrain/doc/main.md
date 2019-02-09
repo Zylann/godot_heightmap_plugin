@@ -1,9 +1,15 @@
 HTerrain plugin documentation
 ===============================
 
+
+Overview
+----------
+
 This plugin allows to create heightmap-based terrains in Godot Engine. This kind of terrain uses 2D images, such as for heights or texturing information, which makes it cheap to implement while covering most use cases, for high to low end GPUs.
 
-TODO Screenshot of the editor with the plugin enabled and arrows showing where UIs are
+It is entirely built on top of the `VisualServer` scripting API, which means it should be expected to work on both `GLES2` and `GLES3` backends.
+
+![Screenshot of the editor with the plugin enabled and arrows showing where UIs are](images/overview.png)
 
 
 Creating a terrain
@@ -16,11 +22,11 @@ Features of this plugin are mainly available from the `HTerrain` node. To create
 There is one last step until you can work on the terrain: you need to specify a folder in which all the data will be stored. The reason is that terrain data is very heavy, and it's a better idea to store it separately from the scene.
 Select the `HTerrain` node, and click on the folder icon to choose that folder.
 
-TODO Screenshot of the data dir property
+![Screenshot of the data dir property](images/data_directory_property.png)
 
 Once the folder is set, a default terrain should show up, ready to be edited.
 
-TODO Screenshot of the default terrain
+![Screenshot of the default terrain](images/default_terrain.png)
 
 Note: if you don't have a default environment, it's possible that you won't see anything, so make sure you either have one, or add a light to the scene to see it. Also, because terrains are pretty large (513 units by default), it is handy to change the view distance of the editor camera so that you can see further: go to `View`, `Options`, and then increase `far distance`.
 
@@ -31,7 +37,7 @@ By default, the terrain is a bit small, so if you want to make it bigger, there 
 - Modify `map_scale`, which will scale the ground without modifying the scale of all child nodes while using the same memory
 - Use the `resize` tool in the `Terrain` menu, which will increase the resolution instead and take more memory.
 
-TODO Screenshot of the resize tool
+![Screenshot of the resize tool](images/resize_tool.png)
 
 If you use the `resize` tool, you can also choose to either stretch the existing terrain, or crop it by selecting an anchor point. Note that currently, this operation is permanent and cannot be undone, so if you want to go back, you should make a backup.
 
@@ -45,16 +51,16 @@ Basic sculpting
 
 The default terrain is flat, but you may want to create hills and mountains. Because it uses a heightmap, editing this terrain is equivalent to editing an image. Because of this, the main tool is a brush with a configurable size and shape. You can see which area will be affected inside a 3D red circle appearing under your mouse, and you can choose how strong painting is by changing the `strength` slider.
 
-TODO Screenshot of the brush widget
+![Screenshot of the brush widget](images/brush_editor.png)
 
 To modify the heightmap, you can use the following brush modes, available at the top of the viewport:
 
-TODO Screenshot of the sculpting tools
+![Screenshot of the sculpting tools](images/sculpting_tools.png)
 
-- Raise: raises the height of the terrain to produce hills
-- Lower: digs down to create crevices
-- Smooth: averages the heights within the radius of the brush
-- Flatten: directly sets the height to a given value, which can be useful as an eraser or to make plateaux.
+- **Raise**: raises the height of the terrain to produce hills
+- **Lower**: digs down to create crevices
+- **Smooth**: averages the heights within the radius of the brush
+- **Flatten**: directly sets the height to a given value, which can be useful as an eraser or to make plateaux.
 
 Note: heightmaps work best for hills and large mountains, but making sharp cliffs or walls are not recommended because it stretches geometry too much, and might cause edge cases with collisions. To make cliffs it's a better idea to place actual meshes on top.
 
@@ -70,37 +76,37 @@ Texturing
 
 Applying textures to terrains is a bit different than single models, because they are very large and a more optimal approach needs to be taken to keep memory and performance to an acceptable level. One very common way of doing it is by using a splatmap. A splatmap is another texture covering the whole terrain, where each channel R, G, B and A is a weight associated to a given texture. Those textures are then blended together using a shader.
 
-TODO Screenshot showing splatmap and textured result
+![Screenshot showing splatmap and textured result](images/splatmap_and_textured_result.png)
 
-There are many other techniques, notably involving texture arrays which should be worked on in the future to allow more different textures. For now, this plugin only supports classic splatmaps, using `Classic4` and `Classic4Lite` shaders, which you can choose in the inspector. If you target less powerful GPUs, the `Lite` version is a bit cheaper by trading off a few features.
+There are many other techniques, notably involving texture arrays which should be worked on in the future to allow more different textures (it became available Godot 3.1). For now, this plugin only supports classic splatmaps, using `Classic4` and `Classic4Lite` shaders, which you can choose in the inspector. If you target less powerful GPUs, the `Lite` version is a bit cheaper by trading off a few features.
 
 ### Painting
 
 Before you can paint, you have to set up ground textures. It is recommended to pick textures which can tile infinitely, and preferably use "organic" ones, because terrains are best-suited for exterior natural environments. You can find some of these textures for free at http://cc0textures.com.
 
-TODO Screenshot of the texture slots
+![Screenshot of the texture slots](images/texture_slots.png)
 
-You will notice 4 slots for these, next to the brush settings, named `ground0`, `ground1`, `ground2` and `cliff`. We'll see later about why the last one is named this way, for now just conider it's a regular slot like the others.
+You will notice 4 slots for these, next to the brush settings, named `ground0`, `ground1`, `ground2` and `cliff`. We'll see later about why the last one is named this way, for now just conider it's a regular slot like the others. Click on the first slot, and `Edit`, or double-click.
 
-TODO Screenshot of the texture dialog
+![Screenshot of the texture dialog](images/texture_dialog.png)
 
-Click on the first slot, and `Edit`, or double-click. This opens a window that lets you choose two main textures: albedo an normals. Note: if you use the `Classic4Lite` shader, you don't have to setup normals. For now, you can assign the albedo texture, and the normalmap if you have one, then click `Ok`.
+This opens a window that lets you choose two main textures: albedo an normals. Note: if you use the `Classic4Lite` shader, you don't have to setup normals. For now, you can assign the albedo texture, and the normalmap if you have one, then click `Ok`.
 
 The default slot covers the whole terrain by default, because the splatmap is initialized with a red color `(1, 0, 0, 0)`. You can setup other textures in the other slots, so they will layer on top of the others.
 Painting is very similar to scultping, because it's still editing an image in the end. You can also choose the opacity, size and shape of the brush.
 
 ### Setting up bump, normals and roughness
 
-The ground shader provided by the plugin supports a few features to make the ground look more realistic. However, it takes a particular approach to achieve that result. The main reason is that the classic splatmap approach requires sampling 4 textures at once. If we want normalmaps, it becomes 8, and if we want roughness it becomes 12, which is already a lot, in addition to internal textures Godot uses in the background. Not all GPUs allow that many textures in the shader, so a better approach is to combine them as much as possible into single images. This reduces the number of texture units, and reduces the number of fetches to do in the pixel shader.
+The ground shader provided by the plugin should work fine with only regular albedo and normal maps, but it supports a few features to make the ground look more realistic. It takes a particular approach to achieve that result. The main reason is that the classic splatmap approach requires sampling 4 textures at once. If we want normalmaps, it becomes 8, and if we want roughness it becomes 12, which is already a lot, in addition to internal textures Godot uses in the background. Not all GPUs allow that many textures in the shader, so a better approach is to combine them as much as possible into single images. This reduces the number of texture units, and reduces the number of fetches to do in the pixel shader.
 
-TODO Screenshot of the channel packer plugin
+![Screenshot of the channel packer plugin](images/channel_packer.png)
 
 For this reason, the plugin requires bumpmaps to be merged in the alpha channel of the albedo texture. Similarly, roughness must also be defined in the alpha channel of the normalmap texture. This operation can be done in an image editing program such as Gimp, or with a Godot plugin such as Channel Packer (available on the asset library: https://godotengine.org/asset-library/asset/230). When you set those textures in the slots you saw in the previous section, the alpha channels will appear as a preview.
 
 Bump holds a particular usage in this plugin:
 You may have noticed that when you paint multiple textures, the terrain blends them together to produce smooth transitions. Usually, a classic way is to do a "transparency" transition using the splatmap. However, this rarely gives realistic visuals, so an option is to enable `depth blending`.
 
-TODO Screenshot of depth blending VS alpha blending
+![Screenshot of depth blending VS alpha blending](images/alpha_blending_and_depth_blending.png)
 
 This feature changes the way blending operates by taking the bump of the ground textures into account. For example, if you have sand blending with pebbles, at the transition you will see sand infiltrate between the pebbles because the pixels between pebbles have lower bump than the pebbles. You can see this technique illustrated in this article: TODO Gamasutra link
 This technique works best with fairly low brush opacity, around 10%.
@@ -110,7 +116,7 @@ This technique works best with fairly low brush opacity, around 10%.
 
 As you saw in previous topics, making cliffs with a heightmap terrain is not recommended, because it stretches the geometry too much and makes textures look bad. Nevertheless, you can enable triplanar mapping on such texture in order for it to not look stretched. This option is in the shader section in the inspector.
 
-TODO Screenshot of triplanar mapping VS no triplanar
+![Screenshot of triplanar mapping VS no triplanar](images/single_sampling_and_triplanar_sampling.png)
 
 Cliffs usually are made of the same ground texture, so it is only available for textures setup in the 4th slot, called `cliff`. It could be made to work on all slots, however it involves modifying the shader to add more options, which you may see in a later article.
 
@@ -119,19 +125,18 @@ Cliffs usually are made of the same ground texture, so it is only available for 
 
 You can color the terrain using the `Color` brush. This is pretty much modulating the albedo, which can help adding a touch of variety to the landscape. If you make custom shader tweaks, color can also be used for your own purpose if you need to.
 
-TODO Screenshot with color painting
+![Screenshot with color painting](images/color_painting.png)
 
 
 
 Holes
 -------
 
-It is possible to cut holes in the terrain by using the `Holes` brush. Use it at zero opacity to cut them, and full opacity to erase them. This can be useful if you want to embed a cave mesh or a well on the ground. You can still use the brush because holes are also a texture covering the whole terrain, and the ground shader will basically discard pixels that are over an area where pixels have a value of zero.
+It is possible to cut holes in the terrain by using the `Holes` brush. Use it with `draw holes` checked to cut them, and uncheck it to erase them. This can be useful if you want to embed a cave mesh or a well on the ground. You can still use the brush because holes are also a texture covering the whole terrain, and the ground shader will basically discard pixels that are over an area where pixels have a value of zero.
 
-TODO Screenshot with holes
+![Screenshot with holes](images/hole_painting.png)
 
-Note: this brush only produces holes visually. In order to have holes in the collider too, you have to do some tricks with collision layers because the collision shape this plugin uses (Bullet heightfield) cannot have holes. It might be added in the future.
-
+Note: this brush only produces holes visually. In order to have holes in the collider too, you have to do some tricks with collision layers because the collision shape this plugin uses (Bullet heightfield) cannot have holes. It might be added in the future, because it can be done by editing the C++ code and drop collision triangles in the main heightmap collision routine.
 
 
 Terrain generator
@@ -139,9 +144,9 @@ Terrain generator
 
 Basic sculpting tools can be useful to get started or tweaking, but it's cumbersome to make a whole terrain only using them. For larger scale terrain modeling, procedural techniques are often preferred, and then adjusted later on.
 
-This plugin provides a procedural generator. To open it, click on the `HTerrain` node to see the `Terrain` menu, in which you select `generate...`. Note that you should have a properly setup terrain node before you can use it.
+This plugin provides a simple procedural generator. To open it, click on the `HTerrain` node to see the `Terrain` menu, in which you select `generate...`. Note that you should have a properly setup terrain node before you can use it.
 
-TODO Screenshot of the terrain generator
+![Screenshot of the terrain generator](images/generator.png)
 
 The generator is quite simple and combines a few common techniques to produce a heightmap. You can see a 3D preview which can be zoomed in with the mouse wheel and rotated by dragging holding middle click.
 
@@ -165,20 +170,20 @@ Try to tweak each of them to get an idea of how they affect the final shape.
 
 ### Erosion
 
-The generator features morphological erosion. Behind this barbaric name hides a simple image processing algorithm, described here: TODO Wikipedia link
+The generator features morphological erosion. Behind this barbaric name hides a simple image processing algorithm, ![described here](https://en.wikipedia.org/wiki/Erosion_(morphology)).
 In the context of terrains, what it does is to quickly fake real-life erosion, where rocks might slide along the slopes of the mountains over time, giving them a particular appearance. Perlin noise alone is nice, but with erosion it makes the result look much more realistic.
 
-TODO Screenshot with the effect of erosion
+![Screenshot with the effect of erosion](images/erosion_steps.png)
 
 It's also possible to use dilation, which gives a mesa-like appearance.
 
-TODO Screenshot with the effect of dilation
+![Screenshot with the effect of dilation](images/dilation.png)
 
-There is also a slope direction parameter, this one is experimental but it has a tendency to simulate wind, kind of "pushing" the ground in the specified direction. It can be tricky to find a good value for this one but I left it because it can give interesting results.
+There is also a slope direction parameter, this one is experimental but it has a tendency to simulate wind, kind of "pushing" the ground in the specified direction. It can be tricky to find a good value for this one but I left it because it can give interesting results, like sand-like ripples, which are an emergent behavior.
 
-TODO Screenshot of slope erosion
+![Screenshot of slope erosion](images/erosion_slope.png)
 
-Note: contrary to previous options, erosion is calculated over a bunch of shader passes. In Godot, it is only possible to wait for one frame to be rendered every 16 milliseconds, so the more erosion steps you have, the slower the preview will be. In the future it would be nice if Godot allowed multiple frames to be rendered on demand so the full power of the GPU could be used.
+Note: contrary to previous options, erosion is calculated over a bunch of shader passes. In Godot 3, it is only possible to wait for one frame to be rendered every 16 milliseconds, so the more erosion steps you have, the slower the preview will be. In the future it would be nice if Godot allowed multiple frames to be rendered on demand so the full power of the GPU could be used.
 
 ### Applying
 
@@ -193,7 +198,7 @@ Besides using built-in tools to make your landscape, it can be convenient to imp
 To do this, select the `HTerrain` node, click on the `Terrain` menu and chose `Import`.
 This window allows you to import several kinds of data, such as heightmap but also splatmap or color map.
 
-TODO Screenshot of the importer
+![Screenshot of the importer](images/importer.png)
 
 There are a few things to check before you can successfully import a terrain though:
 
@@ -211,7 +216,7 @@ Detail layers
 
 Once you have textured ground, you may want to add small detail objects to it, such as grass and small rocks. Currently the plugin only support grass-like painting by scattering textured quads over the terrain, but support for actual meshes may come in the future.
 
-TODO Screenshot of two grass layers under the terrain node
+![Screenshot of two grass layers under the terrain node](images/detail_layers.png)
 
 Grass is supported throught `HTerrainDetailLayer` node. They can be created as children of the `HTerrain` node. Each layer represents one kind of detail, so you may have one layer for grass, and another for flowers, for example.
 Each layer allocates a 8-bit map over the whole terrain where each pixel tells how much density of that layer there is. Because of this technique, you can paint details just like you paint anything else, using the same brush system. It uses opacity to either add more density, or act as an eraser with an opacity of zero.
@@ -228,7 +233,7 @@ Global map
 
 For shading purposes, it can be useful to bake a global map of the terrain. A global map basically takes the average albedo of the ground all over the terrain, which allows other elements of the scene to use that without having to recompute the full blending process that the ground shader goes through. The current use cases for a global map is to tint grass, and use it as a distance fade in order to hide texture tiling in the very far distance. Together with the terrain's normal map it could also be used to make minimap previews.
 
-To bake a global map, select the `HTerrain` node, go to the `Terrain` menu and click `Bake global map`. This will produce a texture in the terrain data directory which will be used by the default shaders automatically.
+To bake a global map, select the `HTerrain` node, go to the `Terrain` menu and click `Bake global map`. This will produce a texture in the terrain data directory which will be used by the default shaders automatically, depending on your settings.
 
 
 Level of detail
@@ -237,7 +242,7 @@ Level of detail
 This terrain supports level of details on the geometry using a quad tree. It is divided in chunks of 32x32 (or 16x16 depending on your settings), which can be scaled by a power of two depending on the distance from the camera. If a group of 4 chunks are far enough, they will join into a single one. If a chunk is close enough, it will split in 4 smaller ones. Having chunks also improves culling because if you had a single big mesh for the whole terrain, that would be a lot of vertices for the GPU to go through.
 Care is also taken to make sure transitions between LODs are seamless, so if you toggle wireframe rendering in the editor you can see variants of the same meshes being used depending on which LOD their neighbors are using.
 
-TODO Screenshot of how LOD vertices decimate in the distance
+![Screenshot of how LOD vertices decimate in the distance](images/lod_geometry.png)
 
 LOD can be mainly tweaked in two ways:
 
@@ -245,6 +250,8 @@ LOD can be mainly tweaked in two ways:
 - `chunk size`: this is the base size of a chunk. There aren't many values that it can be, and it has a similar relation as `lod scale`. The difference is, it affects how many geometry instances will need to be culled and drawn, so higher values will actually reduce the number of draw calls. But if it's too big, it will take more memory due to all chunk variants that are precalculated.
 
 In the future, this technique could be improved by using GPU tessellation, once the Godot rendering engine supports it.
+
+Note: due to limitations of the Godot renderer's scripting API, LOD only works around one main camera, so it's not possible to have two cameras with split-screen for example. Also, in the editor, LOD only works while the `HTerrain` node is selected, because it's the only time the EditorPlugin is able to obtain camera information (but it should work regardless when you launch the game).
 
 
 Custom shaders
@@ -290,5 +297,3 @@ And there also have specific parameters which you can use:
 - `u_albedo_alpha`: this is the texture applied to the quad, typically transparent grass.
 - `u_view_distance`: how far details are supposed to render. Beyond this range, the plugin will cull chunks away, so it is a good idea to use this in the shader to smoothly fade pixels in the distance to hide this process.
 - `u_ambient_wind`: combined `vec2` parameter for ambient wind. `x` is the amplitude, and `y` is a time value. It is better to use it instead of directly `TIME` because it allows to animate speed without causing stutters.
-
-
