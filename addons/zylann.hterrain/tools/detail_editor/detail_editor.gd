@@ -24,6 +24,10 @@ func set_terrain(terrain):
 	_update_list()
 
 
+func set_layer_index(i):
+	_item_list.select(i, true)
+
+
 func _update_list():
 	_item_list.clear()
 	

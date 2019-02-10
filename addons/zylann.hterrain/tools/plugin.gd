@@ -250,6 +250,11 @@ func edit(object):
 	_brush_decal.set_terrain(_node)
 	_generate_mesh_dialog.set_terrain(_node)
 	_resize_dialog.set_terrain(_node)
+	
+	if object is HTerrainDetailLayer:
+		# Auto-select layer for painting
+		_panel.set_detail_layer_index(object.get_layer_index())
+		_on_detail_selected(object.get_layer_index())
 
 
 static func _get_terrain_from_object(object):

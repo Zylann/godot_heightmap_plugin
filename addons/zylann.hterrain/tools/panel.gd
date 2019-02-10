@@ -47,5 +47,9 @@ func set_brush_editor_display_mode(mode):
 	_brush_editor.set_display_mode(mode)
 
 
+func set_detail_layer_index(index):
+	_detail_editor.set_layer_index(index)
+
+
 func _on_DetailEditor_detail_list_changed():
 	emit_signal("detail_list_changed")
