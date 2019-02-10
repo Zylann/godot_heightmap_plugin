@@ -363,6 +363,10 @@ func set_chunk_size(cs):
 func set_map_scale(p_map_scale):
 	if map_scale == p_map_scale:
 		return
+	var e = 0.01
+	assert(p_map_scale.x > e)
+	assert(p_map_scale.y > e)
+	assert(p_map_scale.z > e)
 	map_scale = p_map_scale
 	_on_transform_changed()
 
