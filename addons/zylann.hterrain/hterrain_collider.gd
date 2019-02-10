@@ -91,8 +91,12 @@ func _update_transform(aabb=null):
 
 	# Bullet centers the shape to its overall AABB so we need to move it to match the visuals
 	var trans = Transform(Basis(), 0.5 * Vector3(width, height, depth) + Vector3(0, aabb.position.y, 0))
-
+	
 	# And then apply the terrain transform
 	trans = _terrain_transform * trans
 
-	PhysicsServer.body_set_shape_transform(_body_rid, 0, trans)
+	PhysicsServer.body_set_state(_body_rid, PhysicsServer.BODY_STATE_TRANSFORM, trans)
+	# Cannot use shape transform when scaling is involved,
+	# because Godot is undoing that scale for some reason.
+	# See https://github.com/Zylann/godot_heightmap_plugin/issues/70
+	#PhysicsServer.body_set_shape_transform(_body_rid, 0, trans)
