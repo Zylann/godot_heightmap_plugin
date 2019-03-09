@@ -3,6 +3,9 @@
 importer="texture"
 type="StreamTexture"
 path="res://.import/icon_heightmap_node.svg-0b776ad0015c7d9d9553b161b36e70fe.stex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
