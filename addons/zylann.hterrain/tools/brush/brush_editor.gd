@@ -180,8 +180,7 @@ func _on_LoadImageDialog_file_selected(path):
 
 func set_brush_shape_from_file(path):
 	var im = Image.new()
-	# TODO Need engine fix https://github.com/godotengine/godot/issues/24641
-	var err = ERR_BUG #im.load(path)
+	var err = im.load(path)
 	if err != OK:
 		printerr("Could not load image at `", path, "`, error ", Errors.get_message(err))
 		return
