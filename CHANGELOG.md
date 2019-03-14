@@ -5,7 +5,7 @@ This is a high-level changelog for each released versions of the plugin.
 For a more detailed list of past and incoming changes, see the commit history.
 
 
-0.11 Switching to Godot 3.1 (WIP)
+1.0 Move to Godot 3.1
 -------------------------------------
 
 - Saving a scene now saves terrains properly
