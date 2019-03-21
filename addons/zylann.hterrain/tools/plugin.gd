@@ -20,14 +20,11 @@ const ResizeDialog = preload("resize_dialog/resize_dialog.tscn")
 const GlobalMapBaker = preload("globalmap_baker.gd")
 
 const MENU_IMPORT_MAPS = 0
-# TODO Save items should not exist, they are workarounds to test saving!
-const MENU_SAVE = 1
-const MENU_LOAD = 2
-const MENU_GENERATE = 3
-const MENU_BAKE_GLOBALMAP = 4
-const MENU_RESIZE = 5
-const MENU_UPDATE_EDITOR_COLLIDER = 6
-const MENU_GENERATE_MESH = 7
+const MENU_GENERATE = 1
+const MENU_BAKE_GLOBALMAP = 2
+const MENU_RESIZE = 3
+const MENU_UPDATE_EDITOR_COLLIDER = 4
+const MENU_GENERATE_MESH = 5
 
 
 # TODO Rename _terrain
@@ -99,9 +96,6 @@ func _enter_tree():
 	menu.get_popup().add_item("Generate...", MENU_GENERATE)
 	menu.get_popup().add_item("Resize...", MENU_RESIZE)
 	menu.get_popup().add_item("Bake global map", MENU_BAKE_GLOBALMAP)
-	menu.get_popup().add_separator()
-	menu.get_popup().add_item("Save", MENU_SAVE)
-	menu.get_popup().add_item("Load", MENU_LOAD)
 	menu.get_popup().add_separator()
 	menu.get_popup().add_item("Update Editor Collider", MENU_UPDATE_EDITOR_COLLIDER)
 	menu.get_popup().add_separator()
@@ -429,17 +423,7 @@ func _menu_item_selected(id):
 		
 		MENU_IMPORT_MAPS:
 			_import_dialog.popup_centered_minsize()
-			
-		MENU_SAVE:
-			var data = _node.get_data()
-			if data != null:
-				data.save_data_async()
-			
-		MENU_LOAD:
-			var data = _node.get_data()
-			if data != null:
-				data.load_data_async()
-			
+					
 		MENU_GENERATE:
 			_generator_dialog.popup_centered_minsize()
 		

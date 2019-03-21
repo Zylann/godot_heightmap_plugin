@@ -764,7 +764,7 @@ func _notify_progress_complete():
 	_notify_progress("Done", 1.0, true)
 
 
-func save_data_async(data_dir):
+func _save_data_async(data_dir):
 	if not _is_any_map_modified():
 		print("Terrain data has no modifications to save")
 		return
@@ -821,7 +821,7 @@ func _get_total_map_count():
 
 
 func save_data(dir_path):
-	save_data_async(dir_path)
+	_save_data_async(dir_path)
 	while not _progress_complete:
 		emit_signal("_internal_process")
 
