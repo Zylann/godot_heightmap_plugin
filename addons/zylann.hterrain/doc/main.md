@@ -43,6 +43,27 @@ If you use the `resize` tool, you can also choose to either stretch the existing
 
 Note: the resolution of the terrain is limited to powers of two + 1, mainly because of the way LOD was implemented. The reason why there is an extra 1 is down to the fact that to make 1 quad, you need 2x2 vertices. If you need LOD, you must have an even number of quads that you can divide by 2, and so on. However there is a possibility to tweak that in the future because this might not play well with the way older graphics cards store textures.
 
+### Creating the terrain from script
+
+You can also decide to create the terrain from a script. Here is an example:
+
+```gdscript
+extends Node
+
+const HTerrain = preload("res://addons/zylann.hterrain/hterrain.gd")
+const HTerrainData = preload("res://addons/zylann.hterrain/hterrain_data.gd")
+
+
+func _ready():
+
+	var data = HTerrainData.new()
+	data.resize(513)
+	
+	var terrain = HTerrain.new()
+	terrain.set_data(data)
+	add_child(terrain)
+```
+
 
 Basic sculpting
 ------------------
