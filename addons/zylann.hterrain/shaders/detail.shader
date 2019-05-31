@@ -49,7 +49,11 @@ void vertex() {
 	
 	if (density > hash) {
 		// Snap model to the terrain
-		float height = texture(u_terrain_heightmap, map_uv).r;
+		//float height = texture(u_terrain_heightmap, map_uv).r;
+		// BUT consider Map scale in Y direction:
+		float y_scale_factor = (u_terrain_inverse_transform * vec4(0,1,0,1)).y;
+		float height = texture(u_terrain_heightmap, map_uv).r / y_scale_factor;
+		
 		VERTEX.y += height;
 		
 		VERTEX += get_ambient_wind_displacement(UV, hash);
