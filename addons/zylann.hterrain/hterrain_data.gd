@@ -331,6 +331,7 @@ func notify_region_change(p_min, p_size, channel, index = 0):
 			printerr("Unrecognized channel\n")
 
 	emit_signal("region_changed", p_min[0], p_min[1], p_size[0], p_size[1], channel)
+	emit_signal("changed")
 
 
 func notify_full_change():
