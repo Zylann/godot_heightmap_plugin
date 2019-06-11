@@ -5,6 +5,14 @@ This is a high-level changelog for each released versions of the plugin.
 For a more detailed list of past and incoming changes, see the commit history.
 
 
+1.0.2
+------
+
+- Fix grass shader, it wasn't handling vertical map scale correctly
+- Fix smooth brush behaving like raise/lower in opacity lower than max
+- Fix terrain not saving changes made from the generator
+
+
 1.0.1
 ------
 
