@@ -437,7 +437,8 @@ func _smooth_height(data, origin_x, origin_y, speed):
 	im.lock()
 
 	var sum_op = OperatorSum.new(im)
-	_foreach_xy(sum_op, data, origin_x, origin_y, 1.0, _opacity, _shape)
+	# Perform sum at full opacity, we'll use it for the next operation
+	_foreach_xy(sum_op, data, origin_x, origin_y, 1.0, 1.0, _shape)
 	var target_value = sum_op.sum / float(_shape_sum)
 
 	var lerp_op = OperatorLerp.new(target_value, im)
