@@ -6,6 +6,7 @@ uniform sampler2D u_terrain_detailmap;
 uniform sampler2D u_terrain_normalmap;
 uniform sampler2D u_terrain_globalmap : hint_albedo;
 uniform mat4 u_terrain_inverse_transform;
+uniform mat3 u_terrain_normal_basis;
 
 uniform sampler2D u_albedo_alpha : hint_albedo;
 uniform float u_view_distance = 100.0;
@@ -38,9 +39,9 @@ vec3 get_ambient_wind_displacement(vec2 uv, float hash) {
 }
 
 void vertex() {
-	vec4 obj_pos = WORLD_MATRIX * vec4(0, 0, 0, 1);
-	vec2 cell_coords = (u_terrain_inverse_transform * obj_pos).xz;
-	vec2 map_uv = cell_coords / vec2(textureSize(u_terrain_heightmap, 0));
+	vec4 obj_pos = WORLD_MATRIX * vec4(0, 1, 0, 1);
+	vec3 cell_coords = (u_terrain_inverse_transform * obj_pos).xyz;
+	vec2 map_uv = cell_coords.xz / vec2(textureSize(u_terrain_heightmap, 0));
 	v_map_uv = map_uv;
 
 	//float density = 0.5 + 0.5 * sin(4.0*TIME); // test
@@ -49,7 +50,7 @@ void vertex() {
 	
 	if (density > hash) {
 		// Snap model to the terrain
-		float height = texture(u_terrain_heightmap, map_uv).r;
+		float height = texture(u_terrain_heightmap, map_uv).r / cell_coords.y;
 		VERTEX.y += height;
 		
 		VERTEX += get_ambient_wind_displacement(UV, hash);
@@ -60,7 +61,7 @@ void vertex() {
 		COLOR.a = clamp(1.0 - dr * dr * dr, 0.0, 1.0);
 
 		// When using billboards, the normal is the same as the terrain regardless of face orientation
-		v_normal = unpack_normal(texture(u_terrain_normalmap, map_uv)) * vec3(1, 1, -1);
+		v_normal = normalize(u_terrain_normal_basis * (unpack_normal(texture(u_terrain_normalmap, map_uv)) * vec3(1, 1, -1)));
 
 	} else {
 		// Discard, output degenerate triangles

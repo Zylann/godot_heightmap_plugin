@@ -396,15 +396,19 @@ func _update_material():
 	var terrain_data = null
 	var terrain = _get_terrain()
 	var it = Transform()
+	var normal_basis = Basis()
 	
 	if terrain != null:
 		var gt = terrain.get_internal_transform()
 		it = gt.affine_inverse()
 		terrain_data = terrain.get_data()
+		# This is needed to properly transform normals if the terrain is scaled
+		normal_basis = gt.basis.inverse().transposed()
 	
 	var mat = _material
 
 	mat.set_shader_param("u_terrain_inverse_transform", it)
+	mat.set_shader_param("u_terrain_normal_basis", normal_basis)
 	mat.set_shader_param("u_albedo_alpha", texture)
 	mat.set_shader_param("u_view_distance", view_distance)
 	mat.set_shader_param("u_ambient_wind", _get_ambient_wind_params())
