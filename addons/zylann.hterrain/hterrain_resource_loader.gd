@@ -1,6 +1,6 @@
 tool
-class_name HTerrainDataLoader
 extends ResourceFormatLoader
+class_name HTerrainDataLoader
 
 
 const HTerrainData = preload("hterrain_data.gd")

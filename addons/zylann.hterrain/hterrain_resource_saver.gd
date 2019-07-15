@@ -1,6 +1,6 @@
 tool
-class_name HTerrainDataSaver
 extends ResourceFormatSaver
+class_name HTerrainDataSaver
 
 
 const HTerrainData = preload("hterrain_data.gd")
