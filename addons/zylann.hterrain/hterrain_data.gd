@@ -1167,6 +1167,7 @@ func _edit_import_maps(input):
 	return true
 
 
+# Provided an arbitrary width and height, returns the closest size the terrain actually supports
 static func get_adjusted_map_size(width, height):
 	var width_po2 = Util.next_power_of_two(width - 1) + 1
 	var height_po2 = Util.next_power_of_two(height - 1) + 1

@@ -18,6 +18,7 @@ const ImportDialog = preload("importer/importer_dialog.tscn")
 const GenerateMeshDialog = preload("generate_mesh_dialog.tscn")
 const ResizeDialog = preload("resize_dialog/resize_dialog.tscn")
 const GlobalMapBaker = preload("globalmap_baker.gd")
+const ExportImageDialog = preload("./exporter/export_image_dialog.tscn")
 
 const MENU_IMPORT_MAPS = 0
 const MENU_GENERATE = 1
@@ -25,6 +26,7 @@ const MENU_BAKE_GLOBALMAP = 2
 const MENU_RESIZE = 3
 const MENU_UPDATE_EDITOR_COLLIDER = 4
 const MENU_GENERATE_MESH = 5
+const MENU_EXPORT_HEIGHTMAP = 6
 
 
 # TODO Rename _terrain
@@ -35,6 +37,7 @@ var _toolbar = null
 var _toolbar_brush_buttons = {}
 var _generator_dialog = null
 var _import_dialog = null
+var _export_image_dialog = null
 var _progress_window = null
 var _load_texture_dialog = null
 var _generate_mesh_dialog = null
@@ -100,6 +103,8 @@ func _enter_tree():
 	menu.get_popup().add_item("Update Editor Collider", MENU_UPDATE_EDITOR_COLLIDER)
 	menu.get_popup().add_separator()
 	menu.get_popup().add_item("Generate mesh (heavy)", MENU_GENERATE_MESH)
+	menu.get_popup().add_separator()
+	menu.get_popup().add_item("Export heightmap", MENU_EXPORT_HEIGHTMAP)
 	menu.get_popup().connect("id_pressed", self, "_menu_item_selected")
 	_toolbar.add_child(menu)
 	
@@ -168,13 +173,19 @@ func _enter_tree():
 	_generate_mesh_dialog = GenerateMeshDialog.instance()
 	_generate_mesh_dialog.connect("generate_selected", self, "_on_GenerateMeshDialog_generate_selected")
 	base_control.add_child(_generate_mesh_dialog)
-	
+		
 	_resize_dialog = ResizeDialog.instance()
 	base_control.add_child(_resize_dialog)
 	
 	_globalmap_baker = GlobalMapBaker.new()
 	_globalmap_baker.connect("progress_notified", self, "_terrain_progress_notified")
 	add_child(_globalmap_baker)
+	
+	_export_image_dialog = ExportImageDialog.instance()
+	base_control.add_child(_export_image_dialog)
+	# Need to call deferred because in the specific case where you start the editor
+	# with the plugin enabled, _ready won't be called at this point
+	_export_image_dialog.call_deferred("setup_dialogs", base_control)
 
 
 func _exit_tree():
@@ -206,6 +217,9 @@ func _exit_tree():
 	
 	_resize_dialog.queue_free()
 	_resize_dialog = null
+	
+	_export_image_dialog.queue_free()
+	_export_image_dialog = null
 
 	get_editor_interface().get_resource_previewer().remove_preview_generator(_preview_generator)
 	_preview_generator = null
@@ -244,6 +258,7 @@ func edit(object):
 	_brush_decal.set_terrain(_node)
 	_generate_mesh_dialog.set_terrain(_node)
 	_resize_dialog.set_terrain(_node)
+	_export_image_dialog.set_terrain(_node)
 	
 	if object is HTerrainDetailLayer:
 		# Auto-select layer for painting
@@ -454,6 +469,10 @@ func _menu_item_selected(id):
 		MENU_GENERATE_MESH:
 			if _node != null and _node.get_data() != null:
 				_generate_mesh_dialog.popup_centered_minsize()
+		
+		MENU_EXPORT_HEIGHTMAP:
+			if _node != null and _node.get_data() != null:
+				_export_image_dialog.popup_centered_minsize()
 
 
 func _on_mode_selected(mode):
