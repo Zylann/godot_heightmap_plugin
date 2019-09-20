@@ -6,8 +6,9 @@ var _terrain_transform = Transform()
 var _terrain_data = null
 
 
-func _init():
+func _init(attached_node):
 	print("HTerrainCollider: creating body")
+	assert(attached_node != null)
 	_shape_rid = PhysicsServer.shape_create(PhysicsServer.SHAPE_HEIGHTMAP)
 	_body_rid = PhysicsServer.body_create(PhysicsServer.BODY_MODE_STATIC)
 
@@ -28,6 +29,9 @@ func _init():
 	})
 
 	PhysicsServer.body_add_shape(_body_rid, _shape_rid)
+	
+	# This makes collision hits report the provided object as `collider`
+	PhysicsServer.body_attach_object_instance_id(_body_rid, attached_node.get_instance_id())
 
 
 func _notification(what):

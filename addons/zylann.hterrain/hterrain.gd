@@ -129,7 +129,7 @@ func _init():
 
 	if collision_enabled:
 		if _check_heightmap_collider_support():
-			_collider = HTerrainCollider.new()
+			_collider = HTerrainCollider.new(self)
 
 
 func _get_property_list():
@@ -318,7 +318,7 @@ func set_collision_enabled(enabled):
 		collision_enabled = enabled
 		if collision_enabled:
 			if _check_heightmap_collider_support():
-				_collider = HTerrainCollider.new()
+				_collider = HTerrainCollider.new(self)
 				# Collision is not updated with data here, because loading is quite a mess at the moment...
 				# 1) This function can be called while no data has been set yet
 				# 2) I don't want to update the collider more times than necessary because it's expensive
