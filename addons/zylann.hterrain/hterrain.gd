@@ -795,8 +795,6 @@ func _process(delta):
 				viewer_pos = camera.get_global_transform().origin
 
 	if has_data():
-		# TODO I would like to do this without needing a ref to the scene tree...
-		_data.emit_signal("_internal_process")
 
 		if _data.is_locked():
 			# Can't use the data for now

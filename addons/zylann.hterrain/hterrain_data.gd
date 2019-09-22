@@ -34,8 +34,6 @@ signal map_added(type, index)
 signal map_removed(type, index)
 signal map_changed(type, index)
 
-signal _internal_process
-
 
 class VerticalBounds:
 	var minv = 0
@@ -756,7 +754,7 @@ func _notify_progress_complete():
 	_notify_progress("Done", 1.0, true)
 
 
-func _save_data_async(data_dir):
+func save_data(data_dir):
 	if not _is_any_map_modified():
 		print("Terrain data has no modifications to save")
 		return
@@ -766,7 +764,6 @@ func _save_data_async(data_dir):
 	_save_metadata(data_dir.plus_file(META_FILENAME))
 
 	_notify_progress("Saving terrain data...", 0.0)
-	yield(self, "_internal_process")
 
 	var map_count = _get_total_map_count()
 
@@ -785,7 +782,6 @@ func _save_data_async(data_dir):
 			_notify_progress(str("Saving map ", _get_map_debug_name(channel, index), \
 				" as ", _get_map_filename(channel, index), "..."), p)
 
-			yield(self, "_internal_process")
 			_save_channel(data_dir, channel, index)
 
 			map.modified = false
@@ -810,18 +806,6 @@ func _get_total_map_count():
 	for maps in _maps:
 		s += len(maps)
 	return s
-
-
-func save_data(dir_path):
-	_save_data_async(dir_path)
-	while not _progress_complete:
-		emit_signal("_internal_process")
-
-
-func load_data(dir_path):
-	load_data_async(dir_path)
-	while not _progress_complete:
-		emit_signal("_internal_process")
 
 
 func _load_metadata(path):
@@ -903,13 +887,12 @@ func _deserialize_metadata(dict):
 	return true
 
 
-func load_data_async(dir_path):
+func load_data(dir_path):
 	_locked = true
 
 	_load_metadata(dir_path.plus_file(META_FILENAME))
 
 	_notify_progress("Loading terrain data...", 0.0)
-	yield(self, "_internal_process")
 
 	var channel_instance_sum = _get_total_map_count()
 	var pi = 0
@@ -924,7 +907,6 @@ func load_data_async(dir_path):
 			var p = 0.1 + 0.6 * float(pi) / float(channel_instance_sum)
 			_notify_progress(str("Loading map ", _get_map_debug_name(map_type, index), \
 				" from ", _get_map_filename(map_type, index), "..."), p)
-			yield(self, "_internal_process")
 
 			_load_channel(dir_path, map_type, index)
 
@@ -934,11 +916,9 @@ func load_data_async(dir_path):
 			pi += 1
 
 	_notify_progress("Calculating vertical bounds...", 0.8)
-	yield(self, "_internal_process")
 	_update_all_vertical_bounds()
 
 	_notify_progress("Notify resolution change...", 0.9)
-	yield(self, "_internal_process")
 
 	_locked = false
 	emit_signal("resolution_changed")
