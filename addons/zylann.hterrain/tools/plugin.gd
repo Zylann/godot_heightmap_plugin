@@ -536,5 +536,3 @@ func _on_GenerateMeshDialog_generate_selected(lod):
 	mi.transform = _node.transform
 	_node.get_parent().add_child(mi)
 	mi.set_owner(get_editor_interface().get_edited_scene_root())
-
- 
