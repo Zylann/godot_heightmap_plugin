@@ -4,6 +4,7 @@ extends WindowDialog
 
 const Util = preload("../../util/util.gd")
 const HTerrainData = preload("../../hterrain_data.gd")
+const Errors = preload("../../util/errors.gd")
 
 onready var _inspector = get_node("VBoxContainer/Inspector")
 onready var _errors_label = get_node("VBoxContainer/ColorRect/ScrollContainer/VBoxContainer/Errors")
@@ -103,7 +104,7 @@ func _on_ImportButton_pressed():
 	#_terrain.set_data(null)
 	data._edit_import_maps(params)
 	#_terrain.set_data(data)
-
+	
 	print("Terrain import finished")
 	hide()
 
@@ -222,5 +223,4 @@ static func _load_image_size(path):
 static func _error_to_string(err):
 	if typeof(err) == TYPE_STRING:
 		return err
-	# TODO Humm...
-	return str("code ", err)
+	return str("code ", err, ": ", Errors.get_message(err))
