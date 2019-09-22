@@ -307,28 +307,19 @@ func get_all_heights():
 # channel: which kind of map changed
 # index: index of the map that changed
 func notify_region_change(p_min, p_size, channel, index = 0):
+	# TODO Change arguments to Rect, it's horrible
+	
+	assert(channel >= 0 and channel < CHANNEL_COUNT)
+	
+	if channel == CHANNEL_HEIGHT:
+		assert(index == 0)
+		# TODO when drawing very large patches, this might get called too often and would slow down.
+		# for better user experience, we could set chunks AABBs to a very large height just while drawing,
+		# and set correct AABBs as a background task once done
+		_update_vertical_bounds(p_min[0], p_min[1], p_size[0], p_size[1])
 
-	# TODO Hmm not sure if that belongs here // <-- why this, Me from the past?
-	match channel:
-		CHANNEL_HEIGHT:
-			# TODO when drawing very large patches, this might get called too often and would slow down.
-			# for better user experience, we could set chunks AABBs to a very large height just while drawing,
-			# and set correct AABBs as a background task once done
-			_update_vertical_bounds(p_min[0], p_min[1], p_size[0], p_size[1])
-
-			_upload_region(channel, 0, p_min[0], p_min[1], p_size[0], p_size[1])
-			_maps[channel][index].modified = true
-
-		CHANNEL_NORMAL, \
-		CHANNEL_SPLAT, \
-		CHANNEL_COLOR, \
-		CHANNEL_DETAIL, \
-		CHANNEL_GLOBAL_ALBEDO:
-			_upload_region(channel, index, p_min[0], p_min[1], p_size[0], p_size[1])
-			_maps[channel][index].modified = true
-
-		_:
-			printerr("Unrecognized channel\n")
+	_upload_region(channel, index, p_min[0], p_min[1], p_size[0], p_size[1])
+	_maps[channel][index].modified = true
 
 	emit_signal("region_changed", p_min[0], p_min[1], p_size[0], p_size[1], channel)
 	emit_signal("changed")
