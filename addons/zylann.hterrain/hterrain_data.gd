@@ -65,7 +65,8 @@ var _maps = [[]]
 
 # TODO Store vertical bounds in a RGF image? Where R is min amd G is max
 var _chunked_vertical_bounds = []
-var _chunked_vertical_bounds_size = [0, 0]
+var _chunked_vertical_bounds_size_x = 0
+var _chunked_vertical_bounds_size_y = 0
 var _locked = false
 var _progress_complete = true
 
@@ -606,10 +607,10 @@ func get_point_aabb(cell_x, cell_y):
 		cx = 0
 	if cy < 0:
 		cy = 0
-	if cx >= _chunked_vertical_bounds_size[0]:
-		cx = _chunked_vertical_bounds_size[0]
-	if cy >= _chunked_vertical_bounds_size[1]:
-		cy = _chunked_vertical_bounds_size[1]
+	if cx >= _chunked_vertical_bounds_size_x:
+		cx = _chunked_vertical_bounds_size_x
+	if cy >= _chunked_vertical_bounds_size_y:
+		cy = _chunked_vertical_bounds_size_y
 
 	var b = _chunked_vertical_bounds[cy][cx]
 	return Vector2(b.minv, b.maxv)
@@ -636,13 +637,13 @@ func get_region_aabb(origin_in_cells_x, origin_in_cells_y, size_in_cells_x, size
 		cmin_x = 0
 	if cmin_y < 0:
 		cmin_y = 0
-	if cmax_x >= _chunked_vertical_bounds_size[0]:
-		cmax_x = _chunked_vertical_bounds_size[0]
-	if cmax_y >= _chunked_vertical_bounds_size[1]:
-		cmax_y = _chunked_vertical_bounds_size[1]
+	if cmax_x >= _chunked_vertical_bounds_size_x:
+		cmax_x = _chunked_vertical_bounds_size_x
+	if cmax_y >= _chunked_vertical_bounds_size_y:
+		cmax_y = _chunked_vertical_bounds_size_y
 
 	var min_height = 0
-	if cmin_x < _chunked_vertical_bounds_size[0] and cmin_y < _chunked_vertical_bounds_size[1]:
+	if cmin_x < _chunked_vertical_bounds_size_x and cmin_y < _chunked_vertical_bounds_size_y:
 		min_height = _chunked_vertical_bounds[cmin_y][cmin_x].minv
 	var max_height = min_height
 
@@ -670,7 +671,8 @@ func _update_all_vertical_bounds():
 	print("Updating all vertical bounds... (", csize_x , "x", csize_y, " chunks)")
 	# TODO Could set `preserve_data` to true, but would require callback to construct new cells
 	Grid.resize_grid(_chunked_vertical_bounds, csize_x, csize_y)
-	_chunked_vertical_bounds_size = [csize_x, csize_y]
+	_chunked_vertical_bounds_size_x = csize_x
+	_chunked_vertical_bounds_size_y = csize_y
 
 	_update_vertical_bounds(0, 0, _resolution - 1, _resolution - 1)
 
@@ -683,10 +685,10 @@ func _update_vertical_bounds(origin_in_cells_x, origin_in_cells_y, size_in_cells
 	var cmax_x = (origin_in_cells_x + size_in_cells_x - 1) / VERTICAL_BOUNDS_CHUNK_SIZE + 1
 	var cmax_y = (origin_in_cells_y + size_in_cells_y - 1) / VERTICAL_BOUNDS_CHUNK_SIZE + 1
 
-	cmin_x = Util.clamp_int(cmin_x, 0, _chunked_vertical_bounds_size[0] - 1)
-	cmin_y = Util.clamp_int(cmin_y, 0, _chunked_vertical_bounds_size[1] - 1)
-	cmax_x = Util.clamp_int(cmax_x, 0, _chunked_vertical_bounds_size[0])
-	cmax_y = Util.clamp_int(cmax_y, 0, _chunked_vertical_bounds_size[1])
+	cmin_x = Util.clamp_int(cmin_x, 0, _chunked_vertical_bounds_size_x - 1)
+	cmin_y = Util.clamp_int(cmin_y, 0, _chunked_vertical_bounds_size_y - 1)
+	cmax_x = Util.clamp_int(cmax_x, 0, _chunked_vertical_bounds_size_x)
+	cmax_y = Util.clamp_int(cmax_y, 0, _chunked_vertical_bounds_size_y)
 
 	# Note: chunks in _chunked_vertical_bounds share their edge cells and have an actual size of chunk size + 1.
 	var chunk_size_x = VERTICAL_BOUNDS_CHUNK_SIZE + 1
