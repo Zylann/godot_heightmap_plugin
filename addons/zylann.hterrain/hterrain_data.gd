@@ -424,6 +424,18 @@ func _upload_region(channel, index, min_x, min_y, size_x, size_y):
 	assert(image != null)
 	assert(size_x > 0 and size_y > 0)
 
+	# TODO Actually, I think the input params should be valid in the first place...
+	if min_x < 0:
+		min_x = 0
+	if min_y < 0:
+		min_y = 0
+	if min_x + size_x > image.get_width():
+		size_x = image.get_width() - min_x
+	if min_y + size_y > image.get_height():
+		size_y = image.get_height() - min_y
+	if size_x <= 0 or size_y <= 0:
+		return
+
 	var flags = 0;
 	if channel == CHANNEL_NORMAL \
 	or channel == CHANNEL_COLOR \
@@ -464,19 +476,7 @@ func _upload_region(channel, index, min_x, min_y, size_x, size_y):
 
 	else:
 		if VisualServer.has_method("texture_set_data_partial"):
-
-			# TODO Actually, I think the input params should be valid in the first place...
-			if min_x < 0:
-				min_x = 0
-			if min_y < 0:
-				min_y = 0
-			if min_x + size_x > image.get_width():
-				size_x = image.get_width() - min_x
-			if min_y + size_y > image.get_height():
-				size_y = image.get_height() - min_y
-			#if size_x <= 0 or size_y <= 0:
-			#	return
-
+			
 			VisualServer.texture_set_data_partial( \
 				texture.get_rid(), image, \
 				min_x, min_y, \
@@ -683,13 +683,10 @@ func _update_vertical_bounds(origin_in_cells_x, origin_in_cells_y, size_in_cells
 	var cmax_x = (origin_in_cells_x + size_in_cells_x - 1) / VERTICAL_BOUNDS_CHUNK_SIZE + 1
 	var cmax_y = (origin_in_cells_y + size_in_cells_y - 1) / VERTICAL_BOUNDS_CHUNK_SIZE + 1
 
-	var cmin = [cmin_x, cmin_y]
-	var cmax = [cmax_x, cmax_y]
-	Grid.clamp_min_max_excluded(cmin, cmax, _chunked_vertical_bounds_size)
-	cmin_x = cmin[0]
-	cmin_y = cmin[1]
-	cmax_x = cmax[0]
-	cmax_y = cmax[1]
+	cmin_x = Util.clamp_int(cmin_x, 0, _chunked_vertical_bounds_size[0] - 1)
+	cmin_y = Util.clamp_int(cmin_y, 0, _chunked_vertical_bounds_size[1] - 1)
+	cmax_x = Util.clamp_int(cmax_x, 0, _chunked_vertical_bounds_size[0])
+	cmax_y = Util.clamp_int(cmax_y, 0, _chunked_vertical_bounds_size[1])
 
 	# Note: chunks in _chunked_vertical_bounds share their edge cells and have an actual size of chunk size + 1.
 	var chunk_size_x = VERTICAL_BOUNDS_CHUNK_SIZE + 1

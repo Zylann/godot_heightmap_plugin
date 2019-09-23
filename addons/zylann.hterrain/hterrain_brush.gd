@@ -292,13 +292,10 @@ static func _foreach_xy(op, data, origin_x, origin_y, speed, opacity, shape):
 	var min_noclamp_x = min_x
 	var min_noclamp_y = min_y
 
-	var pmin = [min_x, min_y]
-	var pmax = [max_x, max_y]
-	Util.clamp_min_max_excluded(pmin, pmax, [0, 0], [data.get_resolution(), data.get_resolution()])
-	min_x = pmin[0]
-	min_y = pmin[1]
-	max_x = pmax[0]
-	max_y = pmax[1]
+	min_x = Util.clamp_int(min_x, 0, data.get_resolution())
+	min_y = Util.clamp_int(min_y, 0, data.get_resolution())
+	max_x = Util.clamp_int(max_x, 0, data.get_resolution())
+	max_y = Util.clamp_int(max_y, 0, data.get_resolution())
 
 	shape.lock()
 
@@ -476,13 +473,10 @@ func _paint_splat(data, origin_x, origin_y):
 	var min_noclamp_x = min_x
 	var min_noclamp_y = min_y
 
-	var pmin = [min_x, min_y]
-	var pmax = [max_x, max_y]
-	Util.clamp_min_max_excluded(pmin, pmax, [0, 0], [data.get_resolution(), data.get_resolution()])
-	min_x = pmin[0]
-	min_y = pmin[1]
-	max_x = pmax[0]
-	max_y = pmax[1]
+	min_x = Util.clamp_int(min_x, 0, data.get_resolution())
+	min_y = Util.clamp_int(min_y, 0, data.get_resolution())
+	max_x = Util.clamp_int(max_x, 0, data.get_resolution())
+	max_y = Util.clamp_int(max_y, 0, data.get_resolution())
 
 	im.lock()
 
@@ -572,13 +566,10 @@ func _paint_mask(data, origin_x, origin_y):
 	var min_noclamp_x = min_x
 	var min_noclamp_y = min_y
 
-	var pmin = [min_x, min_y]
-	var pmax = [max_x, max_y]
-	Util.clamp_min_max_excluded(pmin, pmax, [0, 0], [data.get_resolution(), data.get_resolution()])
-	min_x = pmin[0]
-	min_y = pmin[1]
-	max_x = pmax[0]
-	max_y = pmax[1]
+	min_x = Util.clamp_int(min_x, 0, data.get_resolution())
+	min_y = Util.clamp_int(min_y, 0, data.get_resolution())
+	max_x = Util.clamp_int(max_x, 0, data.get_resolution())
+	max_y = Util.clamp_int(max_y, 0, data.get_resolution())
 
 	var mask_value = 1.0 if _mask_flag else 0.0
 

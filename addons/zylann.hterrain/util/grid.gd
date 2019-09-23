@@ -193,28 +193,6 @@ static func grid_equals(a, b):
 	return true
 
 
-static func clamp_min_max_excluded(p_min, p_max, p_size):
-	if p_min[0] < 0:
-		p_min[0] = 0
-	if p_min[1] < 0:
-		p_min[1] = 0
-
-	if p_min[0] >= p_size[0]:
-		p_min[0] = p_size[0] - 1
-	if p_min[1] >= p_size[1]:
-		p_min[1] = p_size[1] - 1
-
-	if p_max[0] < 0:
-		p_max[0] = 0
-	if p_max[1] < 0:
-		p_max[1] = 0
-
-	if p_max[0] > p_size[0]:
-		p_max[0] = p_size[0]
-	if p_max[1] > p_size[1]:
-		p_max[1] = p_size[1]
-
-
 static func grid_get_or_default(grid, x, y, defval=null):
 	if y >= 0 and y < len(grid):
 		var row = grid[y]
