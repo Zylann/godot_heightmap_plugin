@@ -336,7 +336,7 @@ func _on_TextureGenerator_completed():
 	assert(_terrain != null)
 	var data = _terrain.get_data()
 	var resolution = data.get_resolution()
-	data.notify_region_change([0, 0], [resolution, resolution], HTerrainData.CHANNEL_HEIGHT)
+	data.notify_region_change(Rect2(0, 0, resolution, resolution), HTerrainData.CHANNEL_HEIGHT)
 
 	emit_signal("progress_notified", { "finished": true })
 	print("Done")

@@ -270,7 +270,7 @@ func paint(height_map, cell_pos_x, cell_pos_y, override_mode):
 			map_index = _detail_index
 
 	data.notify_region_change( \
-		[origin_x, origin_y], [_shape_size, _shape_size], \
+		Rect2(origin_x, origin_y, _shape_size, _shape_size), \
 		_get_mode_channel(mode), map_index)
 
 	#var time_elapsed = OS.get_ticks_msec() - time_before

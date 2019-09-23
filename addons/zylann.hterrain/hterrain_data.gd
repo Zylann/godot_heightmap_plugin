@@ -300,26 +300,28 @@ func get_all_heights():
 # It will commit the change to the GPU so the change will take effect.
 # In the editor, it will also mark the map as modified so it will be saved when needed.
 # Finally, it will emit `region_changed`, which allows other systems to catch up (like physics or grass)
-# p_min: origin point in cells of the rectangular area, as an array of 2 integers.
-# p_size: size of the rectangular area, as an array of 2 integers.
+# p_rect: modified area.
 # channel: which kind of map changed
 # index: index of the map that changed
-func notify_region_change(p_min, p_size, channel, index = 0):
-	# TODO Change arguments to Rect, it's horrible
-	
+func notify_region_change(p_rect, channel, index = 0):
 	assert(channel >= 0 and channel < CHANNEL_COUNT)
+	
+	var min_x = int(p_rect.position.x)
+	var min_y = int(p_rect.position.y)
+	var size_x = int(p_rect.size.x)
+	var size_y = int(p_rect.size.y)
 	
 	if channel == CHANNEL_HEIGHT:
 		assert(index == 0)
 		# TODO when drawing very large patches, this might get called too often and would slow down.
 		# for better user experience, we could set chunks AABBs to a very large height just while drawing,
 		# and set correct AABBs as a background task once done
-		_update_vertical_bounds(p_min[0], p_min[1], p_size[0], p_size[1])
+		_update_vertical_bounds(min_x, min_y, size_x, size_y)
 
-	_upload_region(channel, index, p_min[0], p_min[1], p_size[0], p_size[1])
+	_upload_region(channel, index, min_x, min_y, size_x, size_y)
 	_maps[channel][index].modified = true
 
-	emit_signal("region_changed", p_min[0], p_min[1], p_size[0], p_size[1], channel)
+	emit_signal("region_changed", min_x, min_y, size_x, size_y, channel)
 	emit_signal("changed")
 
 
@@ -333,7 +335,7 @@ func notify_full_change():
 		var maps = _maps[maptype]
 
 		for index in len(maps):
-			notify_region_change([0, 0], [_resolution, _resolution], maptype, index)
+			notify_region_change(Rect2(0, 0, _resolution, _resolution), maptype, index)
 
 
 func _edit_set_disable_apply_undo(e):
@@ -402,12 +404,10 @@ func _edit_apply_undo(undo_data):
 				printerr("Wut? Unsupported undo channel\n");
 
 		# Defer this to a second pass, otherwise it causes order-dependent artifacts on the normal map
-		regions_changed.append([[min_x, min_y], [max_x - min_x, max_y - min_y], channel, index])
+		regions_changed.append([Rect2(min_x, min_y, max_x - min_x, max_y - min_y), channel, index])
 
 	for args in regions_changed:
-		# TODO This one is VERY slow because partial texture updates is not supported...
-		# so the entire texture gets reuploaded for each chunk being undone
-		notify_region_change(args[0], args[1], args[2], args[3])
+		notify_region_change(args[0], args[1], args[2])
 
 
 func _upload_channel(channel, index):
@@ -1248,7 +1248,7 @@ func _import_heightmap(fpath, min_y, max_y):
 	_locked = false
 
 	print("Notify region change...")
-	notify_region_change([0, 0], [get_resolution(), get_resolution()], CHANNEL_HEIGHT)
+	notify_region_change(Rect2(0, 0, get_resolution(), get_resolution()), CHANNEL_HEIGHT)
 
 	return true
 
@@ -1272,7 +1272,7 @@ func _import_map(map_type, path):
 	var map = _maps[map_type][0]
 	map.image = im
 
-	notify_region_change([0, 0], [im.get_width(), im.get_height()], map_type)
+	notify_region_change(Rect2(0, 0, im.get_width(), im.get_height()), map_type)
 	return true
 
 

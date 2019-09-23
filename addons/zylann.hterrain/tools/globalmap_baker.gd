@@ -154,7 +154,7 @@ func _finish():
 	# TEST
 	#dst.save_png("test_globalmap.png")
 	
-	data.notify_region_change([0, 0], [dst.get_width(), dst.get_height()], HTerrainData.CHANNEL_GLOBAL_ALBEDO)
+	data.notify_region_change(Rect2(0, 0, dst.get_width(), dst.get_height()), HTerrainData.CHANNEL_GLOBAL_ALBEDO)
 	
 	_cleanup_scene()
 	_terrain = null
