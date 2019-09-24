@@ -619,6 +619,9 @@ func set_shader_type(type):
 			_material.shader = load(CLASSIC4_SHADER_PATH)
 
 	_material_params_need_update = true
+	
+	if Engine.editor_hint:
+		property_list_changed_notify()
 
 
 func get_custom_shader():
@@ -653,7 +656,7 @@ func set_custom_shader(shader):
 		if _shader_type == SHADER_CUSTOM:
 			_material_params_need_update = true
 	
-	if Engine.is_editor_hint():
+	if Engine.editor_hint:
 		property_list_changed_notify()
 
 
