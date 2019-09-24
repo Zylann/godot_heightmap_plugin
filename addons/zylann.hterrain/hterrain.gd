@@ -197,12 +197,6 @@ func _get_property_list():
 				"hint_string": "Texture"
 			})
 
-	props.append({
-		"name": "_detail_objects_data",
-		"type": TYPE_ARRAY,
-		"usage": PROPERTY_USAGE_STORAGE
-	})
-
 	return props
 
 
