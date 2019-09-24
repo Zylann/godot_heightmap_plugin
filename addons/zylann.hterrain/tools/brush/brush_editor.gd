@@ -187,12 +187,11 @@ func set_brush_shape_from_file(path):
 
 	if _brush != null:
 
-		# TODO Revert this in Godot 3.1
-		# because forcing image brushes would ruin resized ones,
-		# due to https://github.com/godotengine/godot/issues/24244
 		var im2 = im
 		var v = Engine.get_version_info()
 		if v.major == 3 and v.minor < 1:
+			# Forcing image brushes would ruin resized ones,
+			# due to https://github.com/godotengine/godot/issues/24244
 			if path.find(SHAPES_DIR.plus_file(DEFAULT_BRUSH)) != -1:
 				im2 = null
 
