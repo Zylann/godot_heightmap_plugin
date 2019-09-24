@@ -162,9 +162,11 @@ func _enter_tree():
 	
 	_generator_dialog = GeneratorDialog.instance()
 	_generator_dialog.connect("progress_notified", self, "_terrain_progress_notified")
+	_generator_dialog.connect("permanent_change_performed", self, "_on_permanent_change_performed")
 	base_control.add_child(_generator_dialog)
 
 	_import_dialog = ImportDialog.instance()
+	_import_dialog.connect("permanent_change_performed", self, "_on_permanent_change_performed")
 	base_control.add_child(_import_dialog)
 
 	_progress_window = ProgressWindow.instance()
@@ -173,12 +175,14 @@ func _enter_tree():
 	_generate_mesh_dialog = GenerateMeshDialog.instance()
 	_generate_mesh_dialog.connect("generate_selected", self, "_on_GenerateMeshDialog_generate_selected")
 	base_control.add_child(_generate_mesh_dialog)
-		
+	
 	_resize_dialog = ResizeDialog.instance()
+	_resize_dialog.connect("permanent_change_performed", self, "_on_permanent_change_performed")
 	base_control.add_child(_resize_dialog)
 	
 	_globalmap_baker = GlobalMapBaker.new()
 	_globalmap_baker.connect("progress_notified", self, "_terrain_progress_notified")
+	_globalmap_baker.connect("permanent_change_performed", self, "_on_permanent_change_performed")
 	add_child(_globalmap_baker)
 	
 	_export_image_dialog = ExportImageDialog.instance()
@@ -536,3 +540,17 @@ func _on_GenerateMeshDialog_generate_selected(lod):
 	mi.transform = _node.transform
 	_node.get_parent().add_child(mi)
 	mi.set_owner(get_editor_interface().get_edited_scene_root())
+
+
+# TODO Workaround for https://github.com/Zylann/godot_heightmap_plugin/issues/101
+func _on_permanent_change_performed(message):
+	var data = _node.get_data()
+	if data == null:
+		printerr("Terrain has no data")
+		return
+	var ur = get_undo_redo()
+	ur.create_action(message)
+	ur.add_do_method(data, "_dummy_function")
+	#ur.add_undo_method(data, "_dummy_function")
+	ur.commit_action()
+

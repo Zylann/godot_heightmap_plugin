@@ -741,7 +741,7 @@ func _compute_vertical_bounds_at(origin_x, origin_y, size_x, size_y, out_b):
 
 func _notify_progress(message, progress, finished = false):
 	_progress_complete = finished
-	#print("[", int(100.0 * progress), "%] ", message)
+	print("[", int(100.0 * progress), "%] ", message)
 	emit_signal("progress_notified", {
 		"message": message,
 		"progress": progress,
@@ -1273,6 +1273,11 @@ func _import_map(map_type, path):
 
 	notify_region_change(Rect2(0, 0, im.get_width(), im.get_height()), map_type)
 	return true
+
+
+# TODO Workaround for https://github.com/Zylann/godot_heightmap_plugin/issues/101
+func _dummy_function():
+	pass
 
 
 static func _encode_normal(n):

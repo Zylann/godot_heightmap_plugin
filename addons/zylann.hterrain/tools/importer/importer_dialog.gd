@@ -6,6 +6,8 @@ const Util = preload("../../util/util.gd")
 const HTerrainData = preload("../../hterrain_data.gd")
 const Errors = preload("../../util/errors.gd")
 
+signal permanent_change_performed(message)
+
 onready var _inspector = get_node("VBoxContainer/Inspector")
 onready var _errors_label = get_node("VBoxContainer/ColorRect/ScrollContainer/VBoxContainer/Errors")
 onready var _warnings_label = get_node("VBoxContainer/ColorRect/ScrollContainer/VBoxContainer/Warnings")
@@ -101,9 +103,8 @@ func _on_ImportButton_pressed():
 		params[HTerrainData.CHANNEL_SPLAT] = splatmap_path
 
 	var data = _terrain.get_data()
-	#_terrain.set_data(null)
 	data._edit_import_maps(params)
-	#_terrain.set_data(data)
+	emit_signal("permanent_change_performed", "Import maps")
 	
 	print("Terrain import finished")
 	hide()

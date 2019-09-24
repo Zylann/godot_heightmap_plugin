@@ -38,6 +38,8 @@ const _anchor_icon_names = [
 	"anchor_bottom_right"
 ]
 
+signal permanent_change_performed(message)
+
 onready var _resolution_dropdown = get_node("VBoxContainer/GridContainer/ResolutionDropdown")
 onready var _stretch_checkbox = get_node("VBoxContainer/GridContainer/StretchCheckBox")
 onready var _anchor_control = get_node("VBoxContainer/GridContainer/HBoxContainer/AnchorControl")
@@ -160,3 +162,4 @@ func _apply(p_resolution, p_stretch, p_anchor):
 	
 	data.resize(p_resolution, p_stretch, p_anchor)
 	data.notify_full_change()
+	emit_signal("permanent_change_performed", "Resize terrain")

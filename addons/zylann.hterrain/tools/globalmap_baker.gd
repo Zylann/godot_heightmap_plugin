@@ -10,6 +10,7 @@ const HTerrainMesher = preload("../hterrain_mesher.gd")
 const VIEWPORT_SIZE = 512
 
 signal progress_notified(info)
+signal permanent_change_performed(message)
 
 var _terrain = null
 var _viewport = null
@@ -150,11 +151,9 @@ func _finish():
 	var data = _terrain.get_data()
 	assert(data != null)
 	var dst = data.get_image(HTerrainData.CHANNEL_GLOBAL_ALBEDO)
-
-	# TEST
-	#dst.save_png("test_globalmap.png")
 	
 	data.notify_region_change(Rect2(0, 0, dst.get_width(), dst.get_height()), HTerrainData.CHANNEL_GLOBAL_ALBEDO)
+	emit_signal("permanent_change_performed", "Bake globalmap")
 	
 	_cleanup_scene()
 	_terrain = null
