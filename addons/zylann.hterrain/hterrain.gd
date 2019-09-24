@@ -658,6 +658,9 @@ func set_custom_shader(shader):
 		_custom_shader.connect("changed", self, "_on_custom_shader_changed")
 		if _shader_type == SHADER_CUSTOM:
 			_material_params_need_update = true
+	
+	if Engine.is_editor_hint():
+		property_list_changed_notify()
 
 
 func _on_custom_shader_changed():
