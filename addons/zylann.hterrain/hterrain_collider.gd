@@ -93,8 +93,15 @@ func _update_transform(aabb=null):
 
 	#_terrain_transform
 
-	# Bullet centers the shape to its overall AABB so we need to move it to match the visuals
-	var trans = Transform(Basis(), 0.5 * Vector3(width, height, depth) + Vector3(0, aabb.position.y, 0))
+	var trans
+	var v = Engine.get_version_info()
+	if v.major == 3 and v.minor <= 1 and v.patch <= 1:
+		# Bullet centers the shape to its overall AABB so we need to move it to match the visuals
+		trans = Transform(Basis(), 0.5 * Vector3(width, height, depth) + Vector3(0, aabb.position.y, 0))
+	else:
+		# In 3.1.2, vertical centering changed.
+		# https://github.com/godotengine/godot/pull/28326
+		trans = Transform(Basis(), 0.5 * Vector3(width, 0, depth) + Vector3(0, aabb.position.y, 0))
 	
 	# And then apply the terrain transform
 	trans = _terrain_transform * trans
