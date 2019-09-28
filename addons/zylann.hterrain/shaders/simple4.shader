@@ -127,31 +127,35 @@ void fragment() {
 
 		vec2 ground_uv = v_ground_uv.xz;
 
+		vec4 ab0;
+		vec4 ab1;
+		vec4 ab2;
 		vec4 ab3;
+		vec4 nr0;
+		vec4 nr1;
+		vec4 nr2;
 		vec4 nr3;
 		if (u_triplanar) {
-			// Only do triplanar on one texture slot,
-			// because otherwise it would be very expensive and cost many more ifs.
-			// I chose the last slot because first slot is the default on new splatmaps,
-			// and that's a feature used for cliffs, which are usually designed later.
-
 			vec3 blending = get_triplanar_blend(terrain_normal_world);
 
+			ab0 = texture_triplanar(u_ground_albedo_bump_0, v_ground_uv, blending);
+			ab1 = texture_triplanar(u_ground_albedo_bump_1, v_ground_uv, blending);
+			ab2 = texture_triplanar(u_ground_albedo_bump_2, v_ground_uv, blending);
 			ab3 = texture_triplanar(u_ground_albedo_bump_3, v_ground_uv, blending);
+			nr0 = texture_triplanar(u_ground_normal_roughness_0, v_ground_uv, blending);
+			nr1 = texture_triplanar(u_ground_normal_roughness_1, v_ground_uv, blending);
+			nr2 = texture_triplanar(u_ground_normal_roughness_2, v_ground_uv, blending);
 			nr3 = texture_triplanar(u_ground_normal_roughness_3, v_ground_uv, blending);
-
 		} else {
+			ab0 = texture(u_ground_albedo_bump_0, ground_uv);
+			ab1 = texture(u_ground_albedo_bump_1, ground_uv);
+			ab2 = texture(u_ground_albedo_bump_2, ground_uv);
 			ab3 = texture(u_ground_albedo_bump_3, ground_uv);
+			nr0 = texture(u_ground_normal_roughness_0, ground_uv);
+			nr1 = texture(u_ground_normal_roughness_1, ground_uv);
+			nr2 = texture(u_ground_normal_roughness_2, ground_uv);
 			nr3 = texture(u_ground_normal_roughness_3, ground_uv);
 		}
-
-		vec4 ab0 = texture(u_ground_albedo_bump_0, ground_uv);
-		vec4 ab1 = texture(u_ground_albedo_bump_1, ground_uv);
-		vec4 ab2 = texture(u_ground_albedo_bump_2, ground_uv);
-
-		vec4 nr0 = texture(u_ground_normal_roughness_0, ground_uv);
-		vec4 nr1 = texture(u_ground_normal_roughness_1, ground_uv);
-		vec4 nr2 = texture(u_ground_normal_roughness_2, ground_uv);
 
 		vec3 col0 = ab0.rgb;
 		vec3 col1 = ab1.rgb;
