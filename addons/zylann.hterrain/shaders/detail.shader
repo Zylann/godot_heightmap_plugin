@@ -14,6 +14,7 @@ uniform float u_globalmap_tint_bottom : hint_range(0.0, 1.0);
 uniform float u_globalmap_tint_top : hint_range(0.0, 1.0);
 uniform float u_bottom_ao : hint_range(0.0, 1.0);
 uniform vec2 u_ambient_wind; // x: amplitude, y: time
+uniform float density : hint_range(0.0, 1.0);
 
 varying vec3 v_normal;
 varying vec2 v_map_uv;
@@ -44,17 +45,17 @@ void vertex() {
 	vec2 map_uv = cell_coords.xz / vec2(textureSize(u_terrain_heightmap, 0));
 	v_map_uv = map_uv;
 
-	//float density = 0.5 + 0.5 * sin(4.0*TIME); // test
-	float density = texture(u_terrain_detailmap, map_uv).r;
+	// float chance = 0.5 + 0.5 * sin(4.0*TIME); // test
+	float chance = texture(u_terrain_detailmap, map_uv).r;
 	float hash = get_hash(obj_pos.xz);
-	
-	if (density > hash) {
+
+	if (chance * density > hash) {
 		// Snap model to the terrain
 		float height = texture(u_terrain_heightmap, map_uv).r / cell_coords.y;
 		VERTEX.y += height;
-		
+
 		VERTEX += get_ambient_wind_displacement(UV, hash);
-		
+
 		// Fade alpha with distance
 		vec3 wpos = (WORLD_MATRIX * vec4(VERTEX, 1)).xyz;
 		float dr = distance(wpos, CAMERA_MATRIX[3].xyz) / u_view_distance;
@@ -76,13 +77,13 @@ void fragment() {
 
 	vec4 col = texture(u_albedo_alpha, UV);
 	ALPHA = col.a * COLOR.a;// - clamp(1.4 - UV.y, 0.0, 1.0);//* 0.5 + 0.5*cos(2.0*TIME);
-	
+
 	ALBEDO = COLOR.rgb * col.rgb;
 
 	// Blend with ground color
 	float nh = sqrt(1.0 - UV.y);
 	ALBEDO = mix(ALBEDO, texture(u_terrain_globalmap, v_map_uv).rgb, mix(u_globalmap_tint_bottom, u_globalmap_tint_top, nh));
-	
+
 	// Fake bottom AO
 	ALBEDO = ALBEDO * mix(1.0, 1.0 - u_bottom_ao, UV.y * UV.y);
 }
