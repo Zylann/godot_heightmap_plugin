@@ -32,7 +32,8 @@ func _init():
 	var mat = ShaderMaterial.new()
 	mat.shader = load("res://addons/zylann.hterrain/tools/bump2normal_tex.shader")
 	
-	_ci = TextureRect.new()
+	_ci = Sprite.new()
+	_ci.centered = false
 	_ci.material = mat
 	_viewport.add_child(_ci)
 	
@@ -131,7 +132,7 @@ func _process(delta):
 	if _has_pending_tiles():
 		var tpos = _pending_tiles_queue[-1]
 		_pending_tiles_queue.pop_back()
-		_ci.rect_position = -VIEWPORT_SIZE * tpos + Vector2(1, 1)
+		_ci.position = -VIEWPORT_SIZE * tpos + Vector2(1, 1)
 		_viewport.render_target_update_mode = Viewport.UPDATE_ONCE
 		_processing_tile = tpos
 		_pending_tiles_grid[tpos] = STATE_PROCESSING
