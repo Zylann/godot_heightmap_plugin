@@ -14,7 +14,6 @@ uniform float u_globalmap_tint_bottom : hint_range(0.0, 1.0);
 uniform float u_globalmap_tint_top : hint_range(0.0, 1.0);
 uniform float u_bottom_ao : hint_range(0.0, 1.0);
 uniform vec2 u_ambient_wind; // x: amplitude, y: time
-uniform float density : hint_range(0.0, 1.0);
 
 varying vec3 v_normal;
 varying vec2 v_map_uv;
@@ -45,11 +44,11 @@ void vertex() {
 	vec2 map_uv = cell_coords.xz / vec2(textureSize(u_terrain_heightmap, 0));
 	v_map_uv = map_uv;
 
-	// float chance = 0.5 + 0.5 * sin(4.0*TIME); // test
-	float chance = texture(u_terrain_detailmap, map_uv).r;
+	//float density = 0.5 + 0.5 * sin(4.0*TIME); // test
+	float density = texture(u_terrain_detailmap, map_uv).r;
 	float hash = get_hash(obj_pos.xz);
 
-	if (chance * density > hash) {
+	if (density > hash) {
 		// Snap model to the terrain
 		float height = texture(u_terrain_heightmap, map_uv).r / cell_coords.y;
 		VERTEX.y += height;
