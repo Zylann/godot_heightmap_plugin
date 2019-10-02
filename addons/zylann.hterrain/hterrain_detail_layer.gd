@@ -34,7 +34,7 @@ export(int) var layer_index = 0 setget set_layer_index, get_layer_index
 export(Texture) var texture setget set_texture, get_texture;
 export(float) var view_distance = 100.0 setget set_view_distance, get_view_distance
 export(Shader) var custom_shader setget set_custom_shader, get_custom_shader
-export(float, 0, 1, 0.1) var density = 0.4 setget set_density, get_density
+export(int, 0, 10) var density = 4 setget set_density, get_density
 
 var _material = null
 var _default_shader = null
@@ -204,7 +204,7 @@ func get_custom_shader():
 
 
 func set_density(v):
-	density = clamp(v, 0.0, 1.0)
+	density = clamp(v, 0, 10)
 
 
 func get_density():
@@ -527,18 +527,17 @@ static func _generate_multimesh(resolution, density):
 	var position_randomness = 0.5
 	var scale_randomness = 0.0
 	#var color_randomness = 0.5
-	var density_count = int(density * 10)
 
 	var mm = MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.color_format = MultiMesh.COLOR_8BIT
-	mm.instance_count = resolution * resolution * density_count
+	mm.instance_count = resolution * resolution * density
 	mm.mesh = mesh
 
 	var i = 0
 	for z in resolution:
 		for x in resolution:
-			for j in density_count:
+			for j in density:
 				#var pos = Vector3(rand_range(0, res), 0, rand_range(0, res))
 
 				var pos = Vector3(x, 0, z)
