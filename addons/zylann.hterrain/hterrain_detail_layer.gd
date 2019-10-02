@@ -34,11 +34,14 @@ export(int) var layer_index = 0 setget set_layer_index, get_layer_index
 export(Texture) var texture setget set_texture, get_texture;
 export(float) var view_distance = 100.0 setget set_view_distance, get_view_distance
 export(Shader) var custom_shader setget set_custom_shader, get_custom_shader
-export(int, 0, 10) var density = 4 setget set_density, get_density
+export(float, 0, 10) var density = 4 setget set_density, get_density
 
 var _material = null
 var _default_shader = null
+
+# Vector2 => DirectMultiMeshInstance
 var _chunks = {}
+
 var _multimesh = null
 var _multimesh_instance_pool = []
 var _ambient_wind_time = 0.0
@@ -204,7 +207,16 @@ func get_custom_shader():
 
 
 func set_density(v):
-	density = clamp(v, 0, 10)
+	v = clamp(v, 0, 10)
+	if v == density:
+		return
+	density = v
+	# TODO Remove iteration of all chunks when Godot bug gets fixed
+	# See https://github.com/godotengine/godot/issues/32500
+	_multimesh = _generate_multimesh(CHUNK_SIZE, density, null)
+	for k in _chunks:
+		var mmi = _chunks[k]
+		mmi.set_multimesh(_multimesh)
 
 
 func get_density():
@@ -367,8 +379,7 @@ func _load_chunk(terrain, cx, cz, aabb):
 		_multimesh_instance_pool.pop_back()
 	else:
 		if _multimesh == null:
-			_multimesh = _generate_multimesh(CHUNK_SIZE, density)
-
+			_multimesh = _generate_multimesh(CHUNK_SIZE, density, null)
 		mmi = DirectMultiMeshInstance.new()
 		mmi.set_world(terrain.get_world())
 		mmi.set_multimesh(_multimesh)
@@ -521,42 +532,60 @@ static func create_quad():
 	return mesh
 
 
-static func _generate_multimesh(resolution, density):
+static func _generate_multimesh(resolution, density, existing_multimesh):
 	var mesh = create_quad()
 
 	var position_randomness = 0.5
 	var scale_randomness = 0.0
 	#var color_randomness = 0.5
 
-	var mm = MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.color_format = MultiMesh.COLOR_8BIT
-	mm.instance_count = resolution * resolution * density
+	var cell_count = resolution * resolution
+	var idensity = int(density)
+	var random_instance_count = int(cell_count * (density - floor(density)))
+	var total_instance_count = cell_count * idensity + random_instance_count
+	
+	var mm
+	if existing_multimesh != null:
+		mm = existing_multimesh
+	else:
+		mm = MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.color_format = MultiMesh.COLOR_8BIT
+
+	mm.instance_count = total_instance_count
 	mm.mesh = mesh
 
+	# First pass ensures uniform spread
 	var i = 0
 	for z in resolution:
 		for x in resolution:
-			for j in density:
-				#var pos = Vector3(rand_range(0, res), 0, rand_range(0, res))
-
+			for j in idensity:
+				
 				var pos = Vector3(x, 0, z)
 				pos.x += rand_range(-position_randomness, position_randomness)
 				pos.z += rand_range(-position_randomness, position_randomness)
 
-				var sr = rand_range(0, scale_randomness)
-				var s = 1.0 + (sr * sr * sr * sr * sr) * 50.0
-
-				var basis = Basis()
-				basis = basis.scaled(Vector3(1, s, 1))
-				basis = basis.rotated(Vector3(0, 1, 0), rand_range(0, PI))
-
-				var t = Transform(basis, pos)
-
-				var c = Color(1, 1, 1)#.darkened(rand_range(0, color_randomness))
-
-				mm.set_instance_color(i, c)
-				mm.set_instance_transform(i, t)
+				mm.set_instance_color(i, Color(1, 1, 1))
+				mm.set_instance_transform(i, Transform(_get_random_instance_basis(scale_randomness), pos))
 				i += 1
+	
+	# Second pass adds the rest
+	for j in random_instance_count:
+		var pos = Vector3(rand_range(0, resolution), 0, rand_range(0, resolution))
+		mm.set_instance_color(i, Color(1, 1, 1))
+		mm.set_instance_transform(i, Transform(_get_random_instance_basis(scale_randomness), pos))
+		i += 1
 
 	return mm
+
+
+static func _get_random_instance_basis(scale_randomness):
+
+	var sr = rand_range(0, scale_randomness)
+	var s = 1.0 + (sr * sr * sr * sr * sr) * 50.0
+
+	var basis = Basis()
+	basis = basis.scaled(Vector3(1, s, 1))
+	basis = basis.rotated(Vector3(0, 1, 0), rand_range(0, PI))
+	
+	return basis
