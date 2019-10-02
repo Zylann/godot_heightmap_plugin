@@ -34,7 +34,7 @@ export(int) var layer_index = 0 setget set_layer_index, get_layer_index
 export(Texture) var texture setget set_texture, get_texture;
 export(float) var view_distance = 100.0 setget set_view_distance, get_view_distance
 export(Shader) var custom_shader setget set_custom_shader, get_custom_shader
-# TODO allow to choose max density
+export(int, 0, 10) var density = 4 setget set_density, get_density
 
 var _material = null
 var _default_shader = null
@@ -80,18 +80,18 @@ func _exit_tree():
 
 func _edit_auto_pick_index():
 	# Automatically pick an unused layer, or create a new one
-	
+
 	var terrain = _get_terrain()
 	if terrain == null:
 		return
-	
+
 	var terrain_data = terrain.get_data()
 	if terrain_data == null or terrain_data.is_locked():
 		return
-		
+
 	var auto_index = layer_index
 	var others = terrain.get_detail_layers()
-	
+
 	if len(others) > 0:
 		var used_layers = []
 		for other in others:
@@ -104,9 +104,9 @@ func _edit_auto_pick_index():
 				# Found a hole, take it instead
 				auto_index = used_layers[i] - 1
 				break
-	
+
 	layer_index = auto_index
-	
+
 	var map_count = terrain_data.get_map_count(HTerrainData.CHANNEL_DETAIL)
 	if layer_index >= map_count:
 		layer_index = terrain_data._edit_add_map(HTerrainData.CHANNEL_DETAIL)
@@ -192,7 +192,7 @@ func set_custom_shader(shader):
 		_material.shader = load(DEFAULT_SHADER_PATH)
 	else:
 		_material.shader = custom_shader
-		
+
 		if Engine.editor_hint:
 			# Ability to fork default shader
 			if shader.code == "":
@@ -201,6 +201,14 @@ func set_custom_shader(shader):
 
 func get_custom_shader():
 	return custom_shader
+
+
+func set_density(v):
+	density = clamp(v, 0, 10)
+
+
+func get_density():
+	return density
 
 
 # Updates texture references and values that come from the terrain itself.
@@ -215,10 +223,10 @@ func _notification(what):
 	match what:
 		NOTIFICATION_ENTER_WORLD:
 			_set_world(get_world())
-		
+
 		NOTIFICATION_EXIT_WORLD:
 			_set_world(null)
-		
+
 		NOTIFICATION_VISIBILITY_CHANGED:
 			_set_visible(visible)
 
@@ -264,14 +272,14 @@ func process(delta, viewer_pos):
 
 	var viewer_cx = local_viewer_pos.x / CHUNK_SIZE
 	var viewer_cz = local_viewer_pos.z / CHUNK_SIZE
-	
+
 	var cr = int(view_distance) / CHUNK_SIZE + 1
 
 	var cmin_x = viewer_cx - cr
 	var cmin_z = viewer_cz - cr
 	var cmax_x = viewer_cx + cr
 	var cmax_z = viewer_cz + cr
-	
+
 	var map_res = terrain.get_data().get_resolution()
 	var map_scale = terrain.map_scale
 
@@ -280,7 +288,7 @@ func process(delta, viewer_pos):
 
 	var terrain_chunks_x = terrain_size_x / CHUNK_SIZE
 	var terrain_chunks_z = terrain_size_z / CHUNK_SIZE
-	
+
 	if cmin_x < 0:
 		cmin_x = 0
 	if cmin_z < 0:
@@ -295,17 +303,17 @@ func process(delta, viewer_pos):
 		for cz in range(cmin_z, cmax_z):
 			for cx in range(cmin_x, cmax_x):
 				_add_debug_cube(terrain, _get_chunk_aabb(terrain, Vector3(cx, 0, cz) * CHUNK_SIZE))
-	
+
 	for cz in range(cmin_z, cmax_z):
 		for cx in range(cmin_x, cmax_x):
-			
+
 			var cpos2d = Vector2(cx, cz)
 			if _chunks.has(cpos2d):
 				continue
-		
+
 			var aabb = _get_chunk_aabb(terrain, Vector3(cx, 0, cz) * CHUNK_SIZE)
 			var d = (aabb.position + 0.5 * aabb.size).distance_to(local_viewer_pos)
-			
+
 			if d < view_distance:
 				_load_chunk(terrain, cx, cz, aabb)
 
@@ -359,12 +367,12 @@ func _load_chunk(terrain, cx, cz, aabb):
 		_multimesh_instance_pool.pop_back()
 	else:
 		if _multimesh == null:
-			_multimesh = _generate_multimesh(CHUNK_SIZE)
-		
+			_multimesh = _generate_multimesh(CHUNK_SIZE, density)
+
 		mmi = DirectMultiMeshInstance.new()
 		mmi.set_world(terrain.get_world())
 		mmi.set_multimesh(_multimesh)
-	
+
 	mmi.set_material_override(_material)
 	mmi.set_transform(trans)
 	mmi.set_aabb(aabb)
@@ -397,14 +405,14 @@ func _update_material():
 	var terrain = _get_terrain()
 	var it = Transform()
 	var normal_basis = Basis()
-	
+
 	if terrain != null:
 		var gt = terrain.get_internal_transform()
 		it = gt.affine_inverse()
 		terrain_data = terrain.get_data()
 		# This is needed to properly transform normals if the terrain is scaled
 		normal_basis = gt.basis.inverse().transposed()
-	
+
 	var mat = _material
 
 	mat.set_shader_param("u_terrain_inverse_transform", it)
@@ -417,15 +425,15 @@ func _update_material():
 	var normalmap_texture = null
 	var detailmap_texture = null
 	var globalmap_texture = null
-	
+
 	if terrain_data != null:
 		if terrain_data.is_locked():
 			print("Terrain data locked, can't update detail layer now")
 			return
-		
+
 		heightmap_texture = terrain_data.get_texture(HTerrainData.CHANNEL_HEIGHT)
 		normalmap_texture = terrain_data.get_texture(HTerrainData.CHANNEL_NORMAL)
-		
+
 		if layer_index < terrain_data.get_map_count(HTerrainData.CHANNEL_DETAIL):
 			detailmap_texture = terrain_data.get_texture(HTerrainData.CHANNEL_DETAIL, layer_index)
 
@@ -513,9 +521,9 @@ static func create_quad():
 	return mesh
 
 
-static func _generate_multimesh(resolution, density = 4):
+static func _generate_multimesh(resolution, density):
 	var mesh = create_quad()
-	
+
 	var position_randomness = 0.5
 	var scale_randomness = 0.0
 	#var color_randomness = 0.5
@@ -525,31 +533,30 @@ static func _generate_multimesh(resolution, density = 4):
 	mm.color_format = MultiMesh.COLOR_8BIT
 	mm.instance_count = resolution * resolution * density
 	mm.mesh = mesh
-	
+
 	var i = 0
 	for z in resolution:
 		for x in resolution:
 			for j in density:
 				#var pos = Vector3(rand_range(0, res), 0, rand_range(0, res))
-				
+
 				var pos = Vector3(x, 0, z)
 				pos.x += rand_range(-position_randomness, position_randomness)
 				pos.z += rand_range(-position_randomness, position_randomness)
-				
+
 				var sr = rand_range(0, scale_randomness)
 				var s = 1.0 + (sr * sr * sr * sr * sr) * 50.0
-				
+
 				var basis = Basis()
 				basis = basis.scaled(Vector3(1, s, 1))
 				basis = basis.rotated(Vector3(0, 1, 0), rand_range(0, PI))
-				
+
 				var t = Transform(basis, pos)
-				
+
 				var c = Color(1, 1, 1)#.darkened(rand_range(0, color_randomness))
-				
+
 				mm.set_instance_color(i, c)
 				mm.set_instance_transform(i, t)
 				i += 1
-	
-	return mm
 
+	return mm
