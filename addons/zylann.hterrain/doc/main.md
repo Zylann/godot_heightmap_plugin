@@ -64,7 +64,7 @@ func _ready():
 	add_child(terrain)
 ```
 
-It is also possible to generate the whole map by script, see [Procedural generation from a script](procedural-generation-from-a-script).
+It is also possible to generate the whole map by script, see [Procedural generation from a script](#procedural-generation-from-a-script).
 
 
 Basic sculpting
@@ -385,7 +385,7 @@ func _ready():
 			var leaves_amount = clamp(0.0 - h, 0.0, 1.0)
 			splat = splat.linear_interpolate(Color(0,1,0,0), sand_amount)
 			splat = splat.linear_interpolate(Color(0,0,1,0), leaves_amount)
-			
+
 			heightmap.set_pixel(x, z, Color(h, 0, 0))
 			normalmap.set_pixel(x, z, pack_normal(normal))
 			splatmap.set_pixel(x, z, splat)
