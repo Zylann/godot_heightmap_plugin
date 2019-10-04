@@ -57,20 +57,20 @@ class Map:
 		id = p_id
 
 
-var _resolution = 0
+var _resolution := 0
 
 # There can be multiple maps of the same type, though most of them are single
 # [map_type][instance_index] => map
-var _maps = [[]]
+var _maps := [[]]
 
 # TODO Store vertical bounds in a RGF image? Where R is min amd G is max
-var _chunked_vertical_bounds = []
-var _chunked_vertical_bounds_size_x = 0
-var _chunked_vertical_bounds_size_y = 0
-var _locked = false
-var _progress_complete = true
+var _chunked_vertical_bounds := []
+var _chunked_vertical_bounds_size_x := 0
+var _chunked_vertical_bounds_size_y := 0
+var _locked := false
+var _progress_complete := true
 
-var _edit_disable_apply_undo = false
+var _edit_disable_apply_undo := false
 
 
 func _init():
@@ -95,11 +95,11 @@ func _edit_load_default():
 
 
 # Don't use the data if this getter returns false
-func is_locked():
+func is_locked() -> bool:
 	return _locked
 
 
-func get_resolution():
+func get_resolution() -> int:
 	return _resolution
 
 
@@ -138,10 +138,11 @@ func set_resolution2(p_res, update_normals):
 #
 # We would be forced to ignore the last cells because they would produce an irregular chunk.
 # We need an off-by-one because quads making up chunks SHARE their consecutive vertices.
-# One quad needs at least 2x2 cells to exist. Two quads of the heightmap share an edge, which needs a total of 3x3 cells, not 4x4.
+# One quad needs at least 2x2 cells to exist.
+# Two quads of the heightmap share an edge, which needs a total of 3x3 cells, not 4x4.
 # One chunk has 16x16 quads, so it needs 17x17 cells, not 16, where the last cell is shared with the next chunk.
 # As a result, a map of 4x4 chunks needs 65x65 cells, not 64x64.
-func resize(p_res, stretch=true, anchor=Vector2(-1, -1)):
+func resize(p_res: int, stretch := true, anchor := Vector2(-1, -1)):
 	assert(typeof(p_res) == TYPE_INT)
 	assert(typeof(stretch) == TYPE_BOOL)
 	assert(typeof(anchor) == TYPE_VECTOR2)
@@ -197,7 +198,7 @@ func resize(p_res, stretch=true, anchor=Vector2(-1, -1)):
 	emit_signal("resolution_changed")
 
 
-static func _get_clamped(im, x, y):
+static func _get_clamped(im: Image, x: int, y: int) -> Color:
 
 	if x < 0:
 		x = 0
@@ -215,7 +216,7 @@ static func _get_clamped(im, x, y):
 # Gets the height at the given cell position.
 # This height is raw and doesn't account for scaling of the terrain node.
 # This function is relatively slow due to locking, so don't use it to fetch large areas.
-func get_height_at(x, y):
+func get_height_at(x: int, y: int) -> float:
 
 	# Height data must be loaded in RAM
 	var im = get_image(CHANNEL_HEIGHT)
@@ -230,7 +231,7 @@ func get_height_at(x, y):
 # Gets the height at the given floating-point cell position.
 # This height is raw and doesn't account for scaling of the terrain node.
 # This function is relatively slow due to locking, so don't use it to fetch large areas
-func get_interpolated_height_at(pos):
+func get_interpolated_height_at(pos: Vector3) -> float:
 
 	# Height data must be loaded in RAM
 	var im = get_image(CHANNEL_HEIGHT)
@@ -259,7 +260,7 @@ func get_interpolated_height_at(pos):
 # Gets all heights within the given rectangle in cells.
 # This height is raw and doesn't account for scaling of the terrain node.
 # Data is returned as a PoolRealArray.
-func get_heights_region(x0, y0, w, h):
+func get_heights_region(x0: int, y0: int, w: int, h: int) -> PoolRealArray:
 	var im = get_image(CHANNEL_HEIGHT)
 	assert(im != null)
 
@@ -293,7 +294,7 @@ func get_heights_region(x0, y0, w, h):
 # Gets all heights.
 # This height is raw and doesn't account for scaling of the terrain node.
 # Data is returned as a PoolRealArray.
-func get_all_heights():
+func get_all_heights() -> PoolRealArray:
 	return get_heights_region(0, 0, _resolution, _resolution)
 
 
@@ -304,7 +305,7 @@ func get_all_heights():
 # p_rect: modified area.
 # channel: which kind of map changed
 # index: index of the map that changed
-func notify_region_change(p_rect, channel, index = 0):
+func notify_region_change(p_rect: Rect2, channel: int, index := 0):
 	assert(channel >= 0 and channel < CHANNEL_COUNT)
 	
 	var min_x = int(p_rect.position.x)
@@ -339,11 +340,11 @@ func notify_full_change():
 			notify_region_change(Rect2(0, 0, _resolution, _resolution), maptype, index)
 
 
-func _edit_set_disable_apply_undo(e):
+func _edit_set_disable_apply_undo(e: bool):
 	_edit_disable_apply_undo = e
 
 
-func _edit_apply_undo(undo_data):
+func _edit_apply_undo(undo_data: Dictionary):
 
 	if _edit_disable_apply_undo:
 		return
@@ -411,11 +412,11 @@ func _edit_apply_undo(undo_data):
 		notify_region_change(args[0], args[1], args[2])
 
 
-func _upload_channel(channel, index):
+func _upload_channel(channel: int, index: int):
 	_upload_region(channel, index, 0, 0, _resolution, _resolution)
 
 
-func _upload_region(channel, index, min_x, min_y, size_x, size_y):
+func _upload_region(channel: int, index: int, min_x: int, min_y: int, size_x: int, size_y: int):
 	#print("Upload ", min_x, ", ", min_y, ", ", size_x, "x", size_y)
 	#var time_before = OS.get_ticks_msec()
 
@@ -517,7 +518,7 @@ func _upload_region(channel, index, min_x, min_y, size_x, size_y):
 
 # Gets how many instances of a given map are present in the terrain data.
 # A return value of 0 means there is no such map, and querying for it might cause errors.
-func get_map_count(map_type):
+func get_map_count(map_type: int) -> int:
 	if map_type < len(_maps):
 		return len(_maps[map_type])
 	return 0
@@ -533,7 +534,7 @@ func _edit_remove_detail_map(index):
 	_edit_remove_map(CHANNEL_DETAIL, index)
 
 
-func _edit_add_map(map_type):
+func _edit_add_map(map_type: int) -> int:
 	# TODO Check minimum and maximum instances of a given map
 	print("Adding map of type ", get_channel_name(map_type))
 	while map_type >= len(_maps):
@@ -548,7 +549,7 @@ func _edit_add_map(map_type):
 	return index
 
 
-func _edit_remove_map(map_type, index):
+func _edit_remove_map(map_type: int, index: int):
 	# TODO Check minimum and maximum instances of a given map
 	print("Removing map ", get_channel_name(map_type), " at index ", index)
 	var maps = _maps[map_type]
@@ -556,7 +557,7 @@ func _edit_remove_map(map_type, index):
 	emit_signal("map_removed", map_type, index)
 
 
-func _get_free_id(map_type):
+func _get_free_id(map_type: int) -> int:
 	var maps = _maps[map_type]
 	var id = 0
 	while _get_map_by_id(map_type, id) != null:
@@ -564,7 +565,7 @@ func _get_free_id(map_type):
 	return id
 
 
-func _get_map_by_id(map_type, id):
+func _get_map_by_id(map_type: int, id: int) -> Map:
 	var maps = _maps[map_type]
 	for map in maps:
 		if map.id == id:
@@ -572,31 +573,31 @@ func _get_map_by_id(map_type, id):
 	return null
 
 
-func get_image(maptype, index = 0):
-	var maps = _maps[maptype]
+func get_image(map_type: int, index := 0) -> Image:
+	var maps = _maps[map_type]
 	return maps[index].image
 
 
-func _get_texture(maptype, index):
-	var maps = _maps[maptype]
+func _get_texture(map_type: int, index: int) -> Texture:
+	var maps = _maps[map_type]
 	return maps[index].texture
 
 
-func get_texture(channel, index = 0):
+func get_texture(channel: int, index := 0) -> Texture:
 	# TODO Perhaps it's not a good idea to auto-upload like that
 	if _get_texture(channel, index) == null and get_image(channel) != null:
 		_upload_channel(channel, index)
 	return _get_texture(channel, index)
 
 
-func get_aabb():
+func get_aabb() -> AABB:
 	# TODO Why subtract 1? I forgot
 	return get_region_aabb(0, 0, _resolution - 1, _resolution - 1)
 
 
 # Not so useful in itself, but GDScript is slow,
 # so I needed it to speed up the LOD hack I had to do to take height into account
-func get_point_aabb(cell_x, cell_y):
+func get_point_aabb(cell_x: int, cell_y: int) -> Vector2:
 	assert(typeof(cell_x) == TYPE_INT)
 	assert(typeof(cell_y) == TYPE_INT)
 
@@ -616,7 +617,8 @@ func get_point_aabb(cell_x, cell_y):
 	return Vector2(b.minv, b.maxv)
 
 
-func get_region_aabb(origin_in_cells_x, origin_in_cells_y, size_in_cells_x, size_in_cells_y):
+func get_region_aabb(origin_in_cells_x: int, origin_in_cells_y: int, \
+					 size_in_cells_x: int, size_in_cells_y: int) -> AABB:
 
 	assert(typeof(origin_in_cells_x) == TYPE_INT)
 	assert(typeof(origin_in_cells_y) == TYPE_INT)
@@ -677,7 +679,8 @@ func _update_all_vertical_bounds():
 	_update_vertical_bounds(0, 0, _resolution - 1, _resolution - 1)
 
 
-func _update_vertical_bounds(origin_in_cells_x, origin_in_cells_y, size_in_cells_x, size_in_cells_y):
+func _update_vertical_bounds(origin_in_cells_x: int, origin_in_cells_y: int, \
+							size_in_cells_x: int, size_in_cells_y: int):
 
 	var cmin_x = origin_in_cells_x / VERTICAL_BOUNDS_CHUNK_SIZE
 	var cmin_y = origin_in_cells_y / VERTICAL_BOUNDS_CHUNK_SIZE
@@ -708,7 +711,7 @@ func _update_vertical_bounds(origin_in_cells_x, origin_in_cells_y, size_in_cells
 			_compute_vertical_bounds_at(pmin_x, pmin_y, chunk_size_x, chunk_size_y, b);
 
 
-func _compute_vertical_bounds_at(origin_x, origin_y, size_x, size_y, out_b):
+func _compute_vertical_bounds_at(origin_x: int, origin_y: int, size_x: int, size_y: int, out_b: VerticalBounds):
 
 	var heights = get_image(CHANNEL_HEIGHT)
 	assert(heights != null)
@@ -739,7 +742,7 @@ func _compute_vertical_bounds_at(origin_x, origin_y, size_x, size_y, out_b):
 	out_b.maxv = max_height
 
 
-func _notify_progress(message, progress, finished = false):
+func _notify_progress(message: String, progress: float, finished := false):
 	_progress_complete = finished
 	print("[", int(100.0 * progress), "%] ", message)
 	emit_signal("progress_notified", {
@@ -753,7 +756,7 @@ func _notify_progress_complete():
 	_notify_progress("Done", 1.0, true)
 
 
-func save_data(data_dir):
+func save_data(data_dir: String):
 	if not _is_any_map_modified():
 		print("Terrain data has no modifications to save")
 		return
@@ -792,7 +795,7 @@ func save_data(data_dir):
 	_notify_progress_complete()
 
 
-func _is_any_map_modified():
+func _is_any_map_modified() -> bool:
 	for maplist in _maps:
 		for map in maplist:
 			if map.modified:
@@ -800,14 +803,14 @@ func _is_any_map_modified():
 	return false
 
 
-func _get_total_map_count():
+func _get_total_map_count() -> int:
 	var s = 0
 	for maps in _maps:
 		s += len(maps)
 	return s
 
 
-func _load_metadata(path):
+func _load_metadata(path: String):
 	var f = File.new()
 	var err = f.open(path, File.READ)
 	assert(err == OK)
@@ -818,7 +821,7 @@ func _load_metadata(path):
 	_deserialize_metadata(res.result)
 
 
-func _save_metadata(path):
+func _save_metadata(path: String):
 	var f = File.new()
 	var d = _serialize_metadata()
 	var text = JSON.print(d, "\t", true)
@@ -828,7 +831,7 @@ func _save_metadata(path):
 	f.close()
 
 
-func _serialize_metadata():
+func _serialize_metadata() -> Dictionary:
 	var data = []
 	data.resize(len(_maps))
 
@@ -850,7 +853,7 @@ func _serialize_metadata():
 
 # Parse metadata that we'll then use to load the actual terrain
 # (How many maps, which files to load etc...)
-func _deserialize_metadata(dict):
+func _deserialize_metadata(dict: Dictionary) -> bool:
 
 	if not dict.has("version"):
 		printerr("Terrain metadata has no version")
@@ -886,7 +889,7 @@ func _deserialize_metadata(dict):
 	return true
 
 
-func load_data(dir_path):
+func load_data(dir_path: String):
 	_locked = true
 
 	_load_metadata(dir_path.plus_file(META_FILENAME))
@@ -925,14 +928,14 @@ func load_data(dir_path):
 	_notify_progress_complete()
 
 
-func get_data_dir():
+func get_data_dir() -> String:
 	# The HTerrainData resource represents the metadata and entry point for Godot.
 	# It should be placed within a folder dedicated for terrain storage.
 	# Other heavy data such as maps are stored next to that file.
 	return resource_path.get_base_dir()
 
 
-func _save_channel(dir_path, channel, index):
+func _save_channel(dir_path: String, channel: int, index: int) -> bool:
 	var map = _maps[channel][index]
 	var im = map.image
 	if im == null:
@@ -967,7 +970,7 @@ func _save_channel(dir_path, channel, index):
 	return true
 
 
-static func _try_write_default_import_options(fpath, channel):
+static func _try_write_default_import_options(fpath: String, channel: int):
 	var imp_fpath = fpath + ".import"
 	var f = File.new()
 	if f.file_exists(imp_fpath):
@@ -1026,7 +1029,7 @@ static func _try_write_default_import_options(fpath, channel):
 	f.close()
 
 
-func _load_channel(dir, channel, index):
+func _load_channel(dir: String, channel: int, index: int) -> bool:
 	var fpath = dir.plus_file(_get_map_filename(channel, index))
 
 	# Maps must be configured before being loaded
@@ -1075,7 +1078,7 @@ func _load_channel(dir, channel, index):
 
 # Legacy
 # TODO Drop after a few versions
-static func _try_load_0_8_0_heightmap(fpath, channel, existing_image):
+static func _try_load_0_8_0_heightmap(fpath: String, channel: int, existing_image: Image):
 	fpath += ".bin"
 	var f = File.new()
 	if not f.file_exists(fpath):
@@ -1101,7 +1104,7 @@ static func _try_load_0_8_0_heightmap(fpath, channel, existing_image):
 	return im
 
 
-static func _try_delete_0_8_0_heightmap(fpath):
+static func _try_delete_0_8_0_heightmap(fpath: String):
 	fpath += ".bin"
 	var d = Directory.new()
 	if d.file_exists(fpath):
@@ -1118,7 +1121,7 @@ static func _try_delete_0_8_0_heightmap(fpath):
 # TODO Plan is to make this function threaded, in case import takes too long.
 # So anything that could mess with the main thread should be avoided.
 # Eventually, it would be temporarily removed from the terrain node to work in isolation during import.
-func _edit_import_maps(input):
+func _edit_import_maps(input: Dictionary) -> bool:
 	assert(typeof(input) == TYPE_DICTIONARY)
 
 	if input.has(CHANNEL_HEIGHT):
@@ -1138,7 +1141,7 @@ func _edit_import_maps(input):
 
 
 # Provided an arbitrary width and height, returns the closest size the terrain actually supports
-static func get_adjusted_map_size(width, height):
+static func get_adjusted_map_size(width: int, height: int) -> int:
 	var width_po2 = Util.next_power_of_two(width - 1) + 1
 	var height_po2 = Util.next_power_of_two(height - 1) + 1
 	var size_po2 = Util.min_int(width_po2, height_po2)
@@ -1146,7 +1149,7 @@ static func get_adjusted_map_size(width, height):
 	return size_po2
 
 
-func _import_heightmap(fpath, min_y, max_y):
+func _import_heightmap(fpath: String, min_y: int, max_y: int) -> bool:
 	var ext = fpath.get_extension().to_lower()
 
 	if ext == "png":
@@ -1252,7 +1255,7 @@ func _import_heightmap(fpath, min_y, max_y):
 	return true
 
 
-func _import_map(map_type, path):
+func _import_map(map_type: int, path: String) -> bool:
 	# Heightmap requires special treatment
 	assert(map_type != CHANNEL_HEIGHT)
 
@@ -1280,11 +1283,12 @@ func _dummy_function():
 	pass
 
 
-static func _encode_normal(n):
-	return Color(0.5 * (n.x + 1.0), 0.5 * (n.z + 1.0), 0.5 * (n.y + 1.0), 1.0)
+static func encode_normal(n: Vector3) -> Color:
+	n = 0.5 * (n + Vector3.ONE)
+	return Color(n.x, n.z, n.y)
 
 
-static func get_channel_format(channel):
+static func get_channel_format(channel: int) -> int:
 	match channel:
 		CHANNEL_HEIGHT:
 			return Image.FORMAT_RH
@@ -1304,13 +1308,13 @@ static func get_channel_format(channel):
 
 
 # Note: PNG supports 16-bit channels, unfortunately Godot doesn't
-static func _channel_can_be_saved_as_png(channel):
+static func _channel_can_be_saved_as_png(channel: int) -> bool:
 	if channel == CHANNEL_HEIGHT:
 		return false
 	return true
 
 
-static func get_channel_name(c):
+static func get_channel_name(c: int) -> String:
 	var name = null
 	match c:
 		CHANNEL_COLOR:
@@ -1329,11 +1333,11 @@ static func get_channel_name(c):
 	return name
 
 
-static func _get_map_debug_name(map_type, index):
+static func _get_map_debug_name(map_type: int, index: int) -> String:
 	return str(get_channel_name(map_type), "[", index, "]")
 
 
-func _get_map_filename(c, index):
+func _get_map_filename(c: int, index: int) -> String:
 	var name = get_channel_name(c)
 	var id = _maps[c][index].id
 	if id > 0:
@@ -1341,7 +1345,7 @@ func _get_map_filename(c, index):
 	return name
 
 
-static func _get_channel_default_fill(c):
+static func _get_channel_default_fill(c: int):
 	match c:
 		CHANNEL_COLOR:
 			return Color(1, 1, 1, 1)
@@ -1350,13 +1354,13 @@ static func _get_channel_default_fill(c):
 		CHANNEL_DETAIL:
 			return Color(0, 0, 0, 0)
 		CHANNEL_NORMAL:
-			return _encode_normal(Vector3(0, 1, 0))
+			return encode_normal(Vector3(0, 1, 0))
 		_:
 			# No need to fill
 			return null
 
 
-static func _get_channel_default_count(c):
+static func _get_channel_default_count(c: int) -> int:
 	if c == CHANNEL_DETAIL:
 		return 0
 	return 1

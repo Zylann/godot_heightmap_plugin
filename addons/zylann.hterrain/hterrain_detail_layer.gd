@@ -36,18 +36,18 @@ export(float) var view_distance = 100.0 setget set_view_distance, get_view_dista
 export(Shader) var custom_shader setget set_custom_shader, get_custom_shader
 export(float, 0, 10) var density = 4 setget set_density, get_density
 
-var _material = null
-var _default_shader = null
+var _material: ShaderMaterial = null
+var _default_shader: Shader = null
 
 # Vector2 => DirectMultiMeshInstance
-var _chunks = {}
+var _chunks := {}
 
-var _multimesh = null
-var _multimesh_instance_pool = []
-var _ambient_wind_time = 0.0
-var _first_enter_tree = true
-var _debug_wirecube_mesh = null
-var _debug_cubes = []
+var _multimesh: MultiMesh = null
+var _multimesh_instance_pool := []
+var _ambient_wind_time := 0.0
+var _first_enter_tree := true
+var _debug_wirecube_mesh: Mesh = null
+var _debug_cubes := []
 
 
 func _init():
@@ -130,23 +130,23 @@ func _get_property_list():
 	return props
 
 
-func _get(key):
+func _get(key: String):
 	if key.begins_with("shader_params/"):
 		var param_name = key.right(len("shader_params/"))
 		return get_shader_param(param_name)
 
 
-func _set(key, v):
+func _set(key: String, v):
 	if key.begins_with("shader_params/"):
 		var param_name = key.right(len("shader_params/"))
 		set_shader_param(param_name, v)
 
 
-func get_shader_param(param_name):
+func get_shader_param(param_name: String):
 	return _material.get_shader_param(param_name)
 
 
-func set_shader_param(param_name, v):
+func set_shader_param(param_name: String, v):
 	_material.set_shader_param(param_name, v)
 
 
@@ -156,38 +156,38 @@ func _get_terrain():
 	return null
 
 
-func set_texture(tex):
+func set_texture(tex: Texture):
 	texture = tex
 	_material.set_shader_param("u_albedo_alpha", tex)
 
 
-func get_texture():
+func get_texture() -> Texture:
 	return texture
 
 
-func set_layer_index(v):
+func set_layer_index(v: int):
 	if layer_index == v:
 		return
 	layer_index = v
 	_update_material()
 
 
-func get_layer_index():
+func get_layer_index() -> int:
 	return layer_index
 
 
-func set_view_distance(v):
+func set_view_distance(v: float):
 	if view_distance == v:
 		return
 	view_distance = max(v, 1.0)
 	_update_material()
 
 
-func get_view_distance():
+func get_view_distance() -> float:
 	return view_distance
 
 
-func set_custom_shader(shader):
+func set_custom_shader(shader: Shader):
 	if custom_shader == shader:
 		return
 	custom_shader = shader
@@ -202,11 +202,11 @@ func set_custom_shader(shader):
 				shader.code = _default_shader.code
 
 
-func get_custom_shader():
+func get_custom_shader() -> Shader:
 	return custom_shader
 
 
-func set_density(v):
+func set_density(v: float):
 	v = clamp(v, 0, 10)
 	if v == density:
 		return
@@ -219,7 +219,7 @@ func set_density(v):
 		mmi.set_multimesh(_multimesh)
 
 
-func get_density():
+func get_density() -> float:
 	return density
 
 
@@ -231,7 +231,7 @@ func update_material():
 	# Formerly update_ambient_wind, reset
 
 
-func _notification(what):
+func _notification(what: int):
 	match what:
 		NOTIFICATION_ENTER_WORLD:
 			_set_world(get_world())
@@ -243,19 +243,19 @@ func _notification(what):
 			_set_visible(visible)
 
 
-func _set_visible(v):
+func _set_visible(v: bool):
 	for k in _chunks:
 		var chunk = _chunks[k]
 		chunk.set_visible(v)
 
 
-func _set_world(w):
+func _set_world(w: World):
 	for k in _chunks:
 		var chunk = _chunks[k]
 		chunk.set_world(w)
 
 
-func _on_terrain_transform_changed(gt):
+func _on_terrain_transform_changed(gt: Transform):
 	_update_material()
 
 	var terrain = _get_terrain()
@@ -273,7 +273,7 @@ func _on_terrain_transform_changed(gt):
 		mmi.set_aabb(aabb)
 
 
-func process(delta, viewer_pos):
+func process(delta: float, viewer_pos: Vector3):
 
 	var terrain = _get_terrain()
 	if terrain == null:
@@ -351,7 +351,7 @@ func process(delta, viewer_pos):
 
 # Gets local-space AABB of a detail chunk.
 # This only apply map_scale in Y, because details are not affected by X and Z map scale.
-func _get_chunk_aabb(terrain, lpos):
+func _get_chunk_aabb(terrain, lpos: Vector3):
 	var terrain_scale = terrain.map_scale
 	var terrain_data = terrain.get_data()
 	var origin_cells_x = int(lpos.x / terrain_scale.x)
@@ -364,7 +364,7 @@ func _get_chunk_aabb(terrain, lpos):
 	return aabb
 
 
-func _load_chunk(terrain, cx, cz, aabb):
+func _load_chunk(terrain, cx: int, cz: int, aabb: AABB):
 	var lpos = Vector3(cx, 0, cz) * CHUNK_SIZE
 	# Terrain scale is not used on purpose. Rotation is not supported.
 	var trans = Transform(Basis(), terrain.get_internal_transform().origin + lpos)
@@ -392,14 +392,14 @@ func _load_chunk(terrain, cx, cz, aabb):
 	_chunks[Vector2(cx, cz)] = mmi
 
 
-func _recycle_chunk(cpos2d):
+func _recycle_chunk(cpos2d: Vector2):
 	var mmi = _chunks[cpos2d]
 	_chunks.erase(cpos2d)
 	mmi.set_visible(false)
 	_multimesh_instance_pool.append(mmi)
 
 
-func _get_ambient_wind_params():
+func _get_ambient_wind_params() -> Vector2:
 	var aw = 0.0
 	var terrain = _get_terrain()
 	if terrain != null:
@@ -472,7 +472,7 @@ func _update_material():
 #	return ""
 
 
-func _add_debug_cube(terrain, aabb):
+func _add_debug_cube(terrain, aabb: AABB):
 	var world = terrain.get_world()
 
 	if _debug_wirecube_mesh == null:
@@ -490,7 +490,7 @@ func _add_debug_cube(terrain, aabb):
 	_debug_cubes.append(debug_cube)
 
 
-static func create_quad():
+static func create_quad() -> Mesh:
 	# Vertical quad with the origin at the bottom edge
 	var positions = PoolVector3Array([
 		Vector3(-0.5, 0, 0),
@@ -532,7 +532,7 @@ static func create_quad():
 	return mesh
 
 
-static func _generate_multimesh(resolution, density, existing_multimesh):
+static func _generate_multimesh(resolution: int, density: float, existing_multimesh: MultiMesh) -> MultiMesh:
 	var mesh = create_quad()
 
 	var position_randomness = 0.5
@@ -579,7 +579,7 @@ static func _generate_multimesh(resolution, density, existing_multimesh):
 	return mm
 
 
-static func _get_random_instance_basis(scale_randomness):
+static func _get_random_instance_basis(scale_randomness: float) -> Basis:
 
 	var sr = rand_range(0, scale_randomness)
 	var s = 1.0 + (sr * sr * sr * sr * sr) * 50.0

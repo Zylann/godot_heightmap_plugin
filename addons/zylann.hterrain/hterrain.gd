@@ -76,33 +76,33 @@ export(int, 2, 5) var lod_scale = 2 setget set_lod_scale, get_lod_scale
 # it would scale grass too and other environment objects.
 export var map_scale = Vector3(1, 1, 1) setget set_map_scale
 
-var _custom_shader = null
-var _shader_type = SHADER_SIMPLE4
-var _material = ShaderMaterial.new()
-var _material_params_need_update = false
+var _custom_shader: Shader = null
+var _shader_type: String = SHADER_SIMPLE4
+var _material: ShaderMaterial = ShaderMaterial.new()
+var _material_params_need_update: bool = false
 # Array of 2-textures arrays
-var _ground_textures = []
+var _ground_textures := []
 
-var _data = null
+var _data: HTerrainData = null
 
-var _mesher = Mesher.new()
-var _lodder = QuadTreeLod.new()
+var _mesher := Mesher.new()
+var _lodder := QuadTreeLod.new()
 
 # [lod][z][x] -> chunk
 # This container owns chunks
-var _chunks = []
-var _chunk_size = 16
-var _pending_chunk_updates = []
+var _chunks := []
+var _chunk_size: int = 16
+var _pending_chunk_updates := []
 
-var _detail_layers = []
+var _detail_layers := []
 
-var _collider = null
+var _collider: HTerrainCollider = null
 
 # Stats & debug
 var _updated_chunks = 0
 
 # Editor-only
-var _edit_manual_viewer_pos = Vector3()
+var _edit_manual_viewer_pos := Vector3()
 var _normals_baker = null
 
 func _init():
@@ -265,15 +265,15 @@ func _set(key, value):
 		set_chunk_size(value)
 
 
-func get_shader_param(param_name):
+func get_shader_param(param_name: String):
 	return _material.get_shader_param(param_name)
 
 
-func set_shader_param(param_name, v):
+func set_shader_param(param_name: String, v):
 	_material.set_shader_param(param_name, v)
 
 
-func _set_data_directory(dir):
+func _set_data_directory(dir: String):
 	if dir != _get_data_directory():
 		if dir == "":
 			set_data(null)
@@ -293,13 +293,13 @@ func _set_data_directory(dir):
 		print("WARNING: setting twice the same terrain directory??")
 
 
-func _get_data_directory():
+func _get_data_directory() -> String:
 	if _data != null:
 		return _data.resource_path.get_base_dir()
 	return ""
 
 
-static func _check_heightmap_collider_support():
+static func _check_heightmap_collider_support() -> bool:
 	var v = Engine.get_version_info()
 	if v.major == 3 and v.minor == 0 and v.patch < 4:
 		printerr("Heightmap collision shape not supported in this version of Godot, please upgrade to 3.0.4 or later")
@@ -307,7 +307,7 @@ static func _check_heightmap_collider_support():
 	return true
 
 
-func set_collision_enabled(enabled):
+func set_collision_enabled(enabled: bool):
 	if collision_enabled != enabled:
 		collision_enabled = enabled
 		if collision_enabled:
@@ -335,11 +335,11 @@ func _for_all_chunks(action):
 					action.exec(chunk)
 
 
-func get_chunk_size():
+func get_chunk_size() -> int:
 	return _chunk_size
 
 
-func set_chunk_size(cs):
+func set_chunk_size(cs: int):
 	assert(typeof(cs) == TYPE_INT)
 	print("Setting chunk size to ", cs)
 	cs = Util.next_power_of_two(cs)
@@ -354,7 +354,7 @@ func set_chunk_size(cs):
 	_reset_ground_chunks()
 
 
-func set_map_scale(p_map_scale):
+func set_map_scale(p_map_scale: float):
 	if map_scale == p_map_scale:
 		return
 	var e = 0.01
@@ -367,12 +367,12 @@ func set_map_scale(p_map_scale):
 
 # Gets the global transform to apply to terrain geometry,
 # which is different from Spatial.global_transform gives (that one must only have translation)
-func get_internal_transform():
+func get_internal_transform() -> Transform:
 	# Terrain can only be scaled and translated,
 	return Transform(Basis().scaled(map_scale), translation)
 
 
-func _notification(what):
+func _notification(what: int):
 	match what:
 
 		NOTIFICATION_PREDELETE:
@@ -443,15 +443,15 @@ func _get_chunk_at(pos_x, pos_y, lod):
 	return null
 
 
-func get_data():
+func get_data() -> HTerrainData:
 	return _data
 
 
-func has_data():
+func has_data() -> bool:
 	return _data != null
 
 
-func set_data(new_data):
+func set_data(new_data: HTerrainData):
 	assert(new_data == null or new_data is HTerrainData)
 
 	print("Set new data ", new_data)
@@ -569,7 +569,7 @@ func _on_data_region_changed(min_x, min_y, size_x, size_y, channel):
 			_normals_baker.request_tiles_in_region(Vector2(min_x, min_y), Vector2(size_x, size_y))
 
 
-func _on_data_map_changed(type, index):
+func _on_data_map_changed(type: int, index: int):
 	if type == HTerrainData.CHANNEL_DETAIL \
 	or type == HTerrainData.CHANNEL_HEIGHT \
 	or type == HTerrainData.CHANNEL_NORMAL \
@@ -582,7 +582,7 @@ func _on_data_map_changed(type, index):
 		_material_params_need_update = true
 
 
-func _on_data_map_added(type, index):
+func _on_data_map_added(type: int, index: int):
 	if type == HTerrainData.CHANNEL_DETAIL:
 		for layer in _detail_layers:
 			layer.update_material()
@@ -590,7 +590,7 @@ func _on_data_map_added(type, index):
 		_material_params_need_update = true
 
 
-func _on_data_map_removed(type, index):
+func _on_data_map_removed(type: int, index: int):
 	if type == HTerrainData.CHANNEL_DETAIL:
 		for layer in _detail_layers:
 			layer.update_material()
@@ -598,11 +598,11 @@ func _on_data_map_removed(type, index):
 		_material_params_need_update = true
 
 
-func get_shader_type():
+func get_shader_type() -> String:
 	return _shader_type
 
 
-func set_shader_type(type):
+func set_shader_type(type: String):
 	if type == _shader_type:
 		return
 	_shader_type = type
@@ -624,11 +624,11 @@ func set_shader_type(type):
 		property_list_changed_notify()
 
 
-func get_custom_shader():
+func get_custom_shader() -> Shader:
 	return _custom_shader
 
 
-func set_custom_shader(shader):
+func set_custom_shader(shader: Shader):
 	if _custom_shader == shader:
 		return
 
@@ -713,7 +713,7 @@ func _update_material_params():
 
 
 # Helper used for globalmap baking
-func setup_globalmap_material(mat):
+func setup_globalmap_material(mat: ShaderMaterial):
 
 	var color_texture
 	var splat_texture
@@ -735,15 +735,15 @@ func setup_globalmap_material(mat):
 			mat.set_shader_param(shader_param, tex)
 
 
-func set_lod_scale(lod_scale):
+func set_lod_scale(lod_scale: float):
 	_lodder.set_split_scale(lod_scale)
 
 
-func get_lod_scale():
+func get_lod_scale() -> float:
 	return _lodder.get_split_scale()
 
 
-func get_lod_count():
+func get_lod_count() -> int:
 	return _lodder.get_lod_count()
 
 
@@ -780,7 +780,7 @@ const s_rdirs = [
 	[0, -1]
 ]
 
-func _process(delta):
+func _process(delta: float):
 
 	# Get viewer pos
 	var viewer_pos = Vector3()
@@ -874,7 +874,7 @@ func _process(delta):
 #		print("Updated {0} chunks".format(_updated_chunks))
 
 
-func _update_chunk(chunk, lod):
+func _update_chunk(chunk, lod: int):
 	assert(has_data())
 
 	# Check for my own seams
@@ -910,7 +910,7 @@ func _update_chunk(chunk, lod):
 	chunk.set_pending_update(false)
 
 
-func _add_chunk_update(chunk, pos_x, pos_y, lod):
+func _add_chunk_update(chunk, pos_x: int, pos_y: int, lod: int):
 
 	if chunk.is_pending_update():
 		#print_line("Chunk update is already pending!");
@@ -934,7 +934,8 @@ func _add_chunk_update(chunk, pos_x, pos_y, lod):
 	# TODO Neighboring chunks might need an update too because of normals and seams being updated
 
 
-func set_area_dirty(origin_in_cells_x, origin_in_cells_y, size_in_cells_x, size_in_cells_y):
+# Used when editing an existing terrain
+func set_area_dirty(origin_in_cells_x: int, origin_in_cells_y: int, size_in_cells_x: int, size_in_cells_y: int):
 
 	var cpos0_x = origin_in_cells_x / _chunk_size
 	var cpos0_y = origin_in_cells_y / _chunk_size
@@ -971,7 +972,7 @@ func set_area_dirty(origin_in_cells_x, origin_in_cells_y, size_in_cells_x, size_
 
 
 # Called when a chunk is needed to be seen
-func _cb_make_chunk(cpos_x, cpos_y, lod):
+func _cb_make_chunk(cpos_x: int, cpos_y: int, lod: int):
 
 	# TODO What if cpos is invalid? _get_chunk_at will return NULL but that's still invalid
 	var chunk = _get_chunk_at(cpos_x, cpos_y, lod)
@@ -1002,12 +1003,12 @@ func _cb_make_chunk(cpos_x, cpos_y, lod):
 
 
 # Called when a chunk is no longer seen
-func _cb_recycle_chunk(chunk, cx, cy, lod):
+func _cb_recycle_chunk(chunk, cx: int, cy: int, lod: int):
 	chunk.set_visible(false)
 	chunk.set_active(false)
 
 
-func _cb_get_vertical_bounds(cpos_x, cpos_y, lod):
+func _cb_get_vertical_bounds(cpos_x: int, cpos_y: int, lod: int):
 	var chunk_size = _chunk_size * _lodder.get_lod_size(lod)
 	var origin_in_cells_x = cpos_x * chunk_size
 	var origin_in_cells_y = cpos_y * chunk_size
@@ -1018,14 +1019,14 @@ func _cb_get_vertical_bounds(cpos_x, cpos_y, lod):
 #	return Vector2(aabb.position.y, aabb.end.y)
 
 
-func _local_pos_to_cell(local_pos):
+func _local_pos_to_cell(local_pos: Vector3) -> Array:
 	return [
 		int(local_pos.x),
 		int(local_pos.z)
 	]
 
 
-static func _get_height_or_default(im, pos_x, pos_y):
+static func _get_height_or_default(im: Image, pos_x: int, pos_y: int):
 	if pos_x < 0 or pos_y < 0 or pos_x >= im.get_width() or pos_y >= im.get_height():
 		return 0
 	return im.get_pixel(pos_x, pos_y).r
@@ -1036,7 +1037,7 @@ static func _get_height_or_default(im, pos_x, pos_y):
 # It may be slow on very large distance, but should be enough for editing purpose.
 # out_cell_pos is the returned hit position and must be specified as an array of 2 integers.
 # Returns false if there is no hit.
-func cell_raycast(origin_world, dir_world, out_cell_pos):
+func cell_raycast(origin_world: Vector3, dir_world: Vector3, out_cell_pos: Array):
 	assert(typeof(origin_world) == TYPE_VECTOR3)
 	assert(typeof(dir_world) == TYPE_VECTOR3)
 	assert(typeof(out_cell_pos) == TYPE_ARRAY)
@@ -1082,19 +1083,19 @@ func cell_raycast(origin_world, dir_world, out_cell_pos):
 
 # TODO Rename these "splat textures"
 
-static func get_ground_texture_shader_param(ground_texture_type, slot):
+static func get_ground_texture_shader_param(ground_texture_type: int, slot: int) -> String:
 	assert(typeof(slot) == TYPE_INT and slot >= 0)
 	_check_ground_texture_type(ground_texture_type)
 	return str(SHADER_PARAM_GROUND_PREFIX, _ground_enum_to_name[ground_texture_type], "_", slot)
 
 
-func get_ground_texture(slot, type):
+func get_ground_texture(slot: int, type: int) -> Texture:
 	_check_slot(slot)
 	var shader_param = get_ground_texture_shader_param(type, slot)
 	return _material.get_shader_param(shader_param)
 
 
-func set_ground_texture(slot, type, tex):
+func set_ground_texture(slot: int, type: int, tex: Texture):
 	_check_slot(slot)
 	assert(tex == null or tex is Texture)
 	var shader_param = get_ground_texture_shader_param(type, slot)
@@ -1114,7 +1115,7 @@ func _internal_remove_detail_layer(layer):
 
 # Returns a list copy of all child HTerrainDetailLayer nodes.
 # The order in that list has no relevance.
-func get_detail_layers():
+func get_detail_layers() -> Array:
 	return _detail_layers.duplicate()
 
 
@@ -1128,7 +1129,7 @@ func get_detail_texture(slot):
 	printerr("HTerrain.get_detail_texture is obsolete, use HTerrainDetailLayer.texture instead")
 
 
-func set_ambient_wind(amplitude):
+func set_ambient_wind(amplitude: float):
 	if ambient_wind == amplitude:
 		return
 	ambient_wind = amplitude
@@ -1136,19 +1137,19 @@ func set_ambient_wind(amplitude):
 		layer.update_material()
 
 
-func _check_slot(slot):
+func _check_slot(slot: int):
 	assert(typeof(slot) == TYPE_INT)
 	assert(slot >= 0 and slot < get_ground_texture_slot_count())
 
 
-static func _check_ground_texture_type(ground_texture_type):
+static func _check_ground_texture_type(ground_texture_type: int):
 	assert(typeof(ground_texture_type) == TYPE_INT)
 	assert(ground_texture_type >= 0 and ground_texture_type < GROUND_TEXTURE_TYPE_COUNT)
 
 
-static func get_ground_texture_slot_count_for_shader(mode):
+static func get_ground_texture_slot_count_for_shader(shader_type: String):
 	# TODO Deduce these from the shader used
-	match mode:
+	match shader_type:
 		SHADER_SIMPLE4, \
 		SHADER_SIMPLE4_LITE:
 			return 4
@@ -1156,15 +1157,15 @@ static func get_ground_texture_slot_count_for_shader(mode):
 			return 4
 #		SHADER_ARRAY:
 #			return 256
-	printerr("Invalid shader type specified ", mode)
+	printerr("Invalid shader type specified ", shader_type)
 	return 0
 
 
-func get_ground_texture_slot_count():
+func get_ground_texture_slot_count() -> int:
 	return get_ground_texture_slot_count_for_shader(_shader_type)
 
 
-func _edit_set_manual_viewer_pos(pos):
+func _edit_set_manual_viewer_pos(pos: Vector3):
 	_edit_manual_viewer_pos = pos
 
 
