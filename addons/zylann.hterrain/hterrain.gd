@@ -51,8 +51,8 @@ const SHADER_SIMPLE4_LITE = "Classic4Lite"
 const SHADER_CUSTOM = "Custom"
 
 # Note: the alpha channel is used to pack additional maps
-const GROUND_ALBEDO_ROUGHNESS = 0
-const GROUND_NORMAL_BUMP = 1
+const GROUND_ALBEDO_BUMP = 0
+const GROUND_NORMAL_ROUGHNESS = 1
 const GROUND_TEXTURE_TYPE_COUNT = 2
 
 const _ground_enum_to_name = [

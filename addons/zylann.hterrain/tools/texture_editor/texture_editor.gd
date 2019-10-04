@@ -32,7 +32,7 @@ func set_terrain(terrain):
 	if _terrain != null:
 		var slot_count = _terrain.get_ground_texture_slot_count()
 		for i in range(slot_count):
-			var tex = _terrain.get_ground_texture(i, HTerrain.GROUND_ALBEDO_ROUGHNESS)
+			var tex = _terrain.get_ground_texture(i, HTerrain.GROUND_ALBEDO_BUMP)
 			_textures_list.add_item(_get_slot_hint_name(i), tex if tex != null else _empty_icon)
 
 
@@ -60,7 +60,7 @@ func _load_texture_selected(path):
 	# TODO Make it undoable
 	var selected_slots = _textures_list.get_selected_items()
 	for slot in selected_slots:
-		_terrain.set_ground_texture(slot, HTerrain.GROUND_ALBEDO_ROUGHNESS, texture)
+		_terrain.set_ground_texture(slot, HTerrain.GROUND_ALBEDO_BUMP, texture)
 		_textures_list.set_item_icon(slot, texture)
 
 
@@ -70,7 +70,7 @@ func _on_ClearButton_pressed():
 	# TODO Make it undoable
 	var selected_slots = _textures_list.get_selected_items()
 	for slot in selected_slots:
-		_terrain.set_ground_texture(slot, HTerrain.GROUND_ALBEDO_ROUGHNESS, null)
+		_terrain.set_ground_texture(slot, HTerrain.GROUND_ALBEDO_BUMP, null)
 		_textures_list.set_item_icon(slot, null)
 
 
