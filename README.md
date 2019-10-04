@@ -4,7 +4,7 @@ HeightMap terrain plugin for Godot Engine 3.1
 ![Editor screenshot](https://user-images.githubusercontent.com/1311555/49705861-a5275380-fc19-11e8-8338-9ad364d2db8d.png)
 
 Heightmap-based terrain for Godot 3.1 and later.
-It supports texture painting, colouring, holes, level of detail and grass, while still targetting the Godot API (i.e GLES3 and GLES2).
+It supports texture painting, colouring, holes, level of detail and grass, while still targetting the Godot API.
 
 This repository holds the latest development version, which means it has the latest features but can also have bugs.
 For a "stable" version, use the asset library or download from a commit tagged with a version.
@@ -38,3 +38,22 @@ Why this is a plugin
 Godot has no terrain system for 3D at the moment, so I made one.
 The plugin is currently fully implemented in GDScript. I wish I could make it a C++ module, but being a GDScript plugin allows much faster iteration and everyone can try it and modify it much more easily. Eventually, one day some performance-sensitive areas could be implemented using GDNative, to optionally give some boost.
 There is a chance for Godot to get a built-in terrain system though, maybe in 3.2 or after, which is quite a long wait, so developping this plugin allows me to explore a lot of things up-front, such as procedural generation and editor tools, which could still be of use later.
+
+
+GLES2 support
+---------------
+
+This plugin should work on GLES3, but could potentially work on GLES2 given the feature set that it should support. However, the plugin still cannot run on this renderer in Godot, which means it won't work on web exports and half of the mobile devices (low-end).
+
+Here are some of the causes:
+
+- `textureSize` doesn't work in shaders. If the following issues can be solved, we could rewrite all shaders without using this function so they are compatible between both renderers.
+
+- High range textures get clamped to 0..1, making heightmaps completely flat (GLES2 actually supports this through an extension, but Godot doesn't appear to use it).
+
+- `VisualServer` has `set_data_partial`, but it's not implemented so editing terrain doesn't work. GLES2 should also support partial texture update.
+
+- The procedural generator doesn't work, and likely never will in GLES2 because it relies on HDR framebuffers.
+
+- For more info, see https://github.com/Zylann/godot_heightmap_plugin/issues/96
+
