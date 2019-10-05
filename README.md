@@ -53,6 +53,8 @@ Here are some of the causes:
 
 - `VisualServer` has `set_data_partial`, but it's not implemented so editing terrain doesn't work. GLES2 should also support partial texture update.
 
+- GLES2 does not requires texture fetch from vertex shader to work, so some mobile devices implement it, others don't. This plugin heavily relies on displacing vertices from shader. Generating unique meshes would require a huge rewrite just so it works on those devices and would use a ton more memory to store all the required meshes.
+
 - The procedural generator doesn't work, and likely never will in GLES2 because it relies on HDR framebuffers.
 
 - For more info, see https://github.com/Zylann/godot_heightmap_plugin/issues/96
