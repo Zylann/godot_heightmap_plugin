@@ -387,7 +387,7 @@ func _ready():
 			splat = splat.linear_interpolate(Color(0,0,1,0), leaves_amount)
 
 			heightmap.set_pixel(x, z, Color(h, 0, 0))
-			normalmap.set_pixel(x, z, pack_normal(normal))
+			normalmap.set_pixel(x, z, HTerrainData.encode_normal(normal))
 			splatmap.set_pixel(x, z, splat)
 	
 	heightmap.unlock()
@@ -411,9 +411,4 @@ func _ready():
 	
 	# No need to call this, but you may need to if you edit the terrain later on
 	#terrain.update_collider()
-
-
-static func pack_normal(v):
-	v = 0.5 * (v + Vector3(1,1,1))
-	return Color(v.x, v.z, v.y)
 ```
