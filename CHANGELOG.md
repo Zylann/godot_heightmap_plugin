@@ -5,6 +5,20 @@ This is a high-level changelog for each released versions of the plugin.
 For a more detailed list of past and incoming changes, see the commit history.
 
 
+1.1
+--------
+
+- Added tool to export heightmap data to a raw file or image
+- Add ability to change base density of grass
+- Collision hits now report `collider` as the terrain node instead of `null`
+- Most of function signatures in the API now use typed GDScript
+- Fixed whitespace at the end of `plugin.gd` seen as an error in Godot 3.2
+- Fixed collider vertically offset due to a change in the Bullet module
+- Fixed inspector not updating properties when the shader is changed
+- Fixed terrain not saving if the scene is saved just after a non-undoable action (using a workaround)
+- Fixed terrain areas becoming black if resized bigger
+
+
 1.0.2
 ------
 
