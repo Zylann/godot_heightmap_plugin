@@ -354,7 +354,7 @@ func set_chunk_size(cs: int):
 	_reset_ground_chunks()
 
 
-func set_map_scale(p_map_scale: float):
+func set_map_scale(p_map_scale: Vector3):
 	if map_scale == p_map_scale:
 		return
 	var e = 0.01
