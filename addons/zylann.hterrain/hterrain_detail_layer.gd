@@ -35,6 +35,7 @@ export(Texture) var texture setget set_texture, get_texture;
 export(float) var view_distance = 100.0 setget set_view_distance, get_view_distance
 export(Shader) var custom_shader setget set_custom_shader, get_custom_shader
 export(float, 0, 10) var density = 4 setget set_density, get_density
+export(int) var billboard_scale = 1 setget set_billboard_scale, get_billboard_scale
 
 var _material: ShaderMaterial = null
 var _default_shader: Shader = null
@@ -213,7 +214,7 @@ func set_density(v: float):
 	density = v
 	# TODO Remove iteration of all chunks when Godot bug gets fixed
 	# See https://github.com/godotengine/godot/issues/32500
-	_multimesh = _generate_multimesh(CHUNK_SIZE, density, null)
+	_multimesh = _generate_multimesh(CHUNK_SIZE, density, null, billboard_scale)
 	for k in _chunks:
 		var mmi = _chunks[k]
 		mmi.set_multimesh(_multimesh)
@@ -221,6 +222,21 @@ func set_density(v: float):
 
 func get_density() -> float:
 	return density
+
+
+func set_billboard_scale(v: int):
+	if billboard_scale == v:
+		return
+	billboard_scale = v
+	
+	_multimesh = _generate_multimesh(CHUNK_SIZE, density, null, billboard_scale)
+	for k in _chunks:
+		var mmi = _chunks[k]
+		mmi.set_multimesh(_multimesh)
+
+
+func get_billboard_scale() -> int:
+	return billboard_scale
 
 
 # Updates texture references and values that come from the terrain itself.
@@ -379,7 +395,7 @@ func _load_chunk(terrain, cx: int, cz: int, aabb: AABB):
 		_multimesh_instance_pool.pop_back()
 	else:
 		if _multimesh == null:
-			_multimesh = _generate_multimesh(CHUNK_SIZE, density, null)
+			_multimesh = _generate_multimesh(CHUNK_SIZE, density, null, billboard_scale)
 		mmi = DirectMultiMeshInstance.new()
 		mmi.set_world(terrain.get_world())
 		mmi.set_multimesh(_multimesh)
@@ -490,13 +506,13 @@ func _add_debug_cube(terrain, aabb: AABB):
 	_debug_cubes.append(debug_cube)
 
 
-static func create_quad() -> Mesh:
+static func create_quad(scaled: int) -> Mesh:
 	# Vertical quad with the origin at the bottom edge
 	var positions = PoolVector3Array([
-		Vector3(-0.5, 0, 0),
-		Vector3(0.5, 0, 0),
-		Vector3(0.5, 1, 0),
-		Vector3(-0.5, 1, 0)
+		Vector3(-0.5 * scaled, 0, 0),
+		Vector3(0.5 * scaled, 0, 0),
+		Vector3(0.5 * scaled, 1 * scaled, 0),
+		Vector3(-0.5 * scaled, 1 * scaled, 0)
 	])
 	var normals = PoolVector3Array([
 		Vector3(0, 0, -1),
@@ -532,8 +548,8 @@ static func create_quad() -> Mesh:
 	return mesh
 
 
-static func _generate_multimesh(resolution: int, density: float, existing_multimesh: MultiMesh) -> MultiMesh:
-	var mesh = create_quad()
+static func _generate_multimesh(resolution: int, density: float, existing_multimesh: MultiMesh, scaled : int=1) -> MultiMesh:
+	var mesh = create_quad(scaled)
 
 	var position_randomness = 0.5
 	var scale_randomness = 0.0
