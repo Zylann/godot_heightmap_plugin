@@ -177,15 +177,16 @@ func _get_property_list():
 		}
 	]
 
-	var shader_params = VisualServer.shader_get_param_list(_material.shader.get_rid())
-	for p in shader_params:
-		if _api_shader_params.has(p.name):
-			continue
-		var cp = {}
-		for k in p:
-			cp[k] = p[k]
-		cp.name = str("shader_params/", p.name)
-		props.append(cp)
+	if _material.shader != null:
+		var shader_params = VisualServer.shader_get_param_list(_material.shader.get_rid())
+		for p in shader_params:
+			if _api_shader_params.has(p.name):
+				continue
+			var cp = {}
+			for k in p:
+				cp[k] = p[k]
+			cp.name = str("shader_params/", p.name)
+			props.append(cp)
 
 	for i in range(get_ground_texture_slot_count()):
 		for t in _ground_enum_to_name:
