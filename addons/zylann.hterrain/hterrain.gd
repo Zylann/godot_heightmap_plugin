@@ -503,6 +503,7 @@ func set_data(new_data: HTerrainData):
 		_on_data_resolution_changed()
 
 	_material_params_need_update = true
+	update_configuration_warning()
 	print("Set data done")
 
 
@@ -1172,6 +1173,13 @@ func _edit_set_manual_viewer_pos(pos: Vector3):
 
 func _edit_debug_draw(ci):
 	_lodder.debug_draw_tree(ci)
+
+
+func _get_configuration_warning():
+	if _data == null:
+		return "The terrain is missing data.\n" \
+			+ "Select the `Data Directory` property in the inspector to assign it."
+	return ""
 
 
 class PendingChunkUpdate:
