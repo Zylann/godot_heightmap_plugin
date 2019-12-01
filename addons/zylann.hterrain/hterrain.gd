@@ -55,6 +55,9 @@ const GROUND_ALBEDO_BUMP = 0
 const GROUND_NORMAL_ROUGHNESS = 1
 const GROUND_TEXTURE_TYPE_COUNT = 2
 
+const MIN_CHUNK_SIZE = 16
+const MAX_CHUNK_SIZE = 64
+
 const _ground_enum_to_name = [
 	"albedo_bump",
 	"normal_roughness"
@@ -91,7 +94,7 @@ var _lodder := QuadTreeLod.new()
 # [lod][z][x] -> chunk
 # This container owns chunks
 var _chunks := []
-var _chunk_size: int = 16
+var _chunk_size: int = 32
 var _pending_chunk_updates := []
 
 var _detail_layers := []
@@ -340,15 +343,16 @@ func get_chunk_size() -> int:
 	return _chunk_size
 
 
-func set_chunk_size(cs: int):
-	assert(typeof(cs) == TYPE_INT)
-	print("Setting chunk size to ", cs)
-	cs = Util.next_power_of_two(cs)
-	if cs < 16:
-		cs = 16
-	if cs > 32:
-		cs = 32
-	print("Chunk size snapped to ", cs)
+func set_chunk_size(p_cs: int):
+	assert(typeof(p_cs) == TYPE_INT)
+	print("Setting chunk size to ", p_cs)
+	var cs = Util.next_power_of_two(p_cs)
+	if cs < MIN_CHUNK_SIZE:
+		cs = MIN_CHUNK_SIZE
+	if cs > MAX_CHUNK_SIZE:
+		cs = MAX_CHUNK_SIZE
+	if p_cs != cs:
+		print("Chunk size snapped to ", cs)
 	if cs == _chunk_size:
 		return
 	_chunk_size = cs
