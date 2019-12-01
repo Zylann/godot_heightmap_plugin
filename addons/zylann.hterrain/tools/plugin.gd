@@ -30,7 +30,7 @@ const MENU_EXPORT_HEIGHTMAP = 6
 
 
 # TODO Rename _terrain
-var _node = null
+var _node : HTerrain = null
 
 var _panel = null
 var _toolbar = null
@@ -44,6 +44,8 @@ var _generate_mesh_dialog = null
 var _preview_generator = null
 var _resize_dialog = null
 var _globalmap_baker = null
+var _menu_button : MenuButton
+var _terrain_had_data_previous_frame = false
 
 var _brush = null
 var _brush_decal = null
@@ -107,6 +109,7 @@ func _enter_tree():
 	menu.get_popup().add_item("Export heightmap", MENU_EXPORT_HEIGHTMAP)
 	menu.get_popup().connect("id_pressed", self, "_menu_item_selected")
 	_toolbar.add_child(menu)
+	_menu_button = menu
 	
 	var mode_icons = {}
 	mode_icons[Brush.MODE_ADD] = get_icon("heightmap_raise")
@@ -268,6 +271,8 @@ func edit(object):
 		# Auto-select layer for painting
 		_panel.set_detail_layer_index(object.get_layer_index())
 		_on_detail_selected(object.get_layer_index())
+	
+	_update_toolbar_menu_availability()
 
 
 static func _get_terrain_from_object(object):
@@ -294,6 +299,22 @@ func _update_brush_buttons_availability():
 			if button.pressed:
 				_select_brush_mode(Brush.MODE_ADD)
 			button.disabled = true
+
+
+func _update_toolbar_menu_availability():
+	var data_available = false
+	if _node != null and _node.get_data() != null:
+		data_available = true
+	var popup : PopupMenu = _menu_button.get_popup()
+	for i in popup.get_item_count():
+		#var id = popup.get_item_id(i)
+		# Turn off items if there is no data for them to work on
+		if data_available:
+			popup.set_item_disabled(i, false)
+			popup.set_item_tooltip(i, "")
+		else:
+			popup.set_item_disabled(i, true)
+			popup.set_item_tooltip(i, "Terrain has no data")
 
 
 func make_visible(visible):
@@ -364,6 +385,8 @@ func forward_spatial_gui_input(p_camera, p_event):
 
 
 func _process(delta):
+	var has_data = false
+	
 	if _node != null:
 		if _pending_paint_action != null:
 			var override_mode = -1
@@ -371,6 +394,13 @@ func _process(delta):
 
 		if _pending_paint_completed:
 			paint_completed()
+		
+		has_data = (_node.get_data() != null)
+	
+	# Poll presence of data resource
+	if has_data != _terrain_had_data_previous_frame:
+		_terrain_had_data_previous_frame = has_data
+		_update_toolbar_menu_availability()
 
 	_pending_paint_completed = false
 	_pending_paint_action = null
