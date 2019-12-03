@@ -507,7 +507,10 @@ func set_data(new_data: HTerrainData):
 		_on_data_resolution_changed()
 
 	_material_params_need_update = true
-	update_configuration_warning()
+	
+	if has_method("update_configuration_warning"):
+		update_configuration_warning()
+	
 	print("Set data done")
 
 
