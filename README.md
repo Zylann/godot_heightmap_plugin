@@ -37,13 +37,13 @@ Why this is a plugin
 
 Godot has no terrain system for 3D at the moment, so I made one.
 The plugin is currently fully implemented in GDScript. I wish I could make it a C++ module, but being a GDScript plugin allows much faster iteration and everyone can try it and modify it much more easily. Eventually, one day some performance-sensitive areas could be implemented using GDNative, to optionally give some boost.
-There is a chance for Godot to get a built-in terrain system though, maybe in 3.2 or after, which is quite a long wait, so developping this plugin allows me to explore a lot of things up-front, such as procedural generation and editor tools, which could still be of use later.
+There is a chance for Godot to get a built-in terrain system though, maybe in 4.x or after, which is quite a long wait, so developping this plugin allows me to explore a lot of things up-front, such as procedural generation and editor tools, which could still be of use later.
 
 
 GLES2 support
 ---------------
 
-This plugin should work on GLES3, but could potentially work on GLES2 given the feature set that it should support. However, the plugin still cannot run on this renderer in Godot, which means it won't work on web exports and half of the mobile devices (low-end).
+Due to a number of things GLES2 doesn't support officially, and the disparity of extensions Godot is currently trying to use, making this plugin work in GLES2 is quite a lot of work. Some things might be easier, others need completely different implementations.
 
 Here are some of the causes:
 
@@ -53,7 +53,7 @@ Here are some of the causes:
 
 - `VisualServer` has `set_data_partial`, but it's not implemented so editing terrain doesn't work. GLES2 should also support partial texture update.
 
-- GLES2 does not requires texture fetch from vertex shader to work, so some mobile devices implement it, others don't. This plugin heavily relies on displacing vertices from shader. Generating unique meshes would require a huge rewrite just so it works on those devices and would use a ton more memory to store all the required meshes.
+- GLES2 does not require texture fetch from vertex shader to work, so some rare mobile devices implement it, others don't. This plugin heavily relies on displacing vertices from shader. Generating unique meshes would require a huge rewrite just so it works on those devices and would use a ton more memory to store all the required meshes and LODs.
 
 - The procedural generator doesn't work, and likely never will in GLES2 because it relies on HDR framebuffers.
 
