@@ -509,7 +509,7 @@ func set_data(new_data: HTerrainData):
 	_material_params_need_update = true
 	
 	if has_method("update_configuration_warning"):
-		update_configuration_warning()
+		call("update_configuration_warning")
 	
 	print("Set data done")
 
