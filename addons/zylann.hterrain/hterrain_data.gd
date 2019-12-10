@@ -1234,7 +1234,7 @@ func _import_heightmap(fpath: String, min_y: int, max_y: int) -> bool:
 		var h = 0.0
 		for y in range(0, rh):
 			for x in range(0, rw):
-				var gs = float(f.get_16()) / 65536.0
+				var gs = float(f.get_16()) / 65535.0
 				h = min_y + hrange * float(gs)
 				im.set_pixel(x, y, Color(h, 0, 0))
 			# Skip next pixels if the file is bigger than the accepted resolution
