@@ -5,6 +5,18 @@ This is a high-level changelog for each released versions of the plugin.
 For a more detailed list of past and incoming changes, see the commit history.
 
 
+1.1.1
+------
+
+- Added configuration warning if the terrain node has no data assigned
+- Grey out menu items if conditions for them to work aren't fulfilled.
+- Increased maximum chunk size to 64 to help performance tuning. Default is now 32.
+- Fixed `map_scale` not working
+- Fixed inspector becoming blank when shader type is set to "custom" while no shader was assigned yet
+- Fixed tiny imprecision when importing raw heightmaps
+- Fixed version check causing the collider to be offset in Godot 3.1.2
+
+
 1.1
 --------
 
