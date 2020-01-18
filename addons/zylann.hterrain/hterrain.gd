@@ -836,7 +836,7 @@ func _process(delta: float):
 		var u = _pending_chunk_updates[i]
 
 		# In case the chunk got split
-		for d in range(4):
+		for d in 4:
 
 			var ncpos_x = u.pos_x + s_dirs[d][0]
 			var ncpos_y = u.pos_y + s_dirs[d][1]
@@ -854,7 +854,7 @@ func _process(delta: float):
 			var cpos_upper_y = u.pos_y * 2
 			var nlod = u.lod - 1
 
-			for rd in range(8):
+			for rd in 8:
 
 				var ncpos_upper_x = cpos_upper_x + s_rdirs[rd][0]
 				var ncpos_upper_y = cpos_upper_y + s_rdirs[rd][1]
