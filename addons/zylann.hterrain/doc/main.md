@@ -109,7 +109,7 @@ Before you can paint, you have to set up ground textures. It is recommended to p
 
 ![Screenshot of the texture slots](images/texture_slots.png)
 
-You will notice 4 slots for these, next to the brush settings, named `ground0`, `ground1`, `ground2` and `cliff`. We'll see later about why the last one is named this way, for now just conider it's a regular slot like the others. Click on the first slot, and `Edit`, or double-click.
+You will notice 4 slots for these, next to the brush settings, named `ground0`, `ground1`, `ground2` and `cliff`. We'll see later about why the last one is named this way, for now just consider it's a regular slot like the others. Click on the first slot, and `Edit`, or double-click.
 
 ![Screenshot of the texture dialog](images/texture_dialog.png)
 
