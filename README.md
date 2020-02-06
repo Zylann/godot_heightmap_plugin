@@ -29,7 +29,7 @@ Usage
 
 - ![General documentation](addons/zylann.hterrain/doc/main.md)
 
-- I also made a video about the 0.8 version of the plugin: https://www.youtube.com/watch?v=eZuvfIHDeT4&
+- I also made a video about the 0.8 version of the plugin: https://www.youtube.com/watch?v=eZuvfIHDeT4& Careful, it's a bit old and may not entirely reflect the last version. Use the text docs for most up to date information.
 
 
 Why this is a plugin
