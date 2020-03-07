@@ -35,11 +35,11 @@ const MIN_PATCHES := 1
 # Maximum number of patches per grass instance.
 const MAX_PATCHES := 3
 
-export(int) var layer_index = 0 setget set_layer_index, get_layer_index
-export(Texture) var texture setget set_texture, get_texture;
-export(float) var view_distance = 100.0 setget set_view_distance, get_view_distance
+export(int) var layer_index: int = 0 setget set_layer_index, get_layer_index
+export(Texture) var texture: Texture setget set_texture, get_texture;
+export(float) var view_distance: float = 100.0 setget set_view_distance, get_view_distance
 export(Shader) var custom_shader setget set_custom_shader, get_custom_shader
-export(float, 0, 10) var density = 4 setget set_density, get_density
+export(float, 0, 10) var density: float = 4 setget set_density, get_density
 export(int, 1, 3) var patches: int = 3 setget set_patches, get_patches
 
 func set_patches(new_value: int):
@@ -512,31 +512,32 @@ func _add_debug_cube(terrain, aabb: AABB):
 
 static func create_quad() -> Mesh:
 	# Vertical quad with the origin at the bottom edge
-	var positions = PoolVector3Array([
-		Vector3(-0.5, 0, 0),
-		Vector3(0.5, 0, 0),
-		Vector3(0.5, 1, 0),
-		Vector3(-0.5, 1, 0)
+	var size := 0.5
+	var positions := PoolVector3Array([
+		Vector3(-size, 0, 0),
+		Vector3(size, 0, 0),
+		Vector3(size, 1, 0),
+		Vector3(-size, 1, 0),
 	])
-	var normals = PoolVector3Array([
+	var normals := PoolVector3Array([
 		Vector3(0, 0, -1),
 		Vector3(0, 0, -1),
 		Vector3(0, 0, -1),
 		Vector3(0, 0, -1)
 	])
-	var uvs = PoolVector2Array([
+	var uvs := PoolVector2Array([
 		Vector2(0, 1),
 		Vector2(1, 1),
 		Vector2(1, 0),
 		Vector2(0, 0)
 	])
-	var colors = PoolColorArray([
+	var colors := PoolColorArray([
 		Color(1, 1, 1),
 		Color(1, 1, 1),
 		Color(1, 1, 1),
 		Color(1, 1, 1)
 	])
-	var indices = PoolIntArray([
+	var indices := PoolIntArray([
 		0, 1, 2,
 		0, 2, 3
 	])
@@ -553,17 +554,17 @@ static func create_quad() -> Mesh:
 
 
 static func _generate_multimesh(resolution: int, density: float, patches: int, existing_multimesh: MultiMesh) -> MultiMesh:
-	var mesh = create_quad()
+	var mesh := create_quad()
 
-	var position_randomness = 0.5
-	var scale_randomness = 0.0
-	#var color_randomness = 0.5
+	var position_randomness := 0.5
+	var scale_randomness := 0.0
+	#var color_randomness := 0.5
+
+	var cell_count := resolution * resolution
+	var idensity := int(density)
+	var random_instance_count := int(cell_count * (density - floor(density)))
 	var total_instance_count := patches * (cell_count * idensity + random_instance_count)
 
-	var cell_count = resolution * resolution
-	var idensity = int(density)
-	var random_instance_count = int(cell_count * (density - floor(density)))
-	
 	var mm
 	if existing_multimesh != null:
 		mm = existing_multimesh
@@ -577,12 +578,11 @@ static func _generate_multimesh(resolution: int, density: float, patches: int, e
 
 	var patch_rotation := 180.0 / patches;
 	# First pass ensures uniform spread
-	var i = 0
+	var i := 0
 	for z in resolution:
 		for x in resolution:
 			for j in idensity:
-				
-				var pos = Vector3(x, 0, z)
+				var pos := Vector3(x, 0, z)
 				pos.x += rand_range(-position_randomness, position_randomness)
 				pos.z += rand_range(-position_randomness, position_randomness)
 
@@ -610,11 +610,11 @@ static func _generate_multimesh(resolution: int, density: float, patches: int, e
 
 static func _get_random_instance_basis(scale_randomness: float) -> Basis:
 
-	var sr = rand_range(0, scale_randomness)
-	var s = 1.0 + (sr * sr * sr * sr * sr) * 50.0
+	var sr := rand_range(0, scale_randomness)
+	var s := 1.0 + (sr * sr * sr * sr * sr) * 50.0
 
-	var basis = Basis()
+	var basis := Basis()
 	basis = basis.scaled(Vector3(1, s, 1))
 	basis = basis.rotated(Vector3(0, 1, 0), rand_range(0, PI))
-	
+
 	return basis
