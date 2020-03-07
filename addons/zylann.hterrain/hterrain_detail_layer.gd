@@ -30,6 +30,11 @@ const _API_SHADER_PARAMS = {
 	"u_ambient_wind": true
 }
 
+# Minimum number of patches per grass instance.
+const MIN_PATCHES := 1
+# Maximum number of patches per grass instance.
+const MAX_PATCHES := 3
+
 export(int) var layer_index = 0 setget set_layer_index, get_layer_index
 export(Texture) var texture setget set_texture, get_texture;
 export(float) var view_distance = 100.0 setget set_view_distance, get_view_distance
