@@ -35,6 +35,21 @@ export(Texture) var texture setget set_texture, get_texture;
 export(float) var view_distance = 100.0 setget set_view_distance, get_view_distance
 export(Shader) var custom_shader setget set_custom_shader, get_custom_shader
 export(float, 0, 10) var density = 4 setget set_density, get_density
+export(int, 1, 3) var patches: int = 3 setget set_patches, get_patches
+
+func set_patches(new_value: int):
+	if not (MIN_PATCHES <= new_value && new_value <= MAX_PATCHES):
+		return
+	patches = new_value
+	# TODO Remove iteration of all chunks when Godot bug gets fixed
+	# See https://github.com/godotengine/godot/issues/32500
+	_multimesh = _generate_multimesh(CHUNK_SIZE, density, patches, null)
+	for k in _chunks:
+		var mmi = _chunks[k]
+		mmi.set_multimesh(_multimesh)
+
+func get_patches() -> int:
+	return patches
 
 var _material: ShaderMaterial = null
 var _default_shader: Shader = null
@@ -213,7 +228,7 @@ func set_density(v: float):
 	density = v
 	# TODO Remove iteration of all chunks when Godot bug gets fixed
 	# See https://github.com/godotengine/godot/issues/32500
-	_multimesh = _generate_multimesh(CHUNK_SIZE, density, null)
+	_multimesh = _generate_multimesh(CHUNK_SIZE, density, patches, null)
 	for k in _chunks:
 		var mmi = _chunks[k]
 		mmi.set_multimesh(_multimesh)
@@ -379,7 +394,7 @@ func _load_chunk(terrain, cx: int, cz: int, aabb: AABB):
 		_multimesh_instance_pool.pop_back()
 	else:
 		if _multimesh == null:
-			_multimesh = _generate_multimesh(CHUNK_SIZE, density, null)
+			_multimesh = _generate_multimesh(CHUNK_SIZE, density, patches, null)
 		mmi = DirectMultiMeshInstance.new()
 		mmi.set_world(terrain.get_world())
 		mmi.set_multimesh(_multimesh)
@@ -532,17 +547,17 @@ static func create_quad() -> Mesh:
 	return mesh
 
 
-static func _generate_multimesh(resolution: int, density: float, existing_multimesh: MultiMesh) -> MultiMesh:
+static func _generate_multimesh(resolution: int, density: float, patches: int, existing_multimesh: MultiMesh) -> MultiMesh:
 	var mesh = create_quad()
 
 	var position_randomness = 0.5
 	var scale_randomness = 0.0
 	#var color_randomness = 0.5
+	var total_instance_count := patches * (cell_count * idensity + random_instance_count)
 
 	var cell_count = resolution * resolution
 	var idensity = int(density)
 	var random_instance_count = int(cell_count * (density - floor(density)))
-	var total_instance_count = cell_count * idensity + random_instance_count
 	
 	var mm
 	if existing_multimesh != null:
@@ -555,6 +570,7 @@ static func _generate_multimesh(resolution: int, density: float, existing_multim
 	mm.instance_count = total_instance_count
 	mm.mesh = mesh
 
+	var patch_rotation := 180.0 / patches;
 	# First pass ensures uniform spread
 	var i = 0
 	for z in resolution:
@@ -565,16 +581,24 @@ static func _generate_multimesh(resolution: int, density: float, existing_multim
 				pos.x += rand_range(-position_randomness, position_randomness)
 				pos.z += rand_range(-position_randomness, position_randomness)
 
-				mm.set_instance_color(i, Color(1, 1, 1))
-				mm.set_instance_transform(i, Transform(_get_random_instance_basis(scale_randomness), pos))
-				i += 1
-	
+				var patch_color := Color(1.0, 1.0, 1.0)
+				var patch_basis := _get_random_instance_basis(scale_randomness)
+				for n in range(0, patches):
+					mm.set_instance_color(i+n, patch_color)
+					var basis := patch_basis.rotated(Vector3(0, 1, 0), deg2rad(n * patch_rotation))
+					mm.set_instance_transform(i+n, Transform(basis, pos))
+				i += patches
+
 	# Second pass adds the rest
 	for j in random_instance_count:
-		var pos = Vector3(rand_range(0, resolution), 0, rand_range(0, resolution))
-		mm.set_instance_color(i, Color(1, 1, 1))
-		mm.set_instance_transform(i, Transform(_get_random_instance_basis(scale_randomness), pos))
-		i += 1
+		var pos := Vector3(rand_range(0, resolution), 0, rand_range(0, resolution))
+		var patch_color := Color(1.0, 1.0, 1.0)
+		var patch_basis := _get_random_instance_basis(scale_randomness)
+		for n in range(0, patches):
+			mm.set_instance_color(i+n, patch_color)
+			var basis := patch_basis.rotated(Vector3(0, 1, 0), deg2rad(n * patch_rotation))
+			mm.set_instance_transform(i+n, Transform(basis, pos))
+		i += patches
 
 	return mm
 
