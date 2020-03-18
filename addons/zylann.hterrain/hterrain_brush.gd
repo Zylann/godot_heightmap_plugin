@@ -280,6 +280,7 @@ func paint(height_map, cell_pos_x, cell_pos_y, override_mode):
 # TODO Erk!
 static func _foreach_xy(op, data, origin_x, origin_y, speed, opacity, shape):
 
+	#print("image: ",im["height"],", ",im["width"])
 	var shape_size = shape.get_width()
 	assert(shape.get_width() == shape.get_height())
 
@@ -329,7 +330,27 @@ class OperatorSum:
 	func exec(data, pos_x, pos_y, v):
 		sum += _im.get_pixel(pos_x, pos_y).r * v
 
-
+class OperatorGetPlain:
+	
+	var plain : Image # a map of the  brush area with two overlapping gradiets denoting the slope
+	func _init(im : Image, pos_x : int , pos_y : int, brush_width : float) -> void: # pos_x/y are 0 at bottom left
+		print(pos_x,", ", pos_y,", ", brush_width, "image: ",im.get_height(),", ", im.get_width())
+		print(im.get_pixel(pos_x, pos_y))
+		plain = Image.new()
+		plain.create(brush_width,brush_width,im.has_mipmaps(), im.get_format())
+		var x_min_val = im.get_pixel(pos_x, pos_y + brush_width/2) # left
+		var x_max_val = im.get_pixel(pos_x + brush_width, pos_y + brush_width/2) # right
+		var y_min_val = im.get_pixel(pos_x + brush_width/2, pos_y) # bottom
+		var y_max_val = im.get_pixel(pos_x + brush_width/2, pos_y + brush_width)
+		plain.lock()
+		for y in plain.get_height():
+			var y_grad = lerp(y_min_val, y_max_val, y/plain.get_height())
+			for x in plain.get_width():
+				var x_grad = lerp(x_min_val, x_max_val, x/plain.get_width())
+				var col = (x_grad + y_grad)/2 as float
+				plain.set_pixel(x, y, col)
+		plain.unlock()
+		
 class OperatorLerp:
 
 	var target = 0.0
@@ -426,16 +447,20 @@ func _paint_height(data, origin_x, origin_y, speed):
 
 func _smooth_height(data, origin_x, origin_y, speed):
 	_true_smooth_height(data, origin_x, origin_y, speed)
-#	var im = data.get_image(HTerrainData.CHANNEL_HEIGHT)
+#	var im : Image = data.get_image(HTerrainData.CHANNEL_HEIGHT)
+#	print(im.get_format())
 #	assert(im != null)
 #
 #	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
 #
 #	im.lock()
 #
+#	# GET AVERAGE PIXEL VALUE WITHIN BRUSH  (in sum_op.sum)
 #	var sum_op = OperatorSum.new(im)
 #	# Perform sum at full opacity, we'll use it for the next operation
 #	_foreach_xy(sum_op, data, origin_x, origin_y, 1.0, 1.0, _shape)
+#
+#	# The desired value for every pixel is the mean of the values within the brush
 #	var target_value = sum_op.sum / float(_shape_sum)
 #
 #	var lerp_op = OperatorLerp.new(target_value, im)
@@ -452,13 +477,14 @@ func _true_smooth_height(data, origin_x, origin_y, speed):
 
 	im.lock()
 
-	var sum_op = OperatorSum.new(im)
-	# Perform sum at full opacity, we'll use it for the next operation
-	_foreach_xy(sum_op, data, origin_x, origin_y, 1.0, 1.0, _shape)
-	var target_value = sum_op.sum / float(_shape_sum)
 
-	var lerp_op = OperatorLerp.new(target_value, im)
-	_foreach_xy(lerp_op, data, origin_x, origin_y, speed, _opacity, _shape)
+	var plain_op = OperatorGetPlain.new(im, origin_x, origin_y, _shape_size)
+#	# Perform sum at full opacity, we'll use it for the next operation
+#	_foreach_xy(sum_op, data, origin_x, origin_y, 1.0, 1.0, _shape)
+#	var target_value = sum_op.sum / float(_shape_sum)
+#
+#	var lerp_op = OperatorLerp.new(target_value, im)
+#	_foreach_xy(lerp_op, data, origin_x, origin_y, speed, _opacity, _shape)
 
 	im.unlock()
 
