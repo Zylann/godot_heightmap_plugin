@@ -425,7 +425,26 @@ func _paint_height(data, origin_x, origin_y, speed):
 
 
 func _smooth_height(data, origin_x, origin_y, speed):
+	_true_smooth_height(data, origin_x, origin_y, speed)
+#	var im = data.get_image(HTerrainData.CHANNEL_HEIGHT)
+#	assert(im != null)
+#
+#	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
+#
+#	im.lock()
+#
+#	var sum_op = OperatorSum.new(im)
+#	# Perform sum at full opacity, we'll use it for the next operation
+#	_foreach_xy(sum_op, data, origin_x, origin_y, 1.0, 1.0, _shape)
+#	var target_value = sum_op.sum / float(_shape_sum)
+#
+#	var lerp_op = OperatorLerp.new(target_value, im)
+#	_foreach_xy(lerp_op, data, origin_x, origin_y, speed, _opacity, _shape)
+#
+#	im.unlock()
 
+
+func _true_smooth_height(data, origin_x, origin_y, speed):
 	var im = data.get_image(HTerrainData.CHANNEL_HEIGHT)
 	assert(im != null)
 
@@ -442,7 +461,6 @@ func _smooth_height(data, origin_x, origin_y, speed):
 	_foreach_xy(lerp_op, data, origin_x, origin_y, speed, _opacity, _shape)
 
 	im.unlock()
-
 
 func _flatten(data, origin_x, origin_y):
 
