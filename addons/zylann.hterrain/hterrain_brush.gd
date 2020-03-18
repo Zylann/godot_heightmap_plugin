@@ -338,7 +338,6 @@ func get_plain(im : Image, pos_x : int , pos_y : int, brush_width : int) -> Imag
 	var x_max_val = im.get_pixel(pos_x + brush_width, pos_y + brush_width/2).r # right
 	var y_min_val = im.get_pixel(pos_x + brush_width/2, pos_y).r # top
 	var y_max_val = im.get_pixel(pos_x + brush_width/2, pos_y + brush_width).r # botom
-	print(x_max_val,",",x_max_val,",",y_min_val,",",y_max_val)
 	
 	plain.lock()
 	for y in plain.get_height():
@@ -497,12 +496,7 @@ func _true_smooth_height(data, origin_x, origin_y, speed):
 	assert(im != null)
 
 	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
-
-	print("calling plain, im is image",im is Image)
-	
 	var plain : Image = get_plain(im, origin_x, origin_y, _shape_size)
-	im.save_png("../im.png")
-	plain.save_png("../plain.png")
 	im.lock()
 	plain.lock()
 	var lerp_op_map = OperatorLerpMap.new(plain, im, origin_x, origin_y)
@@ -543,7 +537,7 @@ func _paint_splat(data, origin_x, origin_y):
 	min_y = Util.clamp_int(min_y, 0, data.get_resolution())
 	max_x = Util.clamp_int(max_x, 0, data.get_resolution())
 	max_y = Util.clamp_int(max_y, 0, data.get_resolution())
-
+	
 	im.lock()
 
 	if _texture_mode == HTerrain.SHADER_SIMPLE4:
