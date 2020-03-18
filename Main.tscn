@@ -5,6 +5,9 @@
 
 [node name="Main" type="Spatial"]
 
+[node name="DirectionalLight" type="DirectionalLight" parent="."]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 386.743, 0 )
+
 [node name="HTerrain" type="Spatial" parent="."]
 script = ExtResource( 2 )
 _terrain_data = ExtResource( 1 )
@@ -24,6 +27,3 @@ ground/albedo_bump_2 = null
 ground/normal_roughness_2 = null
 ground/albedo_bump_3 = null
 ground/normal_roughness_3 = null
-
-[node name="DirectionalLight" type="DirectionalLight" parent="."]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 386.743, 0 )

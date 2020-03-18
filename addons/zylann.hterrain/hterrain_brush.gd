@@ -280,7 +280,6 @@ func paint(height_map, cell_pos_x, cell_pos_y, override_mode):
 # TODO Erk!
 static func _foreach_xy(op, data, origin_x, origin_y, speed, opacity, shape):
 
-	#print("image: ",im["height"],", ",im["width"])
 	var shape_size = shape.get_width()
 	assert(shape.get_width() == shape.get_height())
 
@@ -330,27 +329,53 @@ class OperatorSum:
 	func exec(data, pos_x, pos_y, v):
 		sum += _im.get_pixel(pos_x, pos_y).r * v
 
-class OperatorGetPlain:
-	
+func get_plain(im : Image, pos_x : int , pos_y : int, brush_width : int) -> Image: # pos_x/y are 0 at bottom left
 	var plain : Image # a map of the  brush area with two overlapping gradiets denoting the slope
-	func _init(im : Image, pos_x : int , pos_y : int, brush_width : float) -> void: # pos_x/y are 0 at bottom left
-		print(pos_x,", ", pos_y,", ", brush_width, "image: ",im.get_height(),", ", im.get_width())
-		print(im.get_pixel(pos_x, pos_y))
-		plain = Image.new()
-		plain.create(brush_width,brush_width,im.has_mipmaps(), im.get_format())
-		var x_min_val = im.get_pixel(pos_x, pos_y + brush_width/2) # left
-		var x_max_val = im.get_pixel(pos_x + brush_width, pos_y + brush_width/2) # right
-		var y_min_val = im.get_pixel(pos_x + brush_width/2, pos_y) # bottom
-		var y_max_val = im.get_pixel(pos_x + brush_width/2, pos_y + brush_width)
-		plain.lock()
-		for y in plain.get_height():
-			var y_grad = lerp(y_min_val, y_max_val, y/plain.get_height())
-			for x in plain.get_width():
-				var x_grad = lerp(x_min_val, x_max_val, x/plain.get_width())
-				var col = (x_grad + y_grad)/2 as float
-				plain.set_pixel(x, y, col)
-		plain.unlock()
-		
+	im.lock()
+	plain = Image.new()
+	
+	plain.create(brush_width,brush_width,im.has_mipmaps(), im.get_format())
+	var x_min_val = im.get_pixel(pos_x, pos_y + brush_width/2).r # left
+	var x_max_val = im.get_pixel(pos_x + brush_width, pos_y + brush_width/2).r # right
+	var y_min_val = im.get_pixel(pos_x + brush_width/2, pos_y).r # top
+	var y_max_val = im.get_pixel(pos_x + brush_width/2, pos_y + brush_width).r # botom
+	print(x_max_val,",",x_max_val,",",y_min_val,",",y_max_val)
+	
+	plain.lock()
+	print("start", brush_width)
+	for y in plain.get_height():
+		#print(y, " divided by ", brush_width, " is ", float(y)/float(brush_width))
+		var y_grad = lerp(y_min_val, y_max_val, float(y)/float(plain.get_height()))
+		#print(y," from ",y_min_val," to ",y_max_val, ", with ",float(y)/float(plain.get_height())," is ",y_grad)
+		for x in plain.get_width():
+			var x_grad = lerp(x_min_val, x_max_val, float(x)/float(plain.get_width()))
+			var this_red = (x_grad + y_grad)/2
+			#this_red = (1/this_red)*sqrt(this_red)
+			plain.set_pixel(x, y, Color(this_red, 0, 0, 1))
+	plain.unlock()
+	im.unlock()
+	return plain
+
+class OperatorLerpMap: # Lerps between the values of the target map and the actual image
+
+	var target_map : Image
+	var _im = null
+	# How what the position of target_map in the im is
+	var off_x
+	var off_y
+	func _init(map : Image, im, offset_x, offset_y):
+		target_map = map
+		_im = im
+		off_x = offset_x
+		off_y = offset_y
+	
+	func exec(data, pos_x, pos_y, v):
+		var c = _im.get_pixel(pos_x, pos_y)
+		var target =  target_map.get_pixel(pos_x - off_x, pos_y - off_y)
+		var distance = abs(target.r - c.r) # Change is proportional to distance
+		c = lerp(c, target, v*distance)
+		_im.set_pixel(pos_x, pos_y, c)
+	
 class OperatorLerp:
 
 	var target = 0.0
@@ -475,17 +500,16 @@ func _true_smooth_height(data, origin_x, origin_y, speed):
 
 	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
 
+	print("calling plain, im is image",im is Image)
+	
+	var plain : Image = get_plain(im, origin_x, origin_y, _shape_size)
+	im.save_png("../im.png")
+	plain.save_png("../plain.png")
 	im.lock()
-
-
-	var plain_op = OperatorGetPlain.new(im, origin_x, origin_y, _shape_size)
-#	# Perform sum at full opacity, we'll use it for the next operation
-#	_foreach_xy(sum_op, data, origin_x, origin_y, 1.0, 1.0, _shape)
-#	var target_value = sum_op.sum / float(_shape_sum)
-#
-#	var lerp_op = OperatorLerp.new(target_value, im)
-#	_foreach_xy(lerp_op, data, origin_x, origin_y, speed, _opacity, _shape)
-
+	plain.lock()
+	var lerp_op_map = OperatorLerpMap.new(plain, im, origin_x, origin_y)
+	_foreach_xy(lerp_op_map, data, origin_x, origin_y, speed, _opacity, _shape)
+	plain.unlock()
 	im.unlock()
 
 func _flatten(data, origin_x, origin_y):
