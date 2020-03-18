@@ -333,7 +333,6 @@ func get_plain(im : Image, pos_x : int , pos_y : int, brush_width : int) -> Imag
 	var plain : Image # a map of the  brush area with two overlapping gradiets denoting the slope
 	im.lock()
 	plain = Image.new()
-	
 	plain.create(brush_width,brush_width,im.has_mipmaps(), im.get_format())
 	var x_min_val = im.get_pixel(pos_x, pos_y + brush_width/2).r # left
 	var x_max_val = im.get_pixel(pos_x + brush_width, pos_y + brush_width/2).r # right
@@ -342,7 +341,6 @@ func get_plain(im : Image, pos_x : int , pos_y : int, brush_width : int) -> Imag
 	print(x_max_val,",",x_max_val,",",y_min_val,",",y_max_val)
 	
 	plain.lock()
-	print("start", brush_width)
 	for y in plain.get_height():
 		#print(y, " divided by ", brush_width, " is ", float(y)/float(brush_width))
 		var y_grad = lerp(y_min_val, y_max_val, float(y)/float(plain.get_height()))
@@ -350,13 +348,12 @@ func get_plain(im : Image, pos_x : int , pos_y : int, brush_width : int) -> Imag
 		for x in plain.get_width():
 			var x_grad = lerp(x_min_val, x_max_val, float(x)/float(plain.get_width()))
 			var this_red = (x_grad + y_grad)/2
-			#this_red = (1/this_red)*sqrt(this_red)
 			plain.set_pixel(x, y, Color(this_red, 0, 0, 1))
 	plain.unlock()
 	im.unlock()
 	return plain
 
-class OperatorLerpMap: # Lerps between the values of the target map and the actual image
+class OperatorLerpMap: # Transitions between the values of the target map and the actual image (not actually linear)
 
 	var target_map : Image
 	var _im = null
@@ -373,6 +370,7 @@ class OperatorLerpMap: # Lerps between the values of the target map and the actu
 		var c = _im.get_pixel(pos_x, pos_y)
 		var target =  target_map.get_pixel(pos_x - off_x, pos_y - off_y)
 		var distance = abs(target.r - c.r) # Change is proportional to distance
+		distance = sqrt(distance)
 		c = lerp(c, target, v*distance)
 		_im.set_pixel(pos_x, pos_y, c)
 	
