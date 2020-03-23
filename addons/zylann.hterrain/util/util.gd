@@ -1,6 +1,6 @@
 tool
 
-static func next_power_of_two(x):
+static func next_power_of_two(x: int) -> int:
 	x -= 1
 	x |= x >> 1
 	x |= x >> 2
@@ -11,26 +11,26 @@ static func next_power_of_two(x):
 	return x
 
 
-static func encode_v2i(x, y):
+static func encode_v2i(x: int, y: int):
 	return (x & 0xffff) | ((y << 16) & 0xffff0000)  
 
 
-static func decode_v2i(k):
+static func decode_v2i(k: int) -> Array:
 	return [
 		k & 0xffff,
 		(k >> 16) & 0xffff
 	]
 
 
-static func min_int(a, b):
+static func min_int(a: int, b: int) -> int:
 	return a if a < b else b
 
 
-static func max_int(a, b):
+static func max_int(a: int, b: int) -> int:
 	return a if a > b else b
 
 
-static func clamp_int(x, a, b):
+static func clamp_int(x: int, a: int, b: int) -> int:
 	if x < a:
 		return a
 	if x > b:
@@ -45,8 +45,8 @@ static func array_sum(a):
 	return s
 
 
-static func create_wirecube_mesh(color = Color(1,1,1)):
-	var positions = PoolVector3Array([
+static func create_wirecube_mesh(color = Color(1,1,1)) -> Mesh:
+	var positions := PoolVector3Array([
 		Vector3(0, 0, 0),
 		Vector3(1, 0, 0),
 		Vector3(1, 0, 1),
@@ -56,11 +56,11 @@ static func create_wirecube_mesh(color = Color(1,1,1)):
 		Vector3(1, 1, 1),
 		Vector3(0, 1, 1),
 	])
-	var colors = PoolColorArray([
+	var colors := PoolColorArray([
 		color, color, color, color,
 		color, color, color, color,
 	])
-	var indices = PoolIntArray([
+	var indices := PoolIntArray([
 		0, 1,
 		1, 2,
 		2, 3,
@@ -76,17 +76,17 @@ static func create_wirecube_mesh(color = Color(1,1,1)):
 		2, 6,
 		3, 7
 	])
-	var arrays = []
+	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = positions
 	arrays[Mesh.ARRAY_COLOR] = colors
 	arrays[Mesh.ARRAY_INDEX] = indices
-	var mesh = ArrayMesh.new()
+	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_LINES, arrays)
 	return mesh
 
 
-static func integer_square_root(x):
+static func integer_square_root(x: int) -> int:
 	assert(typeof(x) == TYPE_INT)
 	var r = int(round(sqrt(x)))
 	if r * r == x:
@@ -96,7 +96,7 @@ static func integer_square_root(x):
 	return -1
 
 
-static func format_integer(n, sep = ","):
+static func format_integer(n: int, sep := ",") -> String:
 	assert(typeof(n) == TYPE_INT)
 	
 	var negative = false
@@ -115,7 +115,7 @@ static func format_integer(n, sep = ","):
 		return str(str(n), s)
 
 
-static func get_node_in_parents(node, klass):
+static func get_node_in_parents(node: Node, klass) -> Node:
 	while node != null:
 		node = node.get_parent()
 		if node != null and node is klass:
@@ -123,7 +123,7 @@ static func get_node_in_parents(node, klass):
 	return null
 
 
-static func is_in_edited_scene(node):
+static func is_in_edited_scene(node: Node) -> bool:
 	if not node.is_inside_tree():
 		return false
 	var edited_scene = node.get_tree().edited_scene_root
@@ -135,7 +135,9 @@ static func is_in_edited_scene(node):
 # Get an extended or cropped version of an image,
 # with optional anchoring to decide in which direction to extend or crop.
 # New pixels are filled with the provided fill color.
-static func get_cropped_image(src, width, height, fill_color=null, anchor=Vector2(-1, -1)):
+static func get_cropped_image(src: Image, width: int, height: int, 
+	fill_color=null, anchor=Vector2(-1, -1)) -> Image:
+	
 	width = int(width)
 	height = int(height)
 	if width == src.get_width() and height == src.get_height():
@@ -144,19 +146,22 @@ static func get_cropped_image(src, width, height, fill_color=null, anchor=Vector
 	im.create(width, height, false, src.get_format())
 	if fill_color != null:
 		im.fill(fill_color)
-	var p = get_cropped_image_params(src.get_width(), src.get_height(), width, height, anchor)
+	var p = get_cropped_image_params(
+		src.get_width(), src.get_height(), width, height, anchor)
 	im.blit_rect(src, p.src_rect, p.dst_pos)
 	return im
 
 
-static func get_cropped_image_params(src_w, src_h, dst_w, dst_h, anchor):
-	var rel_anchor = (anchor + Vector2(1, 1)) / 2.0
+static func get_cropped_image_params(src_w: int, src_h: int, dst_w: int, dst_h: int,
+	 anchor: Vector2) -> Dictionary:
+		
+	var rel_anchor := (anchor + Vector2(1, 1)) / 2.0
 
-	var dst_x = (dst_w - src_w) * rel_anchor.x
-	var dst_y = (dst_h - src_h) * rel_anchor.y
+	var dst_x := (dst_w - src_w) * rel_anchor.x
+	var dst_y := (dst_h - src_h) * rel_anchor.y
 	
-	var src_x = 0
-	var src_y = 0
+	var src_x := 0
+	var src_y := 0
 	
 	if dst_x < 0:
 		src_x -= dst_x
@@ -181,7 +186,7 @@ static func get_cropped_image_params(src_w, src_h, dst_w, dst_h, anchor):
 
 # TODO Workaround for https://github.com/godotengine/godot/issues/24488
 # TODO Simplify in Godot 3.1 if that's still not fixed, using https://github.com/godotengine/godot/pull/21806
-static func get_shader_param_or_default(mat, name):
+static func get_shader_param_or_default(mat: Material, name: String):
 	var v = mat.get_shader_param(name)
 	if v != null:
 		return v

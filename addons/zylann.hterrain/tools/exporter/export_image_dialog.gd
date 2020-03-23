@@ -10,13 +10,13 @@ const FORMAT_R16 = 1
 const FORMAT_PNG8 = 2
 const FORMAT_COUNT = 3
 
-onready var _grid = get_node("VBoxContainer/GridContainer")
+onready var _grid = $VBoxContainer/GridContainer
 onready var _output_path_line_edit = _grid.get_node("OutputPathControl/HeightmapPathLineEdit")
 onready var _format_selector = _grid.get_node("FormatSelector")
 onready var _height_range_min_spinbox = _grid.get_node("HeightRange/HeightRangeMin")
 onready var _height_range_max_spinbox = _grid.get_node("HeightRange/HeightRangeMax")
-onready var _export_button = get_node("VBoxContainer/Buttons/ExportButton")
-onready var _show_in_explorer_checkbox = get_node("VBoxContainer/ShowInExplorerCheckbox")
+onready var _export_button = $VBoxContainer/Buttons/ExportButton
+onready var _show_in_explorer_checkbox = $VBoxContainer/ShowInExplorerCheckbox
 
 var _terrain = null
 var _file_dialog = null

@@ -5,8 +5,8 @@ const HTerrain = preload("../../hterrain.gd")
 
 signal texture_selected(index)
 
-onready var _textures_list = get_node("TexturesContainer")
-onready var _edit_dialog = get_node("EditDialog")
+onready var _textures_list = $TexturesContainer
+onready var _edit_dialog = $EditDialog
 
 var _terrain = null
 

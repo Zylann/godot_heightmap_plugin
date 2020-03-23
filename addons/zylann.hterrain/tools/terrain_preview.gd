@@ -8,19 +8,19 @@ const Util = preload("../util/util.gd")
 
 signal dragged(relative, button_mask)
 
-onready var _viewport = get_node("Viewport")
-onready var _mesh_instance = get_node("Viewport/MeshInstance")
-onready var _camera = get_node("Viewport/Camera")
-onready var _light = get_node("Viewport/DirectionalLight")
+onready var _viewport = $Viewport
+onready var _mesh_instance = $Viewport/MeshInstance
+onready var _camera = $Viewport/Camera
+onready var _light = $Viewport/DirectionalLight
 
 # Use the simplest shader
 var _shader = load("res://addons/zylann.hterrain/shaders/simple4_lite.shader")
-var _yaw = 0.0
-var _pitch = -PI / 6.0
-var _distance = 0.0
-var _default_distance = 0.0
-var _sea_outline = null
-var _sea_plane = null
+var _yaw := 0.0
+var _pitch := -PI / 6.0
+var _distance := 0.0
+var _default_distance := 0.0
+var _sea_outline : MeshInstance = null
+var _sea_plane : MeshInstance = null
 
 
 func _ready():
@@ -48,12 +48,13 @@ func _ready():
 		_viewport.add_child(_sea_plane)
 
 
-func setup(heights_texture, normals_texture):
+func setup(heights_texture: Texture, normals_texture: Texture):
 	var mat = null
 	if _mesh_instance.mesh == null or not (_mesh_instance.mesh is ArrayMesh):
 		var terrain_size = heights_texture.get_width()
 		var mesh_resolution = terrain_size / PREVIEW_MESH_LOD
-		var mesh = HTerrainMesher.make_flat_chunk(mesh_resolution, mesh_resolution, PREVIEW_MESH_LOD, 0)
+		var mesh = HTerrainMesher.make_flat_chunk(
+			mesh_resolution, mesh_resolution, PREVIEW_MESH_LOD, 0)
 		mat = ShaderMaterial.new()
 		mat.shader = _shader
 		mesh.surface_set_material(0, mat)
@@ -77,11 +78,11 @@ func setup(heights_texture, normals_texture):
 	_sea_plane.translation = Vector3(aabb.size.x, 0, aabb.size.z) / 2.0
 
 
-func set_sea_visible(visible):
+func set_sea_visible(visible: bool):
 	_sea_plane.visible = visible
 
 
-func set_shadows_enabled(enabled):
+func set_shadows_enabled(enabled: bool):
 	_light.shadow_enabled = enabled
 
 
@@ -103,7 +104,7 @@ func cleanup():
 		mat.set_shader_param("u_terrain_normalmap", null)
 
 
-func _gui_input(event):
+func _gui_input(event: InputEvent):
 	if Util.is_in_edited_scene(self):
 		return
 	

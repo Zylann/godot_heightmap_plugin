@@ -21,28 +21,28 @@ const EDIT_CHUNK_SIZE = 16
 
 signal shape_changed(shape)
 
-var _radius = 0
-var _opacity = 1.0
-var _shape = null # Image
-var _shape_sum = 0.0
-var _shape_source = null
-var _shape_size = 0
-var _mode = MODE_ADD
-var _flatten_height = 0.0
-var _texture_index = 0
-var _detail_index = 0
-var _detail_density = 1.0
-var _texture_mode = HTerrain.SHADER_SIMPLE4
-var _color = Color(1, 1, 1)
-var _mask_flag = false
-var _undo_cache = {}
+var _radius := 0
+var _opacity := 1.0
+var _shape : Image = null
+var _shape_sum := 0.0
+var _shape_source : Image = null
+var _shape_size := 0
+var _mode := MODE_ADD
+var _flatten_height := 0.0
+var _texture_index := 0
+var _detail_index := 0
+var _detail_density := 1.0
+var _texture_mode := HTerrain.SHADER_SIMPLE4
+var _color := Color(1, 1, 1)
+var _mask_flag := false
+var _undo_cache := {}
 
 
-func get_mode():
+func get_mode() -> int:
 	return _mode
 
 
-func set_mode(mode):
+func set_mode(mode: int):
 	assert(mode < MODE_COUNT)
 	_mode = mode;
 	# Different mode might affect other channels,
@@ -50,7 +50,7 @@ func set_mode(mode):
 	_undo_cache.clear()
 
 
-func set_radius(p_radius):
+func set_radius(p_radius: int):
 	assert(typeof(p_radius) == TYPE_INT)
 	if p_radius != _radius:
 		assert(p_radius > 0)
@@ -58,15 +58,15 @@ func set_radius(p_radius):
 		_update_shape()
 
 
-func get_radius():
+func get_radius() -> int:
 	return _radius
 
 
-func get_shape():
+func get_shape() -> Image:
 	return _shape
 
 
-func set_shape(im):
+func set_shape(im: Image):
 	_shape_source = im
 	_update_shape()
 
@@ -78,34 +78,34 @@ func _update_shape():
 		_generate_procedural(_radius)
 
 
-func set_opacity(opacity):
+func set_opacity(opacity: float):
 	_opacity = clamp(opacity, 0, 1)
 
 
-func get_opacity():
+func get_opacity() -> float:
 	return _opacity
 
 
-func set_flatten_height(flatten_height):
+func set_flatten_height(flatten_height: float):
 	_flatten_height = flatten_height
 
 
-func get_flatten_height():
+func get_flatten_height() -> float:
 	return _flatten_height
 
 
-func set_texture_index(tid):
+func set_texture_index(tid: int):
 	assert(tid >= 0)
 	var slot_count = HTerrain.get_ground_texture_slot_count_for_shader(_texture_mode)
 	assert(tid < slot_count)
 	_texture_index = tid
 
 
-func get_texture_index():
+func get_texture_index() -> int:
 	return _texture_index
 
 
-func set_detail_index(index):
+func set_detail_index(index: int):
 	assert(index >= 0)
 	_detail_index = index
 
@@ -114,37 +114,37 @@ func set_detail_index(index):
 # 	return _detail_index
 
 
-func get_detail_density():
+func get_detail_density() -> float:
 	return _detail_density
 
 
-func set_detail_density(v):
+func set_detail_density(v: float):
 	_detail_density = clamp(v, 0, 1)
 
 
-func set_color(c):
+func set_color(c: Color):
 	# Color might be useful for custom shading
 	_color = c
 
 
-func get_color():
+func get_color() -> Color:
 	return _color
 
 
-func get_mask_flag():
+func get_mask_flag() -> bool:
 	return _mask_flag
 
 
-func set_mask_flag(v):
+func set_mask_flag(v: bool):
 	assert(typeof(v) == TYPE_BOOL)
 	_mask_flag = v
 
 
-func _generate_procedural(radius):
+func _generate_procedural(radius: int):
 	assert(typeof(radius) == TYPE_INT)
 	assert(radius > 0)
 
-	var size = 2 * radius
+	var size := 2 * radius
 
 	_shape = Image.new()
 	_shape.create(size, size, 0, Image.FORMAT_RF)
@@ -157,8 +157,8 @@ func _generate_procedural(radius):
 	for y in range(-radius, radius):
 		for x in range(-radius, radius):
 
-			var d = Vector2(x, y).distance_to(Vector2(0, 0)) / float(radius)
-			var v = 1.0 - d * d * d
+			var d := Vector2(x, y).distance_to(Vector2(0, 0)) / float(radius)
+			var v := 1.0 - d * d * d
 			if v > 1.0:
 				v = 1.0
 			if v < 0.0:
@@ -172,12 +172,12 @@ func _generate_procedural(radius):
 	emit_signal("shape_changed", _shape)
 
 
-func _generate_from_image(im, radius):
+func _generate_from_image(im: Image, radius: int):
 	assert(typeof(radius) == TYPE_INT)
 	assert(radius > 0)
 	assert(im.get_width() == im.get_height())
 
-	var size = 2 * radius
+	var size := 2 * radius
 
 	im = im.duplicate()
 	im.convert(Image.FORMAT_RF)
@@ -187,7 +187,7 @@ func _generate_from_image(im, radius):
 
 	_shape.lock()
 
-	var sum = 0.0
+	var sum := 0.0
 	for y in _shape.get_height():
 		for x in _shape.get_width():
 			sum += _shape.get_pixel(x, y).r
@@ -198,7 +198,7 @@ func _generate_from_image(im, radius):
 	emit_signal("shape_changed", _shape)
 
 
-static func _get_mode_channel(mode):
+static func _get_mode_channel(mode: int) -> int:
 	match mode:
 		MODE_ADD, \
 		MODE_SUBTRACT, \
@@ -219,31 +219,30 @@ static func _get_mode_channel(mode):
 	return HTerrainData.CHANNEL_COUNT # Error
 
 
-func paint(height_map, cell_pos_x, cell_pos_y, override_mode):
+func paint(terrain: HTerrain, cell_pos_x: int, cell_pos_y: int, override_mode: int):
 	#var time_before = OS.get_ticks_msec()
 
-	assert(height_map.get_data() != null)
-	var data = height_map.get_data()
+	assert(terrain.get_data() != null)
+	var data = terrain.get_data()
 	assert(not data.is_locked())
 
-	var delta = _opacity * 1.0 / 60.0
-	var mode = _mode
+	var delta := _opacity * 1.0 / 60.0
+	var mode := _mode
 
 	if override_mode != -1:
 		assert(override_mode >= 0 or override_mode < MODE_COUNT)
 		mode = override_mode
 
-	var origin_x = cell_pos_x - _shape_size / 2
-	var origin_y = cell_pos_y - _shape_size / 2
+	var origin_x := cell_pos_x - _shape_size / 2
+	var origin_y := cell_pos_y - _shape_size / 2
 
-	height_map.set_area_dirty(origin_x, origin_y, _shape_size, _shape_size)
-	var map_index = 0
+	terrain.set_area_dirty(origin_x, origin_y, _shape_size, _shape_size)
+	var map_index := 0
 
 	# When using sculpting tools, make it dependent on brush size
-	var raise_strength = 10.0 + 2.0 * float(_shape_size)
+	var raise_strength := 10.0 + 2.0 * float(_shape_size)
 
 	match mode:
-
 		MODE_ADD:
 			_paint_height(data, origin_x, origin_y, raise_strength * delta)
 
@@ -312,7 +311,7 @@ static func _foreach_xy(op, data, origin_x, origin_y, speed, opacity, shape):
 
 
 class OperatorAdd:
-	var _im = null
+	var _im : Image = null
 	func _init(im):
 		_im = im
 	func exec(data, pos_x, pos_y, v):
@@ -322,8 +321,8 @@ class OperatorAdd:
 
 
 class OperatorSum:
-	var sum = 0.0
-	var _im = null
+	var sum := 0.0
+	var _im : Image = null
 	func _init(im):
 		_im = im
 	func exec(data, pos_x, pos_y, v):
@@ -331,9 +330,8 @@ class OperatorSum:
 
 
 class OperatorLerp:
-
-	var target = 0.0
-	var _im = null
+	var target := 0.0
+	var _im : Image = null
 
 	func _init(p_target, im):
 		target = p_target
@@ -346,9 +344,8 @@ class OperatorLerp:
 
 
 class OperatorLerpColor:
-
-	var target = Color()
-	var _im = null
+	var target := Color()
+	var _im : Image = null
 
 	func _init(p_target, im):
 		target = p_target
@@ -360,20 +357,21 @@ class OperatorLerpColor:
 		_im.set_pixel(pos_x, pos_y, c)
 
 
-static func _is_valid_pos(pos_x, pos_y, im):
+static func _is_valid_pos(pos_x: int, pos_y: int, im: Image) -> bool:
 	return not (pos_x < 0 or pos_y < 0 or pos_x >= im.get_width() or pos_y >= im.get_height())
 
 
-func _backup_for_undo(im, undo_cache, rect_origin_x, rect_origin_y, rect_size_x, rect_size_y):
+func _backup_for_undo(im: Image, undo_cache: Dictionary, 
+	rect_origin_x: int, rect_origin_y: int, rect_size_x: int, rect_size_y: int):
 
 	# Backup cells before they get changed,
 	# using chunks so that we don't save the entire grid everytime.
 	# This function won't do anything if all concerned chunks got backupped already.
 
-	var cmin_x = rect_origin_x / EDIT_CHUNK_SIZE
-	var cmin_y = rect_origin_y / EDIT_CHUNK_SIZE
-	var cmax_x = (rect_origin_x + rect_size_x - 1) / EDIT_CHUNK_SIZE + 1
-	var cmax_y = (rect_origin_y + rect_size_y - 1) / EDIT_CHUNK_SIZE + 1
+	var cmin_x := rect_origin_x / EDIT_CHUNK_SIZE
+	var cmin_y := rect_origin_y / EDIT_CHUNK_SIZE
+	var cmax_x := (rect_origin_x + rect_size_x - 1) / EDIT_CHUNK_SIZE + 1
+	var cmax_y := (rect_origin_y + rect_size_y - 1) / EDIT_CHUNK_SIZE + 1
 
 	for cpos_y in range(cmin_y, cmax_y):
 		var min_y = cpos_y * EDIT_CHUNK_SIZE
@@ -395,7 +393,8 @@ func _backup_for_undo(im, undo_cache, rect_origin_x, rect_origin_y, rect_size_x,
 			if invalid_min or invalid_max:
 				# Out of bounds
 
-				# Note: this error check isn't working because data grids are intentionally off-by-one
+				# Note: this error check isn't working because data grids are 
+				# intentionally off-by-one
 				#if(invalid_min ^ invalid_max)
 				#	print_line("Wut? Grid might not be multiple of chunk size!");
 
@@ -405,11 +404,10 @@ func _backup_for_undo(im, undo_cache, rect_origin_x, rect_origin_y, rect_size_x,
 			undo_cache[k] = sub_image
 
 
-
-func _paint_height(data, origin_x, origin_y, speed):
+func _paint_height(data: HTerrainData, origin_x: int, origin_y: int, speed: float):
 	#var time_before = OS.get_ticks_msec()
 
-	var im = data.get_image(HTerrainData.CHANNEL_HEIGHT)
+	var im := data.get_image(HTerrainData.CHANNEL_HEIGHT)
 	assert(im != null)
 
 	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
@@ -424,9 +422,9 @@ func _paint_height(data, origin_x, origin_y, speed):
 	#time_before = OS.get_ticks_msec()
 
 
-func _smooth_height(data, origin_x, origin_y, speed):
+func _smooth_height(data: HTerrainData, origin_x: int, origin_y: int, speed: float):
 
-	var im = data.get_image(HTerrainData.CHANNEL_HEIGHT)
+	var im := data.get_image(HTerrainData.CHANNEL_HEIGHT)
 	assert(im != null)
 
 	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
@@ -444,7 +442,7 @@ func _smooth_height(data, origin_x, origin_y, speed):
 	im.unlock()
 
 
-func _flatten(data, origin_x, origin_y):
+func _flatten(data: HTerrainData, origin_x: int, origin_y: int):
 
 	var im = data.get_image(HTerrainData.CHANNEL_HEIGHT)
 	assert(im != null)
@@ -457,21 +455,21 @@ func _flatten(data, origin_x, origin_y):
 	im.unlock()
 
 
-func _paint_splat(data, origin_x, origin_y):
+func _paint_splat(data: HTerrainData, origin_x: int, origin_y: int):
 
-	var im = data.get_image(HTerrainData.CHANNEL_SPLAT)
+	var im := data.get_image(HTerrainData.CHANNEL_SPLAT)
 	assert(im != null)
 
-	var shape_size = _shape_size
+	var shape_size := _shape_size
 
 	_backup_for_undo(im, _undo_cache, origin_x, origin_y, shape_size, shape_size)
 
-	var min_x = origin_x
-	var min_y = origin_y
-	var max_x = min_x + shape_size
-	var max_y = min_y + shape_size
-	var min_noclamp_x = min_x
-	var min_noclamp_y = min_y
+	var min_x := origin_x
+	var min_y := origin_y
+	var max_x := min_x + shape_size
+	var max_y := min_y + shape_size
+	var min_noclamp_x := min_x
+	var min_noclamp_y := min_y
 
 	min_x = Util.clamp_int(min_x, 0, data.get_resolution())
 	min_y = Util.clamp_int(min_y, 0, data.get_resolution())
@@ -524,9 +522,9 @@ func _paint_splat(data, origin_x, origin_y):
 	im.unlock()
 
 
-func _paint_color(data, origin_x, origin_y):
+func _paint_color(data: HTerrainData, origin_x: int, origin_y: int):
 
-	var im = data.get_image(HTerrainData.CHANNEL_COLOR)
+	var im := data.get_image(HTerrainData.CHANNEL_COLOR)
 	assert(im != null)
 
 	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
@@ -537,41 +535,42 @@ func _paint_color(data, origin_x, origin_y):
 	im.unlock()
 
 
-func _paint_detail(data, origin_x, origin_y):
+func _paint_detail(data: HTerrainData, origin_x: int, origin_y: int):
 
-	var im = data.get_image(HTerrainData.CHANNEL_DETAIL, _detail_index)
+	var im := data.get_image(HTerrainData.CHANNEL_DETAIL, _detail_index)
 	assert(im != null)
 
 	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
 
 	im.lock()
-	var op = OperatorLerpColor.new(Color(_detail_density, _detail_density, _detail_density, 1.0), im)
+	var op = OperatorLerpColor.new(
+		Color(_detail_density, _detail_density, _detail_density, 1.0), im)
 	_foreach_xy(op, data, origin_x, origin_y, 1, _opacity, _shape)
 	im.unlock()
 
 
-func _paint_mask(data, origin_x, origin_y):
+func _paint_mask(data: HTerrainData, origin_x: int, origin_y: int):
 
-	var im = data.get_image(HTerrainData.CHANNEL_COLOR)
+	var im := data.get_image(HTerrainData.CHANNEL_COLOR)
 	assert(im != null)
 
 	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size);
 
-	var shape_size = _shape_size
+	var shape_size := _shape_size
 
-	var min_x = origin_x
-	var min_y = origin_y
-	var max_x = min_x + shape_size
-	var max_y = min_y + shape_size
-	var min_noclamp_x = min_x
-	var min_noclamp_y = min_y
+	var min_x := origin_x
+	var min_y := origin_y
+	var max_x := min_x + shape_size
+	var max_y := min_y + shape_size
+	var min_noclamp_x := min_x
+	var min_noclamp_y := min_y
 
 	min_x = Util.clamp_int(min_x, 0, data.get_resolution())
 	min_y = Util.clamp_int(min_y, 0, data.get_resolution())
 	max_x = Util.clamp_int(max_x, 0, data.get_resolution())
 	max_y = Util.clamp_int(max_y, 0, data.get_resolution())
 
-	var mask_value = 1.0 if _mask_flag else 0.0
+	var mask_value := 1.0 if _mask_flag else 0.0
 
 	im.lock()
 	_shape.lock()
@@ -592,7 +591,7 @@ func _paint_mask(data, origin_x, origin_y):
 	im.unlock()
 
 
-static func _fetch_redo_chunks(im, keys):
+static func _fetch_redo_chunks(im: Image, keys: Array) -> Array:
 	var output = []
 	for key in keys:
 		var cpos = Util.decode_v2i(key)
@@ -605,27 +604,27 @@ static func _fetch_redo_chunks(im, keys):
 	return output
 
 
-func _edit_pop_undo_redo_data(heightmap_data):
+func _edit_pop_undo_redo_data(heightmap_data: HTerrainData) -> Dictionary:
 
 	# TODO If possible, use a custom Reference class to store this data into the UndoRedo API,
 	# but WITHOUT exposing it to scripts (so we won't need the following conversions!)
 
-	var chunk_positions_keys = _undo_cache.keys()
+	var chunk_positions_keys := _undo_cache.keys()
 
-	var channel = _get_mode_channel(_mode)
+	var channel := _get_mode_channel(_mode)
 	assert(channel != HTerrainData.CHANNEL_COUNT)
 
-	var im = heightmap_data.get_image(channel)
+	var im := heightmap_data.get_image(channel)
 	assert(im != null)
 
-	var redo_data = _fetch_redo_chunks(im, chunk_positions_keys)
+	var redo_data := _fetch_redo_chunks(im, chunk_positions_keys)
 
 	# Convert chunk positions to flat int array
-	var undo_data = []
-	var chunk_positions = PoolIntArray()
+	var undo_data := []
+	var chunk_positions := PoolIntArray()
 	chunk_positions.resize(chunk_positions_keys.size() * 2)
 
-	var i = 0
+	var i := 0
 	for key in chunk_positions_keys:
 		var cpos = Util.decode_v2i(key)
 		chunk_positions[i] = cpos[0]
@@ -634,7 +633,7 @@ func _edit_pop_undo_redo_data(heightmap_data):
 		# Also gather pre-cached data for undo, in the same order
 		undo_data.append(_undo_cache[key])
 
-	var data = {
+	var data := {
 		"undo": undo_data,
 		"redo": redo_data,
 		"chunk_positions": chunk_positions,

@@ -8,9 +8,9 @@ const Errors = preload("../../util/errors.gd")
 
 signal permanent_change_performed(message)
 
-onready var _inspector = get_node("VBoxContainer/Inspector")
-onready var _errors_label = get_node("VBoxContainer/ColorRect/ScrollContainer/VBoxContainer/Errors")
-onready var _warnings_label = get_node("VBoxContainer/ColorRect/ScrollContainer/VBoxContainer/Warnings")
+onready var _inspector = $VBoxContainer/Inspector
+onready var _errors_label = $VBoxContainer/ColorRect/ScrollContainer/VBoxContainer/Errors
+onready var _warnings_label = $VBoxContainer/ColorRect/ScrollContainer/VBoxContainer/Warnings
 
 var _terrain = null
 
@@ -33,7 +33,7 @@ func set_terrain(terrain):
 	_terrain = terrain
 
 
-func _notification(what):
+func _notification(what: int):
 	if what == NOTIFICATION_VISIBILITY_CHANGED:
 		if visible and is_inside_tree():
 			_clear_feedback()

@@ -14,9 +14,9 @@ const TextureGenerator = preload("texture_generator.gd")
 signal progress_notified(info) # { "progress": real, "message": string, "finished": bool }
 signal permanent_change_performed(message)
 
-onready var _inspector = get_node("VBoxContainer/Editor/Settings/Inspector")
-onready var _preview = get_node("VBoxContainer/Editor/Preview/TerrainPreview")
-onready var _progress_bar = get_node("VBoxContainer/Editor/Preview/ProgressBar")
+onready var _inspector = $VBoxContainer/Editor/Settings/Inspector
+onready var _preview = $VBoxContainer/Editor/Preview/TerrainPreview
+onready var _progress_bar = $VBoxContainer/Editor/Preview/ProgressBar
 
 var _dummy_texture = load("res://addons/zylann.hterrain/tools/icons/empty.png")
 var _noise_texture = null

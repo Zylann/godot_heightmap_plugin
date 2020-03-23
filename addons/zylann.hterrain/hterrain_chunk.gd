@@ -1,19 +1,20 @@
 tool
 
-var cell_origin_x = 0
-var cell_origin_y = 0
+var cell_origin_x := 0
+var cell_origin_y := 0
 
-var _visible
-var _active
-var _pending_update
+var _visible : bool
+var _active : bool
+var _pending_update : bool
 
-var _mesh_instance = null
+var _mesh_instance : RID
 # Need to keep a reference so that the mesh RID doesn't get freed
 # TODO Use RID directly, no need to keep all those meshes in memory
-var _mesh = null
+var _mesh : Mesh = null
 
 
-func _init(p_parent, p_cell_x, p_cell_y, p_material):
+# TODO p_parent is HTerrain, can't add type hint due to cyclic reference
+func _init(p_parent, p_cell_x: int, p_cell_y: int, p_material: Material):
 	assert(p_parent is Spatial)
 	assert(typeof(p_cell_x) == TYPE_INT)
 	assert(typeof(p_cell_y) == TYPE_INT)
@@ -41,7 +42,7 @@ func _init(p_parent, p_cell_x, p_cell_y, p_material):
 	_pending_update = false
 
 
-func _notification(p_what):
+func _notification(p_what: int):
 	if p_what == NOTIFICATION_PREDELETE:
 		if _mesh_instance != RID():
 			VisualServer.free_rid(_mesh_instance)
@@ -81,7 +82,7 @@ func parent_transform_changed(parent_transform):
 	VisualServer.instance_set_transform(_mesh_instance, world_transform)
 
 
-func set_mesh(mesh):
+func set_mesh(mesh: Mesh):
 	assert(_mesh_instance != RID())
 	if mesh == _mesh:
 		return
@@ -89,23 +90,23 @@ func set_mesh(mesh):
 	_mesh = mesh
 
 
-func set_material(material):
+func set_material(material: Material):
 	assert(_mesh_instance != RID())
 	VisualServer.instance_geometry_set_material_override( \
 		_mesh_instance, material.get_rid() if material != null else RID())
 
 
-func set_visible(visible):
+func set_visible(visible: bool):
 	assert(_mesh_instance != RID())
 	VisualServer.instance_set_visible(_mesh_instance, visible)
 	_visible = visible
 
 
-func is_visible():
+func is_visible() -> bool:
 	return _visible
 
 
-func set_aabb(aabb):
+func set_aabb(aabb: AABB):
 	assert(_mesh_instance != RID())
 	VisualServer.instance_set_custom_aabb(_mesh_instance, aabb)
 

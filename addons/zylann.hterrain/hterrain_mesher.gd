@@ -8,16 +8,12 @@ const SEAM_CONFIG_COUNT = 16
 
 
 # [seams_mask][lod]
-var _mesh_cache = []
-var _chunk_size_x = 16
-var _chunk_size_y = 16
+var _mesh_cache := []
+var _chunk_size_x := 16
+var _chunk_size_y := 16
 
 
-func _init():
-	pass
-
-
-func configure(chunk_size_x, chunk_size_y, lod_count):
+func configure(chunk_size_x: int, chunk_size_y: int, lod_count: int):
 	assert(typeof(chunk_size_x) == TYPE_INT)
 	assert(typeof(chunk_size_y) == TYPE_INT)
 	assert(typeof(lod_count) == TYPE_INT)
@@ -26,7 +22,8 @@ func configure(chunk_size_x, chunk_size_y, lod_count):
 
 	_mesh_cache.resize(SEAM_CONFIG_COUNT)
 	
-	if chunk_size_x == _chunk_size_x and chunk_size_y == _chunk_size_y and lod_count == len(_mesh_cache):
+	if chunk_size_x == _chunk_size_x \
+	and chunk_size_y == _chunk_size_y and lod_count == len(_mesh_cache):
 		return
 	
 	_chunk_size_x = chunk_size_x
@@ -43,11 +40,11 @@ func configure(chunk_size_x, chunk_size_y, lod_count):
 			slot[lod] = make_flat_chunk(_chunk_size_x, _chunk_size_y, 1 << lod, seams)
 
 
-func get_chunk(lod, seams):
-	return _mesh_cache[seams][lod]
+func get_chunk(lod: int, seams: int) -> Mesh:
+	return _mesh_cache[seams][lod] as Mesh
 
 
-static func make_flat_chunk(quad_count_x, quad_count_y, stride, seams):
+static func make_flat_chunk(quad_count_x: int, quad_count_y: int, stride: int, seams: int) -> Mesh:
 
 	var positions = PoolVector3Array()
 	positions.resize((quad_count_x + 1) * (quad_count_y + 1))
@@ -73,19 +70,19 @@ static func make_flat_chunk(quad_count_x, quad_count_y, stride, seams):
 
 # size: chunk size in quads (there are N+1 vertices)
 # seams: Bitfield for which seams are present
-static func make_indices(chunk_size_x, chunk_size_y, seams):
+static func make_indices(chunk_size_x: int, chunk_size_y: int, seams: int) -> PoolIntArray:
 
-	var output_indices = PoolIntArray()
+	var output_indices := PoolIntArray()
 
 	if seams != 0:
 		# LOD seams can't be made properly on uneven chunk sizes
 		assert(chunk_size_x % 2 == 0 and chunk_size_y % 2 == 0)
 
-	var reg_origin_x = 0
-	var reg_origin_y = 0
-	var reg_size_x = chunk_size_x
-	var reg_size_y = chunk_size_y
-	var reg_hstride = 1
+	var reg_origin_x := 0
+	var reg_origin_y := 0
+	var reg_size_x := chunk_size_x
+	var reg_size_y := chunk_size_y
+	var reg_hstride := 1
 	
 	if seams & SEAM_LEFT:
 		reg_origin_x += 1;
@@ -104,15 +101,15 @@ static func make_indices(chunk_size_x, chunk_size_y, seams):
 		reg_size_y -= 1
 
 	# Regular triangles
-	var ii = reg_origin_x + reg_origin_y * (chunk_size_x + 1)
+	var ii := reg_origin_x + reg_origin_y * (chunk_size_x + 1)
 
 	for y in range(reg_size_y):
 		for x in range(reg_size_x):
 			
-			var i00 = ii
-			var i10 = ii + 1
-			var i01 = ii + chunk_size_x + 1
-			var i11 = i01 + 1
+			var i00 := ii
+			var i10 := ii + 1
+			var i01 := ii + chunk_size_x + 1
+			var i11 := i01 + 1
 
 			# 01---11
 			#  |  /|
@@ -159,16 +156,16 @@ static func make_indices(chunk_size_x, chunk_size_y, seams):
 		#     |/  .
 		#     0 . 1
 
-		var i = 0
-		var n = chunk_size_y / 2
+		var i := 0
+		var n := chunk_size_y / 2
 
 		for j in range(n):
 
-			var i0 = i
-			var i1 = i + 1
-			var i3 = i + chunk_size_x + 2
-			var i4 = i + 2 * (chunk_size_x + 1)
-			var i5 = i4 + 1
+			var i0 := i
+			var i1 := i + 1
+			var i3 := i + chunk_size_x + 2
+			var i4 := i + 2 * (chunk_size_x + 1)
+			var i5 := i4 + 1
 
 			output_indices.push_back( i0 )
 			output_indices.push_back( i3 )
@@ -198,16 +195,16 @@ static func make_indices(chunk_size_x, chunk_size_y, seams):
 		#     .  \|
 		#     0 . 1
 
-		var i = chunk_size_x - 1
-		var n = chunk_size_y / 2
+		var i := chunk_size_x - 1
+		var n := chunk_size_y / 2
 
 		for j in range(n):
 
-			var i0 = i
-			var i1 = i + 1
-			var i2 = i + chunk_size_x + 1
-			var i4 = i + 2 * (chunk_size_x + 1)
-			var i5 = i4 + 1
+			var i0 := i
+			var i1 := i + 1
+			var i2 := i + chunk_size_x + 1
+			var i4 := i + 2 * (chunk_size_x + 1)
+			var i5 := i4 + 1
 
 			output_indices.push_back( i1 )
 			output_indices.push_back( i5 )
@@ -234,16 +231,16 @@ static func make_indices(chunk_size_x, chunk_size_y, seams):
 		#  0-------2
 		#     (1)
 
-		var i = 0;
-		var n = chunk_size_x / 2;
+		var i := 0;
+		var n := chunk_size_x / 2;
 		
 		for j in range(n):
 
-			var i0 = i
-			var i2 = i + 2
-			var i3 = i + chunk_size_x + 1
-			var i4 = i3 + 1
-			var i5 = i4 + 1
+			var i0 := i
+			var i2 := i + 2
+			var i3 := i + chunk_size_x + 1
+			var i4 := i3 + 1
+			var i5 := i4 + 1
 
 			output_indices.push_back( i0 )
 			output_indices.push_back( i2 )
@@ -270,16 +267,16 @@ static func make_indices(chunk_size_x, chunk_size_y, seams):
 		#  .  \ /  .
 		#  0 . 1 . 2
 
-		var i = (chunk_size_y - 1) * (chunk_size_x + 1)
-		var n = chunk_size_x / 2
+		var i := (chunk_size_y - 1) * (chunk_size_x + 1)
+		var n := chunk_size_x / 2
 
 		for j in range(n):
 
-			var i0 = i
-			var i1 = i + 1
-			var i2 = i + 2
-			var i3 = i + chunk_size_x + 1
-			var i5 = i3 + 2
+			var i0 := i
+			var i1 := i + 1
+			var i2 := i + 2
+			var i3 := i + chunk_size_x + 1
+			var i5 := i3 + 2
 
 			output_indices.push_back( i3 )
 			output_indices.push_back( i1 )
@@ -300,7 +297,7 @@ static func make_indices(chunk_size_x, chunk_size_y, seams):
 	return output_indices
 
 
-static func get_mesh_size(width, height):
+static func get_mesh_size(width: int, height: int) -> Dictionary:
 	return {
 		"vertices": width * height,
 		"triangles": (width - 1) * (height - 1) * 2
@@ -310,39 +307,39 @@ static func get_mesh_size(width, height):
 # Makes a full mesh from a heightmap, without any LOD considerations.
 # Using this mesh for rendering is very expensive on large terrains.
 # Initially used as a workaround for Godot to use for navmesh generation.
-static func make_heightmap_mesh(heightmap, stride, scale):
-	var size_x = heightmap.get_width() / stride
-	var size_z = heightmap.get_height() / stride
+static func make_heightmap_mesh(heightmap: Image, stride: int, scale: Vector3) -> Mesh:
+	var size_x := heightmap.get_width() / stride
+	var size_z := heightmap.get_height() / stride
 
 	assert(size_x >= 2)
 	assert(size_z >= 2)
 	
-	var positions = PoolVector3Array()
+	var positions := PoolVector3Array()
 	positions.resize(size_x * size_z)
 	
 	heightmap.lock()
 
-	var i = 0
+	var i := 0
 	for mz in size_z:
 		for mx in size_x:
 			var x = mx * stride
 			var z = mz * stride
-			var y = heightmap.get_pixel(x, z).r
+			var y := heightmap.get_pixel(x, z).r
 			positions[i] = Vector3(x, y, z) * scale
 			i += 1
 	
 	heightmap.unlock()
 	
-	var indices = make_indices(size_x - 1, size_z - 1, 0)
+	var indices := make_indices(size_x - 1, size_z - 1, 0)
 
-	var arrays = []
+	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX);
 	arrays[Mesh.ARRAY_VERTEX] = positions
 	arrays[Mesh.ARRAY_INDEX] = indices
 	
 	print("Generated mesh has ", len(positions), " vertices and ", len(indices) / 3, " triangles")
 
-	var mesh = ArrayMesh.new()
+	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	
 	return mesh

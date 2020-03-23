@@ -11,13 +11,14 @@ const Brush = preload("../hterrain_brush.gd")
 const BrushDecal = preload("brush/decal.gd")
 const Util = preload("../util/util.gd")
 const LoadTextureDialog = preload("load_texture_dialog.gd")
+const GlobalMapBaker = preload("globalmap_baker.gd")
+
 const EditPanel = preload("panel.tscn")
 const ProgressWindow = preload("progress_window.tscn")
 const GeneratorDialog = preload("generator/generator_dialog.tscn")
 const ImportDialog = preload("importer/importer_dialog.tscn")
 const GenerateMeshDialog = preload("generate_mesh_dialog.tscn")
 const ResizeDialog = preload("resize_dialog/resize_dialog.tscn")
-const GlobalMapBaker = preload("globalmap_baker.gd")
 const ExportImageDialog = preload("./exporter/export_image_dialog.tscn")
 
 const MENU_IMPORT_MAPS = 0
@@ -47,15 +48,15 @@ var _globalmap_baker = null
 var _menu_button : MenuButton
 var _terrain_had_data_previous_frame = false
 
-var _brush = null
-var _brush_decal = null
-var _mouse_pressed = false
+var _brush : Brush = null
+var _brush_decal : BrushDecal = null
+var _mouse_pressed := false
 var _pending_paint_action = null
-var _pending_paint_completed = false
+var _pending_paint_completed := false
 
 
-static func get_icon(name):
-	return load("res://addons/zylann.hterrain/tools/icons/icon_" + name + ".svg")
+static func get_icon(name: String) -> Texture:
+	return load("res://addons/zylann.hterrain/tools/icons/icon_" + name + ".svg") as Texture
 
 
 func _enter_tree():
@@ -75,8 +76,8 @@ func _enter_tree():
 	_brush_decal.set_shape(_brush.get_shape())
 	_brush.connect("shape_changed", _brush_decal, "set_shape")
 	
-	var editor_interface = get_editor_interface()
-	var base_control = editor_interface.get_base_control()
+	var editor_interface := get_editor_interface()
+	var base_control := editor_interface.get_base_control()
 	_load_texture_dialog = LoadTextureDialog.new()
 	base_control.add_child(_load_texture_dialog)
 	
@@ -95,7 +96,7 @@ func _enter_tree():
 	add_control_to_container(EditorPlugin.CONTAINER_SPATIAL_EDITOR_MENU, _toolbar)
 	_toolbar.hide()
 	
-	var menu = MenuButton.new()
+	var menu := MenuButton.new()
 	menu.set_text("Terrain")
 	menu.get_popup().add_item("Import maps...", MENU_IMPORT_MAPS)
 	menu.get_popup().add_item("Generate...", MENU_GENERATE)
@@ -111,7 +112,7 @@ func _enter_tree():
 	_toolbar.add_child(menu)
 	_menu_button = menu
 	
-	var mode_icons = {}
+	var mode_icons := {}
 	mode_icons[Brush.MODE_ADD] = get_icon("heightmap_raise")
 	mode_icons[Brush.MODE_SUBTRACT] = get_icon("heightmap_lower")
 	mode_icons[Brush.MODE_SMOOTH] = get_icon("heightmap_smooth")
@@ -122,7 +123,7 @@ func _enter_tree():
 	mode_icons[Brush.MODE_DETAIL] = get_icon("grass")
 	mode_icons[Brush.MODE_MASK] = get_icon("heightmap_mask")
 	
-	var mode_tooltips = {}
+	var mode_tooltips := {}
 	mode_tooltips[Brush.MODE_ADD] = "Raise"
 	mode_tooltips[Brush.MODE_SUBTRACT] = "Lower"
 	mode_tooltips[Brush.MODE_SMOOTH] = "Smooth"
@@ -135,7 +136,7 @@ func _enter_tree():
 	_toolbar.add_child(VSeparator.new())
 	
 	# I want modes to be in that order in the GUI
-	var ordered_brush_modes = [
+	var ordered_brush_modes := [
 		Brush.MODE_ADD,
 		Brush.MODE_SUBTRACT,
 		Brush.MODE_SMOOTH,
@@ -146,10 +147,10 @@ func _enter_tree():
 		Brush.MODE_MASK
 	]
 	
-	var mode_group = ButtonGroup.new()
+	var mode_group := ButtonGroup.new()
 	
 	for mode in ordered_brush_modes:
-		var button = ToolButton.new()
+		var button := ToolButton.new()
 		button.icon = mode_icons[mode]
 		button.set_tooltip(mode_tooltips[mode])
 		button.set_toggle_mode(true)
@@ -393,7 +394,7 @@ func _process(delta):
 			_brush.paint(_node, _pending_paint_action[0], _pending_paint_action[1], override_mode)
 
 		if _pending_paint_completed:
-			paint_completed()
+			_paint_completed()
 		
 		has_data = (_node.get_data() != null)
 	
@@ -406,7 +407,7 @@ func _process(delta):
 	_pending_paint_action = null
 
 
-func paint_completed():
+func _paint_completed():
 	var heightmap_data = _node.get_data()
 	assert(heightmap_data != null)
 	
@@ -509,30 +510,30 @@ func _menu_item_selected(id):
 				_export_image_dialog.popup_centered_minsize()
 
 
-func _on_mode_selected(mode):
+func _on_mode_selected(mode: int):
 	print("On mode selected ", mode)
 	_brush.set_mode(mode)
 	_panel.set_brush_editor_display_mode(mode)
 
 
-func _on_texture_selected(index):
+func _on_texture_selected(index: int):
 	# Switch to texture paint mode when a texture is selected
 	_select_brush_mode(Brush.MODE_SPLAT)
 	_brush.set_texture_index(index)
 
 
-func _on_detail_selected(index):
+func _on_detail_selected(index: int):
 	# Switch to detail paint mode when a detail item is selected
 	_select_brush_mode(Brush.MODE_DETAIL)
 	_brush.set_detail_index(index)
 
 
-func _select_brush_mode(mode):
+func _select_brush_mode(mode: int):
 	_toolbar_brush_buttons[mode].pressed = true
 	_on_mode_selected(mode)
 
 
-static func get_size_from_raw_length(flen):
+static func get_size_from_raw_length(flen: int):
 	var side_len = round(sqrt(float(flen/2)))
 	return int(side_len)
 
@@ -556,15 +557,15 @@ func _terrain_progress_notified(info):
 		# https://github.com/godotengine/godot/issues/17763
 
 
-func _on_GenerateMeshDialog_generate_selected(lod):
-	var data = _node.get_data()
+func _on_GenerateMeshDialog_generate_selected(lod: int):
+	var data := _node.get_data()
 	if data == null:
 		printerr("Terrain has no data")
 		return
-	var heightmap = data.get_image(HTerrainData.CHANNEL_HEIGHT)
-	var scale = _node.map_scale
-	var mesh = HTerrainMesher.make_heightmap_mesh(heightmap, lod, scale)
-	var mi = MeshInstance.new()
+	var heightmap := data.get_image(HTerrainData.CHANNEL_HEIGHT)
+	var scale := _node.map_scale
+	var mesh := HTerrainMesher.make_heightmap_mesh(heightmap, lod, scale)
+	var mi := MeshInstance.new()
 	mi.name = str(_node.name, "_FullMesh")
 	mi.mesh = mesh
 	mi.transform = _node.transform
@@ -573,12 +574,12 @@ func _on_GenerateMeshDialog_generate_selected(lod):
 
 
 # TODO Workaround for https://github.com/Zylann/godot_heightmap_plugin/issues/101
-func _on_permanent_change_performed(message):
-	var data = _node.get_data()
+func _on_permanent_change_performed(message: String):
+	var data := _node.get_data()
 	if data == null:
 		printerr("Terrain has no data")
 		return
-	var ur = get_undo_redo()
+	var ur := get_undo_redo()
 	ur.create_action(message)
 	ur.add_do_method(data, "_dummy_function")
 	#ur.add_undo_method(data, "_dummy_function")

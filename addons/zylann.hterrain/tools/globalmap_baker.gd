@@ -13,13 +13,13 @@ signal progress_notified(info)
 signal permanent_change_performed(message)
 
 var _terrain = null
-var _viewport = null
-var _plane = null
-var _camera = null
-var _sectors = []
+var _viewport : Viewport = null
+var _plane : MeshInstance = null
+var _camera : Camera = null
+var _sectors := []
 var _dummy_texture = preload("icons/empty.png")
 var _shader = preload("../shaders/simple4_global.shader")
-var _sector_index = 0
+var _sector_index := 0
 
 
 func _ready():
@@ -118,7 +118,7 @@ func _report_progress():
 	})
 
 
-func _setup_pass(sector):
+func _setup_pass(sector: Vector2):
 	# Note: we implicitely take off-by-one pixels into account
 	var origin = sector * VIEWPORT_SIZE
 	var center = origin + 0.5 * _viewport.size
@@ -128,18 +128,18 @@ func _setup_pass(sector):
 	_plane.translation = Vector3(origin.x, 0.0, origin.y)
 
 
-func _grab_image(sector):
-	var tex = _viewport.get_texture()
-	var src = tex.get_data()
+func _grab_image(sector: Vector2):
+	var tex := _viewport.get_texture()
+	var src := tex.get_data()
 	
 	assert(_terrain != null)
-	var data = _terrain.get_data()
+	var data := _terrain.get_data() as HTerrainData
 	assert(data != null)
 	
 	if data.get_map_count(HTerrainData.CHANNEL_GLOBAL_ALBEDO) == 0:
 		data._edit_add_map(HTerrainData.CHANNEL_GLOBAL_ALBEDO)
 	
-	var dst = data.get_image(HTerrainData.CHANNEL_GLOBAL_ALBEDO)
+	var dst := data.get_image(HTerrainData.CHANNEL_GLOBAL_ALBEDO)
 	
 	src.convert(dst.get_format())
 	var origin = sector * VIEWPORT_SIZE
@@ -148,11 +148,12 @@ func _grab_image(sector):
 
 func _finish():
 	assert(_terrain != null)
-	var data = _terrain.get_data()
+	var data := _terrain.get_data() as HTerrainData
 	assert(data != null)
-	var dst = data.get_image(HTerrainData.CHANNEL_GLOBAL_ALBEDO)
+	var dst := data.get_image(HTerrainData.CHANNEL_GLOBAL_ALBEDO)
 	
-	data.notify_region_change(Rect2(0, 0, dst.get_width(), dst.get_height()), HTerrainData.CHANNEL_GLOBAL_ALBEDO)
+	data.notify_region_change(Rect2(0, 0, dst.get_width(), dst.get_height()), 
+		HTerrainData.CHANNEL_GLOBAL_ALBEDO)
 	emit_signal("permanent_change_performed", "Bake globalmap")
 	
 	_cleanup_scene()

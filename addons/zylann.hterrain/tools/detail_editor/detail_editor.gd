@@ -8,8 +8,8 @@ signal detail_selected(index)
 # Emitted when the tool added or removed a detail map
 signal detail_list_changed
 
-onready var _item_list = get_node("ItemList")
-onready var _confirmation_dialog = get_node("ConfirmationDialog")
+onready var _item_list = $ItemList
+onready var _confirmation_dialog = $ConfirmationDialog
 
 var _terrain = null
 var _dialog_target = -1

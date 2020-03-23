@@ -40,9 +40,9 @@ const _anchor_icon_names = [
 
 signal permanent_change_performed(message)
 
-onready var _resolution_dropdown = get_node("VBoxContainer/GridContainer/ResolutionDropdown")
-onready var _stretch_checkbox = get_node("VBoxContainer/GridContainer/StretchCheckBox")
-onready var _anchor_control = get_node("VBoxContainer/GridContainer/HBoxContainer/AnchorControl")
+onready var _resolution_dropdown = $VBoxContainer/GridContainer/ResolutionDropdown
+onready var _stretch_checkbox = $VBoxContainer/GridContainer/StretchCheckBox
+onready var _anchor_control = $VBoxContainer/GridContainer/HBoxContainer/AnchorControl
 
 var _anchor_buttons = []
 var _anchor_buttons_grid = {}

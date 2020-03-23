@@ -24,7 +24,8 @@ const SHADER_PARAM_NORMAL_BASIS = "u_terrain_normal_basis"
 
 const SHADER_PARAM_GROUND_PREFIX = "u_ground_" # + name + _0, _1, _2, _3...
 
-# Those parameters are filtered out in the inspector because they are not supposed to be set through it
+# Those parameters are filtered out in the inspector,
+# because they are not supposed to be set through it
 const _api_shader_params = {
 	"u_terrain_heightmap": true,
 	"u_terrain_normalmap": true,
@@ -70,19 +71,19 @@ signal progress_notified(info)
 signal progress_complete
 signal transform_changed(global_transform)
 
-export var collision_enabled = true setget set_collision_enabled
-export(float, 0.0, 1.0) var ambient_wind = 0.0 setget set_ambient_wind
-export(int, 2, 5) var lod_scale = 2 setget set_lod_scale, get_lod_scale
+export var collision_enabled := true setget set_collision_enabled
+export(float, 0.0, 1.0) var ambient_wind := 0.0 setget set_ambient_wind
+export(int, 2, 5) var lod_scale := 2.0 setget set_lod_scale, get_lod_scale
 
 # Prefer using this instead of scaling the node's transform.
 # Spatial.scale isn't used because it's not suitable for terrains,
 # it would scale grass too and other environment objects.
-export var map_scale = Vector3(1, 1, 1) setget set_map_scale
+export var map_scale := Vector3(1, 1, 1) setget set_map_scale
 
-var _custom_shader: Shader = null
-var _shader_type: String = SHADER_SIMPLE4
-var _material: ShaderMaterial = ShaderMaterial.new()
-var _material_params_need_update: bool = false
+var _custom_shader : Shader = null
+var _shader_type := SHADER_SIMPLE4
+var _material := ShaderMaterial.new()
+var _material_params_need_update := false
 # Array of 2-textures arrays
 var _ground_textures := []
 
@@ -102,11 +103,12 @@ var _detail_layers := []
 var _collider: HTerrainCollider = null
 
 # Stats & debug
-var _updated_chunks = 0
+var _updated_chunks := 0
 
 # Editor-only
 var _edit_manual_viewer_pos := Vector3()
 var _normals_baker = null
+
 
 func _init():
 	print("Create HeightMap")
@@ -204,7 +206,7 @@ func _get_property_list():
 	return props
 
 
-func _get(key):
+func _get(key: String):
 
 	if key == "data_directory":
 		return _get_data_directory()
@@ -238,7 +240,7 @@ func _get(key):
 		return _chunk_size
 
 
-func _set(key, value):
+func _set(key: String, value):
 
 	if key == "data_directory":
 		_set_data_directory(value)
@@ -282,15 +284,15 @@ func _set_data_directory(dir: String):
 		if dir == "":
 			set_data(null)
 		else:
-			var fpath = dir.plus_file(HTerrainData.META_FILENAME)
-			var f = File.new()
+			var fpath := dir.plus_file(HTerrainData.META_FILENAME)
+			var f := File.new()
 			if f.file_exists(fpath):
 				# Load existing
 				var d = load(fpath)
 				set_data(d)
 			else:
 				# Create new
-				var d = HTerrainData.new()
+				var d := HTerrainData.new()
 				d.resource_path = fpath
 				set_data(d)
 	else:
@@ -306,7 +308,8 @@ func _get_data_directory() -> String:
 static func _check_heightmap_collider_support() -> bool:
 	var v = Engine.get_version_info()
 	if v.major == 3 and v.minor == 0 and v.patch < 4:
-		printerr("Heightmap collision shape not supported in this version of Godot, please upgrade to 3.0.4 or later")
+		printerr("Heightmap collision shape not supported in this version of Godot,"
+			+ " please upgrade to 3.0.4 or later")
 		return false
 	return true
 
@@ -379,7 +382,6 @@ func get_internal_transform() -> Transform:
 
 func _notification(what: int):
 	match what:
-
 		NOTIFICATION_PREDELETE:
 			print("Destroy HTerrain")
 			# Note: might get rid of a circular ref in GDScript port
@@ -393,7 +395,7 @@ func _notification(what: int):
 				_collider.set_transform(get_internal_transform())
 
 		NOTIFICATION_EXIT_WORLD:
-			print("Exit world");
+			print("Exit world")
 			_for_all_chunks(ExitWorldAction.new())
 			if _collider != null:
 				_collider.set_world(null)
@@ -618,14 +620,14 @@ func set_shader_type(type: String):
 
 	match _shader_type:
 		SHADER_SIMPLE4:
-			_material.shader = load(CLASSIC4_SHADER_PATH)
+			_material.shader = load(CLASSIC4_SHADER_PATH) as Shader
 		SHADER_SIMPLE4_LITE:
-			_material.shader = load(CLASSIC4_LITE_SHADER_PATH)
+			_material.shader = load(CLASSIC4_LITE_SHADER_PATH) as Shader
 		SHADER_CUSTOM:
 			_material.shader = _custom_shader
 		_:
 			printerr("Unknown shader type: '", _shader_type, "'")
-			_material.shader = load(CLASSIC4_SHADER_PATH)
+			_material.shader = load(CLASSIC4_SHADER_PATH) as Shader
 
 	_material_params_need_update = true
 	
@@ -794,7 +796,8 @@ func _process(delta: float):
 	# Get viewer pos
 	var viewer_pos = Vector3()
 	if Engine.editor_hint:
-		# In editor, we would need to use the editor's camera, not the `current` one defined in the scene
+		# In editor, we would need to use the editor's camera, 
+		# not the `current` one defined in the scene
 		viewer_pos = _edit_manual_viewer_pos
 	else:
 		var viewport = get_viewport()
@@ -944,7 +947,8 @@ func _add_chunk_update(chunk, pos_x: int, pos_y: int, lod: int):
 
 
 # Used when editing an existing terrain
-func set_area_dirty(origin_in_cells_x: int, origin_in_cells_y: int, size_in_cells_x: int, size_in_cells_y: int):
+func set_area_dirty(origin_in_cells_x: int, origin_in_cells_y: int, \
+					size_in_cells_x: int, size_in_cells_y: int):
 
 	var cpos0_x = origin_in_cells_x / _chunk_size
 	var cpos0_y = origin_in_cells_y / _chunk_size
@@ -1023,7 +1027,9 @@ func _cb_get_vertical_bounds(cpos_x: int, cpos_y: int, lod: int):
 	var origin_in_cells_y = cpos_y * chunk_size
 	# This is a hack for speed, because the proper algorithm appears to be too slow for GDScript.
 	# It should be good enough for most common cases, unless you have super-sharp cliffs.
-	return _data.get_point_aabb(origin_in_cells_x + chunk_size / 2, origin_in_cells_y + chunk_size / 2)
+	return _data.get_point_aabb(
+		origin_in_cells_x + chunk_size / 2, 
+		origin_in_cells_y + chunk_size / 2)
 #	var aabb = _data.get_region_aabb(origin_in_cells_x, origin_in_cells_y, chunk_size, chunk_size)
 #	return Vector2(aabb.position.y, aabb.end.y)
 
@@ -1190,13 +1196,13 @@ func _get_configuration_warning():
 
 
 class PendingChunkUpdate:
-	var pos_x = 0
-	var pos_y = 0
-	var lod = 0
+	var pos_x := 0
+	var pos_y := 0
+	var lod := 0
 
 
 class EnterWorldAction:
-	var world = null
+	var world : World = null
 	func _init(w):
 		world = w
 	func exec(chunk):
@@ -1209,7 +1215,7 @@ class ExitWorldAction:
 
 
 class TransformChangedAction:
-	var transform = null
+	var transform : Transform
 	func _init(t):
 		transform = t
 	func exec(chunk):
@@ -1217,7 +1223,7 @@ class TransformChangedAction:
 
 
 class VisibilityChangedAction:
-	var visible = false
+	var visible := false
 	func _init(v):
 		visible = v
 	func exec(chunk):
@@ -1230,7 +1236,7 @@ class VisibilityChangedAction:
 
 
 class SetMaterialAction:
-	var material = null
+	var material : Material = null
 	func _init(m):
 		material = m
 	func exec(chunk):
