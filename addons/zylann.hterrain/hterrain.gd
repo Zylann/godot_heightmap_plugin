@@ -66,9 +66,6 @@ const _ground_enum_to_name = [
 
 const DEBUG_AABB = false
 
-signal progress_notified(info)
-# Same as progress_notified once finished, but more convenient to yield
-signal progress_complete
 signal transform_changed(global_transform)
 
 export var collision_enabled := true setget set_collision_enabled
@@ -474,7 +471,6 @@ func set_data(new_data: HTerrainData):
 		print("Disconnecting old HeightMapData")
 		_data.disconnect("resolution_changed", self, "_on_data_resolution_changed")
 		_data.disconnect("region_changed", self, "_on_data_region_changed")
-		_data.disconnect("progress_notified", self, "_on_data_progress_notified")
 		_data.disconnect("map_changed", self, "_on_data_map_changed")
 		_data.disconnect("map_added", self, "_on_data_map_added")
 		_data.disconnect("map_removed", self, "_on_data_map_removed")
@@ -502,7 +498,6 @@ func set_data(new_data: HTerrainData):
 
 		_data.connect("resolution_changed", self, "_on_data_resolution_changed")
 		_data.connect("region_changed", self, "_on_data_region_changed")
-		_data.connect("progress_notified", self, "_on_data_progress_notified")
 		_data.connect("map_changed", self, "_on_data_map_changed")
 		_data.connect("map_added", self, "_on_data_map_added")
 		_data.connect("map_removed", self, "_on_data_map_removed")
@@ -518,20 +513,6 @@ func set_data(new_data: HTerrainData):
 		call("update_configuration_warning")
 	
 	print("Set data done")
-
-
-func _on_data_progress_notified(info):
-	emit_signal("progress_notified", info)
-
-	if info.finished:
-		# Update collider when data is loaded
-		if _collider != null:
-			_collider.create_from_terrain_data(_data)
-		
-		for layer in _detail_layers:
-			layer.update_material()
-
-		emit_signal("progress_complete")
 
 
 # The collider might be used in editor for other tools (like snapping to floor),

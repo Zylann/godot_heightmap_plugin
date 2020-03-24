@@ -250,13 +250,11 @@ func edit(object):
 	
 	if _node != null:
 		_node.disconnect("tree_exited", self, "_terrain_exited_scene")
-		_node.disconnect("progress_notified", self, "_terrain_progress_notified")
 	
 	_node = node
 	
 	if _node != null:
 		_node.connect("tree_exited", self, "_terrain_exited_scene")
-		_node.connect("progress_notified", self, "_terrain_progress_notified")
 	
 	_update_brush_buttons_availability()
 	

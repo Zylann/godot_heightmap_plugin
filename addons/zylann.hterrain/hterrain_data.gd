@@ -28,8 +28,6 @@ const META_VERSION = "0.11"
 
 signal resolution_changed
 signal region_changed(x, y, w, h, channel)
-# TODO Instead of message, send a state enum and a var (for translation and code semantic)
-signal progress_notified(info) # { "progress": real, "message": string, "finished": bool }
 signal map_added(type, index)
 signal map_removed(type, index)
 signal map_changed(type, index)
@@ -754,20 +752,6 @@ func _compute_vertical_bounds_at(
 	out_b.maxv = max_height
 
 
-func _notify_progress(message: String, progress: float, finished := false):
-	_progress_complete = finished
-	print("[", int(100.0 * progress), "%] ", message)
-	emit_signal("progress_notified", {
-		"message": message,
-		"progress": progress,
-		"finished": finished
-	})
-
-
-func _notify_progress_complete():
-	_notify_progress("Done", 1.0, true)
-
-
 func save_data(data_dir: String):
 	if not _is_any_map_modified():
 		print("Terrain data has no modifications to save")
@@ -777,7 +761,7 @@ func save_data(data_dir: String):
 
 	_save_metadata(data_dir.plus_file(META_FILENAME))
 
-	_notify_progress("Saving terrain data...", 0.0)
+	print("Saving terrain data...")
 
 	var map_count = _get_total_map_count()
 
@@ -792,9 +776,8 @@ func save_data(data_dir: String):
 				print("Skipping non-modified ", _get_map_debug_name(channel, index))
 				continue
 
-			var p = 0.1 + 0.9 * float(pi) / float(map_count)
-			_notify_progress(str("Saving map ", _get_map_debug_name(channel, index), \
-				" as ", _get_map_filename(channel, index), "..."), p)
+			print("Saving map ", _get_map_debug_name(channel, index),
+				" as ", _get_map_filename(channel, index), "...")
 
 			_save_channel(data_dir, channel, index)
 
@@ -802,9 +785,7 @@ func save_data(data_dir: String):
 			pi += 1
 
 	# TODO In editor, trigger reimport on generated assets
-
 	_locked = false
-	_notify_progress_complete()
 
 
 func _is_any_map_modified() -> bool:
@@ -907,7 +888,7 @@ func load_data(dir_path: String):
 
 	_load_metadata(dir_path.plus_file(META_FILENAME))
 
-	_notify_progress("Loading terrain data...", 0.0)
+	print("Loading terrain data...")
 
 	var channel_instance_sum = _get_total_map_count()
 	var pi = 0
@@ -918,10 +899,8 @@ func load_data(dir_path: String):
 		var maps = _maps[map_type]
 
 		for index in range(len(maps)):
-
-			var p = 0.1 + 0.6 * float(pi) / float(channel_instance_sum)
-			_notify_progress(str("Loading map ", _get_map_debug_name(map_type, index), \
-				" from ", _get_map_filename(map_type, index), "..."), p)
+			print("Loading map ", _get_map_debug_name(map_type, index),
+				" from ", _get_map_filename(map_type, index), "...")
 
 			_load_channel(dir_path, map_type, index)
 
@@ -930,15 +909,13 @@ func load_data(dir_path: String):
 
 			pi += 1
 
-	_notify_progress("Calculating vertical bounds...", 0.8)
+	print("Calculating vertical bounds...")
 	_update_all_vertical_bounds()
 
-	_notify_progress("Notify resolution change...", 0.9)
+	print("Notify resolution change...")
 
 	_locked = false
 	emit_signal("resolution_changed")
-
-	_notify_progress_complete()
 
 
 func get_data_dir() -> String:
