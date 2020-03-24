@@ -351,7 +351,6 @@ func _edit_set_disable_apply_undo(e: bool):
 
 
 func _edit_apply_undo(undo_data: Dictionary):
-
 	if _edit_disable_apply_undo:
 		return
 
@@ -379,7 +378,6 @@ func _edit_apply_undo(undo_data: Dictionary):
 	var regions_changed = []
 
 	# Apply
-
 	for i in range(len(chunk_datas)):
 		var cpos_x = chunk_positions[2 * i]
 		var cpos_y = chunk_positions[2 * i + 1]
@@ -398,13 +396,11 @@ func _edit_apply_undo(undo_data: Dictionary):
 		assert(dst_image != null)
 
 		match channel:
-
 			CHANNEL_HEIGHT, \
 			CHANNEL_SPLAT, \
 			CHANNEL_COLOR, \
 			CHANNEL_DETAIL:
 				dst_image.blit_rect(data, data_rect, Vector2(min_x, min_y))
-
 			CHANNEL_NORMAL, \
 			CHANNEL_GLOBAL_ALBEDO:
 				printerr("This is a calculated channel!, no undo on this one\n")
@@ -418,6 +414,22 @@ func _edit_apply_undo(undo_data: Dictionary):
 
 	for args in regions_changed:
 		notify_region_change(args[0], args[1], args[2])
+
+
+# Used for undoing full-terrain changes
+func _edit_apply_maps_from_file_cache(image_file_cache, map_ids: Dictionary):
+	if _edit_disable_apply_undo:
+		return
+	for map_type in map_ids:
+		var id = map_ids[map_type]
+		var src_im = image_file_cache.load_image(id)
+		if src_im == null:
+			continue
+		var index := 0
+		var dst_im := get_image(map_type, index)
+		var rect = Rect2(0, 0, src_im.get_height(), src_im.get_height())
+		dst_im.blit_rect(src_im, rect, Vector2())
+		notify_region_change(rect, map_type, index)
 
 
 func _upload_channel(channel: int, index: int):

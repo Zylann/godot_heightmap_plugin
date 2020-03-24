@@ -195,7 +195,7 @@ toggle_mode = false
 enabled_focus_mode = 2
 shortcut = null
 group = null
-text = "Apply (no undo)"
+text = "Apply"
 flat = false
 align = 1
 

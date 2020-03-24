@@ -6,19 +6,20 @@ const HTerrain = preload("../hterrain.gd")
 const HTerrainDetailLayer = preload("../hterrain_detail_layer.gd")
 const HTerrainData = preload("../hterrain_data.gd")
 const HTerrainMesher = preload("../hterrain_mesher.gd")
-const PreviewGenerator = preload("preview_generator.gd")
+const PreviewGenerator = preload("./preview_generator.gd")
 const Brush = preload("../hterrain_brush.gd")
-const BrushDecal = preload("brush/decal.gd")
+const BrushDecal = preload("./brush/decal.gd")
 const Util = preload("../util/util.gd")
-const LoadTextureDialog = preload("load_texture_dialog.gd")
-const GlobalMapBaker = preload("globalmap_baker.gd")
+const LoadTextureDialog = preload("./load_texture_dialog.gd")
+const GlobalMapBaker = preload("./globalmap_baker.gd")
+const ImageFileCache = preload("../util/image_file_cache.gd")
 
-const EditPanel = preload("panel.tscn")
-const ProgressWindow = preload("progress_window.tscn")
-const GeneratorDialog = preload("generator/generator_dialog.tscn")
-const ImportDialog = preload("importer/importer_dialog.tscn")
-const GenerateMeshDialog = preload("generate_mesh_dialog.tscn")
-const ResizeDialog = preload("resize_dialog/resize_dialog.tscn")
+const EditPanel = preload("./panel.tscn")
+const ProgressWindow = preload("./progress_window.tscn")
+const GeneratorDialog = preload("./generator/generator_dialog.tscn")
+const ImportDialog = preload("./importer/importer_dialog.tscn")
+const GenerateMeshDialog = preload("./generate_mesh_dialog.tscn")
+const ResizeDialog = preload("./resize_dialog/resize_dialog.tscn")
 const ExportImageDialog = preload("./exporter/export_image_dialog.tscn")
 
 const MENU_IMPORT_MAPS = 0
@@ -47,6 +48,7 @@ var _resize_dialog = null
 var _globalmap_baker = null
 var _menu_button : MenuButton
 var _terrain_had_data_previous_frame = false
+var _image_cache : ImageFileCache
 
 var _brush : Brush = null
 var _brush_decal : BrushDecal = null
@@ -63,7 +65,8 @@ func _enter_tree():
 	print("HTerrain plugin Enter tree")
 	
 	add_custom_type("HTerrain", "Spatial", HTerrain, get_icon("heightmap_node"))
-	add_custom_type("HTerrainDetailLayer", "Spatial", HTerrainDetailLayer, get_icon("detail_layer_node"))
+	add_custom_type("HTerrainDetailLayer", "Spatial", HTerrainDetailLayer, 
+		get_icon("detail_layer_node"))
 	add_custom_type("HTerrainData", "Resource", HTerrainData, get_icon("heightmap_data"))
 	
 	_preview_generator = PreviewGenerator.new()
@@ -75,6 +78,8 @@ func _enter_tree():
 	_brush_decal = BrushDecal.new()
 	_brush_decal.set_shape(_brush.get_shape())
 	_brush.connect("shape_changed", _brush_decal, "set_shape")
+	
+	_image_cache = ImageFileCache.new("user://hterrain_image_cache")
 	
 	var editor_interface := get_editor_interface()
 	var base_control := editor_interface.get_base_control()
@@ -166,7 +171,8 @@ func _enter_tree():
 	
 	_generator_dialog = GeneratorDialog.instance()
 	_generator_dialog.connect("progress_notified", self, "_terrain_progress_notified")
-	_generator_dialog.connect("permanent_change_performed", self, "_on_permanent_change_performed")
+	_generator_dialog.set_image_cache(_image_cache)
+	_generator_dialog.set_undo_redo(get_undo_redo())
 	base_control.add_child(_generator_dialog)
 
 	_import_dialog = ImportDialog.instance()
@@ -232,6 +238,9 @@ func _exit_tree():
 	get_editor_interface().get_resource_previewer().remove_preview_generator(_preview_generator)
 	_preview_generator = null
 	
+	# TODO Manual clear cuz it can't do it automatically due to a Godot bug
+	_image_cache.clear()
+	
 	# TODO https://github.com/godotengine/godot/issues/6254#issuecomment-246139694
 	# This was supposed to be automatic, but was never implemented it seems...
 	remove_custom_type("HTerrain")
@@ -276,9 +285,11 @@ func edit(object):
 
 static func _get_terrain_from_object(object):
 	if object != null and object is Spatial:
+		if not object.is_inside_tree():
+			return null
 		if object is HTerrain:
 			return object
-		if object is HTerrainDetailLayer and object.is_inside_tree() and object.get_parent() is HTerrain:
+		if object is HTerrainDetailLayer and object.get_parent() is HTerrain:
 			return object.get_parent()
 	return null
 
@@ -322,7 +333,8 @@ func make_visible(visible):
 	_brush_decal.update_visibility()
 
 	# TODO Workaround https://github.com/godotengine/godot/issues/6459
-	# When the user selects another node, I want the plugin to release its references to the terrain.
+	# When the user selects another node,
+	# I want the plugin to release its references to the terrain.
 	if not visible:
 		edit(null)
 
@@ -484,17 +496,20 @@ func _menu_item_selected(id):
 			
 		MENU_UPDATE_EDITOR_COLLIDER:
 			# This is for editor tools to be able to use terrain collision.
-			# It's not automatic because keeping this collider up to date is expensive,
-			# but not too bad IMO because that feature is not often used in editor for now.
+			# It's not automatic because keeping this collider up to date is
+			# expensive, but not too bad IMO because that feature is not often
+			# used in editor for now.
 			# If users complain too much about this, there are ways to improve it:
 			#
-			# 1) When the terrain gets deselected, update the terrain collider in a thread automatically.
-			#    This is still expensive but should be easy to do.
+			# 1) When the terrain gets deselected, update the terrain collider
+			#    in a thread automatically. This is still expensive but should
+			#    be easy to do.
 			#
 			# 2) Bullet actually support modifying the heights dynamically,
 			#    as long as we stay within min and max bounds,
-			#    so PR a change to the Godot heightmap collider to support passing a Float Image directly,
-			#    and make it so the data is in sync (no CoW plz!!). It's trickier than 1) but almost free.
+			#    so PR a change to the Godot heightmap collider to support passing
+			#    a Float Image directly, and make it so the data is in sync
+			#    (no CoW plz!!). It's trickier than 1) but almost free.
 			#
 			_node.update_collider()
 		

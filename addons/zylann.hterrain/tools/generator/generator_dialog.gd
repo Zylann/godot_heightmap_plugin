@@ -1,18 +1,16 @@
 tool
 extends WindowDialog
 
-
-# TODO Cap this resolution to terrain size, in case it is smaller (bigger uses chunking)
-const VIEWPORT_RESOLUTION = 512
-const NOISE_PERM_TEXTURE_SIZE = 256
-
 const HTerrainData = preload("../../hterrain_data.gd")
 const HTerrainMesher = preload("../../hterrain_mesher.gd")
 const Util = preload("../../util/util.gd")
 const TextureGenerator = preload("texture_generator.gd")
 
+# TODO Cap this resolution to terrain size, in case it is smaller (bigger uses chunking)
+const VIEWPORT_RESOLUTION = 512
+const NOISE_PERM_TEXTURE_SIZE = 256
+
 signal progress_notified(info) # { "progress": real, "message": string, "finished": bool }
-signal permanent_change_performed(message)
 
 onready var _inspector = $VBoxContainer/Editor/Settings/Inspector
 onready var _preview = $VBoxContainer/Editor/Preview/TerrainPreview
@@ -25,39 +23,101 @@ var _applying = false
 var _generator = null
 var _generated_textures = [null, null]
 var _dialog_visible = false
+var _undo_map_ids := {}
+var _image_cache = null
+var _undo_redo : UndoRedo
 
 
 static func get_shader(shader_name):
-	var path = "res://addons/zylann.hterrain/tools/generator/shaders".plus_file(str(shader_name, ".shader"))
+	var path = "res://addons/zylann.hterrain/tools/generator/shaders"\
+		.plus_file(str(shader_name, ".shader"))
 	#print("Loading ", path)
 	return load(path)
 
 
 func _ready():
 	_inspector.set_prototype({
-		"seed": { "type": TYPE_INT, "randomizable": true, "range": { "min": -100000, "max": 100000 }, "slidable": false},
-		"offset": { "type": TYPE_VECTOR2 },
-		"base_height": { "type": TYPE_REAL, "range": {"min": -500.0, "max": 500.0, "step": 0.1 }},
-		"height_range": { "type": TYPE_REAL, "range": {"min": 0.0, "max": 2000.0, "step": 0.1 }, "default_value": 150.0 },
-		"scale": { "type": TYPE_REAL, "range": {"min": 1.0, "max": 1000.0, "step": 1.0}, "default_value": 50.0 },
-		"roughness": { "type": TYPE_REAL, "range": {"min": 0.0, "max": 1.0, "step": 0.01}, "default_value": 0.4 },
-		"curve": { "type": TYPE_REAL, "range": {"min": 1.0, "max": 10.0, "step": 0.1}, "default_value": 1.0 },
-		"octaves": { "type": TYPE_INT, "range": {"min": 1, "max": 10, "step": 1}, "default_value": 6 },
-		"erosion_steps": { "type": TYPE_INT, "range": {"min": 0, "max": 100, "step": 1}, "default_value": 0 },
-		"erosion_weight": { "type": TYPE_REAL, "range": { "min": 0.0, "max": 1.0 }, "default_value": 0.5 },
-		"erosion_slope_factor": { "type": TYPE_REAL, "range": { "min": 0.0, "max": 1.0 }, "default_value": 0.0 },
-		"erosion_slope_direction": { "type": TYPE_VECTOR2, "default_value": Vector2(0, 0) },
-		"erosion_slope_invert": { "type": TYPE_BOOL, "default_value": false },
-		"dilation": { "type": TYPE_REAL, "range": { "min": 0.0, "max": 1.0 }, "default_value": 0.0 },
-		"show_sea": { "type": TYPE_BOOL, "default_value": true },
-		"shadows": { "type": TYPE_BOOL, "default_value": true }
+		"seed": {
+			"type": TYPE_INT, 
+			"randomizable": true, 
+			"range": { "min": -100000, "max": 100000 }, 
+			"slidable": false
+		},
+		"offset": {
+			"type": TYPE_VECTOR2
+		},
+		"base_height": { 
+			"type": TYPE_REAL,
+			"range": {"min": -500.0, "max": 500.0, "step": 0.1 }
+		},
+		"height_range": {
+			"type": TYPE_REAL,
+			"range": {"min": 0.0, "max": 2000.0, "step": 0.1 },
+			"default_value": 150.0
+		},
+		"scale": {
+			"type": TYPE_REAL,
+			"range": {"min": 1.0, "max": 1000.0, "step": 1.0},
+			"default_value": 50.0
+		},
+		"roughness": {
+			"type": TYPE_REAL,
+			"range": {"min": 0.0, "max": 1.0, "step": 0.01},
+			"default_value": 0.4
+		},
+		"curve": {
+			"type": TYPE_REAL,
+			"range": {"min": 1.0, "max": 10.0, "step": 0.1},
+			"default_value": 1.0
+		},
+		"octaves": {
+			"type": TYPE_INT,
+			"range": {"min": 1, "max": 10, "step": 1},
+			"default_value": 6
+		},
+		"erosion_steps": {
+			"type": TYPE_INT,
+			"range": {"min": 0, "max": 100, "step": 1},
+			"default_value": 0
+		},
+		"erosion_weight": {
+			"type": TYPE_REAL,
+			"range": { "min": 0.0, "max": 1.0 },
+			"default_value": 0.5
+		},
+		"erosion_slope_factor": {
+			"type": TYPE_REAL,
+			"range": { "min": 0.0, "max": 1.0 },
+			"default_value": 0.0
+		},
+		"erosion_slope_direction": {
+			"type": TYPE_VECTOR2,
+			"default_value": Vector2(0, 0)
+		},
+		"erosion_slope_invert": {
+			"type": TYPE_BOOL,
+			"default_value": false
+		},
+		"dilation": {
+			"type": TYPE_REAL,
+			"range": { "min": 0.0, "max": 1.0 },
+			"default_value": 0.0
+		},
+		"show_sea": {
+			"type": TYPE_BOOL,
+			"default_value": true
+		},
+		"shadows": {
+			"type": TYPE_BOOL,
+			"default_value": true
+		}
 	})
 
 	_generator = TextureGenerator.new()
 	_generator.set_resolution(Vector2(VIEWPORT_RESOLUTION, VIEWPORT_RESOLUTION))
 	# Setup the extra pixels we want on max edges for terrain
-	# TODO I wonder if it's not better to let the generator shaders work in pixels instead of NDC,
-	# rather than putting a padding system there
+	# TODO I wonder if it's not better to let the generator shaders work in pixels
+	# instead of NDC, rather than putting a padding system there
 	_generator.set_output_padding([0, 1, 0, 1])
 	_generator.connect("output_generated", self, "_on_TextureGenerator_output_generated")
 	_generator.connect("completed", self, "_on_TextureGenerator_completed")
@@ -77,11 +137,17 @@ func set_terrain(terrain):
 	_terrain = terrain
 
 
+func set_image_cache(image_cache):
+	_image_cache = image_cache
+
+
+func set_undo_redo(ur):
+	_undo_redo = ur
+
+
 func _notification(what):
 	match what:
-
 		NOTIFICATION_VISIBILITY_CHANGED:
-
 			# We don't want any of this to run in an edited scene
 			if Util.is_in_edited_scene(self):
 				return
@@ -98,7 +164,7 @@ func _notification(what):
 				if _noise_texture == null:
 					_regen_noise_perm_texture(_inspector.get_value("seed"))
 
-				_update_generator()
+				_update_generator(true)
 
 			else:
 #				if not _applying:
@@ -109,7 +175,7 @@ func _notification(what):
 				_dialog_visible = false
 
 
-func _update_generator(preview=true):
+func _update_generator(preview: bool):
 	var scale = _inspector.get_value("scale")
 	# Scale is inverted in the shader
 	if abs(scale) < 0.01:
@@ -240,9 +306,9 @@ func _on_Inspector_property_changed(key, value):
 			_preview.set_shadows_enabled(value)
 		"seed":
 			_regen_noise_perm_texture(value)
-			_update_generator()
+			_update_generator(true)
 		_:
-			_update_generator()
+			_update_generator(true)
 
 
 func _on_TerrainPreview_dragged(relative, button_mask):
@@ -254,25 +320,28 @@ func _on_TerrainPreview_dragged(relative, button_mask):
 
 func _apply():
 	if _terrain == null:
-		printerr("ERROR: cannot apply, terrain is null")
+		push_error("ERROR: cannot apply, terrain is null")
 		return
 
 	var data = _terrain.get_data()
 	if data == null:
-		printerr("ERROR: cannot apply, terrain data is null")
+		push_error("ERROR: cannot apply, terrain data is null")
 		return
 
 	var dst_heights = data.get_image(HTerrainData.CHANNEL_HEIGHT)
 	if dst_heights == null:
-		printerr("ERROR: terrain heightmap image isn't loaded")
+		push_error("ERROR: terrain heightmap image isn't loaded")
 		return
 
 	var dst_normals = data.get_image(HTerrainData.CHANNEL_NORMAL)
 	if dst_normals == null:
-		printerr("ERROR: terrain normal image isn't loaded")
+		push_error("ERROR: terrain normal image isn't loaded")
 		return
 
 	_applying = true
+	
+	_undo_map_ids[HTerrainData.CHANNEL_HEIGHT] = _image_cache.save_image(dst_heights)
+	_undo_map_ids[HTerrainData.CHANNEL_NORMAL] = _image_cache.save_image(dst_normals)
 
 	_update_generator(false)
 
@@ -320,7 +389,8 @@ func _on_TextureGenerator_output_generated(image, info):
 
 		emit_signal("progress_notified", {
 			"progress": info.progress,
-			"message": "Calculating sector (" + str(info.sector.x) + ", " + str(info.sector.y) + ")"
+			"message": "Calculating sector (" 
+				+ str(info.sector.x) + ", " + str(info.sector.y) + ")"
 		})
 
 #		if info.maptype == HTerrainData.CHANNEL_NORMAL:
@@ -333,14 +403,26 @@ func _on_TextureGenerator_completed():
 	if not _applying:
 		return
 	_applying = false
-
+	
 	assert(_terrain != null)
-	var data = _terrain.get_data()
-	var resolution = data.get_resolution()
+	var data : HTerrainData = _terrain.get_data()
+	var resolution := data.get_resolution()
 	data.notify_region_change(Rect2(0, 0, resolution, resolution), HTerrainData.CHANNEL_HEIGHT)
 
+	var redo_map_ids = {}
+	for map_type in _undo_map_ids:
+		redo_map_ids[map_type] = _image_cache.save_image(data.get_image(map_type))
+
+	data._edit_set_disable_apply_undo(true)
+	_undo_redo.create_action("Generate terrain")
+	_undo_redo.add_do_method(
+		data, "_edit_apply_maps_from_file_cache", _image_cache, redo_map_ids)
+	_undo_redo.add_undo_method(
+		data, "_edit_apply_maps_from_file_cache", _image_cache, _undo_map_ids)
+	_undo_redo.commit_action()
+	data._edit_set_disable_apply_undo(false)
+
 	emit_signal("progress_notified", { "finished": true })
-	emit_signal("permanent_change_performed", "Generate terrain")
 	print("Done")
 
 
