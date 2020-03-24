@@ -123,6 +123,17 @@ static func get_node_in_parents(node: Node, klass) -> Node:
 	return null
 
 
+static func find_first_node(node: Node, klass) -> Node:
+	if node is klass:
+		return node
+	for i in node.get_child_count():
+		var child = node.get_child(i)
+		var found_node = find_first_node(child, klass)
+		if found_node != null:
+			return found_node
+	return null
+
+
 static func is_in_edited_scene(node: Node) -> bool:
 	if not node.is_inside_tree():
 		return false

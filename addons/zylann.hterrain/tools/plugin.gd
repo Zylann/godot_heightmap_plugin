@@ -365,7 +365,6 @@ func forward_spatial_gui_input(p_camera, p_event):
 		
 		var hit_pos_in_cells = [0, 0]
 		if _node.cell_raycast(origin, dir, hit_pos_in_cells):
-			
 			_brush_decal.set_position(Vector3(hit_pos_in_cells[0], 0, hit_pos_in_cells[1]))
 						
 			if _mouse_pressed:
@@ -585,3 +584,48 @@ func _on_permanent_change_performed(message: String):
 	#ur.add_undo_method(data, "_dummy_function")
 	ur.commit_action()
 
+
+# TEST
+#func _physics_process(delta):
+#	if Input.is_key_pressed(KEY_KP_0):
+#		_debug_spawn_collider_indicators()
+
+
+func _debug_spawn_collider_indicators():
+	var root = get_editor_interface().get_edited_scene_root()
+	var terrain := Util.find_first_node(root, HTerrain) as HTerrain
+	if terrain == null:
+		return
+	
+	var test_root : Spatial
+	if not terrain.has_node("__DEBUG"):
+		test_root = Spatial.new()
+		test_root.name = "__DEBUG"
+		terrain.add_child(test_root)
+	else:
+		test_root = terrain.get_node("__DEBUG")
+	
+	var space_state := terrain.get_world().direct_space_state
+	var hit_material = SpatialMaterial.new()
+	hit_material.albedo_color = Color(0, 1, 1)
+	var cube = CubeMesh.new()
+	
+	for zi in 16:
+		for xi in 16:
+			var hit_name = str(xi, "_", zi)
+			var pos = Vector3(xi * 16, 1000, zi * 16)
+			var hit = space_state.intersect_ray(pos, pos + Vector3(0, -2000, 0))
+			var mi : MeshInstance
+			if not test_root.has_node(hit_name):
+				mi = MeshInstance.new()
+				mi.name = hit_name
+				mi.material_override = hit_material
+				mi.mesh = cube
+				test_root.add_child(mi)
+			else:
+				mi = test_root.get_node(hit_name)
+			if hit.empty():
+				mi.hide()
+			else:
+				mi.show()
+				mi.translation = hit.position
