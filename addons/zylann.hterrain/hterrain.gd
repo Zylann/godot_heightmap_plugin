@@ -120,7 +120,8 @@ func _init():
 
 	set_notify_transform(true)
 
-	# TODO Temporary! This is a workaround for https://github.com/godotengine/godot/issues/24488
+	# TODO Temporary!
+	# This is a workaround for https://github.com/godotengine/godot/issues/24488
 	_material.set_shader_param("u_ground_uv_scale", 20)
 	_material.set_shader_param("u_depth_blending", true)
 
@@ -320,11 +321,13 @@ func set_collision_enabled(enabled: bool):
 		if collision_enabled:
 			if _check_heightmap_collider_support():
 				_collider = HTerrainCollider.new(self)
-				# Collision is not updated with data here, because loading is quite a mess at the moment...
+				# Collision is not updated with data here,
+				# because loading is quite a mess at the moment...
 				# 1) This function can be called while no data has been set yet
-				# 2) I don't want to update the collider more times than necessary because it's expensive
-				# 3) I would prefer not defer that to the moment the terrain is added to the tree,
-				#    because it would screw up threaded loading
+				# 2) I don't want to update the collider more times than necessary
+				#    because it's expensive
+				# 3) I would prefer not defer that to the moment the terrain is
+				#    added to the tree, because it would screw up threaded loading
 		else:
 			# Despite this object being a Reference,
 			# this should free it, as it should be the only reference
@@ -374,7 +377,8 @@ func set_map_scale(p_map_scale: Vector3):
 
 
 # Gets the global transform to apply to terrain geometry,
-# which is different from Spatial.global_transform gives (that one must only have translation)
+# which is different from Spatial.global_transform gives
+# (that one must only have translation)
 func get_internal_transform() -> Transform:
 	# Terrain can only be scaled and translated,
 	return Transform(Basis().scaled(map_scale), translation)
@@ -570,14 +574,13 @@ func _reset_ground_chunks():
 
 
 func _on_data_region_changed(min_x, min_y, size_x, size_y, channel):
-	#print_line(String("_on_data_region_changed {0}, {1}, {2}, {3}").format(varray(min_x, min_y, max_x, max_y)));
-
 	# Testing only heights because it's the only channel that can impact geometry and LOD
 	if channel == HTerrainData.CHANNEL_HEIGHT:
 		set_area_dirty(min_x, min_y, size_x, size_y)
 
 		if _normals_baker != null:
-			_normals_baker.request_tiles_in_region(Vector2(min_x, min_y), Vector2(size_x, size_y))
+			_normals_baker.request_tiles_in_region(
+				Vector2(min_x, min_y), Vector2(size_x, size_y))
 
 
 func _on_data_map_changed(type: int, index: int):
@@ -943,7 +946,8 @@ func _add_chunk_update(chunk, pos_x: int, pos_y: int, lod: int):
 
 	chunk.set_pending_update(true)
 
-	# TODO Neighboring chunks might need an update too because of normals and seams being updated
+	# TODO Neighboring chunks might need an update too
+	# because of normals and seams being updated
 
 
 # Used when editing an existing terrain
@@ -998,7 +1002,8 @@ func _cb_make_chunk(cpos_x: int, cpos_y: int, lod: int):
 		var origin_in_cells_y = cpos_y * _chunk_size * lod_factor
 
 		if DEBUG_AABB:
-			chunk = HTerrainChunkDebug.new(self, origin_in_cells_x, origin_in_cells_y, _material)
+			chunk = HTerrainChunkDebug.new(
+				self, origin_in_cells_x, origin_in_cells_y, _material)
 		else:
 			chunk = HTerrainChunk.new(self, origin_in_cells_x, origin_in_cells_y, _material)
 		chunk.parent_transform_changed(get_internal_transform())
@@ -1025,12 +1030,14 @@ func _cb_get_vertical_bounds(cpos_x: int, cpos_y: int, lod: int):
 	var chunk_size = _chunk_size * _lodder.get_lod_size(lod)
 	var origin_in_cells_x = cpos_x * chunk_size
 	var origin_in_cells_y = cpos_y * chunk_size
-	# This is a hack for speed, because the proper algorithm appears to be too slow for GDScript.
+	# This is a hack for speed,
+	# because the proper algorithm appears to be too slow for GDScript.
 	# It should be good enough for most common cases, unless you have super-sharp cliffs.
 	return _data.get_point_aabb(
 		origin_in_cells_x + chunk_size / 2, 
 		origin_in_cells_y + chunk_size / 2)
-#	var aabb = _data.get_region_aabb(origin_in_cells_x, origin_in_cells_y, chunk_size, chunk_size)
+#	var aabb = _data.get_region_aabb(
+#		origin_in_cells_x, origin_in_cells_y, chunk_size, chunk_size)
 #	return Vector2(aabb.position.y, aabb.end.y)
 
 
@@ -1101,7 +1108,8 @@ func cell_raycast(origin_world: Vector3, dir_world: Vector3, out_cell_pos: Array
 static func get_ground_texture_shader_param(ground_texture_type: int, slot: int) -> String:
 	assert(typeof(slot) == TYPE_INT and slot >= 0)
 	_check_ground_texture_type(ground_texture_type)
-	return str(SHADER_PARAM_GROUND_PREFIX, _ground_enum_to_name[ground_texture_type], "_", slot)
+	return str(SHADER_PARAM_GROUND_PREFIX, 
+		_ground_enum_to_name[ground_texture_type], "_", slot)
 
 
 func get_ground_texture(slot: int, type: int) -> Texture:
