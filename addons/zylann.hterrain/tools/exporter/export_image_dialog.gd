@@ -170,7 +170,8 @@ func _update_file_extension():
 
 
 static func _print_file_error(fpath, err):
-	push_error("Could not save path {0}, error: {1}".format(fpath, Errors.get_message(err)))
+	push_error("Could not save path {0}, error: {1}" \
+		.format([fpath, Errors.get_message(err)]))
 
 
 func _on_CancelButton_pressed():
