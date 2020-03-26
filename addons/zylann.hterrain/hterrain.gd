@@ -405,12 +405,12 @@ func _notification(what: int):
 			_on_transform_changed()
 
 		NOTIFICATION_VISIBILITY_CHANGED:
-			print("Visibility changed");
-			_for_all_chunks(VisibilityChangedAction.new(is_visible()))
+			print("Visibility changed")
+			_for_all_chunks(VisibilityChangedAction.new(is_visible_in_tree()))
 
 
 func _on_transform_changed():
-	print("Transform changed");
+	print("Transform changed")
 	var gt = get_internal_transform()
 
 	_for_all_chunks(TransformChangedAction.new(gt))
@@ -445,7 +445,7 @@ func _clear_all_chunks():
 		_chunks[i].clear()
 
 
-func _get_chunk_at(pos_x, pos_y, lod):
+func _get_chunk_at(pos_x: int, pos_y: int, lod: int) -> HTerrainChunk:
 	if lod < len(_chunks):
 		return Grid.grid_get_or_default(_chunks[lod], pos_x, pos_y, null)
 	return null
@@ -709,9 +709,8 @@ func _update_material_params():
 
 # Helper used for globalmap baking
 func setup_globalmap_material(mat: ShaderMaterial):
-
-	var color_texture
-	var splat_texture
+	var color_texture: Texture
+	var splat_texture: Texture
 
 	if has_data():
 		color_texture = _data.get_texture(HTerrainData.CHANNEL_COLOR)
@@ -776,7 +775,6 @@ const s_rdirs = [
 ]
 
 func _process(delta: float):
-
 	# Get viewer pos
 	var viewer_pos = Vector3()
 	if Engine.editor_hint:
@@ -791,7 +789,6 @@ func _process(delta: float):
 				viewer_pos = camera.get_global_transform().origin
 
 	if has_data():
-
 		if _data.is_locked():
 			# Can't use the data for now
 			return
@@ -808,7 +805,6 @@ func _process(delta: float):
 		if _data.get_map_count(HTerrainData.CHANNEL_DETAIL) > 0:
 			# Note: the detail system is not affected by map scale,
 			# so we have to send viewer position in world space
-
 			for layer in _detail_layers:
 				layer.process(delta, viewer_pos)
 
@@ -824,12 +820,10 @@ func _process(delta: float):
 
 		# In case the chunk got split
 		for d in 4:
-
 			var ncpos_x = u.pos_x + s_dirs[d][0]
 			var ncpos_y = u.pos_y + s_dirs[d][1]
 
-			var nchunk = _get_chunk_at(ncpos_x, ncpos_y, u.lod)
-
+			var nchunk := _get_chunk_at(ncpos_x, ncpos_y, u.lod)
 			if nchunk != null and nchunk.is_active():
 				# Note: this will append elements to the array we are iterating on,
 				# but we iterate only on the previous count so it should be fine
@@ -842,22 +836,21 @@ func _process(delta: float):
 			var nlod = u.lod - 1
 
 			for rd in 8:
-
 				var ncpos_upper_x = cpos_upper_x + s_rdirs[rd][0]
 				var ncpos_upper_y = cpos_upper_y + s_rdirs[rd][1]
 
 				var nchunk = _get_chunk_at(ncpos_upper_x, ncpos_upper_y, nlod)
-
 				if nchunk != null and nchunk.is_active():
 					_add_chunk_update(nchunk, ncpos_upper_x, ncpos_upper_y, nlod)
 
 	# Update chunks
+	var lvisible = is_visible_in_tree()
 	for i in range(len(_pending_chunk_updates)):
-
 		var u = _pending_chunk_updates[i]
 		var chunk = _get_chunk_at(u.pos_x, u.pos_y, u.lod)
 		assert(chunk != null)
-		_update_chunk(chunk, u.lod)
+		_update_chunk(chunk, u.lod, lvisible)
+		_updated_chunks += 1
 
 	_pending_chunk_updates.clear()
 
@@ -870,46 +863,43 @@ func _process(delta: float):
 #		print("Updated {0} chunks".format(_updated_chunks))
 
 
-func _update_chunk(chunk, lod: int):
+func _update_chunk(chunk: HTerrainChunk, lod: int, p_visible: bool):
 	assert(has_data())
 
 	# Check for my own seams
-	var seams = 0;
-	var cpos_x = chunk.cell_origin_x / (_chunk_size << lod)
-	var cpos_y = chunk.cell_origin_y / (_chunk_size << lod)
-	var cpos_lower_x = cpos_x / 2
-	var cpos_lower_y = cpos_y / 2
+	var seams := 0
+	var cpos_x := chunk.cell_origin_x / (_chunk_size << lod)
+	var cpos_y := chunk.cell_origin_y / (_chunk_size << lod)
+	var cpos_lower_x := cpos_x / 2
+	var cpos_lower_y := cpos_y / 2
 
 	# Check for lower-LOD chunks around me
-	for d in range(4):
+	for d in 4:
 		var ncpos_lower_x = (cpos_x + s_dirs[d][0]) / 2
 		var ncpos_lower_y = (cpos_y + s_dirs[d][1]) / 2
 		if ncpos_lower_x != cpos_lower_x or ncpos_lower_y != cpos_lower_y:
-			var nchunk = _get_chunk_at(ncpos_lower_x, ncpos_lower_y, lod + 1)
+			var nchunk := _get_chunk_at(ncpos_lower_x, ncpos_lower_y, lod + 1)
 			if nchunk != null and nchunk.is_active():
 				seams |= (1 << d)
 
-	var mesh = _mesher.get_chunk(lod, seams)
+	var mesh := _mesher.get_chunk(lod, seams)
 	chunk.set_mesh(mesh)
 
 	# Because chunks are rendered using vertex shader displacement,
 	# the renderer cannot rely on the mesh's AABB.
-	var s = _chunk_size << lod;
-	var aabb = _data.get_region_aabb(chunk.cell_origin_x, chunk.cell_origin_y, s, s)
+	var s := _chunk_size << lod
+	var aabb := _data.get_region_aabb(chunk.cell_origin_x, chunk.cell_origin_y, s, s)
 	aabb.position.x = 0
 	aabb.position.z = 0
 	chunk.set_aabb(aabb)
 
-	_updated_chunks += 1
-
-	chunk.set_visible(is_visible())
+	chunk.set_visible(p_visible)
 	chunk.set_pending_update(false)
 
 
-func _add_chunk_update(chunk, pos_x: int, pos_y: int, lod: int):
-
+func _add_chunk_update(chunk: HTerrainChunk, pos_x: int, pos_y: int, lod: int):
 	if chunk.is_pending_update():
-		#print_line("Chunk update is already pending!");
+		#print_line("Chunk update is already pending!")
 		return
 
 	assert(lod < len(_chunks))
@@ -919,7 +909,7 @@ func _add_chunk_update(chunk, pos_x: int, pos_y: int, lod: int):
 	assert(pos_x < len(_chunks[lod][pos_y]))
 
 	# No update pending for this chunk, create one
-	var u = PendingChunkUpdate.new()
+	var u := PendingChunkUpdate.new()
 	u.pos_x = pos_x
 	u.pos_y = pos_y
 	u.lod = lod
@@ -935,52 +925,43 @@ func _add_chunk_update(chunk, pos_x: int, pos_y: int, lod: int):
 func set_area_dirty(origin_in_cells_x: int, origin_in_cells_y: int, \
 					size_in_cells_x: int, size_in_cells_y: int):
 
-	var cpos0_x = origin_in_cells_x / _chunk_size
-	var cpos0_y = origin_in_cells_y / _chunk_size
-	var csize_x = (size_in_cells_x - 1) / _chunk_size + 1
-	var csize_y = (size_in_cells_y - 1) / _chunk_size + 1
+	var cpos0_x := origin_in_cells_x / _chunk_size
+	var cpos0_y := origin_in_cells_y / _chunk_size
+	var csize_x := (size_in_cells_x - 1) / _chunk_size + 1
+	var csize_y := (size_in_cells_y - 1) / _chunk_size + 1
 
 	# For each lod
 	for lod in range(_lodder.get_lod_count()):
-
 		# Get grid and chunk size
 		var grid = _chunks[lod]
-		var s = _lodder.get_lod_size(lod)
+		var s := _lodder.get_lod_size(lod)
 
 		# Convert rect into this lod's coordinates:
 		# Pick min and max (included), divide them, then add 1 to max so it's excluded again
-		var min_x = cpos0_x / s
-		var min_y = cpos0_y / s
-		var max_x = (cpos0_x + csize_x - 1) / s + 1
-		var max_y = (cpos0_y + csize_y - 1) / s + 1
+		var min_x := cpos0_x / s
+		var min_y := cpos0_y / s
+		var max_x := (cpos0_x + csize_x - 1) / s + 1
+		var max_y := (cpos0_y + csize_y - 1) / s + 1
 
 		# Find which chunks are within
-		var cy = min_y
-		while cy < max_y:
-			var cx = min_x
-			while cx < max_x:
-
+		for cy in range(min_y, max_y):
+			for cx in range(min_x, max_x):
 				var chunk = Grid.grid_get_or_default(grid, cx, cy, null)
-
 				if chunk != null and chunk.is_active():
 					_add_chunk_update(chunk, cx, cy, lod)
-
-				cx += 1
-			cy += 1
 
 
 # Called when a chunk is needed to be seen
 func _cb_make_chunk(cpos_x: int, cpos_y: int, lod: int):
-
 	# TODO What if cpos is invalid? _get_chunk_at will return NULL but that's still invalid
-	var chunk = _get_chunk_at(cpos_x, cpos_y, lod)
+	var chunk := _get_chunk_at(cpos_x, cpos_y, lod)
 
 	if chunk == null:
 		# This is the first time this chunk is required at this lod, generate it
-
-		var lod_factor = _lodder.get_lod_size(lod)
-		var origin_in_cells_x = cpos_x * _chunk_size * lod_factor
-		var origin_in_cells_y = cpos_y * _chunk_size * lod_factor
+		
+		var lod_factor := _lodder.get_lod_size(lod)
+		var origin_in_cells_x := cpos_x * _chunk_size * lod_factor
+		var origin_in_cells_y := cpos_y * _chunk_size * lod_factor
 
 		if DEBUG_AABB:
 			chunk = HTerrainChunkDebug.new(
@@ -994,23 +975,22 @@ func _cb_make_chunk(cpos_x: int, cpos_y: int, lod: int):
 		row[cpos_x] = chunk
 
 	# Make sure it gets updated
-	_add_chunk_update(chunk, cpos_x, cpos_y, lod);
+	_add_chunk_update(chunk, cpos_x, cpos_y, lod)
 
 	chunk.set_active(true)
-
 	return chunk
 
 
 # Called when a chunk is no longer seen
-func _cb_recycle_chunk(chunk, cx: int, cy: int, lod: int):
+func _cb_recycle_chunk(chunk: HTerrainChunk, cx: int, cy: int, lod: int):
 	chunk.set_visible(false)
 	chunk.set_active(false)
 
 
 func _cb_get_vertical_bounds(cpos_x: int, cpos_y: int, lod: int):
-	var chunk_size = _chunk_size * _lodder.get_lod_size(lod)
-	var origin_in_cells_x = cpos_x * chunk_size
-	var origin_in_cells_y = cpos_y * chunk_size
+	var chunk_size := _chunk_size * _lodder.get_lod_size(lod)
+	var origin_in_cells_x := cpos_x * chunk_size
+	var origin_in_cells_y := cpos_y * chunk_size
 	# This is a hack for speed,
 	# because the proper algorithm appears to be too slow for GDScript.
 	# It should be good enough for most common cases, unless you have super-sharp cliffs.
@@ -1074,7 +1054,7 @@ func cell_raycast(origin_world: Vector3, dir_world: Vector3, out_cell_pos: Array
 		pos += dir * unit
 		cpos = _local_pos_to_cell(pos)
 		if _get_height_or_default(heights, cpos[0], cpos[1]) > pos.y:
-			cpos = _local_pos_to_cell(pos - dir * unit);
+			cpos = _local_pos_to_cell(pos - dir * unit)
 			out_cell_pos[0] = cpos[0]
 			out_cell_pos[1] = cpos[1]
 			return true
@@ -1216,7 +1196,7 @@ class VisibilityChangedAction:
 	func _init(v):
 		visible = v
 	func exec(chunk):
-		chunk.set_visible(visible)
+		chunk.set_visible(visible and chunk.is_active())
 
 
 #class DeleteChunkAction:

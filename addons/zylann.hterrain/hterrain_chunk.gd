@@ -4,7 +4,10 @@ var cell_origin_x := 0
 var cell_origin_y := 0
 
 var _visible : bool
+# This is true when the chunk is meant to be displayed.
+# A chunk can be active and hidden (due to the terrain being hidden).
 var _active : bool
+
 var _pending_update : bool
 
 var _mesh_instance : RID
@@ -49,7 +52,7 @@ func _notification(p_what: int):
 			_mesh_instance = RID()
 
 
-func is_active():
+func is_active() -> bool:
 	return _active
 
 
@@ -57,7 +60,7 @@ func set_active(a):
 	_active = a
 
 
-func is_pending_update():
+func is_pending_update() -> bool:
 	return _pending_update
 
 
