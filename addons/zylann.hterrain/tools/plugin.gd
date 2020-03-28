@@ -369,7 +369,11 @@ func forward_spatial_gui_input(p_camera, p_event):
 	elif p_event is InputEventMouseMotion:
 		var mm = p_event
 		
-		var screen_pos = mm.position
+		# Need to do an extra conversion in case the editor viewport is in half-resolution mode
+		var viewport = p_camera.get_viewport()
+		var viewport_container = viewport.get_parent()
+		var screen_pos = mm.position * viewport.size / viewport_container.rect_size
+		
 		var origin = p_camera.project_ray_origin(screen_pos)
 		var dir = p_camera.project_ray_normal(screen_pos)
 		
