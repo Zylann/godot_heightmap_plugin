@@ -1,0 +1,29 @@
+#ifndef IMAGE_UTILS_H
+#define IMAGE_UTILS_H
+
+#include <core/Godot.hpp>
+#include <gen/Image.hpp>
+#include <gen/Reference.hpp>
+
+namespace godot {
+
+class ImageUtils : public Reference {
+    GODOT_CLASS(ImageUtils, Reference)
+public:
+    static void _register_methods();
+
+    ImageUtils();
+    ~ImageUtils();
+
+    void _init();
+
+    Vector2 get_red_range(Ref<Image> image_ref, Rect2 rect) const;
+    float get_red_sum(Ref<Image> image_ref, Rect2 rect) const;
+    void add_red_brush(Ref<Image> image_ref, Ref<Image> brush_ref, Vector2 p_pos, float factor) const;
+    void lerp_red_brush(Ref<Image> image_ref, Ref<Image> brush_ref, Vector2 p_pos, float factor, float target_value) const;
+    void lerp_color_brush(Ref<Image> image_ref, Ref<Image> brush_ref, Vector2 p_pos, float factor, Color target_value) const;
+};
+
+} // namespace godot
+
+#endif // IMAGE_UTILS_H

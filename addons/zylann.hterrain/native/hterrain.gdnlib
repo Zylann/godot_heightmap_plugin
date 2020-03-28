@@ -1,0 +1,18 @@
+[general]
+
+singleton = false
+load_once = true
+symbol_prefix = "godot_"
+reloadable = false
+
+[entry]
+
+X11.64 = "res://addons/zylann.hterrain/native/bin/x11/hterrain_native.so"
+Windows.64 = "res://addons/zylann.hterrain/native/bin/win64/hterrain_native.dll"
+OSX.64 = "res://addons/zylann.hterrain/native/bin/osx/hterrain_native.dylib"
+
+[dependencies]
+
+X11.64 = []
+Windows.64 = []
+OSX.64 = []
