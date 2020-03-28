@@ -412,3 +412,38 @@ func _ready():
 	# No need to call this, but you may need to if you edit the terrain later on
 	#terrain.update_collider()
 ```
+
+
+Troubleshooting
+-----------------
+
+We do the best we can on our free time to make this plugin usable, but it's possible bugs appear. Some of them are known issues. If you have a problem, please refer to the issue tracker: https://github.com/Zylann/godot_heightmap_plugin/issues
+
+
+### Before reporting any bug
+
+- Make sure you have the latest version of the plugin
+- Make sure it hasn't been reported already (including closed issues)
+- Check your Godot version. This plugin only works starting from Godot 3.1, and does not support 4.x yet. It is also possible that some issues exist in Godot 3.1 but could only be fixed in later versions.
+- Make sure you are using the GLES3 renderer. GLES2 is not supported.
+- Make sure your addons folder is located at `res://addons`, and does not contain uppercase letters. This might work on Windows but it will break after export.
+
+
+### If you report a new bug
+
+If none of the initial checks help and you want to post a new issue, do the following:
+
+- Check the console for messages, warnings and errors. These are helpful to diagnose the issue.
+- Try to reproduce the bug with precise reproduction steps, and indicate them
+- Provide a test project with those steps (unless it's reproducible from an empty project), so that we can reproduce the bug and fix it more easily. Github allows you to drag-and-drop zip files. If the project is too big, use a host like https://send.firefox.com/
+- Indicate your OS, Godot version and graphics card model. Those are present in logs as well.
+
+
+### Terrain not saving / not up to date / not showing
+
+This issue happened a few times and had various causes so if the checks mentionned before don't help:
+
+- Check the contents of your terrain's data folder. It must contain a `.hterrain` file and a few textures.
+- If they are present, make sure Godot has imported those textures. If it didn't, unfocus the editor, and focus it back (you should see a short progress bar as it does it)
+- Check if you used Ctrl+Z (undo) after a non-undoable action: https://github.com/Zylann/godot_heightmap_plugin/issues/101
+- If your problem relates to collisions in editor, update the collider using `Terrain -> Update Editor Collider`, because this one does not update automatically yet
