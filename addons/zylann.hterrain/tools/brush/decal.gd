@@ -30,8 +30,13 @@ func set_size(size):
 	_mesh.size = Vector2(size, size)
 	# Must line up to terrain vertex policy, so must apply an off-by-one.
 	# If I don't do that, the brush will appear to wobble above the ground
-	_mesh.subdivide_width = size - 1
-	_mesh.subdivide_depth = size - 1
+	var ss = size - 1
+	if ss > 50:
+		ss /= 2
+	if ss > 50:
+		ss /= 2
+	_mesh.subdivide_width = ss
+	_mesh.subdivide_depth = ss
 
 
 func set_shape(shape_image):
