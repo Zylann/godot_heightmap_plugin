@@ -514,10 +514,10 @@ static func create_quad() -> Mesh:
 	# Vertical quad with the origin at the bottom edge
 	var size := 0.5
 	var positions := PoolVector3Array([
-		Vector3(-size, 0, 0),
-		Vector3(size, 0, 0),
-		Vector3(size, 1, 0),
-		Vector3(-size, 1, 0),
+		Vector3(-width, 0, 0),
+		Vector3(width, 0, 0),
+		Vector3(width, 1, 0),
+		Vector3(-width, 1, 0),
 	])
 	var normals := PoolVector3Array([
 		Vector3(0, 0, -1),
