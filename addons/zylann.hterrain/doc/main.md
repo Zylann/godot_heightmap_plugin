@@ -1,6 +1,43 @@
 HTerrain plugin documentation
 ===============================
 
+<!-- TOC -->
+- [HTerrain plugin documentation](#hterrain-plugin-documentation)
+    - [Overview](#overview)
+    - [Creating a terrain](#creating-a-terrain)
+        - [Creating a HTerrain node](#creating-a-hterrain-node)
+        - [Terrain dimensions](#terrain-dimensions)
+        - [Creating the terrain from script](#creating-the-terrain-from-script)
+    - [Basic sculpting](#basic-sculpting)
+        - [Using the brush](#using-the-brush)
+        - [Normals](#normals)
+    - [Texturing](#texturing)
+        - [Overview](#overview)
+        - [Painting](#painting)
+        - [Setting up bump, normals and roughness](#setting-up-bump-normals-and-roughness)
+        - [Triplanar mapping](#triplanar-mapping)
+        - [Color tint](#color-tint)
+    - [Holes](#holes)
+    - [Terrain generator](#terrain-generator)
+        - [Height range](#height-range)
+        - [Perlin noise](#perlin-noise)
+        - [Erosion](#erosion)
+        - [Applying](#applying)
+    - [Import an existing terrain](#import-an-existing-terrain)
+    - [Detail layers](#detail-layers)
+    - [Global map](#global-map)
+    - [Level of detail](#level-of-detail)
+    - [Custom shaders](#custom-shaders)
+        - [Ground shaders](#ground-shaders)
+        - [Grass shaders](#grass-shaders)
+    - [Procedural generation from a script](#procedural-generation-from-a-script)
+    - [Troubleshooting](#troubleshooting)
+        - [Before reporting any bug](#before-reporting-any-bug)
+        - [If you report a new bug](#if-you-report-a-new-bug)
+        - [Terrain not saving / not up to date / not showing](#terrain-not-saving-/-not-up-to-date-/-not-showing)
+<!-- /TOC -->
+
+
 
 Overview
 ----------
