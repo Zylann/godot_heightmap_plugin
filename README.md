@@ -1,16 +1,18 @@
-HeightMap terrain plugin for Godot Engine 3.1
-================================================
+HeightMap terrain plugin for Godot Engine
+=========================================
 
 ![Editor screenshot](https://user-images.githubusercontent.com/1311555/49705861-a5275380-fc19-11e8-8338-9ad364d2db8d.png)
 
-Heightmap-based terrain for Godot 3.1 and later.
+Heightmap-based terrain for Godot 3.1 and 3.2.
 It supports texture painting, colouring, holes, level of detail and grass, while still targetting the Godot API.
+
+**Note:** The current Godot `master` branch isn't supported yet. Use Godot 3.2 if you want to use this plugin.
 
 This repository holds the latest development version, which means it has the latest features but can also have bugs.
 For a "stable" version, use the asset library or download from a commit tagged with a version.
 The `master` branch is the latest development version, and may have bugs. Some major features can also be in other branches until they are done. For release versions, check the Git branches named after those versions, like `0.10`.
 
-To get the last version that supported Godot 3.0.6, checkout branch `0.10`.
+To get the last version that supported Godot 3.0.6, checkout [branch `0.10`](https://github.com/Zylann/godot_heightmap_plugin/tree/0.10).
 
 
 Installation
@@ -58,4 +60,3 @@ Here are some of the causes:
 - The procedural generator doesn't work, and likely never will in GLES2 because it relies on HDR framebuffers.
 
 - For more info, see https://github.com/Zylann/godot_heightmap_plugin/issues/96
-
