@@ -19,9 +19,11 @@ public:
 
     Vector2 get_red_range(Ref<Image> image_ref, Rect2 rect) const;
     float get_red_sum(Ref<Image> image_ref, Rect2 rect) const;
+    float get_red_sum_weighted(Ref<Image> image_ref, Ref<Image> brush_ref, Vector2 p_pos, float factor) const;
     void add_red_brush(Ref<Image> image_ref, Ref<Image> brush_ref, Vector2 p_pos, float factor) const;
-    void lerp_red_brush(Ref<Image> image_ref, Ref<Image> brush_ref, Vector2 p_pos, float factor, float target_value) const;
+    void lerp_channel_brush(Ref<Image> image_ref, Ref<Image> brush_ref, Vector2 p_pos, float factor, float target_value, int channel) const;
     void lerp_color_brush(Ref<Image> image_ref, Ref<Image> brush_ref, Vector2 p_pos, float factor, Color target_value) const;
+    float generate_gaussian_brush(Ref<Image> image_ref) const;
 };
 
 } // namespace godot

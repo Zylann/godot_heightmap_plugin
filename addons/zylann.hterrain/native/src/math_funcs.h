@@ -7,7 +7,8 @@ inline float lerp(float minv, float maxv, float t) {
     return minv + t * (maxv - minv);
 }
 
-inline int clamp(int x, int minv, int maxv) {
+template <typename T>
+inline T clamp(T x, T minv, T maxv) {
     if (x < minv) {
         return minv;
     }
@@ -15,6 +16,11 @@ inline int clamp(int x, int minv, int maxv) {
         return maxv;
     }
     return x;
+}
+
+template <typename T>
+inline T min(T a, T b) {
+    return a < b ? a : b;
 }
 
 } // namespace Math
