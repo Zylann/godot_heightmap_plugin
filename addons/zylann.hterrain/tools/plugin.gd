@@ -127,16 +127,18 @@ func _enter_tree():
 	mode_icons[Brush.MODE_COLOR] = get_icon("heightmap_color")
 	mode_icons[Brush.MODE_DETAIL] = get_icon("grass")
 	mode_icons[Brush.MODE_MASK] = get_icon("heightmap_mask")
+	mode_icons[Brush.MODE_LEVEL] = get_icon("heightmap_level")
 	
 	var mode_tooltips := {}
-	mode_tooltips[Brush.MODE_ADD] = "Raise"
-	mode_tooltips[Brush.MODE_SUBTRACT] = "Lower"
-	mode_tooltips[Brush.MODE_SMOOTH] = "Smooth"
-	mode_tooltips[Brush.MODE_FLATTEN] = "Flatten"
+	mode_tooltips[Brush.MODE_ADD] = "Raise height"
+	mode_tooltips[Brush.MODE_SUBTRACT] = "Lower height"
+	mode_tooltips[Brush.MODE_SMOOTH] = "Smooth height"
+	mode_tooltips[Brush.MODE_FLATTEN] = "Flatten (flatten to a specific height)"
 	mode_tooltips[Brush.MODE_SPLAT] = "Texture paint"
 	mode_tooltips[Brush.MODE_COLOR] = "Color paint"
 	mode_tooltips[Brush.MODE_DETAIL] = "Grass paint"
 	mode_tooltips[Brush.MODE_MASK] = "Cut holes"
+	mode_tooltips[Brush.MODE_LEVEL] = "Level (smoothly flattens to average)"
 	
 	_toolbar.add_child(VSeparator.new())
 	
@@ -145,6 +147,7 @@ func _enter_tree():
 		Brush.MODE_ADD,
 		Brush.MODE_SUBTRACT,
 		Brush.MODE_SMOOTH,
+		Brush.MODE_LEVEL,
 		Brush.MODE_FLATTEN,
 		Brush.MODE_SPLAT,
 		Brush.MODE_COLOR,

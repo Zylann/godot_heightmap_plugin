@@ -3,6 +3,7 @@ tool
 const HTerrain = preload("hterrain.gd")
 const HTerrainData = preload("hterrain_data.gd")
 const Util = preload("util/util.gd")
+const NativeFactory = preload("native/factory.gd")
 
 # TODO Rename MODE_RAISE
 const MODE_ADD = 0
@@ -14,7 +15,8 @@ const MODE_SPLAT = 4
 const MODE_COLOR = 5
 const MODE_MASK = 6
 const MODE_DETAIL = 7
-const MODE_COUNT = 8
+const MODE_LEVEL = 8
+const MODE_COUNT = 9
 
 # Size of chunks used for undo/redo (so we don't backup the entire terrain everytime)
 const EDIT_CHUNK_SIZE = 16
@@ -36,6 +38,7 @@ var _texture_mode := HTerrain.SHADER_SIMPLE4
 var _color := Color(1, 1, 1)
 var _mask_flag := false
 var _undo_cache := {}
+var _image_utils = NativeFactory.get_image_utils()
 
 
 func get_mode() -> int:
@@ -143,32 +146,11 @@ func set_mask_flag(v: bool):
 func _generate_procedural(radius: int):
 	assert(typeof(radius) == TYPE_INT)
 	assert(radius > 0)
-
 	var size := 2 * radius
-
 	_shape = Image.new()
 	_shape.create(size, size, 0, Image.FORMAT_RF)
 	_shape_size = size
-
-	_shape_sum = 0.0;
-
-	_shape.lock()
-
-	for y in range(-radius, radius):
-		for x in range(-radius, radius):
-
-			var d := Vector2(x, y).distance_to(Vector2(0, 0)) / float(radius)
-			var v := 1.0 - d * d * d
-			if v > 1.0:
-				v = 1.0
-			if v < 0.0:
-				v = 0.0
-
-			_shape.set_pixel(x + radius, y + radius, Color(v, v, v))
-			_shape_sum += v;
-
-	_shape.unlock()
-
+	_shape_sum = _image_utils.generate_gaussian_brush(_shape)
 	emit_signal("shape_changed", _shape)
 
 
@@ -176,25 +158,13 @@ func _generate_from_image(im: Image, radius: int):
 	assert(typeof(radius) == TYPE_INT)
 	assert(radius > 0)
 	assert(im.get_width() == im.get_height())
-
 	var size := 2 * radius
-
 	im = im.duplicate()
 	im.convert(Image.FORMAT_RF)
 	im.resize(size, size)
 	_shape = im
 	_shape_size = size
-
-	_shape.lock()
-
-	var sum := 0.0
-	for y in _shape.get_height():
-		for x in _shape.get_width():
-			sum += _shape.get_pixel(x, y).r
-
-	_shape.unlock()
-
-	_shape_sum = sum
+	_shape_sum = _image_utils.get_red_sum(im, Rect2(0, 0, im.get_width(), im.get_height()))
 	emit_signal("shape_changed", _shape)
 
 
@@ -203,6 +173,7 @@ static func _get_mode_channel(mode: int) -> int:
 		MODE_ADD, \
 		MODE_SUBTRACT, \
 		MODE_SMOOTH, \
+		MODE_LEVEL, \
 		MODE_FLATTEN:
 			return HTerrainData.CHANNEL_HEIGHT
 		MODE_COLOR:
@@ -250,7 +221,10 @@ func paint(terrain: HTerrain, cell_pos_x: int, cell_pos_y: int, override_mode: i
 			_paint_height(data, origin_x, origin_y, -raise_strength * delta)
 
 		MODE_SMOOTH:
-			_smooth_height(data, origin_x, origin_y, 10.0 * delta)
+			_smooth_height(data, origin_x, origin_y, 60.0 * delta)
+
+		MODE_LEVEL:
+			_level_height(data, origin_x, origin_y, 10.0 * delta)
 
 		MODE_FLATTEN:
 			_flatten(data, origin_x, origin_y)
@@ -274,87 +248,6 @@ func paint(terrain: HTerrain, cell_pos_x: int, cell_pos_y: int, override_mode: i
 
 	#var time_elapsed = OS.get_ticks_msec() - time_before
 	#print("Time elapsed painting: ", time_elapsed, "ms")
-
-
-# TODO Erk!
-static func _foreach_xy(op, data, origin_x, origin_y, speed, opacity, shape):
-
-	var shape_size = shape.get_width()
-	assert(shape.get_width() == shape.get_height())
-
-	var s = opacity * speed
-
-	var min_x = origin_x
-	var min_y = origin_y
-	var max_x = min_x + shape_size
-	var max_y = min_y + shape_size
-	var min_noclamp_x = min_x
-	var min_noclamp_y = min_y
-
-	min_x = Util.clamp_int(min_x, 0, data.get_resolution())
-	min_y = Util.clamp_int(min_y, 0, data.get_resolution())
-	max_x = Util.clamp_int(max_x, 0, data.get_resolution())
-	max_y = Util.clamp_int(max_y, 0, data.get_resolution())
-
-	shape.lock()
-
-	for y in range(min_y, max_y):
-		var py = y - min_noclamp_y
-
-		for x in range(min_x, max_x):
-			var px = x - min_noclamp_x
-
-			var shape_value = shape.get_pixel(px, py).r
-			op.exec(data, x, y, s * shape_value)
-
-	shape.unlock()
-
-
-class OperatorAdd:
-	var _im : Image = null
-	func _init(im):
-		_im = im
-	func exec(data, pos_x, pos_y, v):
-		var c = _im.get_pixel(pos_x, pos_y)
-		c.r += v
-		_im.set_pixel(pos_x, pos_y, c)
-
-
-class OperatorSum:
-	var sum := 0.0
-	var _im : Image = null
-	func _init(im):
-		_im = im
-	func exec(data, pos_x, pos_y, v):
-		sum += _im.get_pixel(pos_x, pos_y).r * v
-
-
-class OperatorLerp:
-	var target := 0.0
-	var _im : Image = null
-
-	func _init(p_target, im):
-		target = p_target
-		_im = im
-
-	func exec(data, pos_x, pos_y, v):
-		var c = _im.get_pixel(pos_x, pos_y)
-		c.r = lerp(c.r, target, v)
-		_im.set_pixel(pos_x, pos_y, c)
-
-
-class OperatorLerpColor:
-	var target := Color()
-	var _im : Image = null
-
-	func _init(p_target, im):
-		target = p_target
-		_im = im
-
-	func exec(data, pos_x, pos_y, v):
-		var c = _im.get_pixel(pos_x, pos_y)
-		c = c.linear_interpolate(target, v)
-		_im.set_pixel(pos_x, pos_y, c)
 
 
 static func _is_valid_pos(pos_x: int, pos_y: int, im: Image) -> bool:
@@ -405,99 +298,50 @@ func _backup_for_undo(im: Image, undo_cache: Dictionary,
 
 
 func _paint_height(data: HTerrainData, origin_x: int, origin_y: int, speed: float):
-	#var time_before = OS.get_ticks_msec()
-
 	var im := data.get_image(HTerrainData.CHANNEL_HEIGHT)
 	assert(im != null)
-
 	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
-	#print("Backup time: ", (OS.get_ticks_msec() - time_before))
-	#time_before = OS.get_ticks_msec()
-
-	im.lock()
-	var op = OperatorAdd.new(im)
-	_foreach_xy(op, data, origin_x, origin_y, speed, _opacity, _shape)
-	im.unlock()
-	#print("Raster time: ", (OS.get_ticks_msec() - time_before))
-	#time_before = OS.get_ticks_msec()
+	_image_utils.add_red_brush(im, _shape, Vector2(origin_x, origin_y), speed * _opacity)
 
 
 func _smooth_height(data: HTerrainData, origin_x: int, origin_y: int, speed: float):
-
 	var im := data.get_image(HTerrainData.CHANNEL_HEIGHT)
 	assert(im != null)
-
 	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
+	_image_utils.blur_red_brush(
+		im, _shape, Vector2(origin_x, origin_y), speed * _opacity)
 
-	im.lock()
 
-	var sum_op = OperatorSum.new(im)
+func _level_height(data: HTerrainData, origin_x: int, origin_y: int, speed: float):
+	var im := data.get_image(HTerrainData.CHANNEL_HEIGHT)
+	assert(im != null)
+	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
 	# Perform sum at full opacity, we'll use it for the next operation
-	_foreach_xy(sum_op, data, origin_x, origin_y, 1.0, 1.0, _shape)
-	var target_value = sum_op.sum / float(_shape_sum)
-
-	var lerp_op = OperatorLerp.new(target_value, im)
-	_foreach_xy(lerp_op, data, origin_x, origin_y, speed, _opacity, _shape)
-
-	im.unlock()
+	var sum = _image_utils.get_red_sum_weighted(im, _shape, Vector2(origin_x, origin_y), 1.0)
+	var target_value = sum / _shape_sum
+	_image_utils.lerp_channel_brush(
+		im, _shape, Vector2(origin_x, origin_y), speed * _opacity, target_value, 0)
 
 
 func _flatten(data: HTerrainData, origin_x: int, origin_y: int):
-
 	var im = data.get_image(HTerrainData.CHANNEL_HEIGHT)
+	assert(im != null)
+	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
+	_image_utils.lerp_channel_brush(
+		im, _shape, Vector2(origin_x, origin_y), 1.0, _flatten_height, 0)
+
+
+func _paint_splat(data: HTerrainData, origin_x: int, origin_y: int):
+	var im := data.get_image(HTerrainData.CHANNEL_SPLAT)
 	assert(im != null)
 
 	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
 
-	im.lock()
-	var op = OperatorLerp.new(_flatten_height, im)
-	_foreach_xy(op, data, origin_x, origin_y, 1, 1, _shape)
-	im.unlock()
-
-
-func _paint_splat(data: HTerrainData, origin_x: int, origin_y: int):
-
-	var im := data.get_image(HTerrainData.CHANNEL_SPLAT)
-	assert(im != null)
-
-	var shape_size := _shape_size
-
-	_backup_for_undo(im, _undo_cache, origin_x, origin_y, shape_size, shape_size)
-
-	var min_x := origin_x
-	var min_y := origin_y
-	var max_x := min_x + shape_size
-	var max_y := min_y + shape_size
-	var min_noclamp_x := min_x
-	var min_noclamp_y := min_y
-
-	min_x = Util.clamp_int(min_x, 0, data.get_resolution())
-	min_y = Util.clamp_int(min_y, 0, data.get_resolution())
-	max_x = Util.clamp_int(max_x, 0, data.get_resolution())
-	max_y = Util.clamp_int(max_y, 0, data.get_resolution())
-
-	im.lock()
-
 	if _texture_mode == HTerrain.SHADER_SIMPLE4:
-
 		var target_color = Color(0, 0, 0, 0)
 		target_color[_texture_index] = 1.0
-
-		_shape.lock()
-
-		for y in range(min_y, max_y):
-			var py = y - min_noclamp_y
-
-			for x in range(min_x, max_x):
-				var px = x - min_noclamp_x
-
-				var shape_value = _shape.get_pixel(px, py).r
-
-				var c = im.get_pixel(x, y)
-				c = c.linear_interpolate(target_color, shape_value * _opacity)
-				im.set_pixel(x, y, c)
-
-		_shape.unlock()
+		_image_utils.lerp_color_brush(
+			im, _shape, Vector2(origin_x, origin_y), _opacity, target_color)
 
 #	elif _texture_mode == HTerrain.SHADER_ARRAY:
 #		var shape_threshold = 0.1
@@ -517,78 +361,32 @@ func _paint_splat(data: HTerrainData, origin_x: int, origin_y: int):
 #					c.g = clamp(_opacity, 0.0, 1.0)
 #					im.set_pixel(x, y, c)
 	else:
-		printerr("Unknown texture mode ", _texture_mode)
-
-	im.unlock()
+		push_error("Unknown texture mode {0}".format([_texture_mode]))
 
 
 func _paint_color(data: HTerrainData, origin_x: int, origin_y: int):
-
 	var im := data.get_image(HTerrainData.CHANNEL_COLOR)
 	assert(im != null)
-
 	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
-
-	im.lock()
-	var op = OperatorLerpColor.new(_color, im)
-	_foreach_xy(op, data, origin_x, origin_y, 1, _opacity, _shape)
-	im.unlock()
+	_image_utils.lerp_color_brush(
+		im, _shape, Vector2(origin_x, origin_y), _opacity, _color)
 
 
 func _paint_detail(data: HTerrainData, origin_x: int, origin_y: int):
-
 	var im := data.get_image(HTerrainData.CHANNEL_DETAIL, _detail_index)
 	assert(im != null)
-
 	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
-
-	im.lock()
-	var op = OperatorLerpColor.new(
-		Color(_detail_density, _detail_density, _detail_density, 1.0), im)
-	_foreach_xy(op, data, origin_x, origin_y, 1, _opacity, _shape)
-	im.unlock()
+	_image_utils.lerp_channel_brush(
+		im, _shape, Vector2(origin_x, origin_y), _opacity, _detail_density, 0)
 
 
 func _paint_mask(data: HTerrainData, origin_x: int, origin_y: int):
-
 	var im := data.get_image(HTerrainData.CHANNEL_COLOR)
 	assert(im != null)
-
 	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size);
-
-	var shape_size := _shape_size
-
-	var min_x := origin_x
-	var min_y := origin_y
-	var max_x := min_x + shape_size
-	var max_y := min_y + shape_size
-	var min_noclamp_x := min_x
-	var min_noclamp_y := min_y
-
-	min_x = Util.clamp_int(min_x, 0, data.get_resolution())
-	min_y = Util.clamp_int(min_y, 0, data.get_resolution())
-	max_x = Util.clamp_int(max_x, 0, data.get_resolution())
-	max_y = Util.clamp_int(max_y, 0, data.get_resolution())
-
 	var mask_value := 1.0 if _mask_flag else 0.0
-
-	im.lock()
-	_shape.lock()
-
-	for y in range(min_y, max_y):
-		for x in range(min_x, max_x):
-
-			var px = x - min_noclamp_x
-			var py = y - min_noclamp_y
-
-			var shape_value = _shape.get_pixel(px, py).r
-
-			var c = im.get_pixel(x, y)
-			c.a = lerp(c.a, mask_value, shape_value)
-			im.set_pixel(x, y, c)
-
-	_shape.unlock()
-	im.unlock()
+	_image_utils.lerp_channel_brush(
+		im, _shape, Vector2(origin_x, origin_y), 1.0, mask_value, 3)
 
 
 static func _fetch_redo_chunks(im: Image, keys: Array) -> Array:
@@ -605,7 +403,6 @@ static func _fetch_redo_chunks(im: Image, keys: Array) -> Array:
 
 
 func _edit_pop_undo_redo_data(heightmap_data: HTerrainData) -> Dictionary:
-
 	# TODO If possible, use a custom Reference class to store this data into the UndoRedo API,
 	# but WITHOUT exposing it to scripts (so we won't need the following conversions!)
 
@@ -643,5 +440,4 @@ func _edit_pop_undo_redo_data(heightmap_data: HTerrainData) -> Dictionary:
 	}
 
 	_undo_cache.clear()
-
 	return data

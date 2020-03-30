@@ -4,6 +4,7 @@ extends Resource
 const Grid = preload("util/grid.gd")
 const Util = preload("util/util.gd")
 const Errors = preload("util/errors.gd")
+const NativeFactory = preload("native/factory.gd")
 
 # TODO Rename "CHANNEL" to "MAP", makes more sense and less confusing with RGBA channels
 const CHANNEL_HEIGHT = 0
@@ -67,7 +68,7 @@ var _chunked_vertical_bounds := []
 var _chunked_vertical_bounds_size_x := 0
 var _chunked_vertical_bounds_size_y := 0
 var _locked := false
-var _progress_complete := true
+var _image_utils = NativeFactory.get_image_utils()
 
 var _edit_disable_apply_undo := false
 
@@ -235,7 +236,6 @@ func get_height_at(x: int, y: int) -> float:
 # This height is raw and doesn't account for scaling of the terrain node.
 # This function is relatively slow due to locking, so don't use it to fetch large areas
 func get_interpolated_height_at(pos: Vector3) -> float:
-
 	# Height data must be loaded in RAM
 	var im := get_image(CHANNEL_HEIGHT)
 	assert(im != null)
@@ -734,34 +734,12 @@ func _update_vertical_bounds(origin_in_cells_x: int, origin_in_cells_y: int, \
 
 func _compute_vertical_bounds_at(
 	origin_x: int, origin_y: int, size_x: int, size_y: int, out_b: VerticalBounds):
-
+	
 	var heights = get_image(CHANNEL_HEIGHT)
 	assert(heights != null)
-
-	var min_x = origin_x
-	var min_y = origin_y
-	var max_x = origin_x + size_x
-	var max_y = origin_y + size_y
-
-	heights.lock();
-
-	var min_height = heights.get_pixel(min_x, min_y).r
-	var max_height = min_height
-
-	for y in range(min_y, max_y):
-		for x in range(min_x, max_x):
-
-			var h = heights.get_pixel(x, y).r
-
-			if h < min_height:
-				min_height = h
-			elif h > max_height:
-				max_height = h
-
-	heights.unlock()
-
-	out_b.minv = min_height
-	out_b.maxv = max_height
+	var r = _image_utils.get_red_range(heights, Rect2(origin_x, origin_y, size_x, size_y))
+	out_b.minv = r.x
+	out_b.maxv = r.y
 
 
 func save_data(data_dir: String):

@@ -1040,6 +1040,7 @@ func cell_raycast(origin_world: Vector3, dir_world: Vector3, out_cell_pos: Array
 
 	var cpos = _local_pos_to_cell(origin)
 	if origin.y < _get_height_or_default(heights, cpos[0], cpos[1]):
+		heights.unlock()
 		# Below
 		return false
 
@@ -1057,10 +1058,12 @@ func cell_raycast(origin_world: Vector3, dir_world: Vector3, out_cell_pos: Array
 			cpos = _local_pos_to_cell(pos - dir * unit)
 			out_cell_pos[0] = cpos[0]
 			out_cell_pos[1] = cpos[1]
+			heights.unlock()
 			return true
 
 		d += unit
 
+	heights.unlock()
 	return false
 
 
