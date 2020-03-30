@@ -15,7 +15,8 @@ const MODE_SPLAT = 4
 const MODE_COLOR = 5
 const MODE_MASK = 6
 const MODE_DETAIL = 7
-const MODE_COUNT = 8
+const MODE_LEVEL = 8
+const MODE_COUNT = 9
 
 # Size of chunks used for undo/redo (so we don't backup the entire terrain everytime)
 const EDIT_CHUNK_SIZE = 16
@@ -172,6 +173,7 @@ static func _get_mode_channel(mode: int) -> int:
 		MODE_ADD, \
 		MODE_SUBTRACT, \
 		MODE_SMOOTH, \
+		MODE_LEVEL, \
 		MODE_FLATTEN:
 			return HTerrainData.CHANNEL_HEIGHT
 		MODE_COLOR:
@@ -219,7 +221,10 @@ func paint(terrain: HTerrain, cell_pos_x: int, cell_pos_y: int, override_mode: i
 			_paint_height(data, origin_x, origin_y, -raise_strength * delta)
 
 		MODE_SMOOTH:
-			_smooth_height(data, origin_x, origin_y, 10.0 * delta)
+			_smooth_height(data, origin_x, origin_y, 60.0 * delta)
+
+		MODE_LEVEL:
+			_level_height(data, origin_x, origin_y, 10.0 * delta)
 
 		MODE_FLATTEN:
 			_flatten(data, origin_x, origin_y)
@@ -293,7 +298,6 @@ func _backup_for_undo(im: Image, undo_cache: Dictionary,
 
 
 func _paint_height(data: HTerrainData, origin_x: int, origin_y: int, speed: float):
-	#var time_before = OS.get_ticks_msec()
 	var im := data.get_image(HTerrainData.CHANNEL_HEIGHT)
 	assert(im != null)
 	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
@@ -301,6 +305,14 @@ func _paint_height(data: HTerrainData, origin_x: int, origin_y: int, speed: floa
 
 
 func _smooth_height(data: HTerrainData, origin_x: int, origin_y: int, speed: float):
+	var im := data.get_image(HTerrainData.CHANNEL_HEIGHT)
+	assert(im != null)
+	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
+	_image_utils.blur_red_brush(
+		im, _shape, Vector2(origin_x, origin_y), speed * _opacity)
+
+
+func _level_height(data: HTerrainData, origin_x: int, origin_y: int, speed: float):
 	var im := data.get_image(HTerrainData.CHANNEL_HEIGHT)
 	assert(im != null)
 	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)

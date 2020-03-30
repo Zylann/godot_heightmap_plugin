@@ -4,6 +4,7 @@
 #include <core/Godot.hpp>
 #include <gen/Image.hpp>
 #include <gen/Reference.hpp>
+#include <vector>
 
 namespace godot {
 
@@ -24,6 +25,11 @@ public:
     void lerp_channel_brush(Ref<Image> image_ref, Ref<Image> brush_ref, Vector2 p_pos, float factor, float target_value, int channel) const;
     void lerp_color_brush(Ref<Image> image_ref, Ref<Image> brush_ref, Vector2 p_pos, float factor, Color target_value) const;
     float generate_gaussian_brush(Ref<Image> image_ref) const;
+    void blur_red_brush(Ref<Image> image_ref, Ref<Image> brush_ref, Vector2 p_pos, float factor);
+    //void erode_red_brush(Ref<Image> image_ref, Ref<Image> brush_ref, Vector2 p_pos, float factor);
+
+private:
+    std::vector<float> _blur_buffer;
 };
 
 } // namespace godot

@@ -11,6 +11,8 @@ inline void generic_brush_op(Image &image, Image &brush, Vector2 p_pos, float fa
     int min_y_noclamp = range.min_y;
     range.clip(Vector2i(image.get_size()));
 
+    factor = Math::clamp(factor, 0.f, 1.f);
+
     image.lock();
     brush.lock();
 
@@ -30,9 +32,18 @@ inline void generic_brush_op(Image &image, Image &brush, Vector2 p_pos, float fa
 }
 
 ImageUtils::ImageUtils() {
+#ifdef _DEBUG
+    Godot::print("Constructing ImageUtils");
+#endif
 }
 
 ImageUtils::~ImageUtils() {
+#ifdef _DEBUG
+    // TODO Cannot print shit here, see https://github.com/godotengine/godot/issues/37417
+    // Means only the console will print this
+    //Godot::print("Destructing ImageUtils");
+    printf("Destructing ImageUtils\n");
+#endif
 }
 
 void ImageUtils::_init() {
@@ -169,6 +180,79 @@ float ImageUtils::generate_gaussian_brush(Ref<Image> image_ref) const {
     return sum;
 }
 
+void ImageUtils::blur_red_brush(Ref<Image> image_ref, Ref<Image> brush_ref, Vector2 p_pos, float factor) {
+    ERR_FAIL_COND(image_ref.is_null());
+    ERR_FAIL_COND(brush_ref.is_null());
+    Image &image = **image_ref;
+    Image &brush = **brush_ref;
+
+    factor = Math::clamp(factor, 0.f, 1.f);
+
+    // Relative to the image
+    IntRange2D buffer_range = IntRange2D::from_pos_size(p_pos, brush.get_size());
+    buffer_range.pad(1);
+
+    const int image_width = static_cast<int>(image.get_width());
+    const int image_height = static_cast<int>(image.get_height());
+
+    const int buffer_width = static_cast<int>(buffer_range.get_width());
+    const int buffer_height = static_cast<int>(buffer_range.get_height());
+    _blur_buffer.resize(buffer_width * buffer_height);
+
+    image.lock();
+
+    // Cache pixels, because they will be queried more than once and written to later
+    int buffer_i = 0;
+    for (int y = buffer_range.min_y; y < buffer_range.max_y; ++y) {
+        for (int x = buffer_range.min_x; x < buffer_range.max_x; ++x) {
+            const int ix = Math::clamp(x, 0, image_width - 1);
+            const int iy = Math::clamp(y, 0, image_height - 1);
+            _blur_buffer[buffer_i] = image.get_pixel(ix, iy).r;
+            ++buffer_i;
+        }
+    }
+
+    IntRange2D range = IntRange2D::from_min_max(p_pos, brush.get_size());
+    int min_x_noclamp = range.min_x;
+    int min_y_noclamp = range.min_y;
+    range.clip(Vector2i(image.get_size()));
+
+    const int buffer_offset_left = -1;
+    const int buffer_offset_right = 1;
+    const int buffer_offset_top = -buffer_width;
+    const int buffer_offset_bottom = buffer_width;
+
+    brush.lock();
+
+    // Apply blur
+    for (int y = range.min_y; y < range.max_y; ++y) {
+        int brush_y = y - min_y_noclamp;
+
+        for (int x = range.min_x; x < range.max_x; ++x) {
+            int brush_x = x - min_x_noclamp;
+
+            float brush_value = brush.get_pixel(brush_x, brush_y).r * factor;
+
+            buffer_i = (brush_x + 1) + (brush_y + 1) * buffer_width;
+
+            float p10 = _blur_buffer[buffer_i + buffer_offset_top];
+            float p01 = _blur_buffer[buffer_i + buffer_offset_left];
+            float p11 = _blur_buffer[buffer_i];
+            float p21 = _blur_buffer[buffer_i + buffer_offset_right];
+            float p12 = _blur_buffer[buffer_i + buffer_offset_bottom];
+
+            // Average
+            float m = (p10 + p01 + p11 + p21 + p12) * 0.2f;
+            float p = Math::lerp(p11, m, brush_value);
+
+            image.set_pixel(x, y, Color(p, p, p));
+        }
+    }
+
+    image.unlock();
+    brush.lock();
+}
+
 void ImageUtils::_register_methods() {
     register_method("get_red_range", &ImageUtils::get_red_range);
     register_method("get_red_sum", &ImageUtils::get_red_sum);
@@ -177,6 +261,7 @@ void ImageUtils::_register_methods() {
     register_method("lerp_channel_brush", &ImageUtils::lerp_channel_brush);
     register_method("lerp_color_brush", &ImageUtils::lerp_color_brush);
     register_method("generate_gaussian_brush", &ImageUtils::generate_gaussian_brush);
+    register_method("blur_red_brush", &ImageUtils::blur_red_brush);
 }
 
 } // namespace godot
