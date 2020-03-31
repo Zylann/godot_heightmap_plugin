@@ -5,6 +5,7 @@ const Grid = preload("util/grid.gd")
 const Util = preload("util/util.gd")
 const Errors = preload("util/errors.gd")
 const NativeFactory = preload("native/factory.gd")
+const Logger = preload("./util/logger.gd")
 
 # TODO Rename "CHANNEL" to "MAP", makes more sense and less confusing with RGBA channels
 const CHANNEL_HEIGHT = 0
@@ -14,6 +15,24 @@ const CHANNEL_COLOR = 3
 const CHANNEL_DETAIL = 4
 const CHANNEL_GLOBAL_ALBEDO = 5
 const CHANNEL_COUNT = 6
+
+const _channel_names = [
+	"height",
+	"normal",
+	"splat",
+	"color",
+	"detail",
+	"global_albedo"
+]
+
+const _channel_formats = [
+	Image.FORMAT_RH, # height
+	Image.FORMAT_RGB8, # normal
+	Image.FORMAT_RGBA8, # splat
+	Image.FORMAT_RGBA8, # color
+	Image.FORMAT_L8, # detail
+	Image.FORMAT_RGB8 # global_albedo
+]
 
 const MAX_RESOLUTION = 4096 + 1
 const MIN_RESOLUTION = 64 + 1 # must be higher than largest minimum chunk size
@@ -71,6 +90,7 @@ var _locked := false
 var _image_utils = NativeFactory.get_image_utils()
 
 var _edit_disable_apply_undo := false
+var _logger = Logger.get_for(self)
 
 
 func _init():
@@ -89,7 +109,7 @@ func _set_default_maps():
 
 
 func _edit_load_default():
-	print("Loading default data")
+	_logger.debug("Loading default data")
 	_set_default_maps()
 	resize(DEFAULT_RESOLUTION)
 
@@ -105,13 +125,13 @@ func get_resolution() -> int:
 
 # @obsolete
 func set_resolution(p_res):
-	print("`HTerrainData.set_resolution()` is obsolete, use `resize()` instead")
+	_logger.error("`HTerrainData.set_resolution()` is obsolete, use `resize()` instead")
 	resize(p_res)
 
 
 # @obsolete
 func set_resolution2(p_res, update_normals):
-	print("`HTerrainData.set_resolution2()` is obsolete, use `resize()` instead")
+	_logger.error("`HTerrainData.set_resolution2()` is obsolete, use `resize()` instead")
 	resize(p_res, true, Vector2(-1, -1))
 
 
@@ -150,7 +170,7 @@ func resize(p_res: int, stretch := true, anchor := Vector2(-1, -1)):
 	assert(typeof(stretch) == TYPE_BOOL)
 	assert(typeof(anchor) == TYPE_VECTOR2)
 
-	print("HeightMapData::set_resolution ", p_res)
+	_logger.debug(str("HeightMapData::set_resolution ", p_res))
 
 	if p_res == get_resolution():
 		return
@@ -170,7 +190,7 @@ func resize(p_res: int, stretch := true, anchor := Vector2(-1, -1)):
 		var maps := _maps[channel] as Array
 
 		for index in len(maps):
-			print("Resizing ", _get_map_debug_name(channel, index), "...")
+			_logger.debug(str("Resizing ", _get_map_debug_name(channel, index), "..."))
 
 			var map := maps[index] as Map
 			var im := map.image
@@ -276,7 +296,7 @@ func get_heights_region(x0: int, y0: int, w: int, h: int) -> PoolRealArray:
 
 	var area = (max_x - min_x) * (max_y - min_y)
 	if area == 0:
-		print("Empty heights region!")
+		_logger.debug("Empty heights region!")
 		return heights
 
 	heights.resize(area)
@@ -403,9 +423,9 @@ func _edit_apply_undo(undo_data: Dictionary):
 				dst_image.blit_rect(data, data_rect, Vector2(min_x, min_y))
 			CHANNEL_NORMAL, \
 			CHANNEL_GLOBAL_ALBEDO:
-				printerr("This is a calculated channel!, no undo on this one\n")
+				_logger.error("This is a calculated channel!, no undo on this one\n")
 			_:
-				printerr("Wut? Unsupported undo channel\n");
+				_logger.error("Wut? Unsupported undo channel\n");
 
 		# Defer this to a second pass,
 		# otherwise it causes order-dependent artifacts on the normal map
@@ -437,7 +457,7 @@ func _upload_channel(channel: int, index: int):
 
 
 func _upload_region(channel: int, index: int, min_x: int, min_y: int, size_x: int, size_y: int):
-	#print("Upload ", min_x, ", ", min_y, ", ", size_x, "x", size_y)
+	#_logger.debug("Upload ", min_x, ", ", min_y, ", ", size_x, "x", size_y)
 	#var time_before = OS.get_ticks_msec()
 
 	var map = _maps[channel][index]
@@ -475,11 +495,13 @@ func _upload_region(channel: int, index: int, min_x: int, min_y: int, size_x: in
 
 		# The texture doesn't exist yet in an editable format
 		if texture != null and not (texture is ImageTexture):
-			print("_upload_region was used but the texture isn't an ImageTexture. ",\
-				"The map ", channel, "[", index, "] will be reuploaded entirely.")
+			_logger.debug(str(
+				"_upload_region was used but the texture isn't an ImageTexture. ",\
+				"The map ", channel, "[", index, "] will be reuploaded entirely."))
 		else:
-			print("_upload_region was used but the texture is not created yet. ",\
-				"The map ", channel, "[", index, "] will be uploaded entirely.")
+			_logger.debug(str(
+				"_upload_region was used but the texture is not created yet. ",\
+				"The map ", channel, "[", index, "] will be uploaded entirely."))
 
 		texture = ImageTexture.new()
 		texture.create_from_image(image, flags)
@@ -491,8 +513,9 @@ func _upload_region(channel: int, index: int, min_x: int, min_y: int, size_x: in
 
 	elif texture.get_size() != image.get_size():
 
-		print("_upload_region was used but the image size is different. ",\
-			"The map ", channel, "[", index, "] will be reuploaded entirely.")
+		_logger.debug(str(
+			"_upload_region was used but the image size is different. ",\
+			"The map ", channel, "[", index, "] will be reuploaded entirely."))
 
 		texture.create_from_image(image, flags)
 
@@ -530,10 +553,10 @@ func _upload_region(channel: int, index: int, min_x: int, min_y: int, size_x: in
 			#
 			texture.create_from_image(image, flags)
 
-	#print("Channel updated ", channel)
+	#_logger.debug(str("Channel updated ", channel))
 
 	#var time_elapsed = OS.get_ticks_msec() - time_before
-	#print("Texture upload time: ", time_elapsed, "ms")
+	#_logger.debug(str("Texture upload time: ", time_elapsed, "ms"))
 
 
 # Gets how many instances of a given map are present in the terrain data.
@@ -556,7 +579,7 @@ func _edit_remove_detail_map(index):
 
 func _edit_add_map(map_type: int) -> int:
 	# TODO Check minimum and maximum instances of a given map
-	print("Adding map of type ", get_channel_name(map_type))
+	_logger.debug(str("Adding map of type ", get_channel_name(map_type)))
 	while map_type >= len(_maps):
 		_maps.append([])
 	var maps = _maps[map_type]
@@ -571,7 +594,7 @@ func _edit_add_map(map_type: int) -> int:
 
 func _edit_remove_map(map_type: int, index: int):
 	# TODO Check minimum and maximum instances of a given map
-	print("Removing map ", get_channel_name(map_type), " at index ", index)
+	_logger.debug(str("Removing map ", get_channel_name(map_type), " at index ", index))
 	var maps = _maps[map_type]
 	maps.remove(index)
 	emit_signal("map_removed", map_type, index)
@@ -690,7 +713,7 @@ func get_region_aabb(origin_in_cells_x: int, origin_in_cells_y: int, \
 func _update_all_vertical_bounds():
 	var csize_x = _resolution / VERTICAL_BOUNDS_CHUNK_SIZE
 	var csize_y = _resolution / VERTICAL_BOUNDS_CHUNK_SIZE
-	print("Updating all vertical bounds... (", csize_x , "x", csize_y, " chunks)")
+	_logger.debug(str("Updating all vertical bounds... (", csize_x , "x", csize_y, " chunks)"))
 	# TODO Could set `preserve_data` to true, but would require callback to construct new cells
 	Grid.resize_grid(_chunked_vertical_bounds, csize_x, csize_y)
 	_chunked_vertical_bounds_size_x = csize_x
@@ -744,14 +767,14 @@ func _compute_vertical_bounds_at(
 
 func save_data(data_dir: String):
 	if not _is_any_map_modified():
-		print("Terrain data has no modifications to save")
+		_logger.debug("Terrain data has no modifications to save")
 		return
 
 	_locked = true
 
 	_save_metadata(data_dir.plus_file(META_FILENAME))
 
-	print("Saving terrain data...")
+	_logger.debug("Saving terrain data...")
 
 	var map_count = _get_total_map_count()
 
@@ -763,11 +786,12 @@ func save_data(data_dir: String):
 
 			var map = _maps[channel][index]
 			if not map.modified:
-				print("Skipping non-modified ", _get_map_debug_name(channel, index))
+				_logger.debug(str(
+					"Skipping non-modified ", _get_map_debug_name(channel, index)))
 				continue
 
-			print("Saving map ", _get_map_debug_name(channel, index),
-				" as ", _get_map_filename(channel, index), "...")
+			_logger.debug(str("Saving map ", _get_map_debug_name(channel, index),
+				" as ", _get_map_filename(channel, index), "..."))
 
 			_save_channel(data_dir, channel, index)
 
@@ -837,14 +861,13 @@ func _serialize_metadata() -> Dictionary:
 # Parse metadata that we'll then use to load the actual terrain
 # (How many maps, which files to load etc...)
 func _deserialize_metadata(dict: Dictionary) -> bool:
-
 	if not dict.has("version"):
-		printerr("Terrain metadata has no version")
+		_logger.error("Terrain metadata has no version")
 		return false
 
 	if dict.version != META_VERSION:
-		printerr("Terrain metadata version mismatch. Got ", 
-			dict.version, ", expected ", META_VERSION)
+		_logger.error("Terrain metadata version mismatch. Got {0}, expected {1}" \
+			.format([dict.version, META_VERSION]))
 		return false
 
 	var data = dict["maps"]
@@ -878,7 +901,7 @@ func load_data(dir_path: String):
 
 	_load_metadata(dir_path.plus_file(META_FILENAME))
 
-	print("Loading terrain data...")
+	_logger.debug("Loading terrain data...")
 
 	var channel_instance_sum = _get_total_map_count()
 	var pi = 0
@@ -889,8 +912,8 @@ func load_data(dir_path: String):
 		var maps = _maps[map_type]
 
 		for index in range(len(maps)):
-			print("Loading map ", _get_map_debug_name(map_type, index),
-				" from ", _get_map_filename(map_type, index), "...")
+			_logger.debug(str("Loading map ", _get_map_debug_name(map_type, index),
+				" from ", _get_map_filename(map_type, index), "..."))
 
 			_load_channel(dir_path, map_type, index)
 
@@ -899,10 +922,10 @@ func load_data(dir_path: String):
 
 			pi += 1
 
-	print("Calculating vertical bounds...")
+	_logger.debug("Calculating vertical bounds...")
 	_update_all_vertical_bounds()
 
-	print("Notify resolution change...")
+	_logger.debug("Notify resolution change...")
 
 	_locked = false
 	emit_signal("resolution_changed")
@@ -921,10 +944,11 @@ func _save_channel(dir_path: String, channel: int, index: int) -> bool:
 	if im == null:
 		var tex = map.texture
 		if tex != null:
-			print("Image not found for channel ", channel, ", downloading from VRAM")
+			_logger.debug(str("Image not found for channel ", channel, 
+				", downloading from VRAM"))
 			im = tex.get_data()
 		else:
-			print("No data in channel ", channel, "[", index, "]")
+			_logger.debug(str("No data in channel ", channel, "[", index, "]"))
 			# This data doesn't have such channel
 			return true
 
@@ -937,20 +961,21 @@ func _save_channel(dir_path: String, channel: int, index: int) -> bool:
 	if _channel_can_be_saved_as_png(channel):
 		fpath += ".png"
 		im.save_png(fpath)
-		_try_write_default_import_options(fpath, channel)
+		_try_write_default_import_options(fpath, channel, _logger)
 
 	else:
 		fpath += ".res"
 		var err = ResourceSaver.save(fpath, im)
 		if err != OK:
-			printerr("Could not save ", fpath, ", error ", Errors.get_message(err))
+			_logger.error("Could not save '{0}', error {1}" \
+				.format([fpath, Errors.get_message(err)]))
 			return false
-		_try_delete_0_8_0_heightmap(fpath.get_basename())
+		_try_delete_0_8_0_heightmap(fpath.get_basename(), _logger)
 
 	return true
 
 
-static func _try_write_default_import_options(fpath: String, channel: int):
+static func _try_write_default_import_options(fpath: String, channel: int, logger):
 	var imp_fpath = fpath + ".import"
 	var f = File.new()
 	if f.file_exists(imp_fpath):
@@ -986,7 +1011,8 @@ static func _try_write_default_import_options(fpath: String, channel: int):
 
 	var err = f.open(imp_fpath, File.WRITE)
 	if err != OK:
-		printerr("Could not open `", imp_fpath, "` for write, error ", Errors.get_message(err))
+		logger.error("Could not open '{0}' for write, error {1}" \
+			.format([imp_fpath, Errors.get_message(err)]))
 		return
 
 	for section in defaults:
@@ -1039,14 +1065,14 @@ func _load_channel(dir: String, channel: int, index: int) -> bool:
 		map.texture = tex
 
 	else:
-		var im = _try_load_0_8_0_heightmap(fpath, channel, map.image)
+		var im = _try_load_0_8_0_heightmap(fpath, channel, map.image, _logger)
 		if typeof(im) == TYPE_BOOL:
 			return false
 		if im == null:
 			fpath += ".res"
 			im = load(fpath)
 		if im == null:
-			printerr("Could not load ", fpath)
+			_logger.error("Could not load '{0}'".format([fpath]))
 			return false
 
 		_resolution = im.get_width()
@@ -1059,14 +1085,15 @@ func _load_channel(dir: String, channel: int, index: int) -> bool:
 
 # Legacy
 # TODO Drop after a few versions
-static func _try_load_0_8_0_heightmap(fpath: String, channel: int, existing_image: Image):
+static func _try_load_0_8_0_heightmap(fpath: String, channel: int, existing_image: Image, logger):
 	fpath += ".bin"
 	var f = File.new()
 	if not f.file_exists(fpath):
 		return null
 	var err = f.open(fpath, File.READ)
 	if err != OK:
-		printerr("Could not open ", fpath, " for reading, error ", Errors.get_message(err))
+		logger.error("Could not open '{0}' for reading, error {1}" \
+			.format([fpath, Errors.get_message(err)]))
 		return false
 
 	var width = f.get_32()
@@ -1075,7 +1102,8 @@ static func _try_load_0_8_0_heightmap(fpath: String, channel: int, existing_imag
 	var data_size = width * height * pixel_size
 	var data = f.get_buffer(data_size)
 	if data.size() != data_size:
-		printerr("Unexpected end of buffer, expected size ", data_size, ", got ", data.size())
+		logger.error("Unexpected end of buffer, expected size {0}, got {1}" \
+			.format([data_size, data.size()]))
 		return false
 
 	var im = existing_image
@@ -1085,13 +1113,14 @@ static func _try_load_0_8_0_heightmap(fpath: String, channel: int, existing_imag
 	return im
 
 
-static func _try_delete_0_8_0_heightmap(fpath: String):
+static func _try_delete_0_8_0_heightmap(fpath: String, logger):
 	fpath += ".bin"
 	var d = Directory.new()
 	if d.file_exists(fpath):
 		var err = d.remove(fpath)
 		if err != OK:
-			printerr("Could not erase file ", fpath, ", error ", Errors.get_message(err))
+			logger.error("Could not erase file '{0}', error {1}" \
+				.format([fpath, Errors.get_message(err)]))
 
 
 # Imports images into the terrain data by converting them to the internal format.
@@ -1150,7 +1179,7 @@ func _import_heightmap(fpath: String, min_y: int, max_y: int) -> bool:
 
 		_locked = true
 
-		print("Resizing terrain to ", res, "x", res, "...")
+		_logger.debug(str("Resizing terrain to ", res, "x", res, "..."))
 		resize(src_image.get_width(), true, Vector2())
 
 		var im = get_image(CHANNEL_HEIGHT)
@@ -1161,7 +1190,7 @@ func _import_heightmap(fpath: String, min_y: int, max_y: int) -> bool:
 		var width = Util.min_int(im.get_width(), src_image.get_width())
 		var height = Util.min_int(im.get_height(), src_image.get_height())
 
-		print("Converting to internal format...", 0.2)
+		_logger.debug(str("Converting to internal format...", 0.2))
 
 		im.lock()
 		src_image.lock()
@@ -1198,7 +1227,7 @@ func _import_heightmap(fpath: String, min_y: int, max_y: int) -> bool:
 
 		_locked = true
 
-		print("Resizing terrain to ", width, "x", height, "...")
+		_logger.debug(str("Resizing terrain to ", width, "x", height, "..."))
 		resize(res, true, Vector2())
 
 		var im = get_image(CHANNEL_HEIGHT)
@@ -1206,7 +1235,7 @@ func _import_heightmap(fpath: String, min_y: int, max_y: int) -> bool:
 
 		var hrange = max_y - min_y
 
-		print("Converting to internal format...")
+		_logger.debug("Converting to internal format...")
 
 		im.lock()
 
@@ -1232,7 +1261,7 @@ func _import_heightmap(fpath: String, min_y: int, max_y: int) -> bool:
 
 	_locked = false
 
-	print("Notify region change...")
+	_logger.debug("Notify region change...")
 	notify_region_change(Rect2(0, 0, get_resolution(), get_resolution()), CHANNEL_HEIGHT)
 
 	return true
@@ -1271,23 +1300,8 @@ static func encode_normal(n: Vector3) -> Color:
 	return Color(n.x, n.z, n.y)
 
 
-static func get_channel_format(channel: int) -> int:
-	match channel:
-		CHANNEL_HEIGHT:
-			return Image.FORMAT_RH
-		CHANNEL_NORMAL:
-			return Image.FORMAT_RGB8
-		CHANNEL_SPLAT:
-			return Image.FORMAT_RGBA8
-		CHANNEL_COLOR:
-			return Image.FORMAT_RGBA8
-		CHANNEL_DETAIL:
-			return Image.FORMAT_L8
-		CHANNEL_GLOBAL_ALBEDO:
-			return Image.FORMAT_RGB8
-
-	printerr("Unrecognized channel\n")
-	return Image.FORMAT_MAX
+static func get_channel_format(channel) -> int:
+	return _channel_names[channel] as int
 
 
 # Note: PNG supports 16-bit channels, unfortunately Godot doesn't
@@ -1298,22 +1312,7 @@ static func _channel_can_be_saved_as_png(channel: int) -> bool:
 
 
 static func get_channel_name(c: int) -> String:
-	var name = null
-	match c:
-		CHANNEL_COLOR:
-			name = "color"
-		CHANNEL_SPLAT:
-			name = "splat"
-		CHANNEL_NORMAL:
-			name = "normal"
-		CHANNEL_HEIGHT:
-			name = "height"
-		CHANNEL_DETAIL:
-			name = "detail"
-		CHANNEL_GLOBAL_ALBEDO:
-			name = "global_albedo"
-	assert(name != null)
-	return name
+	return _channel_names[c] as String
 
 
 static func _get_map_debug_name(map_type: int, index: int) -> String:

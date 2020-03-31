@@ -1,5 +1,7 @@
 tool
 
+const Logger = preload("./util/logger.gd")
+
 const SEAM_LEFT = 1
 const SEAM_RIGHT = 2
 const SEAM_BOTTOM = 4
@@ -307,7 +309,9 @@ static func get_mesh_size(width: int, height: int) -> Dictionary:
 # Makes a full mesh from a heightmap, without any LOD considerations.
 # Using this mesh for rendering is very expensive on large terrains.
 # Initially used as a workaround for Godot to use for navmesh generation.
-static func make_heightmap_mesh(heightmap: Image, stride: int, scale: Vector3) -> Mesh:
+static func make_heightmap_mesh(heightmap: Image, stride: int, scale: Vector3, 
+	logger = null) -> Mesh:
+	
 	var size_x := heightmap.get_width() / stride
 	var size_z := heightmap.get_height() / stride
 
@@ -337,7 +341,9 @@ static func make_heightmap_mesh(heightmap: Image, stride: int, scale: Vector3) -
 	arrays[Mesh.ARRAY_VERTEX] = positions
 	arrays[Mesh.ARRAY_INDEX] = indices
 	
-	print("Generated mesh has ", len(positions), " vertices and ", len(indices) / 3, " triangles")
+	if logger != null:
+		logger.debug(str("Generated mesh has ", len(positions),
+			" vertices and ", len(indices) / 3, " triangles"))
 
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)

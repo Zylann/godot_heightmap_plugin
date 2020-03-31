@@ -4,6 +4,7 @@ extends WindowDialog
 const HTerrainData = preload("../../hterrain_data.gd")
 const Errors = preload("../../util/errors.gd")
 const Util = preload("../../util/util.gd")
+const Logger = preload("../../util/logger.gd")
 
 const FORMAT_RH = 0
 const FORMAT_R16 = 1
@@ -22,6 +23,7 @@ var _terrain = null
 var _file_dialog : EditorFileDialog = null
 var _format_names := []
 var _format_extensions := []
+var _logger = Logger.get_for(self)
 
 
 func _ready():
@@ -91,11 +93,11 @@ func _export() -> bool:
 	var height_max := _height_range_max_spinbox.value
 	
 	if height_min == height_max:
-		printerr("Cannot export, height range is zero")
+		_logger.error("Cannot export, height range is zero")
 		return false
 	
 	if height_min > height_max:
-		printerr("Cannot export, height min is greater than max")
+		_logger.error("Cannot export, height min is greater than max")
 		return false
 	
 	var save_error := OK
@@ -137,14 +139,14 @@ func _export() -> bool:
 					elif h > 65535:
 						h = 65535
 					if x % 50 == 0:
-						print(h)
+						_logger.debug(str(h))
 					f.store_16(h)
 			heightmap.unlock()
 	
 		f.close()
 	
 	if save_error == OK:
-		print("Exported heightmap as \"", fpath, "\"")
+		_logger.debug("Exported heightmap as \"{0}\"".format([fpath]))
 		return true
 	else:
 		_print_file_error(fpath, save_error)
@@ -169,8 +171,8 @@ func _update_file_extension():
 		_output_path_line_edit.text = str(fpath.get_basename(), ".", ext)
 
 
-static func _print_file_error(fpath, err):
-	push_error("Could not save path {0}, error: {1}" \
+func _print_file_error(fpath, err):
+	_logger.error("Could not save path {0}, error: {1}" \
 		.format([fpath, Errors.get_message(err)]))
 
 

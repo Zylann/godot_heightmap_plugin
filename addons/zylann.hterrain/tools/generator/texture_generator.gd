@@ -298,7 +298,6 @@ func _create_output_image(metadata):
 
 func _report_progress(passes, pass_index, iteration):
 	var p = passes[pass_index]
-	#print("Running pass ", pass_index, "/", len(passes), ", iteration ", iteration)
 	emit_signal("progress_reported", {
 		"name": p.debug_name,
 		"pass_index": pass_index,

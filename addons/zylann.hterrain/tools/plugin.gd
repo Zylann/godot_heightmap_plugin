@@ -13,6 +13,7 @@ const Util = preload("../util/util.gd")
 const LoadTextureDialog = preload("./load_texture_dialog.gd")
 const GlobalMapBaker = preload("./globalmap_baker.gd")
 const ImageFileCache = preload("../util/image_file_cache.gd")
+const Logger = preload("../util/logger.gd")
 
 const EditPanel = preload("./panel.tscn")
 const ProgressWindow = preload("./progress_window.tscn")
@@ -56,13 +57,15 @@ var _mouse_pressed := false
 var _pending_paint_action = null
 var _pending_paint_completed := false
 
+var _logger = Logger.get_for(self)
+
 
 static func get_icon(name: String) -> Texture:
 	return load("res://addons/zylann.hterrain/tools/icons/icon_" + name + ".svg") as Texture
 
 
 func _enter_tree():
-	print("HTerrain plugin Enter tree")
+	_logger.debug("HTerrain plugin Enter tree")
 	
 	add_custom_type("HTerrain", "Spatial", HTerrain, get_icon("heightmap_node"))
 	add_custom_type("HTerrainDetailLayer", "Spatial", HTerrainDetailLayer, 
@@ -206,7 +209,7 @@ func _enter_tree():
 
 
 func _exit_tree():
-	print("HTerrain plugin Exit tree")
+	_logger.debug("HTerrain plugin Exit tree")
 	
 	# Make sure we release all references to edited stuff
 	edit(null)
@@ -256,7 +259,7 @@ func handles(object):
 
 
 func edit(object):
-	print("Edit ", object)
+	_logger.debug(str("Edit ", object))
 	
 	var node = _get_terrain_from_object(object)
 	
@@ -479,12 +482,12 @@ func _paint_completed():
 
 
 func _terrain_exited_scene():
-	print("HTerrain exited the scene")
+	_logger.debug("HTerrain exited the scene")
 	edit(null)
 
 
 func _menu_item_selected(id):
-	print("Menu item selected ", id)
+	_logger.debug(str("Menu item selected ", id))
 	match id:
 		
 		MENU_IMPORT_MAPS:
@@ -530,7 +533,7 @@ func _menu_item_selected(id):
 
 
 func _on_mode_selected(mode: int):
-	print("On mode selected ", mode)
+	_logger.debug(str("On mode selected ", mode))
 	_brush.set_mode(mode)
 	_panel.set_brush_editor_display_mode(mode)
 
@@ -558,8 +561,6 @@ static func get_size_from_raw_length(flen: int):
 
 
 func _terrain_progress_notified(info):
-	#print("Plugin received: ", info.message, ", ", int(info.progress * 100.0), "%")
-	
 	if info.has("finished") and info.finished:
 		_progress_window.hide()
 	
@@ -579,11 +580,11 @@ func _terrain_progress_notified(info):
 func _on_GenerateMeshDialog_generate_selected(lod: int):
 	var data := _node.get_data()
 	if data == null:
-		printerr("Terrain has no data")
+		_logger.error("Terrain has no data, cannot generate mesh")
 		return
 	var heightmap := data.get_image(HTerrainData.CHANNEL_HEIGHT)
 	var scale := _node.map_scale
-	var mesh := HTerrainMesher.make_heightmap_mesh(heightmap, lod, scale)
+	var mesh := HTerrainMesher.make_heightmap_mesh(heightmap, lod, scale, _logger)
 	var mi := MeshInstance.new()
 	mi.name = str(_node.name, "_FullMesh")
 	mi.mesh = mesh
@@ -596,7 +597,7 @@ func _on_GenerateMeshDialog_generate_selected(lod: int):
 func _on_permanent_change_performed(message: String):
 	var data := _node.get_data()
 	if data == null:
-		printerr("Terrain has no data")
+		_logger.error("Terrain has no data, cannot mark it as changed")
 		return
 	var ur := get_undo_redo()
 	ur.create_action(message)

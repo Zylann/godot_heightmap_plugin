@@ -9,6 +9,7 @@ const HTerrainChunk = preload("hterrain_chunk.gd")
 const HTerrainChunkDebug = preload("hterrain_chunk_debug.gd")
 const Util = preload("util/util.gd")
 const HTerrainCollider = preload("hterrain_collider.gd")
+const Logger = preload("./util/logger.gd")
 
 const CLASSIC4_SHADER_PATH = "res://addons/zylann.hterrain/shaders/simple4.shader"
 const CLASSIC4_LITE_SHADER_PATH = "res://addons/zylann.hterrain/shaders/simple4_lite.shader"
@@ -101,6 +102,7 @@ var _collider: HTerrainCollider = null
 
 # Stats & debug
 var _updated_chunks := 0
+var _logger = Logger.get_for(self)
 
 # Editor-only
 var _edit_manual_viewer_pos := Vector3()
@@ -108,7 +110,7 @@ var _normals_baker = null
 
 
 func _init():
-	print("Create HeightMap")
+	_logger.debug("Create HeightMap")
 
 	_lodder.set_callbacks( \
 		funcref(self, "_cb_make_chunk"), \
@@ -294,7 +296,7 @@ func _set_data_directory(dir: String):
 				d.resource_path = fpath
 				set_data(d)
 	else:
-		print("WARNING: setting twice the same terrain directory??")
+		_logger.warn("Setting twice the same terrain directory??")
 
 
 func _get_data_directory() -> String:
@@ -303,10 +305,10 @@ func _get_data_directory() -> String:
 	return ""
 
 
-static func _check_heightmap_collider_support() -> bool:
+func _check_heightmap_collider_support() -> bool:
 	var v = Engine.get_version_info()
 	if v.major == 3 and v.minor == 0 and v.patch < 4:
-		printerr("Heightmap collision shape not supported in this version of Godot,"
+		_logger.error("Heightmap collision shape not supported in this version of Godot,"
 			+ " please upgrade to 3.0.4 or later")
 		return false
 	return true
@@ -348,14 +350,14 @@ func get_chunk_size() -> int:
 
 func set_chunk_size(p_cs: int):
 	assert(typeof(p_cs) == TYPE_INT)
-	print("Setting chunk size to ", p_cs)
+	_logger.debug(str("Setting chunk size to ", p_cs))
 	var cs = Util.next_power_of_two(p_cs)
 	if cs < MIN_CHUNK_SIZE:
 		cs = MIN_CHUNK_SIZE
 	if cs > MAX_CHUNK_SIZE:
 		cs = MAX_CHUNK_SIZE
 	if p_cs != cs:
-		print("Chunk size snapped to ", cs)
+		_logger.debug(str("Chunk size snapped to ", cs))
 	if cs == _chunk_size:
 		return
 	_chunk_size = cs
@@ -384,19 +386,19 @@ func get_internal_transform() -> Transform:
 func _notification(what: int):
 	match what:
 		NOTIFICATION_PREDELETE:
-			print("Destroy HTerrain")
+			_logger.debug("Destroy HTerrain")
 			# Note: might get rid of a circular ref in GDScript port
 			_clear_all_chunks()
 
 		NOTIFICATION_ENTER_WORLD:
-			print("Enter world")
+			_logger.debug("Enter world")
 			_for_all_chunks(EnterWorldAction.new(get_world()))
 			if _collider != null:
 				_collider.set_world(get_world())
 				_collider.set_transform(get_internal_transform())
 
 		NOTIFICATION_EXIT_WORLD:
-			print("Exit world")
+			_logger.debug("Exit world")
 			_for_all_chunks(ExitWorldAction.new())
 			if _collider != null:
 				_collider.set_world(null)
@@ -405,12 +407,12 @@ func _notification(what: int):
 			_on_transform_changed()
 
 		NOTIFICATION_VISIBILITY_CHANGED:
-			print("Visibility changed")
+			_logger.debug("Visibility changed")
 			_for_all_chunks(VisibilityChangedAction.new(is_visible_in_tree()))
 
 
 func _on_transform_changed():
-	print("Transform changed")
+	_logger.debug("Transform changed")
 	var gt = get_internal_transform()
 
 	_for_all_chunks(TransformChangedAction.new(gt))
@@ -424,7 +426,7 @@ func _on_transform_changed():
 
 
 func _enter_tree():
-	print("Enter tree")
+	_logger.debug("Enter tree")
 
 	if Engine.editor_hint and _normals_baker == null:
 		_normals_baker = load(_NORMAL_BAKER_PATH).new()
@@ -462,13 +464,13 @@ func has_data() -> bool:
 func set_data(new_data: HTerrainData):
 	assert(new_data == null or new_data is HTerrainData)
 
-	print("Set new data ", new_data)
+	_logger.debug(str("Set new data ", new_data))
 
 	if _data == new_data:
 		return
 
 	if has_data():
-		print("Disconnecting old HeightMapData")
+		_logger.debug("Disconnecting old HeightMapData")
 		_data.disconnect("resolution_changed", self, "_on_data_resolution_changed")
 		_data.disconnect("region_changed", self, "_on_data_region_changed")
 		_data.disconnect("map_changed", self, "_on_data_map_changed")
@@ -486,7 +488,7 @@ func set_data(new_data: HTerrainData):
 	_clear_all_chunks()
 
 	if has_data():
-		print("Connecting new HeightMapData")
+		_logger.debug("Connecting new HeightMapData")
 
 		# This is a small UX improvement so that the user sees a default terrain
 		if is_inside_tree() and Engine.is_editor_hint():
@@ -512,7 +514,7 @@ func set_data(new_data: HTerrainData):
 	if has_method("update_configuration_warning"):
 		call("update_configuration_warning")
 	
-	print("Set data done")
+	_logger.debug("Set data done")
 
 
 # The collider might be used in editor for other tools (like snapping to floor),
@@ -545,7 +547,7 @@ func _reset_ground_chunks():
 	var csize_y = cres
 
 	for lod in range(_lodder.get_lod_count()):
-		print("Create grid for lod ", lod, ", ", csize_x, "x", csize_y)
+		_logger.debug(str("Create grid for lod ", lod, ", ", csize_x, "x", csize_y))
 		var grid = Grid.create_grid(csize_x, csize_y)
 		_chunks[lod] = grid
 		csize_x /= 2
@@ -610,7 +612,7 @@ func set_shader_type(type: String):
 		SHADER_CUSTOM:
 			_material.shader = _custom_shader
 		_:
-			printerr("Unknown shader type: '", _shader_type, "'")
+			_logger.error("Unknown shader type: '{0}'".format([_shader_type]))
 			_material.shader = load(CLASSIC4_SHADER_PATH) as Shader
 
 	_material_params_need_update = true
@@ -633,7 +635,7 @@ func set_custom_shader(shader: Shader):
 	if Engine.is_editor_hint() and shader != null and is_inside_tree():
 		# When the new shader is empty, allow to fork from the previous shader
 		if shader.get_code().empty():
-			print("Populating custom shader with default code")
+			_logger.debug("Populating custom shader with default code")
 			var src = _material.shader
 			if src == null:
 				src = load(CLASSIC4_SHADER_PATH)
@@ -662,7 +664,7 @@ func _on_custom_shader_changed():
 func _update_material_params():
 
 	assert(_material != null)
-	print("Updating terrain material params")
+	_logger.debug("Updating terrain material params")
 
 	var height_texture
 	var normal_texture
@@ -800,7 +802,7 @@ func _process(delta: float):
 			_lodder.update(local_viewer_pos)
 			#var time_elapsed = OS.get_ticks_msec() - time_before
 			#if Engine.get_frames_drawn() % 60 == 0:
-			#	print("Lodder time: ", time_elapsed)
+			#	_logger.debug(str("Lodder time: ", time_elapsed))
 
 		if _data.get_map_count(HTerrainData.CHANNEL_DETAIL) > 0:
 			# Note: the detail system is not affected by map scale,
@@ -860,7 +862,7 @@ func _process(delta: float):
 
 	# DEBUG
 #	if(_updated_chunks > 0):
-#		print("Updated {0} chunks".format(_updated_chunks))
+#		_logger.debug(str("Updated {0} chunks".format(_updated_chunks)))
 
 
 func _update_chunk(chunk: HTerrainChunk, lod: int, p_visible: bool):
@@ -899,7 +901,7 @@ func _update_chunk(chunk: HTerrainChunk, lod: int, p_visible: bool):
 
 func _add_chunk_update(chunk: HTerrainChunk, pos_x: int, pos_y: int, lod: int):
 	if chunk.is_pending_update():
-		#print_line("Chunk update is already pending!")
+		#_logger.debug("Chunk update is already pending!")
 		return
 
 	assert(lod < len(_chunks))
@@ -1108,12 +1110,12 @@ func get_detail_layers() -> Array:
 
 # @obsolete
 func set_detail_texture(slot, tex):
-	printerr("HTerrain.set_detail_texture is obsolete, use HTerrainDetailLayer.texture instead")
+	_logger.error("HTerrain.set_detail_texture is obsolete, use HTerrainDetailLayer.texture instead")
 
 
 # @obsolete
 func get_detail_texture(slot):
-	printerr("HTerrain.get_detail_texture is obsolete, use HTerrainDetailLayer.texture instead")
+	_logger.error("HTerrain.get_detail_texture is obsolete, use HTerrainDetailLayer.texture instead")
 
 
 func set_ambient_wind(amplitude: float):
@@ -1134,7 +1136,7 @@ static func _check_ground_texture_type(ground_texture_type: int):
 	assert(ground_texture_type >= 0 and ground_texture_type < GROUND_TEXTURE_TYPE_COUNT)
 
 
-static func get_ground_texture_slot_count_for_shader(shader_type: String):
+static func get_ground_texture_slot_count_for_shader(shader_type: String, logger):
 	# TODO Deduce these from the shader used
 	match shader_type:
 		SHADER_SIMPLE4, \
@@ -1144,12 +1146,12 @@ static func get_ground_texture_slot_count_for_shader(shader_type: String):
 			return 4
 #		SHADER_ARRAY:
 #			return 256
-	printerr("Invalid shader type specified ", shader_type)
+	logger.error("Invalid shader type specified ", shader_type)
 	return 0
 
 
 func get_ground_texture_slot_count() -> int:
-	return get_ground_texture_slot_count_for_shader(_shader_type)
+	return get_ground_texture_slot_count_for_shader(_shader_type, _logger)
 
 
 func _edit_set_manual_viewer_pos(pos: Vector3):

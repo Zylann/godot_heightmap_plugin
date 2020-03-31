@@ -5,6 +5,7 @@ const HTerrainData = preload("../../hterrain_data.gd")
 const HTerrainMesher = preload("../../hterrain_mesher.gd")
 const Util = preload("../../util/util.gd")
 const TextureGenerator = preload("texture_generator.gd")
+const Logger = preload("../../util/logger.gd")
 
 # TODO Cap this resolution to terrain size, in case it is smaller (bigger uses chunking)
 const VIEWPORT_RESOLUTION = 512
@@ -26,12 +27,12 @@ var _dialog_visible = false
 var _undo_map_ids := {}
 var _image_cache = null
 var _undo_redo : UndoRedo
+var _logger = Logger.get_for(self)
 
 
 static func get_shader(shader_name):
 	var path = "res://addons/zylann.hterrain/tools/generator/shaders"\
 		.plus_file(str(shader_name, ".shader"))
-	#print("Loading ", path)
 	return load(path)
 
 
@@ -320,22 +321,22 @@ func _on_TerrainPreview_dragged(relative, button_mask):
 
 func _apply():
 	if _terrain == null:
-		push_error("ERROR: cannot apply, terrain is null")
+		_logger.error("cannot apply, terrain is null")
 		return
 
 	var data = _terrain.get_data()
 	if data == null:
-		push_error("ERROR: cannot apply, terrain data is null")
+		_logger.error("cannot apply, terrain data is null")
 		return
 
 	var dst_heights = data.get_image(HTerrainData.CHANNEL_HEIGHT)
 	if dst_heights == null:
-		push_error("ERROR: terrain heightmap image isn't loaded")
+		_logger.error("terrain heightmap image isn't loaded")
 		return
 
 	var dst_normals = data.get_image(HTerrainData.CHANNEL_NORMAL)
 	if dst_normals == null:
-		push_error("ERROR: terrain normal image isn't loaded")
+		_logger.error("terrain normal image isn't loaded")
 		return
 
 	_applying = true
@@ -423,7 +424,7 @@ func _on_TextureGenerator_completed():
 	data._edit_set_disable_apply_undo(false)
 
 	emit_signal("progress_notified", { "finished": true })
-	print("Done")
+	_logger.debug("Done")
 
 
 static func generate_perm_texture(tex, res, random_seed, tex_flags):

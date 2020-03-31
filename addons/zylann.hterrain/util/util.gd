@@ -92,7 +92,6 @@ static func integer_square_root(x: int) -> int:
 	if r * r == x:
 		return r
 	# Does not exist
-	printerr("isqrt(", x, ") doesn't exist")
 	return -1
 
 
@@ -203,7 +202,6 @@ static func get_shader_param_or_default(mat: Material, name: String):
 		return v
 	var params = VisualServer.shader_get_param_list(mat.shader)
 	for p in params:
-		print(p)
 		if p.name == name:
 			match p.type:
 				TYPE_OBJECT:

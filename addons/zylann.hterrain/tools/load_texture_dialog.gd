@@ -17,6 +17,5 @@ func _on_close():
 	# so we can re-use the same dialog with different listeners
 	var cons = get_signal_connection_list("file_selected")
 	for con in cons:
-		#print("DDD Disconnect ", con.method)
 		disconnect("file_selected", con.target, con.method)
 

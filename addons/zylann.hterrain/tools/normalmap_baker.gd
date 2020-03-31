@@ -88,9 +88,6 @@ func request_tiles_in_region(min_pos, size):
 	tmax.x = clamp(tmax.x, 0, ntx)
 	tmax.y = clamp(tmax.y, 0, nty)
 	
-#	print("min: ", min_pos, ", max: ", max_pos)
-#	print("tmin: ", tmin, ", tmax: ", tmax)
-	
 	for y in range(tmin.y, tmax.y):
 		for x in range(tmin.x, tmax.x):
 			request_tile(Vector2(x, y))
@@ -112,12 +109,10 @@ func _process(delta):
 		return
 	
 	if _processing_tile != null and _terrain_data != null:
-		#var time_before = OS.get_ticks_msec()
 		var src = _viewport.get_texture().get_data()
 		var dst = _terrain_data.get_image(HTerrainData.CHANNEL_NORMAL)
 		
 		src.convert(dst.get_format())
-		#src.save_png("test_normal.png")
 		var pos = _processing_tile * VIEWPORT_SIZE
 		var w = src.get_width() - 1
 		var h = src.get_height() - 1
@@ -127,7 +122,6 @@ func _process(delta):
 		if _pending_tiles_grid[_processing_tile] == STATE_PROCESSING:
 			_pending_tiles_grid.erase(_processing_tile)
 		_processing_tile = null
-		#print("Spent ", OS.get_ticks_msec() - time_before, " ms downloading viewport")
 
 	if _has_pending_tiles():
 		var tpos = _pending_tiles_queue[-1]

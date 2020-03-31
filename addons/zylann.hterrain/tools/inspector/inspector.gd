@@ -323,7 +323,6 @@ static func _setup_range_control(range_control, prop):
 
 func _property_edited(value, key):
 	if _edit_signal:
-		#print("Property edited ", key, "=", value)
 		emit_signal("property_changed", key, value)
 
 
@@ -375,14 +374,12 @@ func _on_file_dialog_close():
 	# so we can re-use the same dialog with different listeners
 	var cons = _file_dialog.get_signal_connection_list("file_selected")
 	for con in cons:
-		#print("DDD Disconnect ", con.method)
 		_file_dialog.disconnect("file_selected", con.target, con.method)
 
 
 func _on_texture_selected(path, key):
 	var tex = load(path)
 	if tex == null:
-		print("Could not load texture ", path)
 		return
 	var ed = _editors[key]
 	ed.setter.call_func(tex)

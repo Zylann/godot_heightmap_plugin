@@ -2,10 +2,13 @@
 # Used to store temporary images on disk.
 # This is useful for undo/redo as image edition can quickly fill up memory.
 
+const Logger = preload("./logger.gd")
+
 var _cache_dir := ""
 var _next_id := 0
 var _session_id := ""
 var _cache_image_info := {}
+var _logger = Logger.get_for(self)
 
 
 func _init(cache_dir: String):
@@ -15,12 +18,12 @@ func _init(cache_dir: String):
 	rng.randomize()
 	for i in 16:
 		_session_id += str(rng.randi() % 10)
-	print("Image cache session ID: ", _session_id)
+	_logger.debug(str("Image cache session ID: ", _session_id))
 	var dir := Directory.new()
 	if not dir.dir_exists(_cache_dir):
 		var err = dir.make_dir(_cache_dir)
 		if err != OK:
-			push_error("Could not create directory {0}, error {1}" \
+			_logger.error("Could not create directory {0}, error {1}" \
 				.format([_cache_dir, err]))
 
 
@@ -66,7 +69,7 @@ func save_image(im: Image) -> int:
 	}
 	
 	if err != OK:
-		push_error("Could not save image file to {0}, error {1}".format([fpath, err]))
+		_logger.error("Could not save image file to {0}, error {1}".format([fpath, err]))
 	_next_id += 1
 	return id
 
@@ -86,7 +89,8 @@ func load_image(id: int) -> Image:
 		err = im.load(fpath)
 
 	if err != OK:
-		push_error("Could not load cached image from {0}, error {1}".format([fpath, err]))
+		_logger.error("Could not load cached image from {0}, error {1}" \
+			.format([fpath, err]))
 		return null
 
 	im.convert(info.format)
@@ -94,17 +98,18 @@ func load_image(id: int) -> Image:
 
 
 func clear():
-	print("Clearing image cache")
+	_logger.debug("Clearing image cache")
 	
 	var dir := Directory.new()
 	var err := dir.open(_cache_dir)
 	if err != OK:
-		push_error("Could not open image file cache directory " + str(_cache_dir))
+		_logger.error("Could not open image file cache directory '{0}'" \
+			.format([_cache_dir]))
 		return
 	
 	err = dir.list_dir_begin(true, true)
 	if err != OK:
-		push_error("Could not start list_dir_begin in " + str(_cache_dir))
+		_logger.error("Could not start list_dir_begin in '{0}'".format([_cache_dir]))
 		return
 		
 	while true:
@@ -112,10 +117,11 @@ func clear():
 		if fpath == "":
 			break
 		if fpath.ends_with(".png") or fpath.ends_with(".res"):
-			print("Deleted ", fpath)
+			_logger.debug(str("Deleted ", fpath))
 			err = dir.remove(fpath)
 			if err != OK:
-				push_error("Failed to delete cache file " + _cache_dir.plus_file(fpath))
+				_logger.error("Failed to delete cache file '{0}'" \
+					.format([_cache_dir.plus_file(fpath)]))
 
 	_cache_image_info.clear()
 

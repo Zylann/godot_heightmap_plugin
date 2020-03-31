@@ -1,17 +1,21 @@
 tool
 extends Spatial
 
-# Child node of the terrain, used to render numerous small objects on the ground such as grass or rocks.
-# They do so by using a texture covering the terrain (a "detail map"), which is found in the terrain data itself.
-# A terrain can have multiple detail maps, and you can choose which one will be used with `layer_index`.
-# Details use instanced rendering within their own chunk grid, scattered around the player.
-# Importantly, the position and rotation of this node don't matter, and they also do NOT scale with map scale.
-# Indeed, scaling the heightmap doesn't mean we want to scale grass blades (which is not a use case I know of).
+# Child node of the terrain, used to render numerous small objects on the ground
+# such as grass or rocks. They do so by using a texture covering the terrain
+# (a "detail map"), which is found in the terrain data itself.
+# A terrain can have multiple detail maps, and you can choose which one will be
+# used with `layer_index`.
+# Details use instanced rendering within their own chunk grid, scattered around
+# the player. Importantly, the position and rotation of this node don't matter,
+# and they also do NOT scale with map scale. Indeed, scaling the heightmap
+# doesn't mean we want to scale grass blades (which is not a use case I know of).
 
 const HTerrainData = preload("hterrain_data.gd")
 const DirectMultiMeshInstance = preload("util/direct_multimesh_instance.gd")
 const DirectMeshInstance = preload("util/direct_mesh_instance.gd")
 const Util = preload("util/util.gd")
+const Logger = preload("./util/logger.gd")
 
 const CHUNK_SIZE = 32
 const DEFAULT_SHADER_PATH = "res://addons/zylann.hterrain/shaders/detail.shader"
@@ -48,6 +52,7 @@ var _ambient_wind_time := 0.0
 var _first_enter_tree := true
 var _debug_wirecube_mesh: Mesh = null
 var _debug_cubes := []
+var _logger = Logger.get_for(self)
 
 
 func _init():
@@ -260,7 +265,7 @@ func _on_terrain_transform_changed(gt: Transform):
 
 	var terrain = _get_terrain()
 	if terrain == null:
-		printerr("Detail layer is not child of a terrain!")
+		_logger.error("Detail layer is not child of a terrain!")
 		return
 
 	# Update AABBs
@@ -277,7 +282,7 @@ func process(delta: float, viewer_pos: Vector3):
 
 	var terrain = _get_terrain()
 	if terrain == null:
-		printerr("DetailLayer processing while terrain is null!")
+		_logger.error("DetailLayer processing while terrain is null!")
 		return
 
 	var local_viewer_pos = viewer_pos - terrain.translation
@@ -410,7 +415,7 @@ func _get_ambient_wind_params() -> Vector2:
 
 func _update_material():
 	# Sets API shader properties. Custom properties are assumed to be set already
-	print("Updating detail layer material")
+	_logger.debug("Updating detail layer material")
 
 	var terrain_data = null
 	var terrain = _get_terrain()
@@ -439,7 +444,7 @@ func _update_material():
 
 	if terrain_data != null:
 		if terrain_data.is_locked():
-			print("Terrain data locked, can't update detail layer now")
+			_logger.error("Terrain data locked, can't update detail layer now")
 			return
 
 		heightmap_texture = terrain_data.get_texture(HTerrainData.CHANNEL_HEIGHT)
@@ -451,7 +456,7 @@ func _update_material():
 		if terrain_data.get_map_count(HTerrainData.CHANNEL_GLOBAL_ALBEDO) > 0:
 			globalmap_texture = terrain_data.get_texture(HTerrainData.CHANNEL_GLOBAL_ALBEDO)
 	else:
-		print("Terrain data is null, can't update detail layer completely")
+		_logger.error("Terrain data is null, can't update detail layer completely")
 
 	mat.set_shader_param("u_terrain_heightmap", heightmap_texture)
 	mat.set_shader_param("u_terrain_detailmap", detailmap_texture)

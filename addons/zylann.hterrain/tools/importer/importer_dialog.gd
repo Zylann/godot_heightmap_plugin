@@ -1,10 +1,10 @@
 tool
 extends WindowDialog
 
-
 const Util = preload("../../util/util.gd")
 const HTerrainData = preload("../../hterrain_data.gd")
 const Errors = preload("../../util/errors.gd")
+const Logger = preload("../../util/logger.gd")
 
 signal permanent_change_performed(message)
 
@@ -13,6 +13,7 @@ onready var _errors_label = $VBoxContainer/ColorRect/ScrollContainer/VBoxContain
 onready var _warnings_label = $VBoxContainer/ColorRect/ScrollContainer/VBoxContainer/Warnings
 
 var _terrain = null
+var _logger = Logger.get_for(self)
 
 
 func _ready():
@@ -52,12 +53,11 @@ func _clear_feedback():
 
 
 func _show_feedback(res):
-
 	for e in res.errors:
-		printerr("ERROR: ", e)
+		_logger.error(e)
 
 	for w in res.warnings:
-		print("WARNING: ", w)
+		_logger.warn(w)
 	
 	_clear_feedback()
 	
@@ -81,7 +81,7 @@ func _on_ImportButton_pressed():
 	_show_feedback(res)
 
 	if len(res.errors) != 0:
-		print("Cannot import due to errors, aborting")
+		_logger.debug("Cannot import due to errors, aborting")
 		return
 
 	var params = {}
@@ -106,7 +106,7 @@ func _on_ImportButton_pressed():
 	data._edit_import_maps(params)
 	emit_signal("permanent_change_performed", "Import maps")
 	
-	print("Terrain import finished")
+	_logger.debug("Terrain import finished")
 	hide()
 
 
@@ -147,7 +147,7 @@ func _validate_form():
 			# so we avoid loading other maps everytime to do further checks
 			return res
 
-		var size = _load_image_size(heightmap_path)
+		var size = _load_image_size(heightmap_path, _logger)
 		if size.has("error"):
 			res.errors.append(str("Cannot open heightmap file: ", _error_to_string(size.error)))
 			return res
@@ -162,58 +162,62 @@ func _validate_form():
 		heightmap_size = adjusted_size
 
 	if splatmap_path != "":
-		_check_map_size(splatmap_path, "splatmap", heightmap_size, res)
+		_check_map_size(splatmap_path, "splatmap", heightmap_size, res, _logger)
 
 	if colormap_path != "":
-		_check_map_size(colormap_path, "colormap", heightmap_size, res)
+		_check_map_size(colormap_path, "colormap", heightmap_size, res, _logger)
 
 	return res
 
 
-static func _check_map_size(path, map_name, heightmap_size, res):
-	var size = _load_image_size(path)
+static func _check_map_size(path, map_name, heightmap_size, res, logger):
+	var size = _load_image_size(path, logger)
 	if size.has("error"):
 		res.errors.append("Cannot open splatmap file: ", _error_to_string(size.error))
 		return
 	var adjusted_size = HTerrainData.get_adjusted_map_size(size.width, size.height)
 	if adjusted_size != heightmap_size:
-		res.errors.append(str("The ", map_name, " must have the same resolution as the heightmap (", heightmap_size, ")"))
+		res.errors.append(str(
+			"The ", map_name, 
+			" must have the same resolution as the heightmap (", heightmap_size, ")"))
 	else:
 		if adjusted_size != size.width:
 			res.warnings.append(
-				"The square resolution deduced from ", map_name, " file size is not power of two + 1.\n" + \
-				"The ", map_name, " will be cropped.")
+				"The square resolution deduced from ", map_name, 
+				" file size is not power of two + 1.\nThe ", 
+				map_name, " will be cropped.")
 
 
-static func _load_image_size(path):
+static func _load_image_size(path, logger):
 	var ext = path.get_extension().to_lower()
 
 	if ext == "png":
-
 		var im = Image.new()
 		var err = im.load(path)
 		if err != OK:
-			print("An error occurred loading image ", path, ", code ", err)
+			logger.error("An error occurred loading image '{0}', code {1}" \
+				.format([path, err]))
 			return { "error": err }
 
 		return { "width": im.get_width(), "height": im.get_height() }
 
 	elif ext == "raw":
-
 		var f = File.new()
 		var err = f.open(path, File.READ)
 		if err != OK:
-			print("Error opening file ", path)
+			logger.error("Error opening file {0}".format([path]))
 			return { "error": err }
 
-		# Assume the raw data is square in 16-bit format, so its size is function of file length
+		# Assume the raw data is square in 16-bit format,
+		# so its size is function of file length
 		var flen = f.get_len()
 		f.close()
 		var size = Util.integer_square_root(flen / 2)
 		if size == -1:
 			return { "error": "RAW image is not square" }
 		
-		print("Deduced RAW heightmap resolution: {0}*{1}, for a length of {2}".format([size, size, flen]))
+		logger.debug("Deduced RAW heightmap resolution: {0}*{1}, for a length of {2}" \
+			.format([size, size, flen]))
 
 		return { "width": size, "height": size }
 

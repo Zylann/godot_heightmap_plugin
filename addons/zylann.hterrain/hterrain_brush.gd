@@ -4,6 +4,7 @@ const HTerrain = preload("hterrain.gd")
 const HTerrainData = preload("hterrain_data.gd")
 const Util = preload("util/util.gd")
 const NativeFactory = preload("native/factory.gd")
+const Logger = preload("./util/logger.gd")
 
 # TODO Rename MODE_RAISE
 const MODE_ADD = 0
@@ -39,6 +40,7 @@ var _color := Color(1, 1, 1)
 var _mask_flag := false
 var _undo_cache := {}
 var _image_utils = NativeFactory.get_image_utils()
+var _logger = Logger.get_for(self)
 
 
 func get_mode() -> int:
@@ -99,7 +101,7 @@ func get_flatten_height() -> float:
 
 func set_texture_index(tid: int):
 	assert(tid >= 0)
-	var slot_count = HTerrain.get_ground_texture_slot_count_for_shader(_texture_mode)
+	var slot_count = HTerrain.get_ground_texture_slot_count_for_shader(_texture_mode, _logger)
 	assert(tid < slot_count)
 	_texture_index = tid
 
@@ -169,6 +171,7 @@ func _generate_from_image(im: Image, radius: int):
 
 
 static func _get_mode_channel(mode: int) -> int:
+	assert(mode >= 0 and mode < HTerrainData.CHANNEL_COUNT)
 	match mode:
 		MODE_ADD, \
 		MODE_SUBTRACT, \
@@ -184,8 +187,6 @@ static func _get_mode_channel(mode: int) -> int:
 			return HTerrainData.CHANNEL_COLOR
 		MODE_DETAIL:
 			return HTerrainData.CHANNEL_DETAIL
-		_:
-			print("This mode has no channel")
 
 	return HTerrainData.CHANNEL_COUNT # Error
 
@@ -247,7 +248,7 @@ func paint(terrain: HTerrain, cell_pos_x: int, cell_pos_y: int, override_mode: i
 		_get_mode_channel(mode), map_index)
 
 	#var time_elapsed = OS.get_ticks_msec() - time_before
-	#print("Time elapsed painting: ", time_elapsed, "ms")
+	#_logger.debug("Time elapsed painting: ", time_elapsed, "ms")
 
 
 static func _is_valid_pos(pos_x: int, pos_y: int, im: Image) -> bool:
@@ -289,7 +290,7 @@ func _backup_for_undo(im: Image, undo_cache: Dictionary,
 				# Note: this error check isn't working because data grids are 
 				# intentionally off-by-one
 				#if(invalid_min ^ invalid_max)
-				#	print_line("Wut? Grid might not be multiple of chunk size!");
+				#	_logger.error("Wut? Grid might not be multiple of chunk size!");
 
 				continue
 
@@ -361,7 +362,7 @@ func _paint_splat(data: HTerrainData, origin_x: int, origin_y: int):
 #					c.g = clamp(_opacity, 0.0, 1.0)
 #					im.set_pixel(x, y, c)
 	else:
-		push_error("Unknown texture mode {0}".format([_texture_mode]))
+		_logger.error("Unknown texture mode {0}".format([_texture_mode]))
 
 
 func _paint_color(data: HTerrainData, origin_x: int, origin_y: int):
