@@ -38,8 +38,8 @@ Why this is a plugin
 ----------------------
 
 Godot has no terrain system for 3D at the moment, so I made one.
-The plugin is currently fully implemented in GDScript. I wish I could make it a C++ module, but being a GDScript plugin allows much faster iteration and everyone can try it and modify it much more easily. Eventually, one day some performance-sensitive areas could be implemented using GDNative, to optionally give some boost.
-There is a chance for Godot to get a built-in terrain system though, maybe in 4.x or after, which is quite a long wait, so developping this plugin allows me to explore a lot of things up-front, such as procedural generation and editor tools, which could still be of use later.
+The plugin is currently fully implemented in GDScript. I wish I could make it a C++ module, but being a GDScript plugin allows much faster iteration and everyone can try it and modify it much more easily. Recently, some parts started to be implemented as a GDNative library to speed them up (only on supported platforms).
+Godot could get a terrain system in the future, maybe in 4.x or after, but it's going to be a long wait, so developping this plugin allows me to explore a lot of things up-front, such as procedural generation and editor tools, which could still be of use later.
 
 
 GLES2 support
