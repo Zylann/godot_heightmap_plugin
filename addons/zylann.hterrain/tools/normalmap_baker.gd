@@ -1,8 +1,8 @@
-tool
-extends Node
-
 # Bakes normals asynchronously in the editor as the heightmap gets modified.
 # This is probably not a nice method GPU-wise, but it's way faster than GDScript.
+
+tool
+extends Node
 
 const HTerrainData = preload("../hterrain_data.gd")
 
@@ -113,6 +113,7 @@ func _process(delta):
 		var dst = _terrain_data.get_image(HTerrainData.CHANNEL_NORMAL)
 		
 		src.convert(dst.get_format())
+		#src.save_png(str("test_", _processing_tile.x, "_", _processing_tile.y, ".png"))
 		var pos = _processing_tile * VIEWPORT_SIZE
 		var w = src.get_width() - 1
 		var h = src.get_height() - 1
@@ -126,6 +127,8 @@ func _process(delta):
 	if _has_pending_tiles():
 		var tpos = _pending_tiles_queue[-1]
 		_pending_tiles_queue.pop_back()
+		# The sprite will be much larger than the viewport due to the size of the heightmap.
+		# We move it around so the part inside the viewport will correspond to the tile.
 		_ci.position = -VIEWPORT_SIZE * tpos + Vector2(1, 1)
 		_viewport.render_target_update_mode = Viewport.UPDATE_ONCE
 		_processing_tile = tpos

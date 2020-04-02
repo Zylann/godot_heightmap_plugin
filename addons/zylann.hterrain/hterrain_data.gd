@@ -170,7 +170,7 @@ func resize(p_res: int, stretch := true, anchor := Vector2(-1, -1)):
 	assert(typeof(stretch) == TYPE_BOOL)
 	assert(typeof(anchor) == TYPE_VECTOR2)
 
-	_logger.debug(str("HeightMapData::set_resolution ", p_res))
+	_logger.debug(str("set_resolution ", p_res))
 
 	if p_res == get_resolution():
 		return
@@ -196,11 +196,13 @@ func resize(p_res: int, stretch := true, anchor := Vector2(-1, -1)):
 			var im := map.image
 
 			if im == null:
+				_logger.debug("Image not in memory, creating it")
 				im = Image.new()
 				im.create(_resolution, _resolution, false, get_channel_format(channel))
 
 				var fill_color = _get_channel_default_fill(channel)
 				if fill_color != null:
+					_logger.debug(str("Fill with ", fill_color))
 					im.fill(fill_color)
 
 				map.image = im
@@ -1300,8 +1302,8 @@ static func encode_normal(n: Vector3) -> Color:
 	return Color(n.x, n.z, n.y)
 
 
-static func get_channel_format(channel) -> int:
-	return _channel_names[channel] as int
+static func get_channel_format(channel: int) -> int:
+	return _channel_formats[channel] as int
 
 
 # Note: PNG supports 16-bit channels, unfortunately Godot doesn't
