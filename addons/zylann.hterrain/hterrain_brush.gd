@@ -171,7 +171,7 @@ func _generate_from_image(im: Image, radius: int):
 
 
 static func _get_mode_channel(mode: int) -> int:
-	assert(mode >= 0 and mode < HTerrainData.CHANNEL_COUNT)
+	assert(mode >= 0 and mode < MODE_COUNT)
 	match mode:
 		MODE_ADD, \
 		MODE_SUBTRACT, \
