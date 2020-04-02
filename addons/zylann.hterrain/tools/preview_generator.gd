@@ -3,6 +3,9 @@ extends EditorResourcePreviewGenerator
 
 const HTerrainData = preload("../hterrain_data.gd")
 const Errors = preload("../util/errors.gd")
+const Logger = preload("../util/logger.gd")
+
+var _logger = Logger.get_for(self)
 
 
 func generate(res: Resource, size: Vector2) -> Texture:
@@ -23,7 +26,8 @@ func generate_from_path(path: String, size: Vector2) -> Texture:
 	var normals := Image.new()
 	var err := normals.load(normals_path)
 	if err != OK:
-		printerr("Could not load ", normals_path, ", error ", Errors.get_message(err))
+		_logger.error("Could not load '{0}', error {1}" \
+			.format([normals_path, Errors.get_message(err)]))
 		return null
 	return _generate(normals, size)
 

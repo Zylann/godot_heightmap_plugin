@@ -4,6 +4,7 @@ extends Control
 const Brush = preload("../../hterrain_brush.gd")
 const Errors = preload("../../util/errors.gd")
 const NativeFactory = preload("../../native/factory.gd")
+const Logger = preload("../../util/logger.gd")
 
 const SHAPES_DIR = "addons/zylann.hterrain/tools/brush/shapes"
 const DEFAULT_BRUSH = "round2.exr"
@@ -33,6 +34,7 @@ onready var _shape_texture_rect = get_node("BrushShapeButton/TextureRect")
 
 var _brush : Brush
 var _load_image_dialog = null
+var _logger = Logger.get_for(self)
 
 # TODO This is an ugly workaround for https://github.com/godotengine/godot/issues/19479
 onready var _temp_node = get_node("Temp")
@@ -186,7 +188,8 @@ func set_brush_shape_from_file(path: String):
 	var im := Image.new()
 	var err := im.load(path)
 	if err != OK:
-		printerr("Could not load image at `", path, "`, error ", Errors.get_message(err))
+		_logger.error("Could not load image at '{0}', error {1}" \
+			.format([path, Errors.get_message(err)]))
 		return
 
 	if _brush != null:

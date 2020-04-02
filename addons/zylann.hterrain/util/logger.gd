@@ -24,6 +24,7 @@ class Verbose extends Base:
 
 
 static func get_for(owner: Object) -> Base:
+	# Note: don't store the owner. If it's a Reference, it could create a cycle
 	var context = owner.get_script().resource_path.get_file()
 	if OS.is_stdout_verbose():
 		return Verbose.new(context)
