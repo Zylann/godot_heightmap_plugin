@@ -10,7 +10,11 @@ const _supported_os = {
 
 static func is_native_available() -> bool:
 	var os = OS.get_name()
-	return _supported_os.has(os)
+	if not _supported_os.has(os):
+		return false
+	# API changes can cause binary incompatibility
+	var v = Engine.get_version_info()
+	return v.major == 3 and v.minor == 2
 
 
 static func get_image_utils():
