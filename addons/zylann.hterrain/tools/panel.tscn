@@ -6,124 +6,52 @@
 [ext_resource path="res://addons/zylann.hterrain/tools/detail_editor/detail_editor.tscn" type="PackedScene" id=4]
 [ext_resource path="res://addons/zylann.hterrain/tools/minimap.gd" type="Script" id=5]
 
-[node name="Panel" type="Control" index="0"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="Panel" type="Control"]
 margin_right = 895.0
 margin_bottom = 112.0
 rect_min_size = Vector2( 400, 112 )
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 0
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
 script = ExtResource( 1 )
-_sections_unfolded = [ "Rect" ]
 
-[node name="HSplitContainer" type="HSplitContainer" parent="." index="0"]
-
-anchor_left = 0.0
-anchor_top = 0.0
+[node name="HSplitContainer" type="HSplitContainer" parent="."]
 anchor_right = 1.0
 anchor_bottom = 1.0
 margin_left = 4.0
 margin_top = 4.0
 margin_right = -6.0
 margin_bottom = -4.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 0
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
 split_offset = 60
-collapsed = false
-dragger_visibility = 0
-_sections_unfolded = [ "Rect" ]
 
-[node name="BrushEditor" parent="HSplitContainer" index="0" instance=ExtResource( 2 )]
-
+[node name="BrushEditor" parent="HSplitContainer" instance=ExtResource( 2 )]
 margin_right = 260.0
 margin_bottom = 104.0
 
-[node name="HSplitContainer" type="HSplitContainer" parent="HSplitContainer" index="1"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="HSplitContainer" type="HSplitContainer" parent="HSplitContainer"]
 margin_left = 272.0
 margin_right = 885.0
 margin_bottom = 104.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 0
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
-split_offset = 0
-collapsed = false
-dragger_visibility = 0
-_sections_unfolded = [ "Size Flags" ]
 
-[node name="HSplitContainer" type="HSplitContainer" parent="HSplitContainer/HSplitContainer" index="0"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="HSplitContainer" type="HSplitContainer" parent="HSplitContainer/HSplitContainer"]
 margin_right = 501.0
 margin_bottom = 104.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 0
-mouse_default_cursor_shape = 0
 size_flags_horizontal = 3
-size_flags_vertical = 1
 split_offset = 150
-collapsed = false
-dragger_visibility = 0
-_sections_unfolded = [ "Size Flags" ]
 
-[node name="TextureEditor" parent="HSplitContainer/HSplitContainer/HSplitContainer" index="0" instance=ExtResource( 3 )]
-
+[node name="TextureEditor" parent="HSplitContainer/HSplitContainer/HSplitContainer" instance=ExtResource( 3 )]
 margin_right = 250.0
 size_flags_horizontal = 1
 
-[node name="DetailEditor" parent="HSplitContainer/HSplitContainer/HSplitContainer" index="1" instance=ExtResource( 4 )]
-
+[node name="DetailEditor" parent="HSplitContainer/HSplitContainer/HSplitContainer" instance=ExtResource( 4 )]
 margin_left = 262.0
 margin_right = 501.0
 margin_bottom = 104.0
 
-[node name="Minimap" type="ColorRect" parent="HSplitContainer/HSplitContainer" index="1"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="Minimap" type="ColorRect" parent="HSplitContainer/HSplitContainer"]
 margin_left = 513.0
 margin_right = 613.0
 margin_bottom = 104.0
 rect_min_size = Vector2( 100, 0 )
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 0
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
 color = Color( 0, 0, 0, 1 )
 script = ExtResource( 5 )
-_sections_unfolded = [ "Rect" ]
-
 [connection signal="texture_selected" from="HSplitContainer/HSplitContainer/HSplitContainer/TextureEditor" to="." method="_on_TextureEditor_texture_selected"]
-
 [connection signal="detail_list_changed" from="HSplitContainer/HSplitContainer/HSplitContainer/DetailEditor" to="." method="_on_DetailEditor_detail_list_changed"]
-
 [connection signal="detail_selected" from="HSplitContainer/HSplitContainer/HSplitContainer/DetailEditor" to="." method="_on_DetailEditor_detail_selected"]
-
-
