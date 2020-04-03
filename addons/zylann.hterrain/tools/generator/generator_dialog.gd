@@ -18,22 +18,22 @@ onready var _preview = $VBoxContainer/Editor/Preview/TerrainPreview
 onready var _progress_bar = $VBoxContainer/Editor/Preview/ProgressBar
 
 var _dummy_texture = load("res://addons/zylann.hterrain/tools/icons/empty.png")
-var _noise_texture = null
+var _noise_texture : ImageTexture
 var _terrain = null
-var _applying = false
-var _generator = null
-var _generated_textures = [null, null]
-var _dialog_visible = false
+var _applying := false
+var _generator : TextureGenerator
+var _generated_textures := [null, null]
+var _dialog_visible := false
 var _undo_map_ids := {}
 var _image_cache = null
 var _undo_redo : UndoRedo
-var _logger = Logger.get_for(self)
+var _logger := Logger.get_for(self)
 
 
-static func get_shader(shader_name):
-	var path = "res://addons/zylann.hterrain/tools/generator/shaders"\
+static func get_shader(shader_name: String) -> Shader:
+	var path := "res://addons/zylann.hterrain/tools/generator/shaders"\
 		.plus_file(str(shader_name, ".shader"))
-	return load(path)
+	return load(path) as Shader
 
 
 func _ready():
@@ -142,11 +142,11 @@ func set_image_cache(image_cache):
 	_image_cache = image_cache
 
 
-func set_undo_redo(ur):
+func set_undo_redo(ur: UndoRedo):
 	_undo_redo = ur
 
 
-func _notification(what):
+func _notification(what: int):
 	match what:
 		NOTIFICATION_VISIBILITY_CHANGED:
 			# We don't want any of this to run in an edited scene
@@ -186,11 +186,11 @@ func _update_generator(preview: bool):
 
 	# When previewing the resolution does not span the entire terrain,
 	# so we apply a scale to some of the passes to make it cover it all.
-	var preview_scale = 4.0 # As if 2049x2049
+	var preview_scale := 4.0 # As if 2049x2049
 
 	# And when we get to generate it fully, sectors are used,
 	# so the size or shape of the terrain doesn't matter
-	var sectors = []
+	var sectors := []
 
 	# Get preview scale and sectors to generate.
 	# Allowing null terrain to make it testable.
@@ -211,7 +211,7 @@ func _update_generator(preview: bool):
 				for x in cw:
 					sectors.append(Vector2(x, y))
 
-	var erosion_iterations = int(_inspector.get_value("erosion_steps"))
+	var erosion_iterations := int(_inspector.get_value("erosion_steps"))
 	erosion_iterations /= int(preview_scale)
 
 	_generator.clear_passes()
@@ -228,9 +228,9 @@ func _update_generator(preview: bool):
 #		var offset_px = sector * (VIEWPORT_RESOLUTION - 1) - Vector2(pad_offset_px, pad_offset_px)
 #		var offset_ndc = offset_px / padded_viewport_resolution
 
-		var progress = float(i) / len(sectors)
+		var progress := float(i) / len(sectors)
 
-		var p = TextureGenerator.Pass.new()
+		var p := TextureGenerator.Pass.new()
 		p.clear = true
 		p.shader = get_shader("perlin_noise")
 		# This pass generates the shapes of the terrain so will have to account for offset
@@ -347,17 +347,17 @@ func _apply():
 	_update_generator(false)
 
 
-func _on_TextureGenerator_progress_reported(info):
+func _on_TextureGenerator_progress_reported(info: Dictionary):
 	if _applying:
 		return
-	var p = 0.0
+	var p := 0.0
 	if info.pass_index == 1:
 		p = float(info.iteration) / float(info.iteration_count)
 	_progress_bar.show()
 	_progress_bar.ratio = p
 
 
-func _on_TextureGenerator_output_generated(image, info):
+func _on_TextureGenerator_output_generated(image: Image, info: Dictionary):
 	if not _applying:
 		# Update preview
 		# TODO Improve TextureGenerator so we can get a ViewportTexture per output?
@@ -367,7 +367,7 @@ func _on_TextureGenerator_output_generated(image, info):
 		tex.create_from_image(image, Texture.FLAG_FILTER)
 		_generated_textures[info.maptype] = tex
 
-		var num_set = 0
+		var num_set := 0
 		for v in _generated_textures:
 			if v != null:
 				num_set += 1
@@ -410,7 +410,7 @@ func _on_TextureGenerator_completed():
 	var resolution := data.get_resolution()
 	data.notify_region_change(Rect2(0, 0, resolution, resolution), HTerrainData.CHANNEL_HEIGHT)
 
-	var redo_map_ids = {}
+	var redo_map_ids := {}
 	for map_type in _undo_map_ids:
 		redo_map_ids[map_type] = _image_cache.save_image(data.get_image(map_type))
 
@@ -427,8 +427,10 @@ func _on_TextureGenerator_completed():
 	_logger.debug("Done")
 
 
-static func generate_perm_texture(tex, res, random_seed, tex_flags):
-	var im = Image.new()
+static func generate_perm_texture(tex: ImageTexture, res: int, \
+	random_seed: int, tex_flags: int) -> ImageTexture:
+		
+	var im := Image.new()
 	im.create(res, res, false, Image.FORMAT_RF)
 
 	seed(random_seed)
