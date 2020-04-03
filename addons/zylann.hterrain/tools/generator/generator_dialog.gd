@@ -13,6 +13,7 @@ const NOISE_PERM_TEXTURE_SIZE = 256
 
 signal progress_notified(info) # { "progress": real, "message": string, "finished": bool }
 
+onready var _inspector_container = $VBoxContainer/Editor/Settings
 onready var _inspector = $VBoxContainer/Editor/Settings/Inspector
 onready var _preview = $VBoxContainer/Editor/Preview/TerrainPreview
 onready var _progress_bar = $VBoxContainer/Editor/Preview/ProgressBar
@@ -126,12 +127,17 @@ func _ready():
 	add_child(_generator)
 
 
+func apply_dpi_scale(dpi_scale: float):
+	rect_min_size *= dpi_scale
+	_inspector_container.rect_min_size *= dpi_scale
+
+
 # TEST
-func _input(event):
-	if Engine.editor_hint:
-		return
-	if event is InputEventKey and event.pressed and not visible:
-		call_deferred("popup_centered_minsize")
+#func _input(event):
+#	if Engine.editor_hint:
+#		return
+#	if event is InputEventKey and event.pressed and not visible:
+#		call_deferred("popup_centered_minsize")
 
 
 func set_terrain(terrain):

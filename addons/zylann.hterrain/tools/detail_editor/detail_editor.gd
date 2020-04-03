@@ -95,7 +95,7 @@ func _on_Remove_pressed():
 	if len(selected) == 0:
 		return
 	_dialog_target = _item_list.get_selected_items()[0]
-	_confirmation_dialog.popup_centered_minsize()
+	_confirmation_dialog.popup_centered()
 
 
 func _on_ConfirmationDialog_confirmed():

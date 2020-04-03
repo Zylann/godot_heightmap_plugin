@@ -221,3 +221,57 @@ static func get_shader_param_or_default(mat: Material, name: String):
 	return null
 
 
+# TODO There is no script API to access editor scale
+# Ported from https://github.com/godotengine/godot/blob/5fede4a81c67961c6fb2309b9b0ceb753d143566/editor/editor_node.cpp#L5515-L5554
+static func get_editor_dpi_scale(editor_settings: EditorSettings) -> float:
+	var display_scale = editor_settings.get("interface/editor/display_scale")
+	var custom_display_scale = editor_settings.get("interface/editor/custom_display_scale")
+	var edscale := 0.0
+
+	match display_scale:
+		0:
+			# Try applying a suitable display scale automatically
+			var screen = OS.current_screen
+			var large = OS.get_screen_dpi(screen) >= 192 and OS.get_screen_size(screen).x > 2000
+			edscale = 2.0 if large else 1.0
+		1:
+			edscale = 0.75
+		2:
+			edscale = 1.0
+		3:
+			edscale = 1.25
+		4:
+			edscale = 1.5
+		5:
+			edscale = 1.75
+		6:
+			edscale = 2.0
+		_:
+			edscale = custom_display_scale
+
+	return edscale
+
+
+# Generic way to apply editor scale to a plugin UI scene.
+# It is slower than doing it manually on specific controls.
+static func apply_dpi_scale(root: Control, dpi_scale: float):
+	if dpi_scale == 1.0:
+		return
+	var to_process := [root]
+	while len(to_process) > 0:
+		var node : Node = to_process[-1]
+		to_process.pop_back()
+		if node is Viewport:
+			continue
+		if node is Control:
+			if node.rect_min_size != Vector2(0, 0):
+				node.rect_min_size *= dpi_scale
+			var parent = node.get_parent()
+			if parent != null:
+				if not (parent is Container):
+					node.margin_bottom *= dpi_scale
+					node.margin_left *= dpi_scale
+					node.margin_top *= dpi_scale
+					node.margin_right *= dpi_scale
+		for i in node.get_child_count():
+			to_process.append(node.get_child(i))

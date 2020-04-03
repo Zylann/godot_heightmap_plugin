@@ -67,6 +67,9 @@ static func get_icon(name: String) -> Texture:
 func _enter_tree():
 	_logger.debug("HTerrain plugin Enter tree")
 	
+	var dpi_scale = Util.get_editor_dpi_scale(get_editor_interface().get_editor_settings())
+	_logger.debug(str("DPI scale: ", dpi_scale))
+	
 	add_custom_type("HTerrain", "Spatial", HTerrain, get_icon("heightmap_node"))
 	add_custom_type("HTerrainDetailLayer", "Spatial", HTerrainDetailLayer, 
 		get_icon("detail_layer_node"))
@@ -90,6 +93,7 @@ func _enter_tree():
 	base_control.add_child(_load_texture_dialog)
 	
 	_panel = EditPanel.instance()
+	Util.apply_dpi_scale(_panel, dpi_scale)
 	_panel.hide()
 	add_control_to_container(EditorPlugin.CONTAINER_SPATIAL_EDITOR_BOTTOM, _panel)
 	# Apparently _ready() still isn't called at this point...
@@ -180,9 +184,11 @@ func _enter_tree():
 	_generator_dialog.set_image_cache(_image_cache)
 	_generator_dialog.set_undo_redo(get_undo_redo())
 	base_control.add_child(_generator_dialog)
+	_generator_dialog.apply_dpi_scale(dpi_scale)
 
 	_import_dialog = ImportDialog.instance()
 	_import_dialog.connect("permanent_change_performed", self, "_on_permanent_change_performed")
+	Util.apply_dpi_scale(_import_dialog, dpi_scale)
 	base_control.add_child(_import_dialog)
 
 	_progress_window = ProgressWindow.instance()
@@ -190,10 +196,12 @@ func _enter_tree():
 	
 	_generate_mesh_dialog = GenerateMeshDialog.instance()
 	_generate_mesh_dialog.connect("generate_selected", self, "_on_GenerateMeshDialog_generate_selected")
+	Util.apply_dpi_scale(_generate_mesh_dialog, dpi_scale)
 	base_control.add_child(_generate_mesh_dialog)
 	
 	_resize_dialog = ResizeDialog.instance()
 	_resize_dialog.connect("permanent_change_performed", self, "_on_permanent_change_performed")
+	Util.apply_dpi_scale(_resize_dialog, dpi_scale)
 	base_control.add_child(_resize_dialog)
 	
 	_globalmap_baker = GlobalMapBaker.new()
@@ -202,6 +210,7 @@ func _enter_tree():
 	add_child(_globalmap_baker)
 	
 	_export_image_dialog = ExportImageDialog.instance()
+	Util.apply_dpi_scale(_export_image_dialog, dpi_scale)
 	base_control.add_child(_export_image_dialog)
 	# Need to call deferred because in the specific case where you start the editor
 	# with the plugin enabled, _ready won't be called at this point
@@ -491,10 +500,10 @@ func _menu_item_selected(id):
 	match id:
 		
 		MENU_IMPORT_MAPS:
-			_import_dialog.popup_centered_minsize()
+			_import_dialog.popup_centered()
 					
 		MENU_GENERATE:
-			_generator_dialog.popup_centered_minsize()
+			_generator_dialog.popup_centered()
 		
 		MENU_BAKE_GLOBALMAP:
 			var data = _node.get_data()
@@ -502,7 +511,7 @@ func _menu_item_selected(id):
 				_globalmap_baker.bake(_node)
 		
 		MENU_RESIZE:
-			_resize_dialog.popup_centered_minsize()
+			_resize_dialog.popup_centered()
 			
 		MENU_UPDATE_EDITOR_COLLIDER:
 			# This is for editor tools to be able to use terrain collision.
@@ -525,11 +534,11 @@ func _menu_item_selected(id):
 		
 		MENU_GENERATE_MESH:
 			if _node != null and _node.get_data() != null:
-				_generate_mesh_dialog.popup_centered_minsize()
+				_generate_mesh_dialog.popup_centered()
 		
 		MENU_EXPORT_HEIGHTMAP:
 			if _node != null and _node.get_data() != null:
-				_export_image_dialog.popup_centered_minsize()
+				_export_image_dialog.popup_centered()
 
 
 func _on_mode_selected(mode: int):
@@ -566,7 +575,7 @@ func _terrain_progress_notified(info):
 	
 	else:
 		if not _progress_window.visible:
-			_progress_window.popup_centered_minsize()
+			_progress_window.popup_centered()
 		
 		var message = ""
 		if info.has("message"):
