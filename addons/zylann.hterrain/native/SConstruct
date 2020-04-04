@@ -8,7 +8,7 @@ env = DefaultEnvironment()
 
 # Define our options
 opts.Add(EnumVariable('target', "Compilation target", 'debug', ['debug', 'release']))
-opts.Add(EnumVariable('platform', "Compilation platform", '', ['', 'windows', 'x11', 'linux', 'osx']))
+opts.Add(EnumVariable('platform', "Compilation platform", '', ['', 'windows', 'linux', 'osx']))
 opts.Add(BoolVariable('use_llvm', "Use the LLVM / Clang compiler", 'no'))
 
 # Hardcoded ones
@@ -54,8 +54,8 @@ if env['platform'] == "osx":
         env.Append(CCFLAGS = ['-g', '-O3', '-arch', 'x86_64'])
         env.Append(LINKFLAGS = ['-arch', 'x86_64'])
 
-elif env['platform'] in ('x11', 'linux'):
-    target_path += 'x11/'
+elif env['platform'] == "linux":
+    target_path += 'linux/'
     cpp_bindings_library += '.linux'
     if env['target'] == 'debug':
         env.Append(CCFLAGS = ['-fPIC', '-g3', '-Og'])
