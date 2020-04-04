@@ -38,13 +38,6 @@ static func clamp_int(x: int, a: int, b: int) -> int:
 	return x
 
 
-static func array_sum(a):
-	var s = 0
-	for x in a:
-		s += x
-	return s
-
-
 static func create_wirecube_mesh(color = Color(1,1,1)) -> Mesh:
 	var positions := PoolVector3Array([
 		Vector3(0, 0, 0),
