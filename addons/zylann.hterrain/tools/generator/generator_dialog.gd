@@ -19,7 +19,6 @@ onready var _preview = $VBoxContainer/Editor/Preview/TerrainPreview
 onready var _progress_bar = $VBoxContainer/Editor/Preview/ProgressBar
 
 var _dummy_texture = load("res://addons/zylann.hterrain/tools/icons/empty.png")
-var _noise_texture : ImageTexture
 var _terrain = null
 var _applying := false
 var _generator : TextureGenerator
@@ -42,7 +41,7 @@ func _ready():
 		"seed": {
 			"type": TYPE_INT, 
 			"randomizable": true, 
-			"range": { "min": -100000, "max": 100000 }, 
+			"range": { "min": -100, "max": 100 }, 
 			"slidable": false
 		},
 		"offset": {
@@ -60,7 +59,7 @@ func _ready():
 		"scale": {
 			"type": TYPE_REAL,
 			"range": {"min": 1.0, "max": 1000.0, "step": 1.0},
-			"default_value": 50.0
+			"default_value": 100.0
 		},
 		"roughness": {
 			"type": TYPE_REAL,
@@ -168,9 +167,6 @@ func _notification(what: int):
 				_preview.set_sea_visible(_inspector.get_value("show_sea"))
 				_preview.set_shadows_enabled(_inspector.get_value("shadows"))
 
-				if _noise_texture == null:
-					_regen_noise_perm_texture(_inspector.get_value("seed"))
-
 				_update_generator(true)
 
 			else:
@@ -189,6 +185,7 @@ func _update_generator(preview: bool):
 		scale = 0.0
 	else:
 		scale = 1.0 / scale
+	scale *= VIEWPORT_RESOLUTION
 
 	# When previewing the resolution does not span the entire terrain,
 	# so we apply a scale to some of the passes to make it cover it all.
@@ -235,14 +232,12 @@ func _update_generator(preview: bool):
 #		var offset_ndc = offset_px / padded_viewport_resolution
 
 		var progress := float(i) / len(sectors)
-
 		var p := TextureGenerator.Pass.new()
 		p.clear = true
 		p.shader = get_shader("perlin_noise")
 		# This pass generates the shapes of the terrain so will have to account for offset
 		p.tile_pos = sector
 		p.params = {
-			"u_noise_texture": _noise_texture,
 			"u_octaves": _inspector.get_value("octaves"),
 			"u_seed": _inspector.get_value("seed"),
 			"u_scale": scale * preview_scale,
@@ -291,11 +286,6 @@ func _update_generator(preview: bool):
 	_generator.run()
 
 
-func _regen_noise_perm_texture(random_seed):
-	_noise_texture = generate_perm_texture(_noise_texture, NOISE_PERM_TEXTURE_SIZE, \
-		random_seed, Texture.FLAG_FILTER | Texture.FLAG_REPEAT)
-
-
 func _on_CancelButton_pressed():
 	hide()
 
@@ -311,9 +301,6 @@ func _on_Inspector_property_changed(key, value):
 			_preview.set_sea_visible(value)
 		"shadows":
 			_preview.set_shadows_enabled(value)
-		"seed":
-			_regen_noise_perm_texture(value)
-			_update_generator(true)
 		_:
 			_update_generator(true)
 
@@ -432,24 +419,3 @@ func _on_TextureGenerator_completed():
 	emit_signal("progress_notified", { "finished": true })
 	_logger.debug("Done")
 
-
-static func generate_perm_texture(tex: ImageTexture, res: int, \
-	random_seed: int, tex_flags: int) -> ImageTexture:
-		
-	var im := Image.new()
-	im.create(res, res, false, Image.FORMAT_RF)
-
-	seed(random_seed)
-
-	im.lock()
-	for y in range(0, im.get_height()):
-		for x in range(0, im.get_width()):
-			var r = randf()
-			im.set_pixel(x, y, Color(r, r, r, 1.0))
-	im.unlock()
-
-	if tex == null:
-		tex = ImageTexture.new()
-	tex.create_from_image(im, tex_flags)
-
-	return tex
