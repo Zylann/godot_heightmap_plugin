@@ -11,10 +11,10 @@ extends Spatial
 # and they also do NOT scale with map scale. Indeed, scaling the heightmap
 # doesn't mean we want to scale grass blades (which is not a use case I know of).
 
-const HTerrainData = preload("hterrain_data.gd")
-const DirectMultiMeshInstance = preload("util/direct_multimesh_instance.gd")
-const DirectMeshInstance = preload("util/direct_mesh_instance.gd")
-const Util = preload("util/util.gd")
+const HTerrainData = preload("./hterrain_data.gd")
+const DirectMultiMeshInstance = preload("./util/direct_multimesh_instance.gd")
+const DirectMeshInstance = preload("./util/direct_mesh_instance.gd")
+const Util = preload("./util/util.gd")
 const Logger = preload("./util/logger.gd")
 
 const CHUNK_SIZE = 32

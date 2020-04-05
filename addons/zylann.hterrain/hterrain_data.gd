@@ -1,10 +1,10 @@
 tool
 extends Resource
 
-const Grid = preload("util/grid.gd")
-const Util = preload("util/util.gd")
-const Errors = preload("util/errors.gd")
-const NativeFactory = preload("native/factory.gd")
+const Grid = preload("./util/grid.gd")
+const Util = preload("./util/util.gd")
+const Errors = preload("./util/errors.gd")
+const NativeFactory = preload("./native/factory.gd")
 const Logger = preload("./util/logger.gd")
 
 # TODO Rename "CHANNEL" to "MAP", makes more sense and less confusing with RGBA channels

@@ -1,9 +1,9 @@
 tool
 
-const HTerrain = preload("hterrain.gd")
-const HTerrainData = preload("hterrain_data.gd")
-const Util = preload("util/util.gd")
-const NativeFactory = preload("native/factory.gd")
+const HTerrain = preload("./hterrain.gd")
+const HTerrainData = preload("./hterrain_data.gd")
+const Util = preload("./util/util.gd")
+const NativeFactory = preload("./native/factory.gd")
 const Logger = preload("./util/logger.gd")
 
 # TODO Rename MODE_RAISE

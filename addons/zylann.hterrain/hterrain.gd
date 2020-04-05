@@ -1,14 +1,14 @@
 tool
 extends Spatial
 
-const QuadTreeLod = preload("util/quad_tree_lod.gd")
-const Mesher = preload("hterrain_mesher.gd")
-const Grid = preload("util/grid.gd")
-const HTerrainData = preload("hterrain_data.gd")
-const HTerrainChunk = preload("hterrain_chunk.gd")
-const HTerrainChunkDebug = preload("hterrain_chunk_debug.gd")
-const Util = preload("util/util.gd")
-const HTerrainCollider = preload("hterrain_collider.gd")
+const QuadTreeLod = preload("./util/quad_tree_lod.gd")
+const Mesher = preload("./hterrain_mesher.gd")
+const Grid = preload("./util/grid.gd")
+const HTerrainData = preload("./hterrain_data.gd")
+const HTerrainChunk = preload("./hterrain_chunk.gd")
+const HTerrainChunkDebug = preload("./hterrain_chunk_debug.gd")
+const Util = preload("./util/util.gd")
+const HTerrainCollider = preload("./hterrain_collider.gd")
 const Logger = preload("./util/logger.gd")
 
 const CLASSIC4_SHADER_PATH = "res://addons/zylann.hterrain/shaders/simple4.shader"

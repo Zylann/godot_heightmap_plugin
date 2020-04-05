@@ -17,7 +17,7 @@ var _viewport : Viewport = null
 var _plane : MeshInstance = null
 var _camera : Camera = null
 var _sectors := []
-var _dummy_texture = preload("icons/empty.png")
+var _dummy_texture = preload("./icons/empty.png")
 var _shader = preload("../shaders/simple4_global.shader")
 var _sector_index := 0
 

@@ -5,8 +5,8 @@ extends "hterrain_chunk.gd"
 # https://github.com/godotengine/godot/issues/20722
 
 
-const DirectMeshInstance = preload("util/direct_mesh_instance.gd")
-const Util = preload("util/util.gd")
+const DirectMeshInstance = preload("./util/direct_mesh_instance.gd")
+const Util = preload("./util/util.gd")
 
 
 var _debug_cube = null
