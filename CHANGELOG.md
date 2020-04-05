@@ -5,6 +5,24 @@ This is a high-level changelog for each released versions of the plugin.
 For a more detailed list of past and incoming changes, see the commit history.
 
 
+1.2
+------
+
+- Added GDNative component to accelerate some parts of the plugin (Windows only, more platforms to come).
+- Platforms where GDNative doesn't run will fallback on GDScript
+- Larger brush sizes can be used on platforms where the GDNative component is supported
+- Added proper "smooth" brush, old smooth is now called "level".
+- Added EXR format to terrain exporter
+- Improved UI for high-DPI displays
+- Using the generator can be undone
+- More type hints in the codebase
+- The plugin no longer prints debug logs, unless Godot is executed in verbose mode
+- Fix terrain not hiding if its parent node is hidden
+- Fix z-fighting artifacts when the terrain is hidden and shown back
+- Fix offset brush when the 3D viewport is in half-resolution mode
+- Fix 8-bit PNG heightmap export
+
+
 1.1.1
 ------
 
