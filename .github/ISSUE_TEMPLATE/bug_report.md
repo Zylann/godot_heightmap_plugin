@@ -30,3 +30,4 @@ If applicable, add screenshots to help explain your problem.
 - Graphics card (you can find out in Godot's console log)
 - Godot version [e.g. 3.2.1]
 - Plugin version (or commit hash if you got it from Github directly)
+- Renderer used: note that GLES2 is not supported.
