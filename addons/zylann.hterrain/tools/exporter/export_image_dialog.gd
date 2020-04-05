@@ -106,12 +106,18 @@ func _export() -> bool:
 		var hscale = 1.0 / (height_max - height_min)
 		var im = Image.new()
 		im.create(heightmap.get_width(), heightmap.get_height(), false, Image.FORMAT_R8)
+		
 		im.lock()
+		heightmap.lock()
+		
 		for y in heightmap.get_height():
 			for x in heightmap.get_width():
 				var h = clamp((heightmap.get_pixel(x, y).r - height_min) * hscale, 0.0, 1.0)
 				im.set_pixel(x, y, Color(h, h, h))
+		
 		im.unlock()
+		heightmap.unlock()
+		
 		save_error = im.save_png(fpath)
 	
 	elif format == FORMAT_EXRH:
