@@ -9,10 +9,10 @@ class Base:
 		pass
 
 	func warn(msg: String):
-		push_warning("WARNING: {0}: {1}".format([_context, msg]))
+		push_warning("{0}: {1}".format([_context, msg]))
 	
 	func error(msg: String):
-		push_error("ERROR: {0}: {1}".format([_context, msg]))
+		push_error("{0}: {1}".format([_context, msg]))
 
 
 class Verbose extends Base:
