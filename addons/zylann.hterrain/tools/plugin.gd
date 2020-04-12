@@ -391,11 +391,11 @@ func forward_spatial_gui_input(p_camera, p_event):
 		
 		var origin = p_camera.project_ray_origin(screen_pos)
 		var dir = p_camera.project_ray_normal(screen_pos)
-		
+
 		var hit_pos_in_cells = [0, 0]
 		if _node.cell_raycast(origin, dir, hit_pos_in_cells):
 			_brush_decal.set_position(Vector3(hit_pos_in_cells[0], 0, hit_pos_in_cells[1]))
-						
+			
 			if _mouse_pressed:
 				if Input.is_mouse_button_pressed(BUTTON_LEFT):
 					

@@ -96,11 +96,15 @@ func _on_ImportButton_pressed():
 
 	var colormap_path = _inspector.get_value("colormap")
 	if colormap_path != "":
-		params[HTerrainData.CHANNEL_COLOR] = colormap_path
+		params[HTerrainData.CHANNEL_COLOR] = {
+			"path": colormap_path
+		}
 
 	var splatmap_path = _inspector.get_value("splatmap")
 	if splatmap_path != "":
-		params[HTerrainData.CHANNEL_SPLAT] = splatmap_path
+		params[HTerrainData.CHANNEL_SPLAT] = {
+			"path": splatmap_path
+		}
 
 	var data = _terrain.get_data()
 	data._edit_import_maps(params)
