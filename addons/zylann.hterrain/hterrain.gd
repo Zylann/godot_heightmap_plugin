@@ -89,6 +89,7 @@ var _data: HTerrainData = null
 
 var _mesher := Mesher.new()
 var _lodder := QuadTreeLod.new()
+var _viewer_pos := Vector3()
 
 # [lod][z][x] -> chunk
 # This container owns chunks
@@ -105,7 +106,6 @@ var _updated_chunks := 0
 var _logger = Logger.get_for(self)
 
 # Editor-only
-var _edit_manual_viewer_pos := Vector3()
 var _normals_baker = null
 
 
@@ -776,19 +776,37 @@ const s_rdirs = [
 	[0, -1]
 ]
 
-func _process(delta: float):
-	# Get viewer pos
-	var viewer_pos = Vector3()
-	if Engine.editor_hint:
-		# In editor, we would need to use the editor's camera, 
-		# not the `current` one defined in the scene
-		viewer_pos = _edit_manual_viewer_pos
-	else:
-		var viewport = get_viewport()
+
+func _edit_update_viewer_position(camera: Camera):
+	_update_viewer_position(camera)
+
+
+func _update_viewer_position(camera: Camera):
+	if camera == null:
+		var viewport := get_viewport()
 		if viewport != null:
-			var camera = viewport.get_camera()
-			if camera != null:
-				viewer_pos = camera.get_global_transform().origin
+			camera = viewport.get_camera()
+	if camera == null:
+		return
+	if camera.projection == Camera.PROJECTION_ORTHOGONAL:
+		# In this mode, due to the fact Godot does not allow negative near plane,
+		# users have to pull the camera node very far away, but it confuses LOD
+		# into very low detail, while the seen area remains the same.
+		# So we need to base LOD on a different metric.
+		var hit := [0, 0, Vector3()]
+		var cam_pos := camera.global_transform.origin
+		var cam_dir := -camera.global_transform.basis.z
+		if cell_raycast(cam_pos, cam_dir, hit):
+			_viewer_pos = hit[2]
+	else:
+		_viewer_pos = camera.global_transform.origin
+
+
+func _process(delta: float):
+	if not Engine.is_editor_hint():
+		# In editor, the camera is only accessible from an editor plugin
+		_update_viewer_position(null)
+	var viewer_pos := _viewer_pos
 
 	if has_data():
 		if _data.is_locked():
@@ -1013,7 +1031,7 @@ func _local_pos_to_cell(local_pos: Vector3) -> Array:
 
 static func _get_height_or_default(im: Image, pos_x: int, pos_y: int):
 	if pos_x < 0 or pos_y < 0 or pos_x >= im.get_width() or pos_y >= im.get_height():
-		return 0
+		return 0.0
 	return im.get_pixel(pos_x, pos_y).r
 
 
@@ -1075,6 +1093,8 @@ func cell_raycast(origin_world: Vector3, dir_world: Vector3, out_cell_pos: Array
 			cpos = _local_pos_to_cell(pos - dir * unit)
 			out_cell_pos[0] = cpos[0]
 			out_cell_pos[1] = cpos[1]
+			if len(out_cell_pos) == 3:
+				out_cell_pos[2] = pos
 			heights.unlock()
 			return true
 
@@ -1167,10 +1187,6 @@ static func get_ground_texture_slot_count_for_shader(shader_type: String, logger
 
 func get_ground_texture_slot_count() -> int:
 	return get_ground_texture_slot_count_for_shader(_shader_type, _logger)
-
-
-func _edit_set_manual_viewer_pos(pos: Vector3):
-	_edit_manual_viewer_pos = pos
 
 
 func _edit_debug_draw(ci):

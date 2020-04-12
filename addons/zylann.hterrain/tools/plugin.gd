@@ -354,11 +354,11 @@ func make_visible(visible):
 		edit(null)
 
 
-func forward_spatial_gui_input(p_camera, p_event):
+func forward_spatial_gui_input(p_camera: Camera, p_event: InputEvent) -> bool:
 	if _node == null || _node.get_data() == null:
 		return false
 	
-	_node._edit_set_manual_viewer_pos(p_camera.global_transform.origin)
+	_node._edit_update_viewer_position(p_camera)
 	
 	var captured_event = false
 	
