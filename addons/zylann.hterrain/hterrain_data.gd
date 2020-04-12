@@ -638,6 +638,7 @@ func get_texture(channel: int, index := 0) -> Texture:
 
 func get_aabb() -> AABB:
 	# TODO Why subtract 1? I forgot
+	# TODO Optimize for full region, this is actually quite costy
 	return get_region_aabb(0, 0, _resolution - 1, _resolution - 1)
 
 

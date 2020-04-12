@@ -1018,11 +1018,11 @@ static func _get_height_or_default(im: Image, pos_x: int, pos_y: int):
 
 
 # Performs a raycast to the terrain without using the collision engine.
-# This is mostly useful in the editor, where the collider isn't running.
+# This is mostly useful in the editor, where the collider can't be updated in realtime.
 # It may be slow on very large distance, but should be enough for editing purpose.
 # out_cell_pos is the returned hit position and must be specified as an array of 2 integers.
 # Returns false if there is no hit.
-func cell_raycast(origin_world: Vector3, dir_world: Vector3, out_cell_pos: Array):
+func cell_raycast(origin_world: Vector3, dir_world: Vector3, out_cell_pos: Array) -> bool:
 	assert(typeof(origin_world) == TYPE_VECTOR3)
 	assert(typeof(dir_world) == TYPE_VECTOR3)
 	assert(typeof(out_cell_pos) == TYPE_ARRAY)
@@ -1034,25 +1034,40 @@ func cell_raycast(origin_world: Vector3, dir_world: Vector3, out_cell_pos: Array
 	if heights == null:
 		return false
 
-	var to_local = get_internal_transform().affine_inverse()
+	# Transform to local (takes map scale into account)
+	var to_local := get_internal_transform().affine_inverse()
 	var origin = to_local.xform(origin_world)
 	var dir = to_local.basis.xform(dir_world)
+	var max_distance := 1000.0
+
+	# Raycast to the terrain's AABB first
+	var aabb := _data.get_aabb()
+	if not aabb.has_point(origin):
+		var destination = origin + dir * 10000.0
+		var hits := Util.get_aabb_intersection_with_segment(aabb, origin, destination)
+		if len(hits) == 0:
+			return false
+		# Bump origin to start at the hit point
+		origin = hits[0]
+		if len(hits) == 2:
+			var distance_through_aabb = hits[0].distance_to(hits[1])
+			if max_distance > distance_through_aabb:
+				max_distance = distance_through_aabb
 
 	heights.lock()
 
-	var cpos = _local_pos_to_cell(origin)
+	var cpos := _local_pos_to_cell(origin)
 	if origin.y < _get_height_or_default(heights, cpos[0], cpos[1]):
 		heights.unlock()
 		# Below
 		return false
 
-	var unit = 1.0
-	var d = 0.0
-	var max_distance = 800.0
+	var unit := 1.0
+	var d := 0.0
 	var pos = origin
 
 	# Slow, but enough for edition
-	# TODO Could be optimized with a form of binary search
+	# TODO Could be optimized using vertical bounds AABBs
 	while d < max_distance:
 		pos += dir * unit
 		cpos = _local_pos_to_cell(pos)

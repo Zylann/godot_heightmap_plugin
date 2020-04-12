@@ -1,5 +1,6 @@
 tool
 
+# Godot has this internally but doesn't expose it
 static func next_power_of_two(x: int) -> int:
 	x -= 1
 	x |= x >> 1
@@ -11,10 +12,12 @@ static func next_power_of_two(x: int) -> int:
 	return x
 
 
+# Godot doesn't expose Vector2i, and Vector2 has float limitations
 static func encode_v2i(x: int, y: int):
 	return (x & 0xffff) | ((y << 16) & 0xffff0000)  
 
 
+# Godot doesn't expose Vector2i, and Vector2 has float limitations
 static func decode_v2i(k: int) -> Array:
 	return [
 		k & 0xffff,
@@ -22,14 +25,17 @@ static func decode_v2i(k: int) -> Array:
 	]
 
 
+# `min` turns numbers into float
 static func min_int(a: int, b: int) -> int:
 	return a if a < b else b
 
 
+# `max` turns numbers into float
 static func max_int(a: int, b: int) -> int:
 	return a if a > b else b
 
 
+# `clamp` turns numbers into float
 static func clamp_int(x: int, a: int, b: int) -> int:
 	if x < a:
 		return a
@@ -38,6 +44,7 @@ static func clamp_int(x: int, a: int, b: int) -> int:
 	return x
 
 
+# CubeMesh doesn't have a wireframe option
 static func create_wirecube_mesh(color = Color(1,1,1)) -> Mesh:
 	var positions := PoolVector3Array([
 		Vector3(0, 0, 0),
@@ -88,6 +95,7 @@ static func integer_square_root(x: int) -> int:
 	return -1
 
 
+# Formats integer using a separater between each 3-digit group
 static func format_integer(n: int, sep := ",") -> String:
 	assert(typeof(n) == TYPE_INT)
 	
@@ -107,6 +115,7 @@ static func format_integer(n: int, sep := ",") -> String:
 		return str(str(n), s)
 
 
+# Goes up all parents until a node of the given class is found
 static func get_node_in_parents(node: Node, klass) -> Node:
 	while node != null:
 		node = node.get_parent()
@@ -115,6 +124,7 @@ static func get_node_in_parents(node: Node, klass) -> Node:
 	return null
 
 
+# Goes down all children until a node of the given class is found
 static func find_first_node(node: Node, klass) -> Node:
 	if node is klass:
 		return node
@@ -214,6 +224,7 @@ static func get_shader_param_or_default(mat: Material, name: String):
 	return null
 
 
+# TODO `util.gd` is used even in exported games, but what about this method??
 # TODO There is no script API to access editor scale
 # Ported from https://github.com/godotengine/godot/blob/5fede4a81c67961c6fb2309b9b0ceb753d143566/editor/editor_node.cpp#L5515-L5554
 static func get_editor_dpi_scale(editor_settings: EditorSettings) -> float:
@@ -268,3 +279,67 @@ static func apply_dpi_scale(root: Control, dpi_scale: float):
 					node.margin_right *= dpi_scale
 		for i in node.get_child_count():
 			to_process.append(node.get_child(i))
+
+
+# TODO AABB has `intersects_segment` but doesn't provide the hit point
+# So we have to rely on a less efficient method.
+# Returns a list of intersections between an AABB and a segment, sorted
+# by distance to the beginning of the segment.
+static func get_aabb_intersection_with_segment(aabb: AABB, 
+	segment_begin: Vector3, segment_end: Vector3) -> Array:
+
+	var hits := []
+	
+	if not aabb.intersects_segment(segment_begin, segment_end):
+		return hits
+	
+	var hit
+	
+	var x_rect = Rect2(aabb.position.y, aabb.position.z, aabb.size.y, aabb.size.z)
+	
+	hit = Plane(Vector3(1, 0, 0), aabb.position.x) \
+		.intersects_segment(segment_begin, segment_end)
+	if hit != null and x_rect.has_point(Vector2(hit.y, hit.z)):
+		hits.append(hit)
+	
+	hit = Plane(Vector3(1, 0, 0), aabb.end.x) \
+		.intersects_segment(segment_begin, segment_end)
+	if hit != null and x_rect.has_point(Vector2(hit.y, hit.z)):
+		hits.append(hit)
+
+	var y_rect = Rect2(aabb.position.x, aabb.position.z, aabb.size.x, aabb.size.z)
+
+	hit = Plane(Vector3(0, 1, 0), aabb.position.y) \
+		.intersects_segment(segment_begin, segment_end)
+	if hit != null and y_rect.has_point(Vector2(hit.x, hit.z)):
+		hits.append(hit)
+	
+	hit = Plane(Vector3(0, 1, 0), aabb.end.y) \
+		.intersects_segment(segment_begin, segment_end)
+	if hit != null and y_rect.has_point(Vector2(hit.x, hit.z)):
+		hits.append(hit)
+
+	var z_rect = Rect2(aabb.position.x, aabb.position.y, aabb.size.x, aabb.size.y)
+
+	hit = Plane(Vector3(0, 0, 1), aabb.position.z) \
+		.intersects_segment(segment_begin, segment_end)
+	if hit != null and z_rect.has_point(Vector2(hit.x, hit.y)):
+		hits.append(hit)
+	
+	hit = Plane(Vector3(0, 0, 1), aabb.end.z) \
+		.intersects_segment(segment_begin, segment_end)
+	if hit != null and z_rect.has_point(Vector2(hit.x, hit.y)):
+		hits.append(hit)
+	
+	if len(hits) == 2:
+		# The segment has two hit points. Sort them by distance
+		var d0 = hits[0].distance_squared_to(segment_begin)
+		var d1 = hits[1].distance_squared_to(segment_begin)
+		if d0 > d1:
+			var temp = hits[0]
+			hits[0] = hits[1]
+			hits[1] = temp
+	else:
+		assert(len(hits) < 2)
+	
+	return hits
