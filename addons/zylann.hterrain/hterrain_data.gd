@@ -30,6 +30,7 @@ const _channel_formats = [
 	Image.FORMAT_RGB8, # normal
 	Image.FORMAT_RGBA8, # splat
 	Image.FORMAT_RGBA8, # color
+	# L8 is used instead of R8 because Godot can't save or load the latter to PNG
 	Image.FORMAT_L8, # detail
 	Image.FORMAT_RGB8 # global_albedo
 ]

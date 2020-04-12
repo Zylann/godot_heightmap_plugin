@@ -377,8 +377,11 @@ func _paint_detail(data: HTerrainData, origin_x: int, origin_y: int):
 	var im := data.get_image(HTerrainData.CHANNEL_DETAIL, _detail_index)
 	assert(im != null)
 	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
-	_image_utils.lerp_channel_brush(
-		im, _shape, Vector2(origin_x, origin_y), _opacity, _detail_density, 0)
+	var col := Color(_detail_density, _detail_density, _detail_density)
+	# Need to use RGB because detail layers use the L8 format.
+	# If we used only R, get_pixel() still converts RGB into V (which is max(R, G, B))
+	_image_utils.lerp_color_brush(
+		im, _shape, Vector2(origin_x, origin_y), _opacity, col, 0)
 
 
 func _paint_mask(data: HTerrainData, origin_x: int, origin_y: int):
