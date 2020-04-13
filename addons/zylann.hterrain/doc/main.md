@@ -7,7 +7,6 @@ HTerrain plugin documentation
     - [Creating a terrain](#creating-a-terrain)
         - [Creating a HTerrain node](#creating-a-hterrain-node)
         - [Terrain dimensions](#terrain-dimensions)
-        - [Creating the terrain from script](#creating-the-terrain-from-script)
     - [Basic sculpting](#basic-sculpting)
         - [Using the brush](#using-the-brush)
         - [Normals](#normals)
@@ -24,19 +23,22 @@ HTerrain plugin documentation
         - [Erosion](#erosion)
         - [Applying](#applying)
     - [Import an existing terrain](#import-an-existing-terrain)
+        - [Import dialog](#import-dialog)
+        - [4-channel splatmaps caveat](#4-channel-splatmaps-caveat)
     - [Detail layers](#detail-layers)
     - [Global map](#global-map)
     - [Level of detail](#level-of-detail)
     - [Custom shaders](#custom-shaders)
         - [Ground shaders](#ground-shaders)
         - [Grass shaders](#grass-shaders)
-    - [Procedural generation from a script](#procedural-generation-from-a-script)
+    - [Scripting](#scripting)
+        - [Creating the terrain from script](#creating-the-terrain-from-script)
+        - [Procedural generation](#procedural-generation)
     - [Troubleshooting](#troubleshooting)
         - [Before reporting any bug](#before-reporting-any-bug)
         - [If you report a new bug](#if-you-report-a-new-bug)
         - [Terrain not saving / not up to date / not showing](#terrain-not-saving-/-not-up-to-date-/-not-showing)
 <!-- /TOC -->
-
 
 
 Overview
@@ -80,28 +82,7 @@ If you use the `resize` tool, you can also choose to either stretch the existing
 
 Note: the resolution of the terrain is limited to powers of two + 1, mainly because of the way LOD was implemented. The reason why there is an extra 1 is down to the fact that to make 1 quad, you need 2x2 vertices. If you need LOD, you must have an even number of quads that you can divide by 2, and so on. However there is a possibility to tweak that in the future because this might not play well with the way older graphics cards store textures.
 
-### Creating the terrain from script
-
-You can also decide to create the terrain from a script. Here is an example:
-
-```gdscript
-extends Node
-
-const HTerrain = preload("res://addons/zylann.hterrain/hterrain.gd")
-const HTerrainData = preload("res://addons/zylann.hterrain/hterrain_data.gd")
-
-
-func _ready():
-
-	var data = HTerrainData.new()
-	data.resize(513)
-	
-	var terrain = HTerrain.new()
-	terrain.set_data(data)
-	add_child(terrain)
-```
-
-It is also possible to generate the whole map by script, see [Procedural generation from a script](#procedural-generation-from-a-script).
+Note 2: it is also possible to create a terrain by script, see [Scripting](#scripting).
 
 
 Basic sculpting
@@ -255,6 +236,8 @@ Import an existing terrain
 
 Besides using built-in tools to make your landscape, it can be convenient to import an existing one, which you might have made in specialized software such as WorldMachine, Scape or Lithosphere.
 
+### Import dialog
+
 To do this, select the `HTerrain` node, click on the `Terrain` menu and chose `Import`.
 This window allows you to import several kinds of data, such as heightmap but also splatmap or color map.
 
@@ -269,6 +252,17 @@ There are a few things to check before you can successfully import a terrain tho
 This feature also can't be undone when executed, as all terrain data will be overwritten with the new one. If anything isn't correct, the tool will warn you before to prevent data loss.
 
 It is possible that the height range you specify doesn't works out that well after you see the result, so for now it is possible to just re-open the importer window, change the height scale and apply again.
+
+
+### 4-channel splatmaps caveat
+
+Importing a 4-channel splatmap requires an RGBA image, where each channel will be used to represent the weight of a texture. However, if you are creating a splatmap by going through an image editor, *you must make sure the color data is preserved*.
+
+Most image editors assume you create images to be seen. When you save a PNG, they assume fully-transparent areas don't need to store any color data, because they are invisible. The RGB channels are then compressed away, which can cause blocky artifacts when imported as a splatmap.
+
+To deal with this, make sure your editor has an option to turn this off. In Gimp, for example, this option is here:
+
+![Screenshot of the importer](images/gimp_png_preserve_colors.png)
 
 
 Detail layers
@@ -359,11 +353,36 @@ And there also have specific parameters which you can use:
 - `u_ambient_wind`: combined `vec2` parameter for ambient wind. `x` is the amplitude, and `y` is a time value. It is better to use it instead of directly `TIME` because it allows to animate speed without causing stutters.
 
 
-Procedural generation from a script
--------------------------------------
+Scripting
+--------------
 
-It is possible to create the terrain entirely from script. It may be quite slow if you don't take advantage of GPU techniques (such as using a compute viewport), but it's still useful to copy results to the terrain or editing it like the plugin does in the editor.
+### Creating the terrain from script
 
+You can decide to create the terrain from a script. Here is an example:
+
+```gdscript
+extends Node
+
+const HTerrain = preload("res://addons/zylann.hterrain/hterrain.gd")
+const HTerrainData = preload("res://addons/zylann.hterrain/hterrain_data.gd")
+
+
+func _ready():
+
+    var data = HTerrainData.new()
+    data.resize(513)
+    
+    var terrain = HTerrain.new()
+    terrain.set_data(data)
+    add_child(terrain)
+```
+
+
+### Procedural generation
+
+It is possible to generate the terrain data entirely from script. It may be quite slow if you don't take advantage of GPU techniques (such as using a compute viewport), but it's still useful to copy results to the terrain or editing it like the plugin does in the editor.
+
+It all boils down to generating images, using the `Image` resource.
 Here is a full GDScript example generating a terrain from noise and 3 textures:
 
 ```gdscript
