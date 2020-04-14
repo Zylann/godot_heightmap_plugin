@@ -381,7 +381,7 @@ func _paint_detail(data: HTerrainData, origin_x: int, origin_y: int):
 	# Need to use RGB because detail layers use the L8 format.
 	# If we used only R, get_pixel() still converts RGB into V (which is max(R, G, B))
 	_image_utils.lerp_color_brush(
-		im, _shape, Vector2(origin_x, origin_y), _opacity, col, 0)
+		im, _shape, Vector2(origin_x, origin_y), _opacity, col)
 
 
 func _paint_mask(data: HTerrainData, origin_x: int, origin_y: int):
