@@ -34,11 +34,11 @@ const _API_SHADER_PARAMS = {
 	"u_ambient_wind": true
 }
 
-export(int) var layer_index = 0 setget set_layer_index, get_layer_index
-export(Texture) var texture setget set_texture, get_texture;
-export(float) var view_distance = 100.0 setget set_view_distance, get_view_distance
-export(Shader) var custom_shader setget set_custom_shader, get_custom_shader
-export(float, 0, 10) var density = 4 setget set_density, get_density
+export(int) var layer_index := 0 setget set_layer_index, get_layer_index
+export(Texture) var texture : Texture setget set_texture, get_texture
+export(float) var view_distance := 100.0 setget set_view_distance, get_view_distance
+export(Shader) var custom_shader : Shader setget set_custom_shader, get_custom_shader
+export(float, 0, 10) var density := 4.0 setget set_density, get_density
 
 var _material: ShaderMaterial = null
 var _default_shader: Shader = null
@@ -52,7 +52,7 @@ var _ambient_wind_time := 0.0
 var _first_enter_tree := true
 var _debug_wirecube_mesh: Mesh = null
 var _debug_cubes := []
-var _logger = Logger.get_for(self)
+var _logger := Logger.get_for(self)
 
 
 func _init():
@@ -97,11 +97,11 @@ func _edit_auto_pick_index():
 	if terrain_data == null or terrain_data.is_locked():
 		return
 
-	var auto_index = layer_index
+	var auto_index := layer_index
 	var others = terrain.get_detail_layers()
 
 	if len(others) > 0:
-		var used_layers = []
+		var used_layers := []
 		for other in others:
 			used_layers.append(other.layer_index)
 		used_layers.sort()
@@ -121,7 +121,8 @@ func _edit_auto_pick_index():
 
 
 func _get_property_list():
-	var props = []
+	# Dynamic properties coming from the shader
+	var props := []
 	if _material != null:
 		var shader_params = VisualServer.shader_get_param_list(_material.shader.get_rid())
 		for p in shader_params:
@@ -216,9 +217,12 @@ func set_density(v: float):
 	if v == density:
 		return
 	density = v
-	# TODO Remove iteration of all chunks when Godot bug gets fixed
+	# If available, we modify the existing multimesh instead of replacing it.
+	# DirectMultiMeshInstance does not keep a strong reference to them,
+	# so replacing would break pooled instances.
+	_multimesh = _generate_multimesh(CHUNK_SIZE, density, _multimesh)
+	# Crash workaround for Godot 3.1
 	# See https://github.com/godotengine/godot/issues/32500
-	_multimesh = _generate_multimesh(CHUNK_SIZE, density, null)
 	for k in _chunks:
 		var mmi = _chunks[k]
 		mmi.set_multimesh(_multimesh)
@@ -268,7 +272,7 @@ func _on_terrain_transform_changed(gt: Transform):
 		_logger.error("Detail layer is not child of a terrain!")
 		return
 
-	# Update AABBs
+	# Update AABBs, because scale might have changed
 	for k in _chunks:
 		var mmi = _chunks[k]
 		var aabb = _get_chunk_aabb(terrain, Vector3(k.x * CHUNK_SIZE, 0, k.y * CHUNK_SIZE))
@@ -359,11 +363,14 @@ func process(delta: float, viewer_pos: Vector3):
 func _get_chunk_aabb(terrain, lpos: Vector3):
 	var terrain_scale = terrain.map_scale
 	var terrain_data = terrain.get_data()
-	var origin_cells_x = int(lpos.x / terrain_scale.x)
-	var origin_cells_z = int(lpos.z / terrain_scale.z)
-	var size_cells_x = int(CHUNK_SIZE / terrain_scale.x)
-	var size_cells_z = int(CHUNK_SIZE / terrain_scale.z)
-	var aabb = terrain_data.get_region_aabb(origin_cells_x, origin_cells_z, size_cells_x, size_cells_z)
+	var origin_cells_x := int(lpos.x / terrain_scale.x)
+	var origin_cells_z := int(lpos.z / terrain_scale.z)
+	var size_cells_x := int(CHUNK_SIZE / terrain_scale.x)
+	var size_cells_z := int(CHUNK_SIZE / terrain_scale.z)
+	
+	var aabb = terrain_data.get_region_aabb(
+		origin_cells_x, origin_cells_z, size_cells_x, size_cells_z)
+		
 	aabb.position = Vector3(lpos.x, lpos.y + aabb.position.y * terrain_scale.y, lpos.z)
 	aabb.size = Vector3(CHUNK_SIZE, aabb.size.y * terrain_scale.y, CHUNK_SIZE)
 	return aabb
@@ -495,7 +502,7 @@ func _add_debug_cube(terrain, aabb: AABB):
 	_debug_cubes.append(debug_cube)
 
 
-static func create_quad() -> Mesh:
+static func _create_quad() -> Mesh:
 	# Vertical quad with the origin at the bottom edge
 	var positions = PoolVector3Array([
 		Vector3(-0.5, 0, 0),
@@ -537,8 +544,10 @@ static func create_quad() -> Mesh:
 	return mesh
 
 
-static func _generate_multimesh(resolution: int, density: float, existing_multimesh: MultiMesh) -> MultiMesh:
-	var mesh = create_quad()
+static func _generate_multimesh(resolution: int, density: float, 
+	existing_multimesh: MultiMesh) -> MultiMesh:
+		
+	var mesh = _create_quad()
 
 	var position_randomness = 0.5
 	var scale_randomness = 0.0
@@ -571,14 +580,16 @@ static func _generate_multimesh(resolution: int, density: float, existing_multim
 				pos.z += rand_range(-position_randomness, position_randomness)
 
 				mm.set_instance_color(i, Color(1, 1, 1))
-				mm.set_instance_transform(i, Transform(_get_random_instance_basis(scale_randomness), pos))
+				mm.set_instance_transform(i, \
+					Transform(_get_random_instance_basis(scale_randomness), pos))
 				i += 1
 	
 	# Second pass adds the rest
 	for j in random_instance_count:
 		var pos = Vector3(rand_range(0, resolution), 0, rand_range(0, resolution))
 		mm.set_instance_color(i, Color(1, 1, 1))
-		mm.set_instance_transform(i, Transform(_get_random_instance_basis(scale_randomness), pos))
+		mm.set_instance_transform(i, \
+			Transform(_get_random_instance_basis(scale_randomness), pos))
 		i += 1
 
 	return mm
