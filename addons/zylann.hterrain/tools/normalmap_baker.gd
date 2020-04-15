@@ -20,6 +20,7 @@ var _terrain_data = null
 
 
 func _init():
+	assert(VIEWPORT_SIZE <= HTerrainData.MIN_RESOLUTION)
 	_viewport = Viewport.new()
 	_viewport.size = Vector2(VIEWPORT_SIZE + 2, VIEWPORT_SIZE + 2)
 	_viewport.render_target_update_mode = Viewport.UPDATE_DISABLED

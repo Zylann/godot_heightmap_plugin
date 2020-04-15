@@ -39,9 +39,6 @@ func set_callbacks(make_cb: FuncRef, recycle_cb: FuncRef, vbounds_cb: FuncRef):
 
 func clear():
 	_join_all_recursively(_tree, _max_depth)
-	
-	_tree.clear_children()
-	
 	_max_depth = 0
 	_base_size = 0
 
@@ -87,6 +84,11 @@ func get_split_scale() -> float:
 
 func update(view_pos: Vector3):
 	_update(_tree, _max_depth, view_pos)
+	
+	# This makes sure we keep seeing the lowest LOD,
+	# if the tree is cleared while we are far away
+	if not _tree.has_children() and _tree.data == null:
+		_tree.data = _make_chunk(_max_depth, 0, 0)
 
 
 # TODO Should be renamed get_lod_factor

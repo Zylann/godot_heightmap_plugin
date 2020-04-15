@@ -57,20 +57,20 @@ signal output_generated(image, metadata)
 # Emitted when all passes are complete
 signal completed
 
-var _passes = []
-var _resolution = Vector2(512, 512)
-var _output_padding = [0, 0, 0, 0]
-var _viewport = null
-var _ci = null
+var _passes := []
+var _resolution := Vector2(512, 512)
+var _output_padding := [0, 0, 0, 0]
+var _viewport : Viewport = null
+var _ci : TextureRect = null
 var _dummy_texture = load("res://addons/zylann.hterrain/tools/icons/empty.png")
-var _running = false
-var _rerun = false
+var _running := false
+var _rerun := false
 #var _tiles = PoolVector2Array([Vector2()])
 
-var _running_passes = []
-var _running_pass_index = 0
-var _running_iteration = 0
-var _shader_material = null
+var _running_passes := []
+var _running_pass_index := 0
+var _running_iteration := 0
+var _shader_material : ShaderMaterial = null
 #var _uv_offset = 0 # Offset de to padding
 
 
@@ -95,7 +95,7 @@ func _ready():
 	set_process(false)
 
 
-func is_running():
+func is_running() -> bool:
 	return _running
 
 
@@ -103,7 +103,7 @@ func clear_passes():
 	_passes.clear()
 
 
-func add_pass(p):
+func add_pass(p: Pass):
 	assert(_passes.find(p) == -1)
 	assert(p.iterations > 0)
 	_passes.append(p)
@@ -120,7 +120,7 @@ func add_output(meta):
 # In tiled rendering, this is the resolution of one tile.
 # The internal viewport may be larger if some passes need more room,
 # and the resulting images might include some of these pixels if output padding is used.
-func set_resolution(res):
+func set_resolution(res: Vector2):
 	assert(not _running)
 	_resolution = res
 
@@ -128,7 +128,7 @@ func set_resolution(res):
 # Tell image outputs to include extra pixels on the edges.
 # This extends the resolution of images compared to the base resolution.
 # The initial use case for this is to generate terrain tiles where edge pixels are shared with the neighor tiles.
-func set_output_padding(p):
+func set_output_padding(p: Array):
 	assert(typeof(p) == TYPE_ARRAY)
 	assert(len(p) == 4)
 	for v in p:
@@ -147,21 +147,21 @@ func run():
 	assert(_ci != null)
 	
 	# Copy passes
-	var passes = []
+	var passes := []
 	passes.resize(len(_passes))
 	for i in len(_passes):
 		passes[i] = _passes[i].duplicate()
 	_running_passes = passes
 
 	# Pad pixels according to largest padding
-	var largest_padding = 0
+	var largest_padding := 0
 	for p in passes:
 		if p.padding > largest_padding:
 			largest_padding = p.padding
 	for v in _output_padding:
 		if v > largest_padding:
 			largest_padding = v
-	var padded_size = _resolution + 2 * Vector2(largest_padding, largest_padding)
+	var padded_size := _resolution + 2 * Vector2(largest_padding, largest_padding)
 	
 #	_uv_offset = Vector2( \
 #		float(largest_padding) / padded_size.x,
@@ -179,7 +179,7 @@ func run():
 	set_process(true)
 
 
-func _process(delta):
+func _process(delta: float):
 	# TODO because of https://github.com/godotengine/godot/issues/7894
 	if not is_processing():
 		return
@@ -222,7 +222,7 @@ func _process(delta):
 	# The viewport should render after the tree was processed
 
 
-func _setup_pass(p):
+func _setup_pass(p: Pass):
 	if p.texture != null:
 		_ci.texture = p.texture
 	else:
@@ -261,11 +261,11 @@ func _setup_pass(p):
 
 
 func _create_output_image(metadata):
-	var tex = _viewport.get_texture()
-	var src = tex.get_data()
+	var tex := _viewport.get_texture()
+	var src := tex.get_data()
 	
 	# Pick the center of the image
-	var subrect = Rect2( \
+	var subrect := Rect2( \
 		(src.get_width() - _resolution.x) / 2, \
 		(src.get_height() - _resolution.y) / 2, \
 		_resolution.x, _resolution.y)
@@ -296,7 +296,7 @@ func _create_output_image(metadata):
 	emit_signal("output_generated", dst, metadata)
 
 
-func _report_progress(passes, pass_index, iteration):
+func _report_progress(passes: Array, pass_index: int, iteration: int):
 	var p = passes[pass_index]
 	emit_signal("progress_reported", {
 		"name": p.debug_name,

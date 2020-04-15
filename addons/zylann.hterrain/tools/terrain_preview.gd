@@ -21,6 +21,7 @@ var _distance := 0.0
 var _default_distance := 0.0
 var _sea_outline : MeshInstance = null
 var _sea_plane : MeshInstance = null
+var _mesh_resolution := 0
 
 
 func _ready():
@@ -49,22 +50,26 @@ func _ready():
 
 
 func setup(heights_texture: Texture, normals_texture: Texture):
-	var mat = null
-	if _mesh_instance.mesh == null or not (_mesh_instance.mesh is ArrayMesh):
-		var terrain_size = heights_texture.get_width()
-		var mesh_resolution = terrain_size / PREVIEW_MESH_LOD
+	var terrain_size = heights_texture.get_width()
+	var mesh_resolution = terrain_size / PREVIEW_MESH_LOD
+	
+	if _mesh_resolution != mesh_resolution or not (_mesh_instance.mesh is ArrayMesh):
+		_mesh_resolution = mesh_resolution
 		var mesh = HTerrainMesher.make_flat_chunk(
-			mesh_resolution, mesh_resolution, PREVIEW_MESH_LOD, 0)
-		mat = ShaderMaterial.new()
-		mat.shader = _shader
-		mesh.surface_set_material(0, mat)
+			_mesh_resolution, _mesh_resolution, PREVIEW_MESH_LOD, 0)
 		_mesh_instance.mesh = mesh
 		_default_distance = _mesh_instance.get_aabb().size.x
 		_distance = _default_distance
 		#_mesh_instance.translation -= 0.5 * Vector3(terrain_size, 0, terrain_size)
 		_update_camera()
-	else:
-		mat = _mesh_instance.mesh.surface_get_material(0)
+
+	var mat = _mesh_instance.mesh.surface_get_material(0)
+	
+	if mat == null:
+		mat = ShaderMaterial.new()
+		mat.shader = _shader
+		_mesh_instance.mesh.surface_set_material(0, mat)
+			
 	mat.set_shader_param("u_terrain_heightmap", heights_texture)
 	mat.set_shader_param("u_terrain_normalmap", normals_texture)
 	mat.set_shader_param("u_terrain_inverse_transform", Transform())

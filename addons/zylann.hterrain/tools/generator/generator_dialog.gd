@@ -7,9 +7,9 @@ const Util = preload("../../util/util.gd")
 const TextureGenerator = preload("texture_generator.gd")
 const Logger = preload("../../util/logger.gd")
 
-# TODO Cap this resolution to terrain size, in case it is smaller (bigger uses chunking)
-const VIEWPORT_RESOLUTION = 512
-const NOISE_PERM_TEXTURE_SIZE = 256
+# TODO Power of two is assumed here.
+# I wonder why it doesn't have the off by one terrain textures usually have
+const MAX_VIEWPORT_RESOLUTION = 512
 
 signal progress_notified(info) # { "progress": real, "message": string, "finished": bool }
 
@@ -28,6 +28,7 @@ var _undo_map_ids := {}
 var _image_cache = null
 var _undo_redo : UndoRedo
 var _logger := Logger.get_for(self)
+var _viewport_resolution := MAX_VIEWPORT_RESOLUTION
 
 
 static func get_shader(shader_name: String) -> Shader:
@@ -49,7 +50,8 @@ func _ready():
 		},
 		"base_height": { 
 			"type": TYPE_REAL,
-			"range": {"min": -500.0, "max": 500.0, "step": 0.1 }
+			"range": {"min": -500.0, "max": 500.0, "step": 0.1 },
+			"default_value": -50.0
 		},
 		"height_range": {
 			"type": TYPE_REAL,
@@ -115,7 +117,7 @@ func _ready():
 	})
 
 	_generator = TextureGenerator.new()
-	_generator.set_resolution(Vector2(VIEWPORT_RESOLUTION, VIEWPORT_RESOLUTION))
+	_generator.set_resolution(Vector2(_viewport_resolution, _viewport_resolution))
 	# Setup the extra pixels we want on max edges for terrain
 	# TODO I wonder if it's not better to let the generator shaders work in pixels
 	# instead of NDC, rather than putting a padding system there
@@ -141,6 +143,25 @@ func apply_dpi_scale(dpi_scale: float):
 
 func set_terrain(terrain):
 	_terrain = terrain
+	_adjust_viewport_resolution()
+
+
+func _adjust_viewport_resolution():
+	if _terrain == null:
+		return
+	var data = _terrain.get_data()
+	if data == null:
+		return
+	var terrain_resolution = data.get_resolution()
+	
+	# By default we want to work with a large enough viewport to generate tiles,
+	# but we should pick a smaller size if the terrain is smaller than that...
+	var vp_res := MAX_VIEWPORT_RESOLUTION
+	while vp_res > terrain_resolution:
+		vp_res /= 2
+	
+	_generator.set_resolution(Vector2(vp_res, vp_res))
+	_viewport_resolution = vp_res
 
 
 func set_image_cache(image_cache):
@@ -163,6 +184,8 @@ func _notification(what: int):
 				if _dialog_visible:
 					return
 				_dialog_visible = true
+				
+				_adjust_viewport_resolution()
 
 				_preview.set_sea_visible(_inspector.get_value("show_sea"))
 				_preview.set_shadows_enabled(_inspector.get_value("shadows"))
@@ -185,14 +208,9 @@ func _update_generator(preview: bool):
 		scale = 0.0
 	else:
 		scale = 1.0 / scale
-	scale *= VIEWPORT_RESOLUTION
+	scale *= _viewport_resolution
 
-	# When previewing the resolution does not span the entire terrain,
-	# so we apply a scale to some of the passes to make it cover it all.
 	var preview_scale := 4.0 # As if 2049x2049
-
-	# And when we get to generate it fully, sectors are used,
-	# so the size or shape of the terrain doesn't matter
 	var sectors := []
 
 	# Get preview scale and sectors to generate.
@@ -201,14 +219,18 @@ func _update_generator(preview: bool):
 		var terrain_size = _terrain.get_data().get_resolution()
 
 		if preview:
-			preview_scale = float(terrain_size) / float(VIEWPORT_RESOLUTION)
+			# When previewing the resolution does not span the entire terrain,
+			# so we apply a scale to some of the passes to make it cover it all.
+			preview_scale = float(terrain_size) / float(_viewport_resolution)
 			sectors.append(Vector2(0, 0))
 
 		else:
+			# When we get to generate it fully, sectors are used,
+			# so the size or shape of the terrain doesn't matter
 			preview_scale = 1.0
 
-			var cw = terrain_size / VIEWPORT_RESOLUTION
-			var ch = terrain_size / VIEWPORT_RESOLUTION
+			var cw = terrain_size / _viewport_resolution
+			var ch = terrain_size / _viewport_resolution
 
 			for y in ch:
 				for x in cw:
@@ -379,7 +401,7 @@ func _on_TextureGenerator_output_generated(image: Image, info: Dictionary):
 
 		dst.blit_rect(image, \
 			Rect2(0, 0, image.get_width(), image.get_height()), \
-			info.sector * VIEWPORT_RESOLUTION)
+			info.sector * _viewport_resolution)
 
 		emit_signal("progress_notified", {
 			"progress": info.progress,
