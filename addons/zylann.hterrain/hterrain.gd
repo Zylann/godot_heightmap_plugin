@@ -1061,6 +1061,9 @@ func cell_raycast(origin_world: Vector3, dir_world: Vector3, out_cell_pos: Array
 
 	# Raycast to the terrain's AABB first
 	var aabb := _data.get_aabb()
+	if aabb.has_no_area():
+		# Hack to force flat terrains to be detected
+		aabb = aabb.grow(0.1)
 	if not aabb.has_point(origin):
 		var destination = origin + dir * 10000.0
 		var hits := Util.get_aabb_intersection_with_segment(aabb, origin, destination)
