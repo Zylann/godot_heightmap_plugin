@@ -34,6 +34,7 @@ HTerrain plugin documentation
     - [Scripting](#scripting)
         - [Creating the terrain from script](#creating-the-terrain-from-script)
         - [Procedural generation](#procedural-generation)
+    - [Export](#export)
     - [Troubleshooting](#troubleshooting)
         - [Before reporting any bug](#before-reporting-any-bug)
         - [If you report a new bug](#if-you-report-a-new-bug)
@@ -468,6 +469,17 @@ func _ready():
 	# No need to call this, but you may need to if you edit the terrain later on
 	#terrain.update_collider()
 ```
+
+Export
+----------
+
+The pluging should work normally in exported games, but there are some files you should be able to remove because they are editor-specific. This allows to reduce the size from the executable a little.
+
+Everything under `res://addons/zylann.hterrain/tools/` folder is required for the plugin to work in the editor, but it can be removed in exported games. You can specify this folder in your export presets:
+
+![Screenshot of the export window with tools folder ignored](images/ignore_tools_on_export.png)
+
+The documentation in `res://addons/zylann.hterrain/doc/` can also be removed, but this one contains a `.gdignore` file so hopefully Godot will automatically ignore it even in the editor.
 
 
 Troubleshooting
