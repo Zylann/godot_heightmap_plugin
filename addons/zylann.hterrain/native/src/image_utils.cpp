@@ -11,8 +11,6 @@ inline void generic_brush_op(Image &image, Image &brush, Vector2 p_pos, float fa
     int min_y_noclamp = range.min_y;
     range.clip(Vector2i(image.get_size()));
 
-    factor = Math::clamp(factor, 0.f, 1.f);
-
     image.lock();
     brush.lock();
 
