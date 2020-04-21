@@ -322,7 +322,7 @@ The plugin is setting several `uniform` parameter names which will be set to val
 
 - `u_terrain_heightmap`: the heightmap, a half-precision float texture which can be sampled in the red channel. Like the other following maps, you have to access it using cell coordinates, which can be computed as seen in the built-in shader.
 - `u_terrain_normalmap`: the precalculated normalmap of the terrain, which you can use instead of computing it from the heightmap
-- `u_terrain_colormap`: the color map, which is the one modified by the color brush
+- `u_terrain_colormap`: the color map, which is the one modified by the color brush. The alpha channel is used for holes.
 - `u_terrain_splatmap`: the classic splatmap, where each channel determines the weight of a given texture. The sum of each channel should be 1.0.
 - `u_terrain_globalmap`: the global albedo map.
 - `u_terrain_inverse_transform`: a 4x4 matrix containing the inverse transform of the terrain. This is useful if you need to calculate the position of the current vertex in world coordinates in the vertex shader, as seen in the builtin shader.
