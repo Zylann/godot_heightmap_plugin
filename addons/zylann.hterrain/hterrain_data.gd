@@ -1304,6 +1304,121 @@ func _dummy_function():
 	pass
 
 
+static func _get_xz(v: Vector3) -> Vector2:
+	return Vector2(v.x, v.z)
+
+
+class _CellRaycastContext:
+	var begin_pos := Vector3()
+	var _cell_begin_pos := Vector3()
+	var dir := Vector3()
+	var dir_2d := Vector2()
+	var vertical_bounds : Array
+	var hit = null
+	var heightmap : Image
+	var cell_cb_funcref : FuncRef
+	var broad_param_2d_to_3d := 1.0
+	var cell_param_2d_to_3d := 1.0
+	#var dbg
+	
+	func broad_cb(cx: int, cz: int, enter_param: float, exit_param: float) -> bool:
+		if cz >= len(vertical_bounds) or cx >= len(vertical_bounds[cz]):
+			# The function may occasionally be called at boundary values
+			return false
+		var vb = vertical_bounds[cz][cx]
+		var begin := begin_pos + dir * (enter_param * broad_param_2d_to_3d)
+		var exit_y := begin_pos.y + dir.y * exit_param * broad_param_2d_to_3d
+		#_spawn_box(Vector3(cx * VERTICAL_BOUNDS_CHUNK_SIZE, \
+		#	begin.y, cz * VERTICAL_BOUNDS_CHUNK_SIZE), 2.0)
+		if begin.y < vb.minv or exit_y > vb.maxv:
+			# Not hitting this chunk
+			return false
+		# We may be hitting something in this chunk, perform a narrow phase
+		# through terrain cells
+		var distance_in_chunk_2d := (exit_param - enter_param) * VERTICAL_BOUNDS_CHUNK_SIZE
+		var cell_ray_origin_2d := Vector2(begin.x, begin.z)
+		_cell_begin_pos = begin
+		hit = Util.grid_raytrace_2d(
+			cell_ray_origin_2d, dir_2d, cell_cb_funcref, distance_in_chunk_2d)
+		return hit != null
+	
+	func cell_cb(cx: int, cz: int, enter_param: float, exit_param: float) -> bool:
+		var enter_y := _cell_begin_pos.y + dir.y * enter_param * cell_param_2d_to_3d
+		var exit_y := _cell_begin_pos.y + dir.y * exit_param * cell_param_2d_to_3d
+		var h := Util.get_pixel_clamped(heightmap, cx, cz).r
+		#_spawn_box(Vector3(cx, enter_y, cz), 0.2)
+		# Note: we only consider rays going down the terrain, not up
+		return enter_y <= h
+
+#	func _spawn_box(pos: Vector3, r: float):
+#		if not Input.is_key_pressed(KEY_CONTROL):
+#			return
+#		var mi = MeshInstance.new()
+#		mi.mesh = CubeMesh.new()
+#		mi.translation = pos * dbg.map_scale
+#		mi.scale = Vector3(r, r, r)
+#		dbg.add_child(mi)
+#		mi.owner = dbg.get_tree().edited_scene_root
+
+
+func cell_raycast(ray_origin: Vector3, ray_direction: Vector3, max_distance: float):
+	var heightmap := get_image(CHANNEL_HEIGHT)
+	if heightmap == null:
+		return null
+
+	var terrain_rect := Rect2(Vector2(), Vector2(_resolution, _resolution))
+
+	# Project and clip into 2D
+	var ray_origin_2d := _get_xz(ray_origin)
+	var ray_end_2d := _get_xz(ray_origin + ray_direction * max_distance)
+	var clipped_segment_2d := Util.get_segment_clipped_by_rect(terrain_rect,
+		ray_origin_2d, ray_end_2d)
+	# TODO We could clip along Y too if we had total AABB cached somewhere
+
+	if len(clipped_segment_2d) == 0:
+		# Not hitting the terrain area
+		return null
+
+	var max_distance_2d := ray_origin_2d.distance_to(ray_end_2d)
+	if max_distance_2d < 0.001:
+		# TODO Direct vertical hit?
+		return null
+	
+	# Get ratio along the segment where the first point was clipped
+	var begin_clip_param := ray_origin_2d.distance_to(clipped_segment_2d[0]) / max_distance_2d
+	
+	var ray_direction_2d := _get_xz(ray_direction).normalized()
+	
+	var ctx := _CellRaycastContext.new()
+	ctx.begin_pos = ray_origin + ray_direction * (begin_clip_param * max_distance)
+	ctx.dir = ray_direction
+	ctx.dir_2d = ray_direction_2d
+	ctx.vertical_bounds = _chunked_vertical_bounds
+	ctx.heightmap = heightmap
+	# We are lucky FuncRef does not keep a strong reference to the object
+	ctx.cell_cb_funcref = funcref(ctx, "cell_cb")
+	ctx.cell_param_2d_to_3d = max_distance / max_distance_2d
+	ctx.broad_param_2d_to_3d = ctx.cell_param_2d_to_3d * VERTICAL_BOUNDS_CHUNK_SIZE
+	#ctx.dbg = dbg
+
+	heightmap.lock()
+
+	# Broad phase through cached vertical bound chunks
+	var broad_ray_origin = clipped_segment_2d[0] / VERTICAL_BOUNDS_CHUNK_SIZE
+	var broad_max_distance = \
+		clipped_segment_2d[0].distance_to(clipped_segment_2d[1]) / VERTICAL_BOUNDS_CHUNK_SIZE
+	var hit_bp = Util.grid_raytrace_2d(broad_ray_origin, ray_direction_2d, 
+		funcref(ctx, "broad_cb"), broad_max_distance)
+
+	heightmap.unlock()
+
+	if hit_bp == null:
+		# No hit
+		return null
+	
+	return ctx.hit.hit_cell_pos
+
+
 static func encode_normal(n: Vector3) -> Color:
 	n = 0.5 * (n + Vector3.ONE)
 	return Color(n.x, n.z, n.y)

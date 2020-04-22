@@ -360,7 +360,7 @@ func forward_spatial_gui_input(p_camera: Camera, p_event: InputEvent) -> bool:
 		return false
 	
 	_node._edit_update_viewer_position(p_camera)
-	
+
 	var captured_event = false
 	
 	if p_event is InputEventMouseButton:
@@ -393,9 +393,10 @@ func forward_spatial_gui_input(p_camera: Camera, p_event: InputEvent) -> bool:
 		var origin = p_camera.project_ray_origin(screen_pos)
 		var dir = p_camera.project_ray_normal(screen_pos)
 
-		var hit_pos_in_cells = [0, 0]
-		if _node.cell_raycast(origin, dir, hit_pos_in_cells):
-			_brush_decal.set_position(Vector3(hit_pos_in_cells[0], 0, hit_pos_in_cells[1]))
+		var ray_distance := p_camera.far * 1.2
+		var hit_pos_in_cells = _node.cell_raycast(origin, dir, ray_distance)
+		if hit_pos_in_cells != null:
+			_brush_decal.set_position(Vector3(hit_pos_in_cells.x, 0, hit_pos_in_cells.y))
 			
 			if _mouse_pressed:
 				if Input.is_mouse_button_pressed(BUTTON_LEFT):
@@ -403,7 +404,10 @@ func forward_spatial_gui_input(p_camera: Camera, p_event: InputEvent) -> bool:
 					# Deferring this to be done once per frame,
 					# because mouse events may happen more often than frames,
 					# which can result in unpleasant stuttering/freezes when painting large areas
-					_pending_paint_action = [hit_pos_in_cells[0], hit_pos_in_cells[1]]
+					_pending_paint_action = [
+						int(hit_pos_in_cells.x),
+						int(hit_pos_in_cells.y)
+					]
 					
 					captured_event = true
 
@@ -616,6 +620,9 @@ func _on_permanent_change_performed(message: String):
 	ur.commit_action()
 
 
+################
+# DEBUG LAND
+
 # TEST
 #func _physics_process(delta):
 #	if Input.is_key_pressed(KEY_KP_0):
@@ -660,3 +667,33 @@ func _debug_spawn_collider_indicators():
 			else:
 				mi.show()
 				mi.translation = hit.position
+
+
+func _spawn_vertical_bound_boxes():
+	var data = _node.get_data()
+#	var sy = data._chunked_vertical_bounds_size_y
+#	var sx = data._chunked_vertical_bounds_size_x
+	var mat = SpatialMaterial.new()
+	mat.flags_transparent = true
+	mat.albedo_color = Color(1,1,1,0.2)
+	for cy in range(30, 60):
+		for cx in range(30, 60):
+			var vb = data._chunked_vertical_bounds[cy][cx]
+			var mi = MeshInstance.new()
+			mi.mesh = CubeMesh.new()
+			var cs = HTerrainData.VERTICAL_BOUNDS_CHUNK_SIZE
+			mi.mesh.size = Vector3(cs, vb.maxv - vb.minv, cs)
+			mi.translation = Vector3(
+				(float(cx) + 0.5) * cs,
+				vb.minv + mi.mesh.size.y * 0.5, 
+				(float(cy) + 0.5) * cs)
+			mi.translation *= _node.map_scale
+			mi.scale = _node.map_scale
+			mi.material_override = mat
+			_node.add_child(mi)
+			mi.owner = get_editor_interface().get_edited_scene_root()
+			
+#	if p_event is InputEventKey:
+#		if p_event.pressed == false:
+#			if p_event.scancode == KEY_SPACE and p_event.control:
+#				_spawn_vertical_bound_boxes()

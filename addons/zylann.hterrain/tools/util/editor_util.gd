@@ -5,7 +5,8 @@
 tool
 
 # TODO There is no script API to access editor scale
-# Ported from https://github.com/godotengine/godot/blob/5fede4a81c67961c6fb2309b9b0ceb753d143566/editor/editor_node.cpp#L5515-L5554
+# Ported from https://github.com/godotengine/godot/blob/
+# 5fede4a81c67961c6fb2309b9b0ceb753d143566/editor/editor_node.cpp#L5515-L5554
 static func get_dpi_scale(editor_settings: EditorSettings) -> float:
 	var display_scale = editor_settings.get("interface/editor/display_scale")
 	var custom_display_scale = editor_settings.get("interface/editor/custom_display_scale")

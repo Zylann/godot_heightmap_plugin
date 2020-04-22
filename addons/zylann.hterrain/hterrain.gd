@@ -90,7 +90,7 @@ var _data: HTerrainData = null
 
 var _mesher := Mesher.new()
 var _lodder := QuadTreeLod.new()
-var _viewer_pos := Vector3()
+var _viewer_pos_world := Vector3()
 
 # [lod][z][x] -> chunk
 # This container owns chunks
@@ -663,7 +663,6 @@ func _on_custom_shader_changed():
 
 
 func _update_material_params():
-
 	assert(_material != null)
 	_logger.debug("Updating terrain material params")
 
@@ -794,20 +793,22 @@ func _update_viewer_position(camera: Camera):
 		# users have to pull the camera node very far away, but it confuses LOD
 		# into very low detail, while the seen area remains the same.
 		# So we need to base LOD on a different metric.
-		var hit := [0, 0, Vector3()]
 		var cam_pos := camera.global_transform.origin
 		var cam_dir := -camera.global_transform.basis.z
-		if cell_raycast(cam_pos, cam_dir, hit):
-			_viewer_pos = hit[2]
+		var max_distance := camera.far * 1.2
+		var hit_cell_pos = cell_raycast(cam_pos, cam_dir, max_distance)
+		if hit_cell_pos != null:
+			var cell_to_world = get_internal_transform()
+			_viewer_pos_world = cell_to_world * hit_cell_pos
 	else:
-		_viewer_pos = camera.global_transform.origin
+		_viewer_pos_world = camera.global_transform.origin
 
 
 func _process(delta: float):
 	if not Engine.is_editor_hint():
 		# In editor, the camera is only accessible from an editor plugin
 		_update_viewer_position(null)
-	var viewer_pos := _viewer_pos
+	var viewer_pos := _viewer_pos_world
 
 	if has_data():
 		if _data.is_locked():
@@ -1023,13 +1024,6 @@ func _cb_get_vertical_bounds(cpos_x: int, cpos_y: int, lod: int):
 #	return Vector2(aabb.position.y, aabb.end.y)
 
 
-func _local_pos_to_cell(local_pos: Vector3) -> Array:
-	return [
-		int(local_pos.x),
-		int(local_pos.z)
-	]
-
-
 static func _get_height_or_default(im: Image, pos_x: int, pos_y: int):
 	if pos_x < 0 or pos_y < 0 or pos_x >= im.get_width() or pos_y >= im.get_height():
 		return 0.0
@@ -1038,74 +1032,17 @@ static func _get_height_or_default(im: Image, pos_x: int, pos_y: int):
 
 # Performs a raycast to the terrain without using the collision engine.
 # This is mostly useful in the editor, where the collider can't be updated in realtime.
-# It may be slow on very large distance, but should be enough for editing purpose.
-# out_cell_pos is the returned hit position and must be specified as an array of 2 integers.
-# Returns false if there is no hit.
-func cell_raycast(origin_world: Vector3, dir_world: Vector3, out_cell_pos: Array) -> bool:
+# Returns cell hit position as Vector2, or null if there was no hit.
+func cell_raycast(origin_world: Vector3, dir_world: Vector3, max_distance: float):
 	assert(typeof(origin_world) == TYPE_VECTOR3)
 	assert(typeof(dir_world) == TYPE_VECTOR3)
-	assert(typeof(out_cell_pos) == TYPE_ARRAY)
-
 	if not has_data():
 		return false
-
-	var heights = _data.get_image(HTerrainData.CHANNEL_HEIGHT)
-	if heights == null:
-		return false
-
 	# Transform to local (takes map scale into account)
 	var to_local := get_internal_transform().affine_inverse()
 	var origin = to_local.xform(origin_world)
 	var dir = to_local.basis.xform(dir_world)
-	var max_distance := 1000.0
-
-	# Raycast to the terrain's AABB first
-	var aabb := _data.get_aabb()
-	if aabb.has_no_area():
-		# Hack to force flat terrains to be detected
-		aabb = aabb.grow(0.1)
-	if not aabb.has_point(origin):
-		var destination = origin + dir * 10000.0
-		var hits := Util.get_aabb_intersection_with_segment(aabb, origin, destination)
-		if len(hits) == 0:
-			return false
-		# Bump origin to start at the hit point
-		origin = hits[0]
-		if len(hits) == 2:
-			var distance_through_aabb = hits[0].distance_to(hits[1])
-			if max_distance > distance_through_aabb:
-				max_distance = distance_through_aabb
-
-	heights.lock()
-
-	var cpos := _local_pos_to_cell(origin)
-	if origin.y < _get_height_or_default(heights, cpos[0], cpos[1]):
-		heights.unlock()
-		# Below
-		return false
-
-	var unit := 1.0
-	var d := 0.0
-	var pos = origin
-
-	# Slow, but enough for edition
-	# TODO Could be optimized using vertical bounds AABBs
-	while d < max_distance:
-		pos += dir * unit
-		cpos = _local_pos_to_cell(pos)
-		if _get_height_or_default(heights, cpos[0], cpos[1]) > pos.y:
-			cpos = _local_pos_to_cell(pos - dir * unit)
-			out_cell_pos[0] = cpos[0]
-			out_cell_pos[1] = cpos[1]
-			if len(out_cell_pos) == 3:
-				out_cell_pos[2] = pos
-			heights.unlock()
-			return true
-
-		d += unit
-
-	heights.unlock()
-	return false
+	return _data.cell_raycast(origin, dir, max_distance)
 
 
 # TODO Rename these "splat textures"
@@ -1250,3 +1187,5 @@ class SetMaterialAction:
 		material = m
 	func exec(chunk):
 		chunk.set_material(material)
+
+

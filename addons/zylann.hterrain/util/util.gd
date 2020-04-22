@@ -198,7 +198,8 @@ static func get_cropped_image_params(src_w: int, src_h: int, dst_w: int, dst_h: 
 	}
 
 # TODO Workaround for https://github.com/godotengine/godot/issues/24488
-# TODO Simplify in Godot 3.1 if that's still not fixed, using https://github.com/godotengine/godot/pull/21806
+# TODO Simplify in Godot 3.1 if that's still not fixed,
+# using https://github.com/godotengine/godot/pull/21806
 static func get_shader_param_or_default(mat: Material, name: String):
 	var v = mat.get_shader_param(name)
 	if v != null:
@@ -311,3 +312,203 @@ static func get_aabb_intersection_with_segment(aabb: AABB,
 		assert(len(hits) < 2)
 	
 	return hits
+
+
+class GridRaytraceResult2D:
+	var hit_cell_pos: Vector2
+	var prev_cell_pos: Vector2
+
+
+# Iterates through a virtual 2D grid of unit-sized square cells,
+# and executes an action on each cell intersecting the given segment,
+# ordered from begin to end.
+# One of my most re-used pieces of code :)
+#
+# Initially inspired by http://www.cse.yorku.ca/~amana/research/grid.pdf
+#
+# Ported from https://github.com/bulletphysics/bullet3/blob/
+# 687780af6b491056700cfb22cab57e61aeec6ab8/src/BulletCollision/CollisionShapes/
+# btHeightfieldTerrainShape.cpp#L418
+#
+static func grid_raytrace_2d(ray_origin: Vector2, ray_direction: Vector2, 
+	quad_predicate: FuncRef, max_distance: float) -> GridRaytraceResult2D:
+	
+	if max_distance < 0.0001:
+		# Consider the ray is too small to hit anything
+		return null
+	
+	var xi_step := 0
+	if ray_direction.x > 0:
+		xi_step = 1
+	elif ray_direction.x < 0:
+		xi_step = -1
+
+	var yi_step := 0
+	if ray_direction.y > 0:
+		yi_step = 1
+	elif ray_direction.y < 0:
+		yi_step = -1
+	
+	var infinite := 9999999.0
+
+	var param_delta_x := infinite
+	if xi_step != 0:
+		param_delta_x = 1.0 / abs(ray_direction.x)
+
+	var param_delta_y := infinite
+	if yi_step != 0:
+		param_delta_y = 1.0 / abs(ray_direction.y)
+
+	# pos = param * dir
+	# At which value of `param` we will cross a x-axis lane?
+	var param_cross_x := infinite 
+	# At which value of `param` we will cross a y-axis lane?
+	var param_cross_y := infinite
+
+	# param_cross_x and param_cross_z are initialized as being the first cross
+	# X initialization
+	if xi_step != 0:
+		if xi_step == 1:
+			param_cross_x = (ceil(ray_origin.x) - ray_origin.x) * param_delta_x
+		else:
+			param_cross_x = (ray_origin.x - floor(ray_origin.x)) * param_delta_x
+	else:
+		# Will never cross on X
+		param_cross_x = infinite
+
+	# Y initialization
+	if yi_step != 0:
+		if yi_step == 1:
+			param_cross_y = (ceil(ray_origin.y) - ray_origin.y) * param_delta_y
+		else:
+			param_cross_y = (ray_origin.y - floor(ray_origin.y)) * param_delta_y
+	else:
+		# Will never cross on Y
+		param_cross_y = infinite
+
+	var x := int(floor(ray_origin.x))
+	var y := int(floor(ray_origin.y))
+
+	# Workaround cases where the ray starts at an integer position
+	if param_cross_x == 0.0:
+		param_cross_x += param_delta_x
+		# If going backwards, we should ignore the position we would get by the above flooring,
+		# because the ray is not heading in that direction
+		if xi_step == -1:
+			x -= 1
+
+	if param_cross_y == 0.0:
+		param_cross_y += param_delta_y
+		if yi_step == -1:
+			y -= 1
+	
+	var prev_x := x
+	var prev_y := y
+	var param := 0.0
+	var prev_param := 0.0
+
+	while true:
+		prev_x = x
+		prev_y = y
+		prev_param = param
+
+		if param_cross_x < param_cross_y:
+			# X lane
+			x += xi_step
+			# Assign before advancing the param,
+			# to be in sync with the initialization step
+			param = param_cross_x
+			param_cross_x += param_delta_x
+			
+		else:
+			# Y lane
+			y += yi_step
+			param = param_cross_y
+			param_cross_y += param_delta_y
+
+		if param > max_distance:
+			param = max_distance
+			# quad coordinates, enter param, exit/end param
+			if quad_predicate.call_func(prev_x, prev_y, prev_param, param):
+				var res := GridRaytraceResult2D.new()
+				res.hit_cell_pos = Vector2(x, y)
+				res.prev_cell_pos = Vector2(prev_x, prev_y)
+				return res
+			else:
+				break
+			
+		elif quad_predicate.call_func(prev_x, prev_y, prev_param, param):
+			var res := GridRaytraceResult2D.new()
+			res.hit_cell_pos = Vector2(x, y)
+			res.prev_cell_pos = Vector2(prev_x, prev_y)
+			return res
+	
+	return null
+
+
+static func get_segment_clipped_by_rect(rect: Rect2, 
+	segment_begin: Vector2, segment_end: Vector2) -> Array:
+	
+	#         /
+	#  A-----/---B        A-----+---B
+	#  |    /    |   =>   |    /    |
+	#  |   /     |        |   /     |
+	#  C--/------D        C--+------D
+	#    /
+	
+	if rect.has_point(segment_begin) and rect.has_point(segment_end):
+		return [segment_begin, segment_end]
+	
+	var a := rect.position
+	var b := Vector2(rect.end.x, rect.position.y)
+	var c := Vector2(rect.position.x, rect.end.y)
+	var d := rect.end
+	
+	var ab = Geometry.segment_intersects_segment_2d(segment_begin, segment_end, a, b)
+	var cd = Geometry.segment_intersects_segment_2d(segment_begin, segment_end, c, d)
+	var ac = Geometry.segment_intersects_segment_2d(segment_begin, segment_end, a, c)
+	var bd = Geometry.segment_intersects_segment_2d(segment_begin, segment_end, b, d)
+	
+	var hits = []
+	if ab != null:
+		hits.append(ab)
+	if cd != null:
+		hits.append(cd)
+	if ac != null:
+		hits.append(ac)
+	if bd != null:
+		hits.append(bd)
+
+	# Now we need to order the hits from begin to end
+	if len(hits) == 1:
+		if rect.has_point(segment_begin):
+			hits = [segment_begin, hits[0]]
+		elif rect.has_point(segment_end):
+			hits = [hits[0], segment_end]
+		else:
+			# TODO This has a tendency to happen with integer coordinates...
+			# How can you get only 1 hit and have no end of the segment
+			# inside of the rectangle? Float precision shit? Assume no hit...
+			return []
+			
+	elif len(hits) == 2:
+		var d0 = hits[0].distance_squared_to(segment_begin)
+		var d1 = hits[1].distance_squared_to(segment_begin)
+		if d0 > d1:
+			hits = [hits[1], hits[0]]
+
+	return hits	
+
+
+static func get_pixel_clamped(im: Image, x: int, y: int) -> Color:
+	if x < 0:
+		x = 0
+	elif x >= im.get_width():
+		x = im.get_width() - 1
+
+	if y < 0:
+		y = 0
+	elif y >= im.get_height():
+		y = im.get_height() - 1
+
+	return im.get_pixel(x, y)
