@@ -37,7 +37,9 @@ const _API_SHADER_PARAMS = {
 
 export(int) var layer_index := 0 setget set_layer_index, get_layer_index
 export(Texture) var texture : Texture setget set_texture, get_texture
-export(float) var view_distance := 100.0 setget set_view_distance, get_view_distance
+# TODO Improve speed of _get_chunk_aabb() so we can increase the limit
+# See https://github.com/Zylann/godot_heightmap_plugin/issues/155
+export(float, 1.0, 500.0) var view_distance := 100.0 setget set_view_distance, get_view_distance
 export(Shader) var custom_shader : Shader setget set_custom_shader, get_custom_shader
 export(float, 0, 10) var density := 4.0 setget set_density, get_density
 
