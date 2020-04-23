@@ -5,8 +5,25 @@ This is a high-level changelog for each released versions of the plugin.
 For a more detailed list of past and incoming changes, see the commit history.
 
 
-1.2
+1.2.1
 ------
+
+- Optimized doc images to shorten download from assetlib (thanks to Calinou)
+- Improved LOD in orthogonal projection where the camera is very far away
+- Allow to choose lower terrain resolutions
+- Optimized raycast when painting from large distances
+- Limited detail layer max distance in the inspector, for performance reasons
+- Fixed detail painting could not be erased
+- Fixed import of splatmap and color map
+- Fixed brush not working in orthogonal view
+- Fixed grass chunks disappearing when their global density is changed
+- Fixed error in exported game due to an editor-specific class being present in a script
+- Fixed u_terrain_normal_basis parameter which should not appear in detail layer inspector
+- Fixed lower brush not working
+
+
+1.2  - a4d0a55493994bcf10b668ff1272ca1655c2ab32
+-----------------------------------------------------
 
 - Added GDNative component to accelerate some parts of the plugin (Windows only, more platforms to come).
 - Platforms where GDNative doesn't run will fallback on GDScript
@@ -63,8 +80,8 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Remove obsolete Save and Load menus, they don't work anymore
 
 
-1.0 Move to Godot 3.1
-------------------------
+1.0 - Move to Godot 3.1 - a696ee41503ff41798d4fd401bf03b97c1177521
+--------------------------------------------------------------------
 
 - Saving a scene now saves terrains properly
 - Grass layers are now nodes for ease of use
@@ -75,8 +92,8 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Fixed pickable collider causing a huge slowdown (raycasting is still slow but needs a fix in Bullet Physics)
 
 
-0.10
-------
+0.10 - e4f3d560e6eabe6ae1d68bf80734737ce849cb2e
+---------------------------------------------------
 
 - Added morphologic erosion to terrain generator
 - Added global map baking
