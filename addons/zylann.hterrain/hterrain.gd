@@ -80,7 +80,7 @@ export(int, 2, 5) var lod_scale := 2.0 setget set_lod_scale, get_lod_scale
 export var map_scale := Vector3(1, 1, 1) setget set_map_scale
 
 var _custom_shader : Shader = null
-var _shader_type := SHADER_SIMPLE4
+var _shader_type := SHADER_SIMPLE4_LITE
 var _material := ShaderMaterial.new()
 var _material_params_need_update := false
 # Array of 2-textures arrays
