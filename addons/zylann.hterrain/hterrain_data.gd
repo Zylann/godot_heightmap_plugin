@@ -1146,7 +1146,7 @@ func _edit_import_maps(input: Dictionary) -> bool:
 
 	if input.has(CHANNEL_HEIGHT):
 		var params = input[CHANNEL_HEIGHT]
-		if not _import_heightmap(params.path, params.min_height, params.max_height):
+		if not _import_heightmap(params.path, params.min_height, params.max_height, params.big_endian):
 			return false
 
 	var maptypes = [CHANNEL_COLOR, CHANNEL_SPLAT]
@@ -1170,7 +1170,7 @@ static func get_adjusted_map_size(width: int, height: int) -> int:
 	return size_po2
 
 
-func _import_heightmap(fpath: String, min_y: int, max_y: int) -> bool:
+func _import_heightmap(fpath: String, min_y: int, max_y: int, big_endian: bool) -> bool:
 	var ext = fpath.get_extension().to_lower()
 
 	if ext == "png":
@@ -1228,6 +1228,14 @@ func _import_heightmap(fpath: String, min_y: int, max_y: int) -> bool:
 		if file_res == -1:
 			# Can't deduce size
 			return false
+
+		# TODO Need a way to know which endianess our system has!
+		# For now we have to make an assumption...
+		# This function is most supposed to execute in the editor.
+		# The editor officially runs on desktop architectures, which are
+		# generally little-endian.
+		if big_endian:
+			f.endian_swap = true
 
 		var res = get_adjusted_map_size(file_res, file_res)
 

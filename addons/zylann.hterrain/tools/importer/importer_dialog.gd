@@ -12,17 +12,46 @@ onready var _inspector = $VBoxContainer/Inspector
 onready var _errors_label = $VBoxContainer/ColorRect/ScrollContainer/VBoxContainer/Errors
 onready var _warnings_label = $VBoxContainer/ColorRect/ScrollContainer/VBoxContainer/Warnings
 
+const RAW_LITTLE_ENDIAN = 0
+const RAW_BIG_ENDIAN = 1
+
 var _terrain = null
 var _logger = Logger.get_for(self)
 
 
 func _ready():
 	_inspector.set_prototype({
-		"heightmap": { "type": TYPE_STRING, "usage": "file", "exts": ["raw", "png"] },
-		"min_height": { "type": TYPE_REAL, "range": {"min": -2000.0, "max": 2000.0, "step": 1.0}, "default_value": 0.0 },
-		"max_height": { "type": TYPE_REAL, "range": {"min": -2000.0, "max": 2000.0, "step": 1.0}, "default_value": 400.0 },
-		"splatmap": { "type": TYPE_STRING, "usage": "file", "exts": ["png"] },
-		"colormap": { "type": TYPE_STRING, "usage": "file", "exts": ["png"] }
+		"heightmap": {
+			"type": TYPE_STRING,
+			"usage": "file",
+			"exts": ["raw", "png"]
+		},
+		"raw_endianess": {
+			"type": TYPE_INT,
+			"usage": "enum",
+			"enum_items": ["Little Endian", "Big Endian"],
+			"enabled": false
+		},
+		"min_height": {
+			"type": TYPE_REAL,
+			"range": {"min": -2000.0, "max": 2000.0, "step": 1.0},
+			"default_value": 0.0
+		},
+		"max_height": {
+			"type": TYPE_REAL,
+			"range": {"min": -2000.0, "max": 2000.0, "step": 1.0},
+			"default_value": 400.0
+		},
+		"splatmap": {
+			"type": TYPE_STRING,
+			"usage": "file",
+			"exts": ["png"]
+		},
+		"colormap": {
+			"type": TYPE_STRING,
+			"usage": "file",
+			"exts": ["png"]
+		}
 	})
 	
 	# Testing
@@ -88,10 +117,12 @@ func _on_ImportButton_pressed():
 
 	var heightmap_path = _inspector.get_value("heightmap")
 	if heightmap_path != "":
+		var endianess = _inspector.get_value("raw_endianess")
 		params[HTerrainData.CHANNEL_HEIGHT] = {
 			"path": heightmap_path,
 			"min_height": _inspector.get_value("min_height"),
 			"max_height": _inspector.get_value("max_height"),
+			"big_endian": endianess == RAW_BIG_ENDIAN
 		}
 
 	var colormap_path = _inspector.get_value("colormap")
@@ -118,12 +149,13 @@ func _on_CancelButton_pressed():
 	hide()
 
 
-func _on_Inspector_property_changed(key, value):
-	pass # replace with function body
+func _on_Inspector_property_changed(key: String, value):
+	if key == "heightmap":
+		var is_raw = value.get_extension().to_lower() == "raw"
+		_inspector.set_property_enabled("raw_endianess", is_raw)
 
 
 func _validate_form():
-
 	var res = {
 		"errors": [],
 		"warnings": []
