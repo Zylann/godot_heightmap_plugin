@@ -13,6 +13,7 @@ const Logger = preload("./util/logger.gd")
 
 const CLASSIC4_SHADER_PATH = "res://addons/zylann.hterrain/shaders/simple4.shader"
 const CLASSIC4_LITE_SHADER_PATH = "res://addons/zylann.hterrain/shaders/simple4_lite.shader"
+const LOW_POLY_SHADER_PATH = "res://addons/zylann.hterrain/shaders/low_poly.shader"
 const _NORMAL_BAKER_PATH = "res://addons/zylann.hterrain/tools/normalmap_baker.gd"
 
 const SHADER_PARAM_HEIGHT_TEXTURE = "u_terrain_heightmap"
@@ -48,14 +49,29 @@ const _api_shader_params = {
 	"u_ground_normal_roughness_3": true
 }
 
-const SHADER_SIMPLE4 = "Classic4"
-const SHADER_SIMPLE4_LITE = "Classic4Lite"
+const _api_shader_ground_albedo_params = {
+	"u_ground_albedo_bump_0": true,
+	"u_ground_albedo_bump_1": true,
+	"u_ground_albedo_bump_2": true,
+	"u_ground_albedo_bump_3": true
+}
+
+const SHADER_CLASSIC4 = "Classic4"
+const SHADER_CLASSIC4_LITE = "Classic4Lite"
+const SHADER_LOW_POLY = "LowPoly"
 const SHADER_CUSTOM = "Custom"
+
+const _SHADER_TYPE_HINT_STRING = str(
+	SHADER_CLASSIC4, ",",
+	SHADER_CLASSIC4_LITE, ",",
+	SHADER_LOW_POLY, ",",
+	SHADER_CUSTOM)
 
 # Note: the alpha channel is used to pack additional maps
 const GROUND_ALBEDO_BUMP = 0
 const GROUND_NORMAL_ROUGHNESS = 1
 const GROUND_TEXTURE_TYPE_COUNT = 2
+const GROUND_CLASSIC_TEXTURE_MAX = 4
 
 const MIN_CHUNK_SIZE = 16
 const MAX_CHUNK_SIZE = 64
@@ -80,11 +96,16 @@ export(int, 2, 5) var lod_scale := 2.0 setget set_lod_scale, get_lod_scale
 export var map_scale := Vector3(1, 1, 1) setget set_map_scale
 
 var _custom_shader : Shader = null
-var _shader_type := SHADER_SIMPLE4_LITE
+var _shader_type := SHADER_CLASSIC4_LITE
 var _material := ShaderMaterial.new()
 var _material_params_need_update := false
-# Array of 2-textures arrays
+
+# Array of 2-textures arrays.
+# This array does not shrink, to avoid loosing assigned textures
+# when changing to a shader that supports less textures.
 var _ground_textures := []
+# Actual number of textures supported by the shader currently selected
+var _ground_texture_count_cache = 0
 
 var _data: HTerrainData = null
 
@@ -127,7 +148,7 @@ func _init():
 
 	_material.shader = load(CLASSIC4_SHADER_PATH)
 
-	_ground_textures.resize(get_ground_texture_slot_count())
+	_ground_textures.resize(GROUND_CLASSIC_TEXTURE_MAX)
 	for slot in len(_ground_textures):
 		var e = []
 		e.resize(GROUND_TEXTURE_TYPE_COUNT)
@@ -171,7 +192,7 @@ func _get_property_list():
 			"type": TYPE_STRING,
 			"usage": PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_STORAGE,
 			"hint": PROPERTY_HINT_ENUM,
-			"hint_string": "Classic4,Classic4Lite,Custom"
+			"hint_string": _SHADER_TYPE_HINT_STRING
 		},
 		{
 			# Had to specify it like this because need to be in category...
@@ -194,7 +215,10 @@ func _get_property_list():
 			cp.name = str("shader_params/", p.name)
 			props.append(cp)
 
-	for i in range(get_ground_texture_slot_count()):
+	# Can't query the shader to know how many textures it has,
+	# because the scene loader may not have assigned the shader property yet...
+	# So we have to list all possible texture properties there can be
+	for i in GROUND_CLASSIC_TEXTURE_MAX:
 		for t in _ground_enum_to_name:
 			props.append({
 				"name": "ground/" + t + "_" + str(i),
@@ -208,7 +232,6 @@ func _get_property_list():
 
 
 func _get(key: String):
-
 	if key == "data_directory":
 		return _get_data_directory()
 
@@ -242,7 +265,6 @@ func _get(key: String):
 
 
 func _set(key: String, value):
-
 	if key == "data_directory":
 		_set_data_directory(value)
 
@@ -438,7 +460,6 @@ func _enter_tree():
 
 
 func _clear_all_chunks():
-
 	# The lodder has to be cleared because otherwise it will reference dangling pointers
 	_lodder.clear()
 
@@ -606,10 +627,12 @@ func set_shader_type(type: String):
 	_shader_type = type
 
 	match _shader_type:
-		SHADER_SIMPLE4:
+		SHADER_CLASSIC4:
 			_material.shader = load(CLASSIC4_SHADER_PATH) as Shader
-		SHADER_SIMPLE4_LITE:
+		SHADER_CLASSIC4_LITE:
 			_material.shader = load(CLASSIC4_LITE_SHADER_PATH) as Shader
+		SHADER_LOW_POLY:
+			_material.shader = load(LOW_POLY_SHADER_PATH) as Shader
 		SHADER_CUSTOM:
 			_material.shader = _custom_shader
 		_:
@@ -707,6 +730,14 @@ func _update_material_params():
 		for type in len(textures):
 			var shader_param = get_ground_texture_shader_param(type, slot)
 			_material.set_shader_param(shader_param, textures[type])
+	
+	var shader := _material.shader
+	if shader != null:
+		var param_list := VisualServer.shader_get_param_list(shader.get_rid())
+		_ground_texture_count_cache = 0
+		for p in param_list:
+			if _api_shader_ground_albedo_params.has(p.name):
+				_ground_texture_count_cache += 1
 
 
 # Helper used for globalmap baking
@@ -1104,7 +1135,7 @@ func set_ambient_wind(amplitude: float):
 
 func _check_slot(slot: int):
 	assert(typeof(slot) == TYPE_INT)
-	assert(slot >= 0 and slot < get_ground_texture_slot_count())
+	assert(slot >= 0 and slot < len(_ground_textures))
 
 
 static func _check_ground_texture_type(ground_texture_type: int):
@@ -1112,22 +1143,22 @@ static func _check_ground_texture_type(ground_texture_type: int):
 	assert(ground_texture_type >= 0 and ground_texture_type < GROUND_TEXTURE_TYPE_COUNT)
 
 
-static func get_ground_texture_slot_count_for_shader(shader_type: String, logger):
-	# TODO Deduce these from the shader used
-	match shader_type:
-		SHADER_SIMPLE4, \
-		SHADER_SIMPLE4_LITE:
-			return 4
-		SHADER_CUSTOM:
-			return 4
-#		SHADER_ARRAY:
-#			return 256
-	logger.error("Invalid shader type specified ", shader_type)
-	return 0
-
-
+# @obsolete
 func get_ground_texture_slot_count() -> int:
-	return get_ground_texture_slot_count_for_shader(_shader_type, _logger)
+	_logger.error("get_ground_texture_slot_count is obsolete, " \
+		+ "use get_max_ground_texture_slot_count instead")
+	return get_max_ground_texture_slot_count()
+
+
+func get_max_ground_texture_slot_count() -> int:
+	return len(_ground_textures)
+
+
+# This is a cached value based on the actual number of texture parameters
+# in the current shader. It won't update immediately when the shader changes,
+# only after a frame. This is mostly used in the editor.
+func get_cached_ground_texture_slot_count() -> int:
+	return _ground_texture_count_cache
 
 
 func _edit_debug_draw(ci):

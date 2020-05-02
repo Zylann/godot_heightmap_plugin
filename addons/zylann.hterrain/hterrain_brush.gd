@@ -35,7 +35,7 @@ var _flatten_height := 0.0
 var _texture_index := 0
 var _detail_index := 0
 var _detail_density := 1.0
-var _texture_mode := HTerrain.SHADER_SIMPLE4
+var _texture_mode := HTerrain.SHADER_CLASSIC4
 var _color := Color(1, 1, 1)
 var _mask_flag := false
 var _undo_cache := {}
@@ -101,8 +101,8 @@ func get_flatten_height() -> float:
 
 func set_texture_index(tid: int):
 	assert(tid >= 0)
-	var slot_count = HTerrain.get_ground_texture_slot_count_for_shader(_texture_mode, _logger)
-	assert(tid < slot_count)
+	# No shaders support more than 4 yet
+	assert(_texture_index < 4)
 	_texture_index = tid
 
 
@@ -338,7 +338,7 @@ func _paint_splat(data: HTerrainData, origin_x: int, origin_y: int):
 
 	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
 
-	if _texture_mode == HTerrain.SHADER_SIMPLE4:
+	if _texture_mode == HTerrain.SHADER_CLASSIC4:
 		var target_color = Color(0, 0, 0, 0)
 		target_color[_texture_index] = 1.0
 		_image_utils.lerp_color_brush(

@@ -8,7 +8,7 @@ signal texture_selected(index)
 onready var _textures_list = $TexturesContainer
 onready var _edit_dialog = $EditDialog
 
-var _terrain = null
+var _terrain : HTerrain = null
 
 var _load_dialog = null
 
@@ -18,27 +18,39 @@ var _empty_icon = load("res://addons/zylann.hterrain/tools/icons/empty.png")
 func _ready():
 	_edit_dialog.set_load_texture_dialog(_load_dialog)
 	
+	# Default amount, will be updated when a terrain is assigned
 	_textures_list.clear()
 	for i in range(4):
 		_textures_list.add_item(str(i), _empty_icon)
 
 
-func set_terrain(terrain):
+func set_terrain(terrain: HTerrain):
 	_terrain = terrain
-	
+	_textures_list.clear()
 	_edit_dialog.set_terrain(terrain)
-	
+
+
+func _process(delta: float):
+	if _terrain != null:
+		var slot_count = _terrain.get_cached_ground_texture_slot_count()
+		if slot_count != _textures_list.get_item_count():
+			_update_texture_list()
+
+
+func _update_texture_list():
 	_textures_list.clear()
 	if _terrain != null:
-		var slot_count = _terrain.get_ground_texture_slot_count()
+		var slot_count = _terrain.get_cached_ground_texture_slot_count()
 		for i in range(slot_count):
 			var tex = _terrain.get_ground_texture(i, HTerrain.GROUND_ALBEDO_BUMP)
-			_textures_list.add_item(_get_slot_hint_name(i), tex if tex != null else _empty_icon)
+			var hint = _get_slot_hint_name(i, _terrain.get_shader_type())
+			_textures_list.add_item(hint, tex if tex != null else _empty_icon)
 
 
-static func _get_slot_hint_name(i):
-	#if shader_type == HTerrain.SHADER_SIMPLE4:
-	return "cliff" if i == 3 else str("ground", i)
+static func _get_slot_hint_name(i: int, stype: String):
+	if i == 3 and (stype == HTerrain.SHADER_CLASSIC4 or stype == HTerrain.SHADER_CLASSIC4_LITE):
+		return "cliff"
+	return str("ground", i)
 
 
 func set_load_texture_dialog(dialog):

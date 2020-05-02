@@ -459,7 +459,7 @@ func _ready():
 
 	# Create terrain node
 	var terrain = HTerrain.new()
-	terrain.set_shader_type(HTerrain.SHADER_SIMPLE4_LITE)
+	terrain.set_shader_type(HTerrain.SHADER_CLASSIC4_LITE)
 	terrain.set_data(terrain_data)
 	terrain.set_ground_texture(0, HTerrain.GROUND_ALBEDO_BUMP, grass_texture)
 	terrain.set_ground_texture(1, HTerrain.GROUND_ALBEDO_BUMP, sand_texture)

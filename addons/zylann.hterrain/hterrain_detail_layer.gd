@@ -286,7 +286,6 @@ func _on_terrain_transform_changed(gt: Transform):
 
 
 func process(delta: float, viewer_pos: Vector3):
-
 	var terrain = _get_terrain()
 	if terrain == null:
 		_logger.error("DetailLayer processing while terrain is null!")
