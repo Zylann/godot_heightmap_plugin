@@ -360,6 +360,7 @@ func forward_spatial_gui_input(p_camera: Camera, p_event: InputEvent) -> bool:
 		return false
 	
 	_node._edit_update_viewer_position(p_camera)
+	_panel.set_camera_transform(p_camera.global_transform)
 
 	var captured_event = false
 	

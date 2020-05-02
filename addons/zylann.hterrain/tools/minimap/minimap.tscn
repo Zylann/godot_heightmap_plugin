@@ -1,0 +1,80 @@
+[gd_scene load_steps=7 format=2]
+
+[ext_resource path="res://addons/zylann.hterrain/tools/minimap/minimap.gd" type="Script" id=1]
+[ext_resource path="res://addons/zylann.hterrain/tools/minimap/minimap_normal.shader" type="Shader" id=2]
+[ext_resource path="res://addons/zylann.hterrain/tools/minimap/minimap_overlay.gd" type="Script" id=3]
+[ext_resource path="res://addons/zylann.hterrain/tools/icons/icon_minimap_position.svg" type="Texture" id=4]
+[ext_resource path="res://addons/zylann.hterrain/tools/icons/icon_minimap_out_of_range_position.svg" type="Texture" id=5]
+
+[sub_resource type="ShaderMaterial" id=2]
+shader = ExtResource( 2 )
+shader_param/u_light_direction = Vector3( 0.5, -0.7, 0.2 )
+
+[node name="Minimap" type="Control"]
+margin_right = 100.0
+margin_bottom = 104.0
+rect_min_size = Vector2( 100, 0 )
+script = ExtResource( 1 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="PopupMenu" type="PopupMenu" parent="."]
+margin_right = 20.0
+margin_bottom = 20.0
+
+[node name="ColorRect" type="ColorRect" parent="."]
+material = SubResource( 2 )
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="X" type="ColorRect" parent="."]
+anchor_right = 1.0
+margin_right = -80.0
+margin_bottom = 2.0
+rect_min_size = Vector2( 0, 2 )
+mouse_filter = 2
+color = Color( 0.929412, 0.290196, 0.290196, 0.627451 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Z" type="ColorRect" parent="."]
+anchor_bottom = 1.0
+margin_right = 2.0
+margin_bottom = -84.0
+rect_min_size = Vector2( 2, 0 )
+mouse_filter = 2
+color = Color( 0.0784314, 0.501961, 1, 0.627451 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Y" type="ColorRect" parent="."]
+margin_right = 2.0
+margin_bottom = 2.0
+rect_min_size = Vector2( 2, 2 )
+mouse_filter = 2
+color = Color( 0.207843, 0.835294, 0.152941, 0.627451 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Overlay" type="Control" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+rect_clip_content = true
+mouse_filter = 2
+script = ExtResource( 3 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+cursor_texture = ExtResource( 4 )
+out_of_range_texture = ExtResource( 5 )
+
+[node name="Cursor" type="Sprite" parent="Overlay"]
+[connection signal="id_pressed" from="PopupMenu" to="." method="_on_PopupMenu_id_pressed"]

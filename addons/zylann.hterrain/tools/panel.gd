@@ -27,6 +27,10 @@ func set_terrain(terrain):
 	_detail_editor.set_terrain(terrain)
 
 
+func set_camera_transform(cam_transform: Transform):
+	_minimap.set_camera_transform(cam_transform)
+
+
 func set_brush(brush):
 	_brush_editor.set_brush(brush)
 

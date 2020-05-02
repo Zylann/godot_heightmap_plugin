@@ -4,13 +4,16 @@
 [ext_resource path="res://addons/zylann.hterrain/tools/brush/brush_editor.tscn" type="PackedScene" id=2]
 [ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/texture_editor.tscn" type="PackedScene" id=3]
 [ext_resource path="res://addons/zylann.hterrain/tools/detail_editor/detail_editor.tscn" type="PackedScene" id=4]
-[ext_resource path="res://addons/zylann.hterrain/tools/minimap.gd" type="Script" id=5]
+[ext_resource path="res://addons/zylann.hterrain/tools/minimap/minimap.tscn" type="PackedScene" id=5]
 
 [node name="Panel" type="Control"]
 margin_right = 895.0
 margin_bottom = 112.0
 rect_min_size = Vector2( 400, 112 )
 script = ExtResource( 1 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
 
 [node name="HSplitContainer" type="HSplitContainer" parent="."]
 anchor_right = 1.0
@@ -45,13 +48,7 @@ margin_left = 262.0
 margin_right = 501.0
 margin_bottom = 104.0
 
-[node name="Minimap" type="ColorRect" parent="HSplitContainer/HSplitContainer"]
-margin_left = 513.0
-margin_right = 613.0
-margin_bottom = 104.0
-rect_min_size = Vector2( 100, 0 )
-color = Color( 0, 0, 0, 1 )
-script = ExtResource( 5 )
+[node name="Minimap" parent="HSplitContainer/HSplitContainer" instance=ExtResource( 5 )]
 [connection signal="texture_selected" from="HSplitContainer/HSplitContainer/HSplitContainer/TextureEditor" to="." method="_on_TextureEditor_texture_selected"]
 [connection signal="detail_list_changed" from="HSplitContainer/HSplitContainer/HSplitContainer/DetailEditor" to="." method="_on_DetailEditor_detail_list_changed"]
 [connection signal="detail_selected" from="HSplitContainer/HSplitContainer/HSplitContainer/DetailEditor" to="." method="_on_DetailEditor_detail_selected"]
