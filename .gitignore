@@ -1,3 +1,21 @@
+
+# Godot-specific ignores
+.import/
+export.cfg
+export_presets.cfg
+
+# Imported translations (automatically generated from CSV files)
+*.translation
+
+# Mono-specific ignores
+.mono/
+data_*/
+mono_crash.*.json
+
+# System/tool-specific ignores
+.directory
+*~
+
 # Build
 *.obj
 *.exp
@@ -18,12 +36,12 @@
 *.includes
 
 # Godot
-.import/
 logs/
 default_env.tres
 
 # VSCode
 *.vs/
+.vscode/
 
 # Windows
 *.bat
