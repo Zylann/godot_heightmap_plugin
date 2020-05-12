@@ -1149,7 +1149,7 @@ func _edit_import_maps(input: Dictionary) -> bool:
 		if not _import_heightmap(params.path, params.min_height, params.max_height, params.big_endian):
 			return false
 
-	var maptypes = [CHANNEL_COLOR, CHANNEL_SPLAT]
+	var maptypes := [CHANNEL_COLOR, CHANNEL_SPLAT]
 
 	for map_type in maptypes:
 		if input.has(map_type):
@@ -1171,35 +1171,35 @@ static func get_adjusted_map_size(width: int, height: int) -> int:
 
 
 func _import_heightmap(fpath: String, min_y: int, max_y: int, big_endian: bool) -> bool:
-	var ext = fpath.get_extension().to_lower()
+	var ext := fpath.get_extension().to_lower()
 
 	if ext == "png":
 		# Godot can only load 8-bit PNG,
 		# so we have to bring it back to float in the wanted range
 
-		var src_image = Image.new()
-		var err = src_image.load(fpath)
+		var src_image := Image.new()
+		var err := src_image.load(fpath)
 		if err != OK:
 			return false
 
-		var res = get_adjusted_map_size(src_image.get_width(), src_image.get_height())
+		var res := get_adjusted_map_size(src_image.get_width(), src_image.get_height())
 		if res != src_image.get_width():
 			src_image.crop(res, res)
 
 		_locked = true
 
 		_logger.debug(str("Resizing terrain to ", res, "x", res, "..."))
-		resize(src_image.get_width(), true, Vector2())
+		resize(src_image.get_width(), false, Vector2())
 
-		var im = get_image(CHANNEL_HEIGHT)
+		var im := get_image(CHANNEL_HEIGHT)
 		assert(im != null)
 
-		var hrange = max_y - min_y
+		var hrange := max_y - min_y
 
 		var width = Util.min_int(im.get_width(), src_image.get_width())
 		var height = Util.min_int(im.get_height(), src_image.get_height())
 
-		_logger.debug(str("Converting to internal format...", 0.2))
+		_logger.debug("Converting to internal format...")
 
 		im.lock()
 		src_image.lock()
@@ -1207,19 +1207,46 @@ func _import_heightmap(fpath: String, min_y: int, max_y: int, big_endian: bool) 
 		# Convert to internal format (from RGBA8 to RH16) with range scaling
 		for y in range(0, width):
 			for x in range(0, height):
-				var gs = src_image.get_pixel(x, y).r
-				var h = min_y + hrange * gs
+				var gs := src_image.get_pixel(x, y).r
+				var h := min_y + hrange * gs
 				im.set_pixel(x, y, Color(h, 0, 0))
 
 		src_image.unlock()
 		im.unlock()
+	
+	elif ext == "exr":
+		var src_image := Image.new()
+		var err := src_image.load(fpath)
+		if err != OK:
+			return false
+
+		var res := get_adjusted_map_size(src_image.get_width(), src_image.get_height())
+		if res != src_image.get_width():
+			src_image.crop(res, res)
+
+		_locked = true
+
+		_logger.debug(str("Resizing terrain to ", res, "x", res, "..."))
+		resize(src_image.get_width(), false, Vector2())
+
+		var im := get_image(CHANNEL_HEIGHT)
+		assert(im != null)
+
+		_logger.debug("Converting to internal format...")
+		
+		# See https://github.com/Zylann/godot_heightmap_plugin/issues/34
+		# Godot can load EXR but it always makes them have at least 3-channels.
+		# Heightmaps need only one, so we have to get rid of 2.
+		src_image.convert(_channel_formats[CHANNEL_HEIGHT])
+		
+		im.blit_rect(src_image, Rect2(0, 0, res, res), Vector2())
 
 	elif ext == "raw":
 		# RAW files don't contain size, so we have to deduce it from 16-bit size.
 		# We also need to bring it back to float in the wanted range.
 
-		var f = File.new()
-		var err = f.open(fpath, File.READ)
+		var f := File.new()
+		var err := f.open(fpath, File.READ)
 		if err != OK:
 			return false
 
@@ -1237,33 +1264,33 @@ func _import_heightmap(fpath: String, min_y: int, max_y: int, big_endian: bool) 
 		if big_endian:
 			f.endian_swap = true
 
-		var res = get_adjusted_map_size(file_res, file_res)
+		var res := get_adjusted_map_size(file_res, file_res)
 
-		var width = res
-		var height = res
+		var width := res
+		var height := res
 
 		_locked = true
 
 		_logger.debug(str("Resizing terrain to ", width, "x", height, "..."))
-		resize(res, true, Vector2())
+		resize(res, false, Vector2())
 
-		var im = get_image(CHANNEL_HEIGHT)
+		var im := get_image(CHANNEL_HEIGHT)
 		assert(im != null)
 
-		var hrange = max_y - min_y
+		var hrange := max_y - min_y
 
 		_logger.debug("Converting to internal format...")
 
 		im.lock()
 
-		var rw = Util.min_int(res, file_res)
-		var rh = Util.min_int(res, file_res)
+		var rw := Util.min_int(res, file_res)
+		var rh := Util.min_int(res, file_res)
 
 		# Convert to internal format (from bytes to RH16)
-		var h = 0.0
+		var h := 0.0
 		for y in range(0, rh):
 			for x in range(0, rw):
-				var gs = float(f.get_16()) / 65535.0
+				var gs := float(f.get_16()) / 65535.0
 				h = min_y + hrange * float(gs)
 				im.set_pixel(x, y, Color(h, 0, 0))
 			# Skip next pixels if the file is bigger than the accepted resolution

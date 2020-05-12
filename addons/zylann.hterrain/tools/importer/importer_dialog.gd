@@ -24,7 +24,7 @@ func _ready():
 		"heightmap": {
 			"type": TYPE_STRING,
 			"usage": "file",
-			"exts": ["raw", "png"]
+			"exts": ["raw", "png", "exr"]
 		},
 		"raw_endianess": {
 			"type": TYPE_INT,
@@ -227,7 +227,7 @@ static func _check_map_size(path, map_name, heightmap_size, res, logger):
 static func _load_image_size(path, logger):
 	var ext = path.get_extension().to_lower()
 
-	if ext == "png":
+	if ext == "png" or ext == "exr":
 		var im = Image.new()
 		var err = im.load(path)
 		if err != OK:
