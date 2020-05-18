@@ -146,7 +146,7 @@ func _init():
 	_material.set_shader_param("u_ground_uv_scale", 20)
 	_material.set_shader_param("u_depth_blending", true)
 
-	_material.shader = load(CLASSIC4_SHADER_PATH)
+	_material.shader = load(CLASSIC4_LITE_SHADER_PATH)
 
 	_ground_textures.resize(GROUND_CLASSIC_TEXTURE_MAX)
 	for slot in len(_ground_textures):
