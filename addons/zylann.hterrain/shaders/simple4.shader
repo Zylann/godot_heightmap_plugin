@@ -25,17 +25,30 @@ uniform sampler2D u_ground_normal_roughness_1;
 uniform sampler2D u_ground_normal_roughness_2;
 uniform sampler2D u_ground_normal_roughness_3;
 
-uniform float u_ground_uv_scale = 20.0;
+// Had to give this uniform a suffix, because it's declared as a simple float
+// in other shaders, and its type cannot be inferred by the plugin.
+// See https://github.com/godotengine/godot/issues/24488
+uniform vec4 u_ground_uv_scale_per_texture = vec4(20.0, 20.0, 20.0, 20.0);
+
 uniform bool u_depth_blending = true;
 uniform bool u_triplanar = false;
 
 uniform float u_globalmap_blend_start;
 uniform float u_globalmap_blend_distance;
 
-varying vec4 v_tint;
+uniform vec4 u_colormap_opacity_per_texture = vec4(1.0, 1.0, 1.0, 1.0);
+
+varying float v_hole;
+varying vec3 v_tint0;
+varying vec3 v_tint1;
+varying vec3 v_tint2;
+varying vec3 v_tint3;
 varying vec4 v_splat;
-varying vec3 v_ground_uv;
-varying float v_distance;
+varying vec2 v_ground_uv0;
+varying vec2 v_ground_uv1;
+varying vec2 v_ground_uv2;
+varying vec3 v_ground_uv3;
+varying float v_distance_to_camera;
 
 
 vec3 unpack_normal(vec4 rgba) {
@@ -89,34 +102,42 @@ void vertex() {
 	VERTEX.y = h;
 	wpos.y = h;
 
-	v_ground_uv = vec3(cell_coords.x, h * WORLD_MATRIX[1][1], cell_coords.y) / u_ground_uv_scale;
+	vec3 base_ground_uv = vec3(cell_coords.x, h * WORLD_MATRIX[1][1], cell_coords.y);
+	v_ground_uv0 = base_ground_uv.xz / u_ground_uv_scale_per_texture.x;
+	v_ground_uv1 = base_ground_uv.xz / u_ground_uv_scale_per_texture.y;
+	v_ground_uv2 = base_ground_uv.xz / u_ground_uv_scale_per_texture.z;
+	v_ground_uv3 = base_ground_uv / u_ground_uv_scale_per_texture.w;
 
 	// Putting this in vertex saves 2 fetches from the fragment shader,
 	// which is good for performance at a negligible quality cost,
 	// provided that geometry is a regular grid that decimates with LOD.
 	// (downside is LOD will also decimate tint and splat, but it's not bad overall)
-	v_tint = texture(u_terrain_colormap, UV);
+	vec4 tint = texture(u_terrain_colormap, UV);
+	v_hole = tint.a;
+	v_tint0 = mix(vec3(1.0), tint.rgb, u_colormap_opacity_per_texture.x);
+	v_tint1 = mix(vec3(1.0), tint.rgb, u_colormap_opacity_per_texture.y);
+	v_tint2 = mix(vec3(1.0), tint.rgb, u_colormap_opacity_per_texture.z);
+	v_tint3 = mix(vec3(1.0), tint.rgb, u_colormap_opacity_per_texture.w);
 	v_splat = texture(u_terrain_splatmap, UV);
 
 	// Need to use u_terrain_normal_basis to handle scaling.
 	// For some reason I also had to invert Z when sampling terrain normals... not sure why
 	NORMAL = u_terrain_normal_basis * (unpack_normal(texture(u_terrain_normalmap, UV)) * vec3(1,1,-1));
 
-	// Distance to camera
-	v_distance = distance(wpos.xyz, CAMERA_MATRIX[3].xyz);
+	v_distance_to_camera = distance(wpos.xyz, CAMERA_MATRIX[3].xyz);
 }
 
 void fragment() {
-
-	if(v_tint.a < 0.5)
+	if (v_hole < 0.5) {
 		// TODO Add option to use vertex discarding instead, using NaNs
 		discard;
+	}
 
 	vec3 terrain_normal_world = u_terrain_normal_basis * (unpack_normal(texture(u_terrain_normalmap, UV)) * vec3(1,1,-1));
 	terrain_normal_world = normalize(terrain_normal_world);
 	vec3 normal = terrain_normal_world;
 
-	float globalmap_factor = clamp((v_distance - u_globalmap_blend_start) * u_globalmap_blend_distance, 0.0, 1.0);
+	float globalmap_factor = clamp((v_distance_to_camera - u_globalmap_blend_start) * u_globalmap_blend_distance, 0.0, 1.0);
 	globalmap_factor *= globalmap_factor; // slower start, faster transition but far away
 	vec3 global_albedo = texture(u_terrain_globalmap, UV).rgb;
 	ALBEDO = global_albedo;
@@ -124,9 +145,6 @@ void fragment() {
 	// Doing this branch allows to spare a bunch of texture fetches for distant pixels.
 	// Eventually, there could be a split between near and far shaders in the future, if relevant on high-end GPUs
 	if (globalmap_factor < 1.0) {
-
-		vec2 ground_uv = v_ground_uv.xz;
-
 		vec4 ab3;
 		vec4 nr3;
 		if (u_triplanar) {
@@ -137,26 +155,26 @@ void fragment() {
 
 			vec3 blending = get_triplanar_blend(terrain_normal_world);
 
-			ab3 = texture_triplanar(u_ground_albedo_bump_3, v_ground_uv, blending);
-			nr3 = texture_triplanar(u_ground_normal_roughness_3, v_ground_uv, blending);
+			ab3 = texture_triplanar(u_ground_albedo_bump_3, v_ground_uv3, blending);
+			nr3 = texture_triplanar(u_ground_normal_roughness_3, v_ground_uv3, blending);
 
 		} else {
-			ab3 = texture(u_ground_albedo_bump_3, ground_uv);
-			nr3 = texture(u_ground_normal_roughness_3, ground_uv);
+			ab3 = texture(u_ground_albedo_bump_3, v_ground_uv3.xz);
+			nr3 = texture(u_ground_normal_roughness_3, v_ground_uv3.xz);
 		}
 
-		vec4 ab0 = texture(u_ground_albedo_bump_0, ground_uv);
-		vec4 ab1 = texture(u_ground_albedo_bump_1, ground_uv);
-		vec4 ab2 = texture(u_ground_albedo_bump_2, ground_uv);
+		vec4 ab0 = texture(u_ground_albedo_bump_0, v_ground_uv0);
+		vec4 ab1 = texture(u_ground_albedo_bump_1, v_ground_uv1);
+		vec4 ab2 = texture(u_ground_albedo_bump_2, v_ground_uv2);
 
-		vec4 nr0 = texture(u_ground_normal_roughness_0, ground_uv);
-		vec4 nr1 = texture(u_ground_normal_roughness_1, ground_uv);
-		vec4 nr2 = texture(u_ground_normal_roughness_2, ground_uv);
+		vec4 nr0 = texture(u_ground_normal_roughness_0, v_ground_uv0);
+		vec4 nr1 = texture(u_ground_normal_roughness_1, v_ground_uv1);
+		vec4 nr2 = texture(u_ground_normal_roughness_2, v_ground_uv2);
 
-		vec3 col0 = ab0.rgb;
-		vec3 col1 = ab1.rgb;
-		vec3 col2 = ab2.rgb;
-		vec3 col3 = ab3.rgb;
+		vec3 col0 = ab0.rgb * v_tint0;
+		vec3 col1 = ab1.rgb * v_tint1;
+		vec3 col2 = ab2.rgb * v_tint2;
+		vec3 col3 = ab3.rgb * v_tint3;
 
 		vec4 rough = vec4(nr0.a, nr1.a, nr2.a, nr3.a);
 
@@ -175,7 +193,7 @@ void fragment() {
 
 		float w_sum = (w.r + w.g + w.b + w.a);
 
-		ALBEDO = v_tint.rgb * (
+		ALBEDO = (
 			w.r * col0.rgb +
 			w.g * col1.rgb +
 			w.b * col2.rgb +

@@ -144,10 +144,11 @@ func _init():
 	# TODO Temporary!
 	# This is a workaround for https://github.com/godotengine/godot/issues/24488
 	_material.set_shader_param("u_ground_uv_scale", 20)
+	_material.set_shader_param("u_ground_uv_scale_vec4", Color(20, 20, 20, 20))
 	_material.set_shader_param("u_depth_blending", true)
 
 	_material.shader = load(CLASSIC4_LITE_SHADER_PATH)
-
+	
 	_ground_textures.resize(GROUND_CLASSIC_TEXTURE_MAX)
 	for slot in len(_ground_textures):
 		var e = []
@@ -753,6 +754,7 @@ func setup_globalmap_material(mat: ShaderMaterial):
 	mat.set_shader_param("u_terrain_colormap", color_texture)
 	mat.set_shader_param("u_depth_blending", get_shader_param("u_depth_blending"))
 	mat.set_shader_param("u_ground_uv_scale", get_shader_param("u_ground_uv_scale"))
+	mat.set_shader_param("u_ground_uv_scale_vec4", get_shader_param("u_ground_uv_scale_vec4"))
 
 	for slot in len(_ground_textures):
 		var textures = _ground_textures[slot]
