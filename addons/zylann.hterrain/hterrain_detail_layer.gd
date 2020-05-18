@@ -16,6 +16,7 @@ const DirectMultiMeshInstance = preload("./util/direct_multimesh_instance.gd")
 const DirectMeshInstance = preload("./util/direct_mesh_instance.gd")
 const Util = preload("./util/util.gd")
 const Logger = preload("./util/logger.gd")
+const DefaultMesh = preload("./models/grass_quad.obj")
 
 const CHUNK_SIZE = 32
 const DEFAULT_SHADER_PATH = "res://addons/zylann.hterrain/shaders/detail.shader"
@@ -42,6 +43,10 @@ export(Texture) var texture : Texture setget set_texture, get_texture
 export(float, 1.0, 500.0) var view_distance := 100.0 setget set_view_distance, get_view_distance
 export(Shader) var custom_shader : Shader setget set_custom_shader, get_custom_shader
 export(float, 0, 10) var density := 4.0 setget set_density, get_density
+# Mesh used for every detail instance (for example, every grass patch).
+# If not assigned, an internal quad mesh will be used.
+# I would have called it `mesh` but that's too broad and conflicts with local vars ._.
+export(Mesh) var instance_mesh : Mesh setget set_instance_mesh, get_instance_mesh
 
 var _material: ShaderMaterial = null
 var _default_shader: Shader = null
@@ -215,6 +220,25 @@ func get_custom_shader() -> Shader:
 	return custom_shader
 
 
+func set_instance_mesh(p_mesh: Mesh):
+	if p_mesh == instance_mesh:
+		return
+	instance_mesh = p_mesh
+	if _multimesh == null:
+		_multimesh = MultiMesh.new()
+	_multimesh.mesh = _get_used_mesh()
+
+
+func get_instance_mesh() -> Mesh:
+	return instance_mesh
+
+
+func _get_used_mesh() -> Mesh:
+	if instance_mesh == null:
+		return DefaultMesh
+	return instance_mesh
+
+
 func set_density(v: float):
 	v = clamp(v, 0, 10)
 	if v == density:
@@ -223,7 +247,7 @@ func set_density(v: float):
 	# If available, we modify the existing multimesh instead of replacing it.
 	# DirectMultiMeshInstance does not keep a strong reference to them,
 	# so replacing would break pooled instances.
-	_multimesh = _generate_multimesh(CHUNK_SIZE, density, _multimesh)
+	_regen_multimesh()
 	# Crash workaround for Godot 3.1
 	# See https://github.com/godotengine/godot/issues/32500
 	for k in _chunks:
@@ -393,7 +417,7 @@ func _load_chunk(terrain, cx: int, cz: int, aabb: AABB):
 		_multimesh_instance_pool.pop_back()
 	else:
 		if _multimesh == null:
-			_multimesh = _generate_multimesh(CHUNK_SIZE, density, null)
+			_regen_multimesh()
 		mmi = DirectMultiMeshInstance.new()
 		mmi.set_world(terrain.get_world())
 		mmi.set_multimesh(_multimesh)
@@ -504,53 +528,13 @@ func _add_debug_cube(terrain, aabb: AABB):
 	_debug_cubes.append(debug_cube)
 
 
-static func _create_quad() -> Mesh:
-	# Vertical quad with the origin at the bottom edge
-	var positions = PoolVector3Array([
-		Vector3(-0.5, 0, 0),
-		Vector3(0.5, 0, 0),
-		Vector3(0.5, 1, 0),
-		Vector3(-0.5, 1, 0)
-	])
-	var normals = PoolVector3Array([
-		Vector3(0, 0, -1),
-		Vector3(0, 0, -1),
-		Vector3(0, 0, -1),
-		Vector3(0, 0, -1)
-	])
-	var uvs = PoolVector2Array([
-		Vector2(0, 1),
-		Vector2(1, 1),
-		Vector2(1, 0),
-		Vector2(0, 0)
-	])
-	var colors = PoolColorArray([
-		Color(1, 1, 1),
-		Color(1, 1, 1),
-		Color(1, 1, 1),
-		Color(1, 1, 1)
-	])
-	var indices = PoolIntArray([
-		0, 1, 2,
-		0, 2, 3
-	])
-	var arrays = []
-	arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX] = positions
-	arrays[Mesh.ARRAY_NORMAL] = normals
-	arrays[Mesh.ARRAY_TEX_UV] = uvs
-	arrays[Mesh.ARRAY_COLOR] = colors
-	arrays[Mesh.ARRAY_INDEX] = indices
-	var mesh = ArrayMesh.new()
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	return mesh
+func _regen_multimesh():
+	_multimesh = _generate_multimesh(CHUNK_SIZE, density, _get_used_mesh(), _multimesh)
 
 
 static func _generate_multimesh(resolution: int, density: float, 
-	existing_multimesh: MultiMesh) -> MultiMesh:
+	mesh: Mesh, existing_multimesh: MultiMesh) -> MultiMesh:
 		
-	var mesh = _create_quad()
-
 	var position_randomness = 0.5
 	var scale_randomness = 0.0
 	#var color_randomness = 0.5
@@ -598,7 +582,6 @@ static func _generate_multimesh(resolution: int, density: float,
 
 
 static func _get_random_instance_basis(scale_randomness: float) -> Basis:
-
 	var sr = rand_range(0, scale_randomness)
 	var s = 1.0 + (sr * sr * sr * sr * sr) * 50.0
 

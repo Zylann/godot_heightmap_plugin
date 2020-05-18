@@ -1,5 +1,4 @@
 # Build
-*.obj
 *.exp
 *.ilk
 *.lib

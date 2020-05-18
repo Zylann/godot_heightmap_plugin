@@ -26,6 +26,9 @@ HTerrain plugin documentation
         - [Import dialog](#import-dialog)
         - [4-channel splatmaps caveat](#4-channel-splatmaps-caveat)
     - [Detail layers](#detail-layers)
+        - [Painting details](#painting-details)
+        - [Shading options](#shading-options)
+        - [Meshes](#meshes)
     - [Global map](#global-map)
     - [Level of detail](#level-of-detail)
     - [Custom shaders](#custom-shaders)
@@ -269,18 +272,35 @@ To deal with this, make sure your editor has an option to turn this off. In Gimp
 Detail layers
 ---------------
 
-Once you have textured ground, you may want to add small detail objects to it, such as grass and small rocks. Currently the plugin only support grass-like painting by scattering textured quads over the terrain, but support for actual meshes may come in the future.
+Once you have textured ground, you may want to add small detail objects to it, such as grass and small rocks.
 
 ![Screenshot of two grass layers under the terrain node](images/detail_layers.png)
 
+### Painting details
+
 Grass is supported throught `HTerrainDetailLayer` node. They can be created as children of the `HTerrain` node. Each layer represents one kind of detail, so you may have one layer for grass, and another for flowers, for example.
-Each layer allocates a 8-bit map over the whole terrain where each pixel tells how much density of that layer there is. Because of this technique, you can paint details just like you paint anything else, using the same brush system. It uses opacity to either add more density, or act as an eraser with an opacity of zero.
+Each layer allocates an 8-bit map over the whole terrain where each pixel tells how much density of that layer there is. Because of this technique, you can paint details just like you paint anything else, using the same brush system. It uses opacity to either add more density, or act as an eraser with an opacity of zero.
 
-You can choose which texture will be used, and it will be rendered using alpha-scissor. It is done that way because it allows drawing grass in the opaque render pass, which is cheaper than treating every single quad like a transparent object which would have to be depth-sorted to render properly, especially on low-end GPUs.
+### Shading options
 
-Like the ground, detail layers use a custom shaders that takes advantage of the heightmap to displace each instanced object at a proper position. Also, hardware instancing is used under the hood to allow for a very high number of items with low cost. Multimeshes are generated in chunks, and then instances are hidden from the vertex shader depending on density. For grass, it also uses the normal of the ground so there is no need to provide it. There are also shader options to tint objects with the global map, which can help a lot making grass to blend better with the environment.
+At the moment, detail layers only come with a single shader type, which is made for grass. More may be added in the future.
 
-Detail layers are one of the newest features of the plugin so there is room for improvements in the future, like supporting meshes, multiple grass variants in the same layer using atlases, or alpha to coverage for better fading in the distance (which would need engine features).
+You can choose which texture will be used, and it will be rendered using alpha-scissor. It is done that way because it allows drawing grass in the opaque render pass, which is cheaper than treating every single quad like a transparent object which would have to be depth-sorted to render properly. Alpha-to-coverage would look better, but isn't supported in Godot 3.
+
+Like the ground, detail layers use a custom shader that takes advantage of the heightmap to displace each instanced object at a proper position. Also, hardware instancing is used under the hood to allow for a very high number of items with low cost. Multimeshes are generated in chunks, and then instances are hidden from the vertex shader depending on density. For grass, it also uses the normal of the ground so there is no need to provide it. There are also shader options to tint objects with the global map, which can help a lot making grass to blend better with the environment.
+
+Finally, the shader fades in the distance by increasing the threshold of alpha scissor. This works better with a transparent texture. An alternative is to make it sink in the ground, but that's left to customization.
+
+For writing custom shaders, see [Custom detail shaders](#grass-shaders).
+
+### Meshes
+
+By default, detail layers draw simple quads on top of the ground. But it is possible to choose another kind of geometry, by assigning the `instance_mesh` property.
+Several meshes are bundled with the plugin, which you can find in `res://addons/zylann.hterrain/models/`.
+
+![Bundled grass models](images/grass_models.png)
+
+They are all thought for grass rendering. You can make your own for things that aren't grass, however there is no built-in shader for conventional objects at the moment (rocks, bits and bobs). So if you want normal shading you need to write a custom shader. That may be bundled too in the future.
 
 
 Global map
