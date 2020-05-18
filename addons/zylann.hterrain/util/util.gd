@@ -200,29 +200,31 @@ static func get_cropped_image_params(src_w: int, src_h: int, dst_w: int, dst_h: 
 # TODO Workaround for https://github.com/godotengine/godot/issues/24488
 # TODO Simplify in Godot 3.1 if that's still not fixed,
 # using https://github.com/godotengine/godot/pull/21806
-static func get_shader_param_or_default(mat: Material, name: String):
-	var v = mat.get_shader_param(name)
-	if v != null:
-		return v
-	var params = VisualServer.shader_get_param_list(mat.shader)
-	for p in params:
-		if p.name == name:
-			match p.type:
-				TYPE_OBJECT:
-					return null
-				# I should normally check default values,
-				# however they are not accessible
-				TYPE_BOOL:
-					return false
-				TYPE_REAL:
-					return 0.0
-				TYPE_VECTOR2:
-					return Vector2()
-				TYPE_VECTOR3:
-					return Vector3()
-				TYPE_COLOR:
-					return Color()
-	return null
+# And actually that function does not even work.
+#static func get_shader_param_or_default(mat: Material, name: String):
+#	assert(mat.shader != null)
+#	var v = mat.get_shader_param(name)
+#	if v != null:
+#		return v
+#	var params = VisualServer.shader_get_param_list(mat.shader)
+#	for p in params:
+#		if p.name == name:
+#			match p.type:
+#				TYPE_OBJECT:
+#					return null
+#				# I should normally check default values,
+#				# however they are not accessible
+#				TYPE_BOOL:
+#					return false
+#				TYPE_REAL:
+#					return 0.0
+#				TYPE_VECTOR2:
+#					return Vector2()
+#				TYPE_VECTOR3:
+#					return Vector3()
+#				TYPE_COLOR:
+#					return Color()
+#	return null
 
 
 # Generic way to apply editor scale to a plugin UI scene.
