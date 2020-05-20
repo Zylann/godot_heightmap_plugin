@@ -35,12 +35,13 @@ var _flatten_height := 0.0
 var _texture_index := 0
 var _detail_index := 0
 var _detail_density := 1.0
-var _texture_mode := HTerrain.SHADER_CLASSIC4
 var _color := Color(1, 1, 1)
 var _mask_flag := false
 var _undo_cache := {}
 var _image_utils = NativeFactory.get_image_utils()
 var _logger = Logger.get_for(self)
+var _last_painted_map_type := -1
+var _last_painted_map_index := -1
 
 
 func get_mode() -> int:
@@ -101,8 +102,6 @@ func get_flatten_height() -> float:
 
 func set_texture_index(tid: int):
 	assert(tid >= 0)
-	# No shaders support more than 4 yet
-	assert(_texture_index < 4)
 	_texture_index = tid
 
 
@@ -170,7 +169,7 @@ func _generate_from_image(im: Image, radius: int):
 	emit_signal("shape_changed", _shape)
 
 
-static func _get_mode_channel(mode: int) -> int:
+static func _get_mode_channel(mode: int, use_indexed_splat: bool) -> int:
 	assert(mode >= 0 and mode < MODE_COUNT)
 	match mode:
 		MODE_ADD, \
@@ -182,7 +181,10 @@ static func _get_mode_channel(mode: int) -> int:
 		MODE_COLOR:
 			return HTerrainData.CHANNEL_COLOR
 		MODE_SPLAT:
-			return HTerrainData.CHANNEL_SPLAT
+			if use_indexed_splat:
+				return HTerrainData.CHANNEL_INDEXED_SPLAT
+			else:
+				return HTerrainData.CHANNEL_SPLAT
 		MODE_MASK:
 			return HTerrainData.CHANNEL_COLOR
 		MODE_DETAIL:
@@ -210,6 +212,8 @@ func paint(terrain: HTerrain, cell_pos_x: int, cell_pos_y: int, override_mode: i
 
 	terrain.set_area_dirty(origin_x, origin_y, _shape_size, _shape_size)
 	var map_index := 0
+	
+	var use_indexed_splat := terrain.is_using_texture_array()
 
 	# When using sculpting tools, make it dependent on brush size
 	var raise_strength := 10.0 + 2.0 * float(_shape_size)
@@ -231,7 +235,10 @@ func paint(terrain: HTerrain, cell_pos_x: int, cell_pos_y: int, override_mode: i
 			_flatten(data, origin_x, origin_y)
 
 		MODE_SPLAT:
-			_paint_splat(data, origin_x, origin_y)
+			if use_indexed_splat:
+				_paint_indexed_splat(data, origin_x, origin_y)
+			else:
+				_paint_classic4_splat(data, origin_x, origin_y)
 
 		MODE_COLOR:
 			_paint_color(data, origin_x, origin_y)
@@ -243,9 +250,11 @@ func paint(terrain: HTerrain, cell_pos_x: int, cell_pos_y: int, override_mode: i
 			_paint_detail(data, origin_x, origin_y)
 			map_index = _detail_index
 
-	data.notify_region_change( \
-		Rect2(origin_x, origin_y, _shape_size, _shape_size), \
-		_get_mode_channel(mode), map_index)
+	_last_painted_map_type = _get_mode_channel(mode, use_indexed_splat)
+	_last_painted_map_index = map_index
+
+	data.notify_region_change(Rect2(origin_x, origin_y, _shape_size, _shape_size), \
+		_last_painted_map_type, map_index)
 
 	#var time_elapsed = OS.get_ticks_msec() - time_before
 	#_logger.debug("Time elapsed painting: ", time_elapsed, "ms")
@@ -332,18 +341,70 @@ func _flatten(data: HTerrainData, origin_x: int, origin_y: int):
 		im, _shape, Vector2(origin_x, origin_y), 1.0, _flatten_height, 0)
 
 
-func _paint_splat(data: HTerrainData, origin_x: int, origin_y: int):
+func _paint_classic4_splat(data: HTerrainData, origin_x: int, origin_y: int):
 	var im := data.get_image(HTerrainData.CHANNEL_SPLAT)
 	assert(im != null)
 
 	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
 
-	if _texture_mode == HTerrain.SHADER_CLASSIC4:
-		var target_color = Color(0, 0, 0, 0)
-		target_color[_texture_index] = 1.0
-		_image_utils.lerp_color_brush(
-			im, _shape, Vector2(origin_x, origin_y), _opacity, target_color)
+	var target_color = Color(0, 0, 0, 0)
+	target_color[_texture_index] = 1.0
+	_image_utils.lerp_color_brush(
+		im, _shape, Vector2(origin_x, origin_y), _opacity, target_color)
 
+
+func _paint_indexed_splat(data: HTerrainData, origin_x: int, origin_y: int):
+	var im := data.get_image(HTerrainData.CHANNEL_INDEXED_SPLAT)
+	
+	if im == null:
+		data._edit_add_map(HTerrainData.CHANNEL_INDEXED_SPLAT)
+		im = data.get_image(HTerrainData.CHANNEL_INDEXED_SPLAT)
+	
+	assert(im != null)
+
+	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
+	
+	var min_x := origin_x
+	var min_y := origin_y
+	var max_x := min_x + _shape.get_width()
+	var max_y := min_y + _shape.get_height()
+	var min_noclamp_x := min_x
+	var min_noclamp_y := min_y
+
+	min_x = Util.clamp_int(min_x, 0, im.get_width())
+	min_y = Util.clamp_int(min_y, 0, im.get_height())
+	max_x = Util.clamp_int(max_x, 0, im.get_width())
+	max_y = Util.clamp_int(max_y, 0, im.get_height())
+	
+	var texture_index_f := float(_texture_index) / 255.0
+	var speed = _opacity
+
+	im.lock()
+	_shape.lock()
+
+	for y in range(min_y, max_y):
+		var by = y - min_noclamp_y
+
+		for x in range(min_x, max_x):
+			var bx = x - min_noclamp_x
+
+			var shape_value = _shape.get_pixel(bx, by).r * speed
+			var c = im.get_pixel(x, y)
+			
+			if (_texture_index & 1) == 1:
+				# Odd
+				c.r = texture_index_f
+				c.b = lerp(c.b, 0.0, shape_value)
+			else:
+				# Even
+				c.g = texture_index_f
+				c.b = lerp(c.b, 1.0, shape_value)
+			
+			im.set_pixel(x, y, c)
+
+	im.lock()
+	_shape.unlock()
+	
 #	elif _texture_mode == HTerrain.SHADER_ARRAY:
 #		var shape_threshold = 0.1
 #
@@ -361,8 +422,6 @@ func _paint_splat(data: HTerrainData, origin_x: int, origin_y: int):
 #					c.r = float(_texture_index) / 256.0
 #					c.g = clamp(_opacity, 0.0, 1.0)
 #					im.set_pixel(x, y, c)
-	else:
-		_logger.error("Unknown texture mode {0}".format([_texture_mode]))
 
 
 func _paint_color(data: HTerrainData, origin_x: int, origin_y: int):
@@ -410,12 +469,12 @@ func _edit_pop_undo_redo_data(heightmap_data: HTerrainData) -> Dictionary:
 	# TODO If possible, use a custom Reference class to store this data into the UndoRedo API,
 	# but WITHOUT exposing it to scripts (so we won't need the following conversions!)
 
+	assert(_last_painted_map_type != -1)
+	assert(_last_painted_map_index != -1)
+
 	var chunk_positions_keys := _undo_cache.keys()
 
-	var channel := _get_mode_channel(_mode)
-	assert(channel != HTerrainData.CHANNEL_COUNT)
-
-	var im := heightmap_data.get_image(channel)
+	var im := heightmap_data.get_image(_last_painted_map_type, _last_painted_map_index)
 	assert(im != null)
 
 	var redo_data := _fetch_redo_chunks(im, chunk_positions_keys)
@@ -438,8 +497,8 @@ func _edit_pop_undo_redo_data(heightmap_data: HTerrainData) -> Dictionary:
 		"undo": undo_data,
 		"redo": redo_data,
 		"chunk_positions": chunk_positions,
-		"channel": channel,
-		"index": 0,
+		"channel": _last_painted_map_type,
+		"index": _last_painted_map_index,
 		"chunk_size": EDIT_CHUNK_SIZE
 	}
 

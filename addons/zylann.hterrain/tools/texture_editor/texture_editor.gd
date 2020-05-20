@@ -30,9 +30,18 @@ func set_terrain(terrain: HTerrain):
 	_edit_dialog.set_terrain(terrain)
 
 
+static func _get_slot_count(terrain: HTerrain) -> int:
+	if terrain.is_using_texture_array():
+		var texarray = terrain.get_shader_param("u_ground_albedo_bump_array")
+		if texarray == null:
+			return 0
+		return texarray.get_depth()
+	return terrain.get_cached_ground_texture_slot_count()
+
+
 func _process(delta: float):
 	if _terrain != null:
-		var slot_count = _terrain.get_cached_ground_texture_slot_count()
+		var slot_count := _get_slot_count(_terrain)
 		if slot_count != _textures_list.get_item_count():
 			_update_texture_list()
 
@@ -40,11 +49,17 @@ func _process(delta: float):
 func _update_texture_list():
 	_textures_list.clear()
 	if _terrain != null:
-		var slot_count = _terrain.get_cached_ground_texture_slot_count()
-		for i in range(slot_count):
-			var tex = _terrain.get_ground_texture(i, HTerrain.GROUND_ALBEDO_BUMP)
-			var hint = _get_slot_hint_name(i, _terrain.get_shader_type())
-			_textures_list.add_item(hint, tex if tex != null else _empty_icon)
+		var slot_count = _get_slot_count(_terrain)
+		if _terrain.is_using_texture_array():
+			for i in slot_count:
+				var hint = _get_slot_hint_name(i, "")
+				# TODO Need to make a brand new control to display such textures
+				_textures_list.add_item(hint, _empty_icon)
+		else:
+			for i in range(slot_count):
+				var tex = _terrain.get_ground_texture(i, HTerrain.GROUND_ALBEDO_BUMP)
+				var hint = _get_slot_hint_name(i, _terrain.get_shader_type())
+				_textures_list.add_item(hint, tex if tex != null else _empty_icon)
 
 
 static func _get_slot_hint_name(i: int, stype: String):
@@ -102,5 +117,8 @@ func _on_EditDialog_albedo_changed(slot, texture):
 
 
 func _on_TexturesContainer_item_activated(index):
+	if _terrain.is_using_texture_array():
+		# Can't really edit those the same way
+		return
 	_edit_dialog.set_slot(index)
 	_edit_dialog.popup_centered()

@@ -14,7 +14,8 @@ const CHANNEL_SPLAT = 2
 const CHANNEL_COLOR = 3
 const CHANNEL_DETAIL = 4
 const CHANNEL_GLOBAL_ALBEDO = 5
-const CHANNEL_COUNT = 6
+const CHANNEL_INDEXED_SPLAT = 6
+const CHANNEL_COUNT = 7
 
 const _channel_names = [
 	"height",
@@ -22,7 +23,8 @@ const _channel_names = [
 	"splat",
 	"color",
 	"detail",
-	"global_albedo"
+	"global_albedo",
+	"indexed_splat"
 ]
 
 const _channel_formats = [
@@ -32,7 +34,8 @@ const _channel_formats = [
 	Image.FORMAT_RGBA8, # color
 	# L8 is used instead of R8 because Godot can't save or load the latter to PNG
 	Image.FORMAT_L8, # detail
-	Image.FORMAT_RGB8 # global_albedo
+	Image.FORMAT_RGB8, # global_albedo
+	Image.FORMAT_RGB8 # indexed_splat
 ]
 
 # Resolution is a power of two + 1
@@ -426,6 +429,7 @@ func _edit_apply_undo(undo_data: Dictionary):
 		match channel:
 			CHANNEL_HEIGHT, \
 			CHANNEL_SPLAT, \
+			CHANNEL_INDEXED_SPLAT, \
 			CHANNEL_COLOR, \
 			CHANNEL_DETAIL:
 				dst_image.blit_rect(data, data_rect, Vector2(min_x, min_y))
@@ -490,6 +494,7 @@ func _upload_region(channel: int, index: int, min_x: int, min_y: int, size_x: in
 	if channel == CHANNEL_NORMAL \
 	or channel == CHANNEL_COLOR \
 	or channel == CHANNEL_SPLAT \
+	or channel == CHANNEL_INDEXED_SPLAT \
 	or channel == CHANNEL_HEIGHT \
 	or channel == CHANNEL_GLOBAL_ALBEDO:
 		flags |= Texture.FLAG_FILTER
@@ -1149,6 +1154,7 @@ func _edit_import_maps(input: Dictionary) -> bool:
 		if not _import_heightmap(params.path, params.min_height, params.max_height, params.big_endian):
 			return false
 
+	# TODO Import indexed maps?
 	var maptypes := [CHANNEL_COLOR, CHANNEL_SPLAT]
 
 	for map_type in maptypes:
@@ -1496,6 +1502,8 @@ static func _get_channel_default_fill(c: int):
 			return Color(0, 0, 0, 0)
 		CHANNEL_NORMAL:
 			return encode_normal(Vector3(0, 1, 0))
+#		CHANNEL_INDEXED_SPLAT:
+#			return Color(0, 0, 0)
 		_:
 			# No need to fill
 			return null

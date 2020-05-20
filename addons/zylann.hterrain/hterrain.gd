@@ -33,6 +33,7 @@ const _api_shader_params = {
 	"u_terrain_normalmap": true,
 	"u_terrain_colormap": true,
 	"u_terrain_splatmap": true,
+	"u_terrain_indexed_splatmap": true,
 	"u_terrain_globalmap": true,
 
 	"u_terrain_inverse_transform": true,
@@ -97,6 +98,7 @@ export var map_scale := Vector3(1, 1, 1) setget set_map_scale
 
 var _custom_shader : Shader = null
 var _shader_type := SHADER_CLASSIC4_LITE
+var _shader_uses_texture_array := false
 var _material := ShaderMaterial.new()
 var _material_params_need_update := false
 
@@ -694,6 +696,7 @@ func _update_material_params():
 	var normal_texture
 	var color_texture
 	var splat_texture
+	var indexed_splat_texture
 	var global_texture
 	var res = Vector2(-1, -1)
 
@@ -704,6 +707,7 @@ func _update_material_params():
 		normal_texture = _data.get_texture(HTerrainData.CHANNEL_NORMAL)
 		color_texture = _data.get_texture(HTerrainData.CHANNEL_COLOR)
 		splat_texture = _data.get_texture(HTerrainData.CHANNEL_SPLAT)
+		indexed_splat_texture = _data.get_texture(HTerrainData.CHANNEL_INDEXED_SPLAT)
 		if _data.get_map_count(HTerrainData.CHANNEL_GLOBAL_ALBEDO) != 0:
 			global_texture = _data.get_texture(HTerrainData.CHANNEL_GLOBAL_ALBEDO)
 		res.x = _data.get_resolution()
@@ -724,6 +728,7 @@ func _update_material_params():
 	_material.set_shader_param(SHADER_PARAM_NORMAL_TEXTURE, normal_texture)
 	_material.set_shader_param(SHADER_PARAM_COLOR_TEXTURE, color_texture)
 	_material.set_shader_param(SHADER_PARAM_SPLAT_TEXTURE, splat_texture)
+	_material.set_shader_param("u_terrain_indexed_splatmap", indexed_splat_texture)
 	_material.set_shader_param("u_terrain_globalmap", global_texture)
 
 	for slot in len(_ground_textures):
@@ -732,6 +737,8 @@ func _update_material_params():
 			var shader_param = get_ground_texture_shader_param(type, slot)
 			_material.set_shader_param(shader_param, textures[type])
 	
+	_shader_uses_texture_array = false
+	
 	var shader := _material.shader
 	if shader != null:
 		var param_list := VisualServer.shader_get_param_list(shader.get_rid())
@@ -739,18 +746,27 @@ func _update_material_params():
 		for p in param_list:
 			if _api_shader_ground_albedo_params.has(p.name):
 				_ground_texture_count_cache += 1
+			if p.name == "u_ground_albedo_bump_array":
+				_shader_uses_texture_array = true
+
+
+func is_using_texture_array() -> bool:
+	return _shader_uses_texture_array
 
 
 # Helper used for globalmap baking
 func setup_globalmap_material(mat: ShaderMaterial):
 	var color_texture: Texture
 	var splat_texture: Texture
+	var indexed_splat_texture: Texture
 
 	if has_data():
 		color_texture = _data.get_texture(HTerrainData.CHANNEL_COLOR)
 		splat_texture = _data.get_texture(HTerrainData.CHANNEL_SPLAT)
+		indexed_splat_texture = _data.get_texture(HTerrainData.CHANNEL_INDEXED_SPLAT)
 
 	mat.set_shader_param("u_terrain_splatmap", splat_texture)
+	mat.set_shader_param("u_terrain_indexed_splatmap", indexed_splat_texture)
 	mat.set_shader_param("u_terrain_colormap", color_texture)
 	mat.set_shader_param("u_depth_blending", get_shader_param("u_depth_blending"))
 	mat.set_shader_param("u_ground_uv_scale", get_shader_param("u_ground_uv_scale"))

@@ -457,6 +457,9 @@ func _paint_completed():
 			
 		HTerrainData.CHANNEL_SPLAT:
 			action_name = "Modify HeightMapData Splat"
+
+		HTerrainData.CHANNEL_INDEXED_SPLAT:
+			action_name = "Modify HeightMapData Indexed Splat"
 			
 		HTerrainData.CHANNEL_HEIGHT:
 			action_name = "Modify HeightMapData Height"
