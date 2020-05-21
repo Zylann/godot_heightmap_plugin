@@ -21,8 +21,8 @@ uniform float u_globalmap_blend_distance;
 
 varying float v_hole;
 varying vec3 v_tint;
-varying float v_splat_weight;
-varying flat vec2 v_splat_indexes;
+//varying float v_splat_weight;
+//varying flat vec2 v_splat_indexes;
 varying vec2 v_ground_uv;
 varying float v_distance_to_camera;
 
@@ -54,9 +54,9 @@ void vertex() {
 	v_hole = tint.a;
 	v_tint = tint.rgb;
 	// TODO Considering some blends are illegal, shouldn't this be in fragment?
-	vec4 iw = texture(u_terrain_indexed_splatmap, UV);
-	v_splat_indexes = vec2(iw.r, iw.g) * 255.0;
-	v_splat_weight = iw.b;
+	//vec4 iw = texture(u_terrain_indexed_splatmap, UV);
+	//v_splat_indexes = vec2(iw.r, iw.g) * 255.0;
+	//v_splat_weight = iw.b;
 
 	// Need to use u_terrain_normal_basis to handle scaling.
 	// For some reason I also had to invert Z when sampling terrain normals... not sure why
@@ -86,14 +86,22 @@ void fragment() {
 	// Eventually, there could be a split between near and far shaders in the future,
 	// if relevant on high-end GPUs
 	if (globalmap_factor < 1.0) {
-		// TODO Sampling a texture array with a varying index is something Godot needs to support!
-		vec4 ab0 = texture(u_ground_albedo_bump_array, vec3(v_ground_uv, v_splat_indexes.x));
-		vec4 ab1 = texture(u_ground_albedo_bump_array, vec3(v_ground_uv, v_splat_indexes.y));
+		vec4 tex_iw = texture(u_terrain_indexed_splatmap, UV);
+		vec2 splatmap_size = vec2(textureSize(u_terrain_indexed_splatmap, 0));
+		vec4 tex_iw2 = texture(u_terrain_indexed_splatmap, floor(UV * splatmap_size) / splatmap_size);
+		// TODO Can't use texelFetch!!
+		// https://github.com/godotengine/godot/issues/31732
+		
+		vec2 splat_indexes = tex_iw2.xy * 255.0;
+		float splat_weight = tex_iw.z;
+
+		vec4 ab0 = texture(u_ground_albedo_bump_array, vec3(v_ground_uv, splat_indexes.x));
+		vec4 ab1 = texture(u_ground_albedo_bump_array, vec3(v_ground_uv, splat_indexes.y));
 
 		vec3 col0 = ab0.rgb * v_tint;
 		vec3 col1 = ab1.rgb * v_tint;
 
-		ALBEDO = mix(col0, col1, v_splat_weight);
+		ALBEDO = mix(col0, col1, splat_weight);
 
 		ROUGHNESS = 0.0;
 
