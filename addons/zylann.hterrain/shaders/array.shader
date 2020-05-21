@@ -7,7 +7,8 @@ shader_type spatial;
 uniform sampler2D u_terrain_heightmap;
 uniform sampler2D u_terrain_normalmap;
 uniform sampler2D u_terrain_colormap : hint_albedo;
-uniform sampler2D u_terrain_indexed_splatmap;
+uniform sampler2D u_terrain_splat_index_map;
+uniform sampler2D u_terrain_splat_weight_map;
 uniform sampler2D u_terrain_globalmap : hint_albedo;
 uniform mat4 u_terrain_inverse_transform;
 uniform mat3 u_terrain_normal_basis;
@@ -86,14 +87,13 @@ void fragment() {
 	// Eventually, there could be a split between near and far shaders in the future,
 	// if relevant on high-end GPUs
 	if (globalmap_factor < 1.0) {
-		vec4 tex_iw = texture(u_terrain_indexed_splatmap, UV);
-		vec2 splatmap_size = vec2(textureSize(u_terrain_indexed_splatmap, 0));
-		vec4 tex_iw2 = texture(u_terrain_indexed_splatmap, floor(UV * splatmap_size) / splatmap_size);
-		// TODO Can't use texelFetch!!
+		vec4 tex_splat_indexes = texture(u_terrain_splat_index_map, UV);
+		vec4 tex_splat_weights = texture(u_terrain_splat_weight_map, UV);
+		// TODO Can't use texelFetch!
 		// https://github.com/godotengine/godot/issues/31732
 		
-		vec2 splat_indexes = tex_iw2.xy * 255.0;
-		float splat_weight = tex_iw.z;
+		vec2 splat_indexes = tex_splat_indexes.rg * 255.0;
+		float splat_weight = tex_splat_weights.r;
 
 		vec4 ab0 = texture(u_ground_albedo_bump_array, vec3(v_ground_uv, splat_indexes.x));
 		vec4 ab1 = texture(u_ground_albedo_bump_array, vec3(v_ground_uv, splat_indexes.y));

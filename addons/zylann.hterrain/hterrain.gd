@@ -11,15 +11,11 @@ const Util = preload("./util/util.gd")
 const HTerrainCollider = preload("./hterrain_collider.gd")
 const Logger = preload("./util/logger.gd")
 
+# TODO Index in a dictionary
 const CLASSIC4_SHADER_PATH = "res://addons/zylann.hterrain/shaders/simple4.shader"
 const CLASSIC4_LITE_SHADER_PATH = "res://addons/zylann.hterrain/shaders/simple4_lite.shader"
 const LOW_POLY_SHADER_PATH = "res://addons/zylann.hterrain/shaders/low_poly.shader"
 const _NORMAL_BAKER_PATH = "res://addons/zylann.hterrain/tools/normalmap_baker.gd"
-
-const SHADER_PARAM_HEIGHT_TEXTURE = "u_terrain_heightmap"
-const SHADER_PARAM_NORMAL_TEXTURE = "u_terrain_normalmap"
-const SHADER_PARAM_COLOR_TEXTURE = "u_terrain_colormap"
-const SHADER_PARAM_SPLAT_TEXTURE = "u_terrain_splatmap"
 
 const SHADER_PARAM_INVERSE_TRANSFORM = "u_terrain_inverse_transform"
 const SHADER_PARAM_NORMAL_BASIS = "u_terrain_normal_basis"
@@ -33,7 +29,8 @@ const _api_shader_params = {
 	"u_terrain_normalmap": true,
 	"u_terrain_colormap": true,
 	"u_terrain_splatmap": true,
-	"u_terrain_indexed_splatmap": true,
+	"u_terrain_splat_index_map": true,
+	"u_terrain_splat_weight_map": true,
 	"u_terrain_globalmap": true,
 
 	"u_terrain_inverse_transform": true,
@@ -691,25 +688,17 @@ func _on_custom_shader_changed():
 func _update_material_params():
 	assert(_material != null)
 	_logger.debug("Updating terrain material params")
-
-	var height_texture
-	var normal_texture
-	var color_texture
-	var splat_texture
-	var indexed_splat_texture
-	var global_texture
-	var res = Vector2(-1, -1)
+	
+	var terrain_textures := {}
+	var res := Vector2(-1, -1)
 
 	# TODO Only get textures the shader supports
 
 	if has_data():
-		height_texture = _data.get_texture(HTerrainData.CHANNEL_HEIGHT)
-		normal_texture = _data.get_texture(HTerrainData.CHANNEL_NORMAL)
-		color_texture = _data.get_texture(HTerrainData.CHANNEL_COLOR)
-		splat_texture = _data.get_texture(HTerrainData.CHANNEL_SPLAT)
-		indexed_splat_texture = _data.get_texture(HTerrainData.CHANNEL_INDEXED_SPLAT)
-		if _data.get_map_count(HTerrainData.CHANNEL_GLOBAL_ALBEDO) != 0:
-			global_texture = _data.get_texture(HTerrainData.CHANNEL_GLOBAL_ALBEDO)
+		for map_type in HTerrainData.CHANNEL_COUNT:
+			var param_name := HTerrainData.get_map_type_shader_param_name(map_type)
+			if _data.has_texture(map_type, 0):
+				terrain_textures[param_name] = _data.get_texture(map_type, 0)
 		res.x = _data.get_resolution()
 		res.y = res.x
 
@@ -723,13 +712,10 @@ func _update_material_params():
 		# This is needed to properly transform normals if the terrain is scaled
 		var normal_basis = gt.basis.inverse().transposed()
 		_material.set_shader_param(SHADER_PARAM_NORMAL_BASIS, normal_basis)
-
-	_material.set_shader_param(SHADER_PARAM_HEIGHT_TEXTURE, height_texture)
-	_material.set_shader_param(SHADER_PARAM_NORMAL_TEXTURE, normal_texture)
-	_material.set_shader_param(SHADER_PARAM_COLOR_TEXTURE, color_texture)
-	_material.set_shader_param(SHADER_PARAM_SPLAT_TEXTURE, splat_texture)
-	_material.set_shader_param("u_terrain_indexed_splatmap", indexed_splat_texture)
-	_material.set_shader_param("u_terrain_globalmap", global_texture)
+	
+	for param_name in terrain_textures:
+		var tex = terrain_textures[param_name]
+		_material.set_shader_param(param_name, tex)
 
 	for slot in len(_ground_textures):
 		var textures = _ground_textures[slot]
@@ -758,15 +744,19 @@ func is_using_texture_array() -> bool:
 func setup_globalmap_material(mat: ShaderMaterial):
 	var color_texture: Texture
 	var splat_texture: Texture
-	var indexed_splat_texture: Texture
+	var splat_index_texture: Texture
+	var splat_weight_texture: Texture
 
 	if has_data():
 		color_texture = _data.get_texture(HTerrainData.CHANNEL_COLOR)
 		splat_texture = _data.get_texture(HTerrainData.CHANNEL_SPLAT)
-		indexed_splat_texture = _data.get_texture(HTerrainData.CHANNEL_INDEXED_SPLAT)
+		splat_index_texture = _data.get_texture(HTerrainData.CHANNEL_SPLAT_INDEX)
+		splat_weight_texture = _data.get_texture(HTerrainData.CHANNEL_SPLAT_WEIGHT)
 
+	# TODO Use HTerrainData shader param list?
 	mat.set_shader_param("u_terrain_splatmap", splat_texture)
-	mat.set_shader_param("u_terrain_indexed_splatmap", indexed_splat_texture)
+	mat.set_shader_param("u_terrain_splat_index_map", splat_index_texture)
+	mat.set_shader_param("u_terrain_splat_weight_map", splat_weight_texture)
 	mat.set_shader_param("u_terrain_colormap", color_texture)
 	mat.set_shader_param("u_depth_blending", get_shader_param("u_depth_blending"))
 	mat.set_shader_param("u_ground_uv_scale", get_shader_param("u_ground_uv_scale"))

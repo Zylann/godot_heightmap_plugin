@@ -1,3 +1,7 @@
+
+# Holds data of the terrain.
+# This is mostly a set of textures using specific formats, some precalculated, and metadata.
+
 tool
 extends Resource
 
@@ -7,44 +11,106 @@ const Errors = preload("./util/errors.gd")
 const NativeFactory = preload("./native/factory.gd")
 const Logger = preload("./util/logger.gd")
 
+# Note: indexes matters for saving, don't re-order
 # TODO Rename "CHANNEL" to "MAP", makes more sense and less confusing with RGBA channels
 const CHANNEL_HEIGHT = 0
 const CHANNEL_NORMAL = 1
-const CHANNEL_SPLAT = 2
+const CHANNEL_SPLAT = 2 # Legacy type for Classic4 RGBA blending
 const CHANNEL_COLOR = 3
 const CHANNEL_DETAIL = 4
 const CHANNEL_GLOBAL_ALBEDO = 5
-const CHANNEL_INDEXED_SPLAT = 6
-const CHANNEL_COUNT = 7
+const CHANNEL_SPLAT_INDEX = 6
+const CHANNEL_SPLAT_WEIGHT = 7
+const CHANNEL_COUNT = 8
 
-const _channel_names = [
-	"height",
-	"normal",
-	"splat",
-	"color",
-	"detail",
-	"global_albedo",
-	"indexed_splat"
-]
-
-const _channel_formats = [
-	Image.FORMAT_RH, # height
-	Image.FORMAT_RGB8, # normal
-	Image.FORMAT_RGBA8, # splat
-	Image.FORMAT_RGBA8, # color
-	# L8 is used instead of R8 because Godot can't save or load the latter to PNG
-	Image.FORMAT_L8, # detail
-	Image.FORMAT_RGB8, # global_albedo
-	Image.FORMAT_RGB8 # indexed_splat
-]
+const _map_types = {
+	CHANNEL_HEIGHT: {
+		name = "height",
+		shader_param_name = "u_terrain_heightmap",
+		texture_flags = Texture.FLAG_FILTER,
+		texture_format = Image.FORMAT_RH,
+		default_fill = null,
+		default_count = 1,
+		can_be_saved_as_png = false,
+		authored = true
+	},
+	CHANNEL_NORMAL: {
+		name = "normal",
+		shader_param_name = "u_terrain_normalmap",
+		texture_flags = Texture.FLAG_FILTER,
+		texture_format = Image.FORMAT_RGB8,
+		default_fill = Color(0.5, 0.5, 1.0),
+		default_count = 1,
+		can_be_saved_as_png = true,
+		authored = false
+	},
+	CHANNEL_SPLAT: {
+		name = "splat",
+		shader_param_name = "u_terrain_splatmap",
+		texture_flags = Texture.FLAG_FILTER,
+		texture_format = Image.FORMAT_RGBA8,
+		default_fill = Color(1, 0, 0, 0),
+		default_count = 1,
+		can_be_saved_as_png = true,
+		authored = true
+	},
+	CHANNEL_COLOR: {
+		name = "color",
+		shader_param_name = "u_terrain_colormap",
+		texture_flags = Texture.FLAG_FILTER,
+		texture_format = Image.FORMAT_RGBA8,
+		default_fill = Color(1, 1, 1, 1),
+		default_count = 1,
+		can_be_saved_as_png = true,
+		authored = true
+	},
+	CHANNEL_DETAIL: {
+		name = "detail",
+		shader_param_name = "u_terrain_detailmap",
+		texture_flags = Texture.FLAG_FILTER,
+		texture_format = Image.FORMAT_R8,
+		default_fill = Color(0, 0, 0),
+		default_count = 0,
+		can_be_saved_as_png = true,
+		authored = true
+	},
+	CHANNEL_GLOBAL_ALBEDO: {
+		name = "global_albedo",
+		shader_param_name = "u_terrain_globalmap",
+		texture_flags = Texture.FLAG_FILTER | Texture.FLAG_MIPMAPS,
+		texture_format = Image.FORMAT_RGB8,
+		default_fill = null,
+		default_count = 0,
+		can_be_saved_as_png = true,
+		authored = false
+	},
+	CHANNEL_SPLAT_INDEX: {
+		name = "splat_index",
+		shader_param_name = "u_terrain_splat_index_map",
+		texture_flags = 0,
+		texture_format = Image.FORMAT_RGB8,
+		default_fill = Color(0, 0, 0),
+		default_count = 0,
+		can_be_saved_as_png = true,
+		authored = true
+	},
+	CHANNEL_SPLAT_WEIGHT: {
+		name = "splat_weight",
+		shader_param_name = "u_terrain_splat_weight_map",
+		texture_flags = Texture.FLAG_FILTER,
+		texture_format = Image.FORMAT_RGB8,
+		default_fill = Color(1, 0, 0),
+		default_count = 0,
+		can_be_saved_as_png = true,
+		authored = true
+	}
+}
 
 # Resolution is a power of two + 1
 const MAX_RESOLUTION = 4097
 const MIN_RESOLUTION = 65 # must be higher than largest minimum chunk size
 const DEFAULT_RESOLUTION = 513
-const SUPPORTED_RESOLUTIONS = [
-	65, 129, 257, 513, 1025, 2049, 4097
-]
+const SUPPORTED_RESOLUTIONS = [65, 129, 257, 513, 1025, 2049, 4097]
 
 const VERTICAL_BOUNDS_CHUNK_SIZE = 16
 # TODO Have vertical bounds chunk size to emphasise the fact it's independent
@@ -109,9 +175,9 @@ func _init():
 
 func _set_default_maps():
 	_maps.resize(CHANNEL_COUNT)
-	for c in range(CHANNEL_COUNT):
+	for c in CHANNEL_COUNT:
 		var maps = []
-		var n = _get_channel_default_count(c)
+		var n = _map_types[c].default_count
 		for i in range(n):
 			maps.append(Map.new(i))
 		_maps[c] = maps
@@ -199,7 +265,7 @@ func resize(p_res: int, stretch := true, anchor := Vector2(-1, -1)):
 		var maps := _maps[channel] as Array
 
 		for index in len(maps):
-			_logger.debug(str("Resizing ", _get_map_debug_name(channel, index), "..."))
+			_logger.debug(str("Resizing ", get_map_debug_name(channel, index), "..."))
 
 			var map := maps[index] as Map
 			var im := map.image
@@ -209,7 +275,7 @@ func resize(p_res: int, stretch := true, anchor := Vector2(-1, -1)):
 				im = Image.new()
 				im.create(_resolution, _resolution, false, get_channel_format(channel))
 
-				var fill_color = _get_channel_default_fill(channel)
+				var fill_color = _map_types[channel].default_fill
 				if fill_color != null:
 					_logger.debug(str("Fill with ", fill_color))
 					im.fill(fill_color)
@@ -217,15 +283,14 @@ func resize(p_res: int, stretch := true, anchor := Vector2(-1, -1)):
 				map.image = im
 
 			else:
-				if stretch and channel == CHANNEL_NORMAL:
+				if stretch and not _map_types[channel].authored:
 					im.create(_resolution, _resolution, false, get_channel_format(channel))
 				else:
 					if stretch:
 						im.resize(_resolution, _resolution)
 					else:
-						map.image = Util.get_cropped_image( \
-							im, _resolution, _resolution, \
-							_get_channel_default_fill(channel), anchor)
+						map.image = Util.get_cropped_image(im, _resolution, _resolution, \
+							_map_types[channel].default_fill, anchor)
 
 			map.modified = true
 
@@ -252,7 +317,6 @@ static func _get_clamped(im: Image, x: int, y: int) -> Color:
 # This height is raw and doesn't account for scaling of the terrain node.
 # This function is relatively slow due to locking, so don't use it to fetch large areas.
 func get_height_at(x: int, y: int) -> float:
-
 	# Height data must be loaded in RAM
 	var im = get_image(CHANNEL_HEIGHT)
 	assert(im != null)
@@ -386,68 +450,60 @@ func _edit_apply_undo(undo_data: Dictionary):
 		return
 
 	var chunk_positions = undo_data["chunk_positions"]
-	var chunk_datas = undo_data["data"]
-	var channel = undo_data["channel"]
-	var index = undo_data["index"]
-	var chunk_size = undo_data["chunk_size"]
+	var map_infos = undo_data["data"]
+	var chunk_size := undo_data["chunk_size"] as int
 
 	# Validate input
 
-	assert(channel >= 0 and channel < CHANNEL_COUNT)
-	assert(chunk_positions.size() / 2 == chunk_datas.size())
+	assert(typeof(chunk_positions) == TYPE_VECTOR2_ARRAY)
 
-	assert(chunk_positions.size() % 2 == 0)
-	for i in range(len(chunk_positions)):
-		var p = chunk_positions[i]
-		assert(typeof(p) == TYPE_INT)
+	for map_info in map_infos:
+		assert(map_info.map_type >= 0 and map_info.map_type < CHANNEL_COUNT)
+		assert(len(map_info.chunks) == len(chunk_positions))
+		for im in map_info.chunks:
+			assert(typeof(im) == TYPE_OBJECT)
+			assert(im is Image)
 
-	for i in range(len(chunk_datas)):
-		var d = chunk_datas[i]
-		assert(typeof(d) == TYPE_OBJECT)
-		assert(d is Image)
-
-	var regions_changed = []
-
-	# Apply
-	for i in range(len(chunk_datas)):
-		var cpos_x = chunk_positions[2 * i]
-		var cpos_y = chunk_positions[2 * i + 1]
-
-		var min_x = cpos_x * chunk_size
-		var min_y = cpos_y * chunk_size
-		var max_x = min_x + 1 * chunk_size
-		var max_y = min_y + 1 * chunk_size
-
-		var data = chunk_datas[i]
-		assert(data != null)
-
-		var data_rect = Rect2(0, 0, data.get_width(), data.get_height())
-
-		var dst_image = get_image(channel, index)
-		assert(dst_image != null)
-
-		match channel:
-			CHANNEL_HEIGHT, \
-			CHANNEL_SPLAT, \
-			CHANNEL_INDEXED_SPLAT, \
-			CHANNEL_COLOR, \
-			CHANNEL_DETAIL:
+	# Apply for each map
+	for map_info in map_infos:
+		var map_type := map_info.map_type as int
+		var map_index := map_info.map_index as int
+		
+		var regions_changed := []
+		
+		for chunk_index in len(map_info.chunks):
+			var cpos = chunk_positions[chunk_index]
+			var cpos_x := int(cpos.x)
+			var cpos_y := int(cpos.y)
+	
+			var min_x := cpos_x * chunk_size
+			var min_y := cpos_y * chunk_size
+			var max_x := min_x + chunk_size
+			var max_y := min_y + chunk_size
+	
+			var data := map_info.chunks[chunk_index] as Image
+			assert(data != null)
+	
+			var data_rect := Rect2(0, 0, data.get_width(), data.get_height())
+	
+			var dst_image := get_image(map_type, map_index)
+			assert(dst_image != null)
+	
+			if _map_types[map_type].authored:
 				dst_image.blit_rect(data, data_rect, Vector2(min_x, min_y))
-			CHANNEL_NORMAL, \
-			CHANNEL_GLOBAL_ALBEDO:
+			else:
 				_logger.error("This is a calculated channel!, no undo on this one\n")
-			_:
-				_logger.error("Wut? Unsupported undo channel\n");
+	
+			# Defer this to a second pass,
+			# otherwise it causes order-dependent artifacts on the normal map
+			regions_changed.append([
+				Rect2(min_x, min_y, max_x - min_x, max_y - min_y), map_type, map_index])
 
-		# Defer this to a second pass,
-		# otherwise it causes order-dependent artifacts on the normal map
-		regions_changed.append([
-			Rect2(min_x, min_y, max_x - min_x, max_y - min_y), channel, index])
-
-	for args in regions_changed:
-		notify_region_change(args[0], args[1], args[2])
+		for args in regions_changed:
+			notify_region_change(args[0], args[1], args[2])
 
 
+# TODO Support map indexes
 # Used for undoing full-terrain changes
 func _edit_apply_maps_from_file_cache(image_file_cache, map_ids: Dictionary):
 	if _edit_disable_apply_undo:
@@ -490,17 +546,7 @@ func _upload_region(channel: int, index: int, min_x: int, min_y: int, size_x: in
 	if size_x <= 0 or size_y <= 0:
 		return
 
-	var flags = 0;
-	if channel == CHANNEL_NORMAL \
-	or channel == CHANNEL_COLOR \
-	or channel == CHANNEL_SPLAT \
-	or channel == CHANNEL_INDEXED_SPLAT \
-	or channel == CHANNEL_HEIGHT \
-	or channel == CHANNEL_GLOBAL_ALBEDO:
-		flags |= Texture.FLAG_FILTER
-
-	if channel == CHANNEL_GLOBAL_ALBEDO:
-		flags |= Texture.FLAG_MIPMAPS
+	var flags = _map_types[channel].texture_flags
 
 	var texture = map.texture
 
@@ -646,6 +692,11 @@ func get_texture(channel: int, index := 0) -> Texture:
 	return _get_texture(channel, index)
 
 
+func has_texture(map_type: int, index: int) -> bool:
+	var maps = _maps[map_type]
+	return index < len(maps)
+
+
 func get_aabb() -> AABB:
 	# TODO Why subtract 1? I forgot
 	# TODO Optimize for full region, this is actually quite costy
@@ -759,7 +810,6 @@ func _update_vertical_bounds(origin_in_cells_x: int, origin_in_cells_y: int, \
 		var pmin_y = y * VERTICAL_BOUNDS_CHUNK_SIZE
 
 		for x in range(cmin_x, cmax_x):
-
 			var b = _chunked_vertical_bounds[y][x]
 			if b == null:
 				b = VerticalBounds.new()
@@ -797,14 +847,13 @@ func save_data(data_dir: String):
 		var maps = _maps[channel]
 
 		for index in range(len(maps)):
-
 			var map = _maps[channel][index]
 			if not map.modified:
 				_logger.debug(str(
-					"Skipping non-modified ", _get_map_debug_name(channel, index)))
+					"Skipping non-modified ", get_map_debug_name(channel, index)))
 				continue
 
-			_logger.debug(str("Saving map ", _get_map_debug_name(channel, index),
+			_logger.debug(str("Saving map ", get_map_debug_name(channel, index),
 				" as ", _get_map_filename(channel, index), "..."))
 
 			_save_channel(data_dir, channel, index)
@@ -885,14 +934,10 @@ func _deserialize_metadata(dict: Dictionary) -> bool:
 		return false
 
 	var data = dict["maps"]
-	_maps.resize(len(data))
+	assert(len(data) <= len(_maps))
 
 	for i in range(len(data)):
 		var maps = _maps[i]
-
-		if maps == null:
-			maps = []
-			_maps[i] = maps
 
 		var maps_data = data[i]
 		if len(maps) != len(maps_data):
@@ -926,7 +971,7 @@ func load_data(dir_path: String):
 		var maps = _maps[map_type]
 
 		for index in range(len(maps)):
-			_logger.debug(str("Loading map ", _get_map_debug_name(map_type, index),
+			_logger.debug(str("Loading map ", get_map_debug_name(map_type, index),
 				" from ", _get_map_filename(map_type, index), "..."))
 
 			_load_channel(dir_path, map_type, index)
@@ -1243,7 +1288,8 @@ func _import_heightmap(fpath: String, min_y: int, max_y: int, big_endian: bool) 
 		# See https://github.com/Zylann/godot_heightmap_plugin/issues/34
 		# Godot can load EXR but it always makes them have at least 3-channels.
 		# Heightmaps need only one, so we have to get rid of 2.
-		src_image.convert(_channel_formats[CHANNEL_HEIGHT])
+		var height_format = _map_types[CHANNEL_HEIGHT].texture_format
+		src_image.convert(height_format)
 		
 		im.blit_rect(src_image, Rect2(0, 0, res, res), Vector2())
 
@@ -1466,21 +1512,19 @@ static func encode_normal(n: Vector3) -> Color:
 
 
 static func get_channel_format(channel: int) -> int:
-	return _channel_formats[channel] as int
+	return _map_types[channel].texture_format as int
 
 
 # Note: PNG supports 16-bit channels, unfortunately Godot doesn't
 static func _channel_can_be_saved_as_png(channel: int) -> bool:
-	if channel == CHANNEL_HEIGHT:
-		return false
-	return true
+	return _map_types[channel].can_be_saved_as_png
 
 
 static func get_channel_name(c: int) -> String:
-	return _channel_names[c] as String
+	return _map_types[c].name as String
 
 
-static func _get_map_debug_name(map_type: int, index: int) -> String:
+static func get_map_debug_name(map_type: int, index: int) -> String:
 	return str(get_channel_name(map_type), "[", index, "]")
 
 
@@ -1492,24 +1536,6 @@ func _get_map_filename(c: int, index: int) -> String:
 	return name
 
 
-static func _get_channel_default_fill(c: int):
-	match c:
-		CHANNEL_COLOR:
-			return Color(1, 1, 1, 1)
-		CHANNEL_SPLAT:
-			return Color(1, 0, 0, 0)
-		CHANNEL_DETAIL:
-			return Color(0, 0, 0, 0)
-		CHANNEL_NORMAL:
-			return encode_normal(Vector3(0, 1, 0))
-#		CHANNEL_INDEXED_SPLAT:
-#			return Color(0, 0, 0)
-		_:
-			# No need to fill
-			return null
+static func get_map_type_shader_param_name(map_type: int) -> String:
+	return _map_types[map_type].shader_param_name as String
 
-
-static func _get_channel_default_count(c: int) -> int:
-	if c == CHANNEL_DETAIL:
-		return 0
-	return 1
