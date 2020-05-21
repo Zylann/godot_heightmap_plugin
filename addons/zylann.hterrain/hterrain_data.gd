@@ -44,7 +44,6 @@ const SUPPORTED_RESOLUTIONS = [
 ]
 
 const VERTICAL_BOUNDS_CHUNK_SIZE = 16
-# TODO Have vertical bounds chunk size to emphasise the fact it's independent
 # TODO Have undo chunk size to emphasise the fact it's independent
 
 const META_EXTENSION = "hterrain"
@@ -60,8 +59,8 @@ signal map_changed(type, index)
 
 
 class VerticalBounds:
-	var minv := 0
-	var maxv := 0
+	var minv := 0.0
+	var maxv := 0.0
 
 
 # A map is a texture covering the terrain.
