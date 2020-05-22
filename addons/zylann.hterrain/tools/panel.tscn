@@ -8,8 +8,8 @@
 
 [node name="Panel" type="Control"]
 margin_right = 895.0
-margin_bottom = 112.0
-rect_min_size = Vector2( 400, 112 )
+margin_bottom = 120.0
+rect_min_size = Vector2( 400, 120 )
 script = ExtResource( 1 )
 __meta__ = {
 "_edit_use_anchors_": false
@@ -23,32 +23,39 @@ margin_top = 4.0
 margin_right = -6.0
 margin_bottom = -4.0
 split_offset = 60
+__meta__ = {
+"_edit_use_anchors_": false
+}
 
 [node name="BrushEditor" parent="HSplitContainer" instance=ExtResource( 2 )]
 margin_right = 260.0
-margin_bottom = 104.0
+margin_bottom = 112.0
 
 [node name="HSplitContainer" type="HSplitContainer" parent="HSplitContainer"]
 margin_left = 272.0
 margin_right = 885.0
-margin_bottom = 104.0
+margin_bottom = 112.0
 
 [node name="HSplitContainer" type="HSplitContainer" parent="HSplitContainer/HSplitContainer"]
 margin_right = 501.0
-margin_bottom = 104.0
+margin_bottom = 112.0
 size_flags_horizontal = 3
 split_offset = 150
 
 [node name="TextureEditor" parent="HSplitContainer/HSplitContainer/HSplitContainer" instance=ExtResource( 3 )]
 margin_right = 250.0
+margin_bottom = 112.0
 size_flags_horizontal = 1
 
 [node name="DetailEditor" parent="HSplitContainer/HSplitContainer/HSplitContainer" instance=ExtResource( 4 )]
 margin_left = 262.0
 margin_right = 501.0
-margin_bottom = 104.0
+margin_bottom = 112.0
 
 [node name="Minimap" parent="HSplitContainer/HSplitContainer" instance=ExtResource( 5 )]
+margin_left = 513.0
+margin_right = 613.0
+margin_bottom = 112.0
 [connection signal="texture_selected" from="HSplitContainer/HSplitContainer/HSplitContainer/TextureEditor" to="." method="_on_TextureEditor_texture_selected"]
 [connection signal="detail_list_changed" from="HSplitContainer/HSplitContainer/HSplitContainer/DetailEditor" to="." method="_on_DetailEditor_detail_list_changed"]
 [connection signal="detail_selected" from="HSplitContainer/HSplitContainer/HSplitContainer/DetailEditor" to="." method="_on_DetailEditor_detail_selected"]

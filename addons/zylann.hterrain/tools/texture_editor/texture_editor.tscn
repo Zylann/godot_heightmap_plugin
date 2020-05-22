@@ -1,14 +1,14 @@
 [gd_scene load_steps=7 format=2]
 
 [ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/texture_editor.gd" type="Script" id=1]
-[ext_resource path="res://addons/zylann.hterrain/tools/icons/empty.png" type="Texture" id=2]
+[ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/texture_list.tscn" type="PackedScene" id=2]
 [ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/texture_editor_dialog.gd" type="Script" id=3]
 [ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/display_color_material.tres" type="Material" id=4]
 [ext_resource path="res://icon.png" type="Texture" id=5]
 [ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/display_alpha_material.tres" type="Material" id=6]
 
 [node name="TextureEditor" type="Control"]
-margin_right = 266.0
+margin_right = 352.0
 margin_bottom = 104.0
 rect_min_size = Vector2( 100, 0 )
 size_flags_horizontal = 3
@@ -17,15 +17,8 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="TexturesContainer" type="ItemList" parent="."]
-anchor_right = 1.0
-anchor_bottom = 1.0
+[node name="TextureList" parent="." instance=ExtResource( 2 )]
 margin_bottom = -26.0
-items = [ "0", ExtResource( 2 ), false, "1", ExtResource( 2 ), false, "2", ExtResource( 2 ), false, "3", ExtResource( 2 ), false ]
-max_columns = 0
-same_column_width = true
-icon_mode = 0
-fixed_icon_size = Vector2( 32, 32 )
 
 [node name="HBoxContainer" type="HBoxContainer" parent="."]
 anchor_top = 1.0
@@ -192,8 +185,8 @@ margin_top = 174.0
 margin_right = 524.0
 margin_bottom = 194.0
 focus_mode = 2
-[connection signal="item_activated" from="TexturesContainer" to="." method="_on_TexturesContainer_item_activated"]
-[connection signal="item_selected" from="TexturesContainer" to="." method="_on_TexturesContainer_item_selected"]
+[connection signal="item_activated" from="TextureList" to="." method="_on_TextureList_item_activated"]
+[connection signal="item_selected" from="TextureList" to="." method="_on_TextureList_item_selected"]
 [connection signal="pressed" from="HBoxContainer/ClearButton" to="." method="_on_ClearButton_pressed"]
 [connection signal="pressed" from="HBoxContainer/LoadButton" to="." method="_on_LoadButton_pressed"]
 [connection signal="pressed" from="HBoxContainer/EditButton" to="." method="_on_EditButton_pressed"]
