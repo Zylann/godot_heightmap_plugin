@@ -32,10 +32,10 @@ func set_terrain(terrain: HTerrain):
 
 static func _get_slot_count(terrain: HTerrain) -> int:
 	if terrain.is_using_texture_array():
-		var texarray = terrain.get_shader_param("u_ground_albedo_bump_array")
-		if texarray == null:
+		var texture_array = terrain.get_ground_texture_array(HTerrain.GROUND_ALBEDO_BUMP)
+		if texture_array == null:
 			return 0
-		return texarray.get_depth()
+		return texture_array.get_depth()
 	return terrain.get_cached_ground_texture_slot_count()
 
 
@@ -53,8 +53,7 @@ func _update_texture_list():
 		if _terrain.is_using_texture_array():
 			# Texture array workflow doesn't support changing layers from here
 			_set_buttons_active(false)
-			# TODO Don't hardcode this here
-			var texture_array = _terrain.get_shader_param("u_ground_albedo_bump_array")
+			var texture_array = _terrain.get_ground_texture_array(HTerrain.GROUND_ALBEDO_BUMP)
 			for i in slot_count:
 				var hint = _get_slot_hint_name(i, _terrain.get_shader_type())
 				_textures_list.add_item(hint, texture_array, i)

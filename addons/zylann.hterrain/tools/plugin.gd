@@ -16,6 +16,7 @@ const GlobalMapBaker = preload("./globalmap_baker.gd")
 const ImageFileCache = preload("../util/image_file_cache.gd")
 const Logger = preload("../util/logger.gd")
 
+# TODO Suffix with Scene
 const EditPanel = preload("./panel.tscn")
 const ProgressWindow = preload("./progress_window.tscn")
 const GeneratorDialog = preload("./generator/generator_dialog.tscn")
@@ -488,8 +489,8 @@ func _terrain_exited_scene():
 
 func _menu_item_selected(id):
 	_logger.debug(str("Menu item selected ", id))
+	
 	match id:
-		
 		MENU_IMPORT_MAPS:
 			_import_dialog.popup_centered()
 					

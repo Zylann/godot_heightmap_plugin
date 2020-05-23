@@ -720,7 +720,7 @@ func _update_material_params():
 	for slot in len(_ground_textures):
 		var textures = _ground_textures[slot]
 		for type in len(textures):
-			var shader_param = get_ground_texture_shader_param(type, slot)
+			var shader_param = _get_ground_texture_shader_param_name(type, slot)
 			_material.set_shader_param(shader_param, textures[type])
 	
 	_shader_uses_texture_array = false
@@ -765,7 +765,7 @@ func setup_globalmap_material(mat: ShaderMaterial):
 	for slot in len(_ground_textures):
 		var textures = _ground_textures[slot]
 		for type in len(textures):
-			var shader_param = get_ground_texture_shader_param(type, slot)
+			var shader_param = _get_ground_texture_shader_param_name(type, slot)
 			var tex = textures[type]
 			mat.set_shader_param(shader_param, tex)
 
@@ -1086,7 +1086,7 @@ func cell_raycast(origin_world: Vector3, dir_world: Vector3, max_distance: float
 
 # TODO Rename these "splat textures"
 
-static func get_ground_texture_shader_param(ground_texture_type: int, slot: int) -> String:
+static func _get_ground_texture_shader_param_name(ground_texture_type: int, slot: int) -> String:
 	assert(typeof(slot) == TYPE_INT and slot >= 0)
 	_check_ground_texture_type(ground_texture_type)
 	return str(SHADER_PARAM_GROUND_PREFIX, 
@@ -1095,16 +1095,39 @@ static func get_ground_texture_shader_param(ground_texture_type: int, slot: int)
 
 func get_ground_texture(slot: int, type: int) -> Texture:
 	_check_slot(slot)
-	var shader_param = get_ground_texture_shader_param(type, slot)
+	var shader_param = _get_ground_texture_shader_param_name(type, slot)
 	return _material.get_shader_param(shader_param)
 
 
 func set_ground_texture(slot: int, type: int, tex: Texture):
 	_check_slot(slot)
 	assert(tex == null or tex is Texture)
-	var shader_param = get_ground_texture_shader_param(type, slot)
+	var shader_param = _get_ground_texture_shader_param_name(type, slot)
 	_material.set_shader_param(shader_param, tex)
 	_ground_textures[slot][type] = tex
+
+
+func _get_ground_texture_array_param_name(type: int) -> String:
+	match type:
+		GROUND_ALBEDO_BUMP:
+			return "u_ground_albedo_bump_array"
+		GROUND_NORMAL_ROUGHNESS:
+			return "u_ground_normal_roughness_array"
+		_:
+			_logger.error("Unknown texture type {0}".format([type]))
+			return ""
+
+
+# Helper to get texture array
+func get_ground_texture_array(type: int) -> TextureArray:
+	var param_name = _get_ground_texture_array_param_name(type)
+	return _material.get_shader_param(param_name)
+
+
+# Helper to set texture array
+func set_ground_texture_array(type: int, texture_array: TextureArray):
+	var param_name = _get_ground_texture_array_param_name(type)
+	_material.set_shader_param(param_name, texture_array)
 
 
 func _internal_add_detail_layer(layer):
