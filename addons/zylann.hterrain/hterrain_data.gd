@@ -32,7 +32,8 @@ const _map_types = {
 		default_fill = null,
 		default_count = 1,
 		can_be_saved_as_png = false,
-		authored = true
+		authored = true,
+		sgrb = false
 	},
 	CHANNEL_NORMAL: {
 		name = "normal",
@@ -42,7 +43,8 @@ const _map_types = {
 		default_fill = Color(0.5, 0.5, 1.0),
 		default_count = 1,
 		can_be_saved_as_png = true,
-		authored = false
+		authored = false,
+		sgrb = false
 	},
 	CHANNEL_SPLAT: {
 		name = "splat",
@@ -52,7 +54,8 @@ const _map_types = {
 		default_fill = Color(1, 0, 0, 0),
 		default_count = 1,
 		can_be_saved_as_png = true,
-		authored = true
+		authored = true,
+		sgrb = false
 	},
 	CHANNEL_COLOR: {
 		name = "color",
@@ -62,7 +65,8 @@ const _map_types = {
 		default_fill = Color(1, 1, 1, 1),
 		default_count = 1,
 		can_be_saved_as_png = true,
-		authored = true
+		authored = true,
+		sgrb = true
 	},
 	CHANNEL_DETAIL: {
 		name = "detail",
@@ -72,7 +76,8 @@ const _map_types = {
 		default_fill = Color(0, 0, 0),
 		default_count = 0,
 		can_be_saved_as_png = true,
-		authored = true
+		authored = true,
+		sgrb = false
 	},
 	CHANNEL_GLOBAL_ALBEDO: {
 		name = "global_albedo",
@@ -82,7 +87,8 @@ const _map_types = {
 		default_fill = null,
 		default_count = 0,
 		can_be_saved_as_png = true,
-		authored = false
+		authored = false,
+		sgrb = true
 	},
 	CHANNEL_SPLAT_INDEX: {
 		name = "splat_index",
@@ -92,7 +98,8 @@ const _map_types = {
 		default_fill = Color(0, 0, 0),
 		default_count = 0,
 		can_be_saved_as_png = true,
-		authored = true
+		authored = true,
+		sgrb = false
 	},
 	CHANNEL_SPLAT_WEIGHT: {
 		name = "splat_weight",
@@ -102,7 +109,8 @@ const _map_types = {
 		default_fill = Color(1, 0, 0),
 		default_count = 0,
 		can_be_saved_as_png = true,
-		authored = true
+		authored = true,
+		sgrb = false
 	}
 }
 
@@ -1040,6 +1048,11 @@ static func _try_write_default_import_options(fpath: String, channel: int, logge
 	if f.file_exists(imp_fpath):
 		# Already exists
 		return
+	
+	var map_type = _map_types[channel]
+	var texture_flags: int = map_type.texture_flags
+	var filter := (texture_flags & Texture.FLAG_FILTER) != 0
+	var srgb: bool = map_type.srgb
 
 	var defaults = {
 		"remap": {
@@ -1051,20 +1064,29 @@ static func _try_write_default_import_options(fpath: String, channel: int, logge
 		},
 		"params": {
 			# Don't compress. It ruins quality and makes the editor choke on big textures.
-			# I would have used ImageTexture.COMPRESS_LOSSLESS,
+			# TODO I would have used ImageTexture.COMPRESS_LOSSLESS,
 			# but apparently what is saved in the .import file does not match,
 			# and rather corresponds TO THE UI IN THE IMPORT DOCK :facepalm:
 			"compress/mode": 0,
+			
 			"compress/hdr_mode": 0,
 			"compress/normal_map": 0,
 			"flags/mipmaps": false,
-			"flags/filter": true,
+			"flags/filter": filter,
+			
+			# Most textures aren't color.
+			# Same here, this is mapping something from the import dock UI,
+			# and doesn't have any enum associated, just raw numbers in C++ code...
+			# 0 = "disabled", 1 = "enabled", 2 = "detect"
+			"flags/srgb": 2 if srgb else 0,
+			
 			# No need for this, the meaning of alpha is never transparency
 			"process/fix_alpha_border": false,
+			
 			# Don't try to be smart.
 			# This can actually overwrite the settings with defaults...
 			# https://github.com/godotengine/godot/issues/24220
-			"detect_3d": false
+			"detect_3d": false,
 		}
 	}
 
