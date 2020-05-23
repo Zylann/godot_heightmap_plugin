@@ -9,10 +9,6 @@ const MinimapShader = preload("./minimap_normal.shader")
 const MODE_QUADTREE = 0
 const MODE_NORMAL = 1
 
-const CAM_ICON_ANGLE = 3.0 * PI / 4.0
-const CAM_ICON_SIZE = 10.0
-const CAM_ICON_COLOR = Color(0.5, 0.5, 1.0)
-
 onready var _popup_menu = $PopupMenu
 onready var _color_rect = $ColorRect
 onready var _overlay = $Overlay

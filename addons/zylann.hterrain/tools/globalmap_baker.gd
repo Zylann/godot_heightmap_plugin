@@ -1,8 +1,9 @@
-tool
-extends Node
 
 # Bakes a global albedo map using the same shader the terrain uses,
 # but renders top-down in orthographic mode.
+
+tool
+extends Node
 
 const HTerrainData = preload("../hterrain_data.gd")
 const HTerrainMesher = preload("../hterrain_mesher.gd")
