@@ -404,7 +404,7 @@ func _paint_indexed_splat(data: HTerrainData, origin_x: int, origin_y: int):
 	max_y = Util.clamp_int(max_y, 0, index_map.get_height())
 	
 	var texture_index_f := float(_texture_index) / 255.0
-	var speed := _opacity
+	var speed := _opacity * 0.3
 
 	index_map.lock()
 	weight_map.lock()
@@ -420,14 +420,50 @@ func _paint_indexed_splat(data: HTerrainData, origin_x: int, origin_y: int):
 			var i := index_map.get_pixel(x, y)
 			var w := weight_map.get_pixel(x, y)
 			
-			if (_texture_index & 1) == 1:
-				# Odd
-				i.r = texture_index_f
-				w.r = lerp(w.r, 0.0, shape_value)
+			# The index map tells which textures to blend.
+			# The weight map tells their blending amounts.
+			# This brings the limitation that up to 3 textures can blend at a time in a given pixel.
+			# Painting this in real time can be a challenge.
+			
+			# The approach here is a compromise for simplicity.
+			# Each texture is associated a fixed component of the index map (R, G or B),
+			# so two neighbor pixels having the same component won't be able to blend.
+			# In other words, texture T will not be able to blend with T + N * k,
+			# where k is an integer, and N is the number of components in the index map (up to 4).
+			
+			# Dynamic component assignment sounds like the alternative, however I wasn't able
+			# to find a painting algorithm that wasn't confusing, at least the current one is
+			# predictable.
+			
+			var component_index = _texture_index & 1 
+			var target_blend = float(component_index)
+			var opposite_blend = float(1 - component_index)
+			
+			if abs(i[component_index] - texture_index_f) < 0.001:
+				# Pixel has our texture index, increase weight
+				if component_index == 0:
+					w.r = clamp(w.r - shape_value, 0.0, 1.0)
+				else:
+					w.r = clamp(w.r + shape_value, 0.0, 1.0)
 			else:
-				# Even
-				i.g = texture_index_f
-				w.r = lerp(w.r, 1.0, shape_value)
+				# Pixel doesn't have our texture yet, decrease old weight
+				if component_index == 0:
+					w.r = clamp(w.r + shape_value, 0.0, 1.0)
+				else:
+					w.r = clamp(w.r - shape_value, 0.0, 1.0)
+			
+			if shape_value > 0.0:
+				if w.r == opposite_blend:
+					# Component is completely out, now we can switch to our texture
+					i[component_index] = texture_index_f
+					
+				elif w.r == target_blend:
+					# Component is full of our texture.
+					# If the current pixel does not blend with any texture,
+					# we can set all its indexes to the same texture,
+					# to avoid some interpolation problems
+					i.r = texture_index_f
+					i.g = texture_index_f
 			
 			index_map.set_pixel(x, y, i)
 			weight_map.set_pixel(x, y, w)
