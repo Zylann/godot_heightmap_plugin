@@ -13,7 +13,7 @@ uniform sampler2D u_terrain_globalmap : hint_albedo;
 uniform mat4 u_terrain_inverse_transform;
 uniform mat3 u_terrain_normal_basis;
 
-uniform sampler2DArray u_ground_albedo_bump_array;
+uniform sampler2DArray u_ground_albedo_bump_array : hint_albedo;
 
 uniform float u_ground_uv_scale;
 
