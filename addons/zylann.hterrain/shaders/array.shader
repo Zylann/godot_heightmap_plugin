@@ -1,9 +1,5 @@
 shader_type spatial;
 
-// This is the reference shader of the plugin, and has the most features.
-// it should be preferred for high-end graphics cards.
-// For less features but lower-end targets, see the lite version.
-
 uniform sampler2D u_terrain_heightmap;
 uniform sampler2D u_terrain_normalmap;
 uniform sampler2D u_terrain_colormap : hint_albedo;
@@ -54,10 +50,6 @@ void vertex() {
 	vec4 tint = texture(u_terrain_colormap, UV);
 	v_hole = tint.a;
 	v_tint = tint.rgb;
-	// TODO Considering some blends are illegal, shouldn't this be in fragment?
-	//vec4 iw = texture(u_terrain_indexed_splatmap, UV);
-	//v_splat_indexes = vec2(iw.r, iw.g) * 255.0;
-	//v_splat_weight = iw.b;
 
 	// Need to use u_terrain_normal_basis to handle scaling.
 	// For some reason I also had to invert Z when sampling terrain normals... not sure why
@@ -92,16 +84,20 @@ void fragment() {
 		// TODO Can't use texelFetch!
 		// https://github.com/godotengine/godot/issues/31732
 		
-		vec2 splat_indexes = tex_splat_indexes.rg * 255.0;
-		float splat_weight = tex_splat_weights.r;
+		vec3 splat_indexes = tex_splat_indexes.rgb * 255.0;
+		float splat_weight0 = tex_splat_weights.r;
+		float splat_weight1 = tex_splat_weights.g;
+		float splat_weight2 = 1.0 - tex_splat_weights.r - tex_splat_weights.g;
 
 		vec4 ab0 = texture(u_ground_albedo_bump_array, vec3(v_ground_uv, splat_indexes.x));
 		vec4 ab1 = texture(u_ground_albedo_bump_array, vec3(v_ground_uv, splat_indexes.y));
+		vec4 ab2 = texture(u_ground_albedo_bump_array, vec3(v_ground_uv, splat_indexes.z));
 
 		vec3 col0 = ab0.rgb * v_tint;
 		vec3 col1 = ab1.rgb * v_tint;
+		vec3 col2 = ab2.rgb * v_tint;
 
-		ALBEDO = mix(col0, col1, splat_weight);
+		ALBEDO = col0 * splat_weight0 + col1 * splat_weight1 + col2 * splat_weight2;
 
 		ROUGHNESS = 0.0;
 
@@ -116,6 +112,7 @@ void fragment() {
 		normal = mix(normal, terrain_normal_world, globalmap_factor);
 
 		ALBEDO = mix(ALBEDO, global_albedo, globalmap_factor);
+		//ALBEDO = vec3(splat_weight0, splat_weight1, splat_weight2);
 		ROUGHNESS = mix(ROUGHNESS, 1.0, globalmap_factor);
 	}
 

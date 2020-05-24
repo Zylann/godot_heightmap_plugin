@@ -404,7 +404,11 @@ func _paint_indexed_splat(data: HTerrainData, origin_x: int, origin_y: int):
 	max_y = Util.clamp_int(max_y, 0, index_map.get_height())
 	
 	var texture_index_f := float(_texture_index) / 255.0
-	var speed := _opacity * 0.3
+	var speed := _opacity * 0.5
+	var all_texture_index_f := Color(texture_index_f, texture_index_f, texture_index_f)
+	var ci := _texture_index % 3
+	var cm := Color(-1, -1, -1)
+	cm[ci] = 1
 
 	index_map.lock()
 	weight_map.lock()
@@ -416,9 +420,15 @@ func _paint_indexed_splat(data: HTerrainData, origin_x: int, origin_y: int):
 		for x in range(min_x, max_x):
 			var bx := x - min_noclamp_x
 
-			var shape_value = _shape.get_pixel(bx, by).r * speed
+			var shape_value := _shape.get_pixel(bx, by).r * speed
+			if shape_value == 0.0:
+				continue
+
 			var i := index_map.get_pixel(x, y)
 			var w := weight_map.get_pixel(x, y)
+			
+			# Decompress third weight to make computations easier
+			w[2] = 1.0 - w[0] - w[1]
 			
 			# The index map tells which textures to blend.
 			# The weight map tells their blending amounts.
@@ -427,43 +437,47 @@ func _paint_indexed_splat(data: HTerrainData, origin_x: int, origin_y: int):
 			
 			# The approach here is a compromise for simplicity.
 			# Each texture is associated a fixed component of the index map (R, G or B),
-			# so two neighbor pixels having the same component won't be able to blend.
+			# so two neighbor pixels having the same component won't be guaranteed to blend.
 			# In other words, texture T will not be able to blend with T + N * k,
 			# where k is an integer, and N is the number of components in the index map (up to 4).
+			# It might still be able to blend due to a special case when an area is uniform,
+			# but not otherwise.
 			
 			# Dynamic component assignment sounds like the alternative, however I wasn't able
 			# to find a painting algorithm that wasn't confusing, at least the current one is
 			# predictable.
 			
-			var component_index = _texture_index & 1 
-			var target_blend = float(component_index)
-			var opposite_blend = float(1 - component_index)
-			
-			if abs(i[component_index] - texture_index_f) < 0.001:
-				# Pixel has our texture index, increase weight
-				if component_index == 0:
-					w.r = clamp(w.r - shape_value, 0.0, 1.0)
-				else:
-					w.r = clamp(w.r + shape_value, 0.0, 1.0)
-			else:
-				# Pixel doesn't have our texture yet, decrease old weight
-				if component_index == 0:
-					w.r = clamp(w.r + shape_value, 0.0, 1.0)
-				else:
-					w.r = clamp(w.r - shape_value, 0.0, 1.0)
-			
-			if shape_value > 0.0:
-				if w.r == opposite_blend:
-					# Component is completely out, now we can switch to our texture
-					i[component_index] = texture_index_f
+			# Need to use approximation because Color is float but GDScript uses doubles...
+			if abs(i[ci] - texture_index_f) > 0.001:
+				# Pixel does not have our texture index,
+				# transfer its weight to other components first
+				if w[ci] > shape_value:
+					w -= cm * shape_value
 					
-				elif w.r == target_blend:
-					# Component is full of our texture.
-					# If the current pixel does not blend with any texture,
-					# we can set all its indexes to the same texture,
-					# to avoid some interpolation problems
-					i.r = texture_index_f
-					i.g = texture_index_f
+				elif w[ci] >= 0.0:
+					w[ci] = 0.0
+					i[ci] = texture_index_f
+					
+			else:
+				# Pixel has our texture index, increase its weight
+				if w[ci] + shape_value < 1.0:
+					w += cm * shape_value
+					
+				else:
+					# Pixel weight is full, we can set all components to the same index.
+					# Need to nullify other weights because they would otherwise never reach
+					# zero due to normalization
+					w = Color(0, 0, 0)
+					w[ci] = 1.0
+					i = all_texture_index_f
+			
+			# No `saturate` function in Color??
+			w[0] = clamp(w[0], 0.0, 1.0)
+			w[1] = clamp(w[1], 0.0, 1.0)
+			w[2] = clamp(w[2], 0.0, 1.0)
+			
+			# Renormalize
+			w /= w[0] + w[1] + w[2]
 			
 			index_map.set_pixel(x, y, i)
 			weight_map.set_pixel(x, y, w)

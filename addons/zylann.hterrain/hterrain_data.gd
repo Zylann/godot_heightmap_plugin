@@ -105,7 +105,7 @@ const _map_types = {
 		name = "splat_weight",
 		shader_param_name = "u_terrain_splat_weight_map",
 		texture_flags = Texture.FLAG_FILTER,
-		texture_format = Image.FORMAT_RGB8,
+		texture_format = Image.FORMAT_RG8,
 		default_fill = Color(1, 0, 0),
 		default_count = 0,
 		can_be_saved_as_png = true,
@@ -559,7 +559,6 @@ func _upload_region(channel: int, index: int, min_x: int, min_y: int, size_x: in
 	var texture = map.texture
 
 	if texture == null or not (texture is ImageTexture):
-
 		# The texture doesn't exist yet in an editable format
 		if texture != null and not (texture is ImageTexture):
 			_logger.debug(str(
@@ -579,23 +578,19 @@ func _upload_region(channel: int, index: int, min_x: int, min_y: int, size_x: in
 		emit_signal("map_changed", channel, index)
 
 	elif texture.get_size() != image.get_size():
-
 		_logger.debug(str(
 			"_upload_region was used but the image size is different. ",\
 			"The map ", channel, "[", index, "] will be reuploaded entirely."))
-
 		texture.create_from_image(image, flags)
 
 	else:
 		if VisualServer.has_method("texture_set_data_partial"):
-			
 			VisualServer.texture_set_data_partial( \
 				texture.get_rid(), image, \
 				min_x, min_y, \
 				size_x, size_y, \
 				min_x, min_y, \
 				0, 0)
-
 		else:
 			# Godot 3.0.6 and earlier...
 			# It is slow.
