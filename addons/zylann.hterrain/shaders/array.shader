@@ -28,10 +28,6 @@ vec3 unpack_normal(vec4 rgba) {
 	return rgba.xzy * 2.0 - vec3(1.0);
 }
 
-vec3 unpack_normal_t(vec4 rgba) {
-	return (rgba.xzy * 2.0 - vec3(1.0));
-}
-
 vec3 get_depth_blended_weights(vec3 splat, vec3 bumps) {
 	float dh = 0.2;
 
@@ -122,28 +118,25 @@ void fragment() {
 		vec4 nr1 = texture(u_ground_normal_roughness_array, vec3(v_ground_uv, splat_indexes.y));
 		vec4 nr2 = texture(u_ground_normal_roughness_array, vec3(v_ground_uv, splat_indexes.z));
 
-		vec3 col0 = ab0.rgb * v_tint;
-		vec3 col1 = ab1.rgb * v_tint;
-		vec3 col2 = ab2.rgb * v_tint;
-		
 		// TODO An #ifdef macro would be nice! Or copy/paste everything in a different shader...
 		if (u_depth_blending) {
 			splat_weights = get_depth_blended_weights(splat_weights, vec3(ab0.a, ab1.a, ab2.a));
 		}
 
-		ALBEDO = 
-			  col0 * splat_weights.x 
-			+ col1 * splat_weights.y
-			+ col2 * splat_weights.z;
+		ALBEDO = v_tint * (
+			  ab0.rgb * splat_weights.x 
+			+ ab1.rgb * splat_weights.y
+			+ ab2.rgb * splat_weights.z
+		);
 			
 		ROUGHNESS = 
 			  nr0.a * splat_weights.x
 			+ nr1.a * splat_weights.y
 			+ nr2.a * splat_weights.z;
 
-		vec3 normal0 = unpack_normal_t(nr0);
-		vec3 normal1 = unpack_normal_t(nr1);
-		vec3 normal2 = unpack_normal_t(nr2);
+		vec3 normal0 = unpack_normal(nr0);
+		vec3 normal1 = unpack_normal(nr1);
+		vec3 normal2 = unpack_normal(nr2);
 		
 		vec3 ground_normal = 
 			  normal0 * splat_weights.x
