@@ -10,23 +10,26 @@ uniform mat4 u_terrain_inverse_transform;
 uniform mat3 u_terrain_normal_basis;
 
 uniform sampler2DArray u_ground_albedo_bump_array : hint_albedo;
+uniform sampler2DArray u_ground_normal_roughness_array;
 
+// TODO Have UV scales for each texture in an array?
 uniform float u_ground_uv_scale;
-
 uniform float u_globalmap_blend_start;
 uniform float u_globalmap_blend_distance;
 uniform bool u_depth_blending = true;
 
 varying float v_hole;
 varying vec3 v_tint;
-//varying float v_splat_weight;
-//varying flat vec2 v_splat_indexes;
 varying vec2 v_ground_uv;
 varying float v_distance_to_camera;
 
 
 vec3 unpack_normal(vec4 rgba) {
 	return rgba.xzy * 2.0 - vec3(1.0);
+}
+
+vec3 unpack_normal_t(vec4 rgba) {
+	return (rgba.xzy * 2.0 - vec3(1.0));
 }
 
 vec3 get_depth_blended_weights(vec3 splat, vec3 bumps) {
@@ -115,6 +118,10 @@ void fragment() {
 		vec4 ab1 = texture(u_ground_albedo_bump_array, vec3(v_ground_uv, splat_indexes.y));
 		vec4 ab2 = texture(u_ground_albedo_bump_array, vec3(v_ground_uv, splat_indexes.z));
 
+		vec4 nr0 = texture(u_ground_normal_roughness_array, vec3(v_ground_uv, splat_indexes.x));
+		vec4 nr1 = texture(u_ground_normal_roughness_array, vec3(v_ground_uv, splat_indexes.y));
+		vec4 nr2 = texture(u_ground_normal_roughness_array, vec3(v_ground_uv, splat_indexes.z));
+
 		vec3 col0 = ab0.rgb * v_tint;
 		vec3 col1 = ab1.rgb * v_tint;
 		vec3 col2 = ab2.rgb * v_tint;
@@ -124,11 +131,24 @@ void fragment() {
 			splat_weights = get_depth_blended_weights(splat_weights, vec3(ab0.a, ab1.a, ab2.a));
 		}
 
-		ALBEDO = col0 * splat_weights.x + col1 * splat_weights.y + col2 * splat_weights.z;
+		ALBEDO = 
+			  col0 * splat_weights.x 
+			+ col1 * splat_weights.y
+			+ col2 * splat_weights.z;
+			
+		ROUGHNESS = 
+			  nr0.a * splat_weights.x
+			+ nr1.a * splat_weights.y
+			+ nr2.a * splat_weights.z;
 
-		ROUGHNESS = 0.0;
-
-		vec3 ground_normal = vec3(0, 1, 0);
+		vec3 normal0 = unpack_normal_t(nr0);
+		vec3 normal1 = unpack_normal_t(nr1);
+		vec3 normal2 = unpack_normal_t(nr2);
+		
+		vec3 ground_normal = 
+			  normal0 * splat_weights.x
+			+ normal1 * splat_weights.y
+			+ normal2 * splat_weights.z;
 
 		// Combine terrain normals with detail normals (not sure if correct but looks ok)
 		normal = normalize(vec3(
