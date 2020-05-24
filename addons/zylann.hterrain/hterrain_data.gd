@@ -1136,6 +1136,7 @@ func _load_channel(dir: String, channel: int, index: int) -> bool:
 			if map.image == null:
 				map.image = Image.new()
 			map.image.load(fpath)
+			_ensure_map_format(map.image, channel, index)
 
 		var tex = load(fpath)
 		map.texture = tex
@@ -1154,9 +1155,19 @@ func _load_channel(dir: String, channel: int, index: int) -> bool:
 		_resolution = im.get_width()
 
 		map.image = im
+		_ensure_map_format(map.image, channel, index)
 		_upload_channel(channel, index)
 
 	return true
+
+
+func _ensure_map_format(im: Image, map_type: int, index: int):
+	var format = im.get_format()
+	var expected_format = _map_types[map_type].texture_format
+	if format != expected_format:
+		_logger.warn("Map {0} loaded as format {1}, expected {2}. Will be converted." \
+			.format([get_map_debug_name(map_type, index), format, expected_format]))
+		im.convert(expected_format)
 
 
 # Legacy
