@@ -327,7 +327,8 @@ func _backup_for_undo(terrain_data: HTerrainData, undo_cache: Dictionary,
 				var sub_image = im.get_rect(Rect2(min_x, min_y, max_x - min_x, max_y - min_y))
 				sub_images.append(sub_image)
 			
-			undo_cache[k] = sub_images
+			if len(sub_images) > 0:
+				undo_cache[k] = sub_images
 
 
 func _paint_height(data: HTerrainData, origin_x: int, origin_y: int, speed: float):
