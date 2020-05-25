@@ -46,6 +46,9 @@ def parse_headings(lines):
 		elif "---" in line:
 			elem = MDElement(prev_line.strip(), 1)
 
+		elif "####" in line:
+			elem = MDElement(line[4:].strip(), 3)
+
 		elif "###" in line:
 			elem = MDElement(line[4:].strip(), 2)
 

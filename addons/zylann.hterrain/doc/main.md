@@ -12,8 +12,12 @@ HTerrain plugin documentation
         - [Normals](#normals)
     - [Texturing](#texturing)
         - [Overview](#overview)
-        - [Painting](#painting)
+        - [Classic4 workflow](#classic4-workflow)
+        - [Array workflow](#array-workflow)
+            - [Creating a `TextureArray`](#creating-a-`texturearray`)
+            - [Painting with a `TextureArray`](#painting-with-a-`texturearray`)
         - [Setting up bump, normals and roughness](#setting-up-bump-normals-and-roughness)
+        - [Depth blending](#depth-blending)
         - [Triplanar mapping](#triplanar-mapping)
         - [Color tint](#color-tint)
     - [Holes](#holes)
@@ -48,9 +52,9 @@ HTerrain plugin documentation
 Overview
 ----------
 
-This plugin allows to create heightmap-based terrains in Godot Engine. This kind of terrain uses 2D images, such as for heights or texturing information, which makes it cheap to implement while covering most use cases, for high to low end GPUs.
+This plugin allows to create heightmap-based terrains in Godot Engine. This kind of terrain uses 2D images, such as for heights or texturing information, which makes it cheap to implement while covering most use cases.
 
-It is entirely built on top of the `VisualServer` scripting API, which means it should be expected to work on both `GLES2` and `GLES3` backends.
+It is entirely built on top of the `VisualServer` scripting API, which means it should be expected to work on all platforms supported by Godot's `GLES3` renderer.
 
 ![Screenshot of the editor with the plugin enabled and arrows showing where UIs are](images/overview.png)
 
@@ -119,15 +123,33 @@ Texturing
 
 ### Overview
 
-Applying textures to terrains is a bit different than single models, because they are very large and a more optimal approach needs to be taken to keep memory and performance to an acceptable level. One very common way of doing it is by using a splatmap. A splatmap is another texture covering the whole terrain, where each channel R, G, B and A is a weight associated to a given texture. Those textures are then blended together using a shader.
+Applying textures to terrains is a bit different than single models, because they are very large and a more optimal approach needs to be taken to keep memory and performance to an acceptable level. One very common way of doing it is by using a splatmap. A splatmap is another texture covering the whole terrain, whose role is to store which detail textures should be blended, and these textures may repeat seamlessly.
+
+There are sereval techniques applicable. This plugin offers a few workflows to deal with ground textures:
+
+- `CLASSIC4`: simple but limited to 4 textures.
+- `ARRAY`: allows up to 256 different textures, but comes with a few constraints.
+- `LOW_POLY`: does not use any textures and relies only on colors.
+
+On the `HTerrain` node, there is a property called `shader_type`, which lets you choose among built-in ground shaders, and their names will reflect that. The one you choose will define which workflow to follow.
+
+Before you can paint, you have to set up ground textures. It is recommended to pick textures which can tile infinitely, and preferably use "organic" ones, because terrains are best-suited for exterior natural environments. You can find some of these textures for free at http://cc0textures.com.
+
+The following sections will explain the specifics of each workflow. Although different, they still have things in common which are detailed in further sections.
+
+
+### Classic4 workflow
+
+The `CLASSIC4` shader is a simple splatmap technique, where R, G, B, A match the weight of 4 respective textures. Then are all blended together in every pixel of the ground. Here is how it looks when applied:
 
 ![Screenshot showing splatmap and textured result](images/splatmap_and_textured_result.png)
 
-There are many other techniques, notably involving texture arrays which should be worked on in the future to allow more different textures (it became available Godot 3.1). For now, this plugin only supports classic splatmaps, using `Classic4` and `Classic4Lite` shaders, which you can choose in the inspector. If you target less powerful GPUs, the `Lite` version is a bit cheaper by trading off a few features.
+It comes in two variants:
 
-### Painting
+- `CLASSIC4`: full-featured shader, however it requires your textures to have normal maps.
+- `CLASSIC4_LITE`: simpler shader with less features. It only requires albedo textures.
 
-Before you can paint, you have to set up ground textures. It is recommended to pick textures which can tile infinitely, and preferably use "organic" ones, because terrains are best-suited for exterior natural environments. You can find some of these textures for free at http://cc0textures.com.
+With this shader selected, you can setup textures in the bottom panel:
 
 ![Screenshot of the texture slots](images/texture_slots.png)
 
@@ -135,35 +157,96 @@ You will notice 4 slots for these, next to the brush settings, named `ground0`, 
 
 ![Screenshot of the texture dialog](images/texture_dialog.png)
 
-This opens a window that lets you choose two main textures: albedo an normals. Note: if you use the `Classic4Lite` shader, you don't have to setup normals. For now, you can assign the albedo texture, and the normalmap if you have one, then click `Ok`.
+This opens a window that lets you choose two main textures: albedo an normals. Note: if you use the `CLASSIC4_LITE` shader, you don't have to setup normals. For now, you can assign the albedo texture, and the normalmap if you have one, then click `Ok`.
 
 The default slot covers the whole terrain by default, because the splatmap is initialized with a red color `(1, 0, 0, 0)`. You can setup other textures in the other slots, so they will layer on top of the others.
 Painting is very similar to scultping, because it's still editing an image in the end. You can also choose the opacity, size and shape of the brush.
 
+
+### Array workflow
+
+The `ARRAY` shader uses a more advanced technique to render ground textures. Instead of one splatmap and many individual textures, it uses two splatmaps and a `TextureArray`.
+
+The splatmaps are different from the classic one:
+- `SPLAT_INDEX`: this one stores the indexes of the textures to blend in every pixel of the ground. Indexes are stored respectively in R, G and B, and correspond to layers of the `TextureArray`.
+- `SPLAT_WEIGHT`: this one stores the weight of the 3 textures to blend on each pixel. It only has R and G channels, because the third one can be inferred (their sum must be 1).
+
+This allows to paint up to 256 different textures, however it introduces an important constraint: you cannot blend more than 3 textures at a given pixel.
+
+
+#### Creating a `TextureArray`
+
+Contrary to `CLASSIC4`, you cannot use the legacy dialog to setup each texture. Instead, you will have to use Godot directly to make it.
+
+1) With an image editor, create an image, which you subdivide in square tiles, like an atlas. I each of them, place one ground texture, like so:
+
+![Example of an atlas for creating a Texture Array](images/texture_atlas_example.png)
+
+2) Place that atlas in your Godot project. The editor will attempt to import it a first time, it can take a while if it's big.
+
+3) Select the atlas, and go to the `Import` dock. Change the import type to `TextureArray`.
+
+![Texture Array import dock](images/texture_array_import_dock.png)
+
+4) Make sure the `Repeat` mode is enabled. Then, change the tile counts below to match your grid. Once you're done, click `Re-import`. Godot will ask you to restart the editor, do that (I have no idea why).
+
+5) Once the editor has restarted, click on your terrain node, and make sure it uses the `ARRAY` shader type (or a similar custom shader). Under `Shader Params`, assign the `u_ground_albedo_bump_array` property to the texture array you created.
+
+6) The bottom panel should now update to show much more texture slots. They will appear in the same order they are in the atlas, from left-to-right. If the panel doesn't update, select another node and click the terrain again. You should now be able to paint.
+
+![Lots of textures blending](images/lots_of_textures_blending.png)
+
+
+#### Painting with a `TextureArray`
+
+Painting the proper indexes and weights can be a challenge, so for now, the plugin comes with a compromise. Each texture is assigned a fixed color component, R, G or B. So for a given texture, all textures that have an index separated by a multiple of 3 from this texture will not always be able to blend with it. For example, texture `2` might not blend with texture `5`, `8`, `11`, `14` etc. So choosing where you place textures in the `TextureArray` can be important.
+
+Here is a close-up on an area where some textures are not totally blending, because they use the same color component:
+
+![Bad transition](images/bad_array_blending.png)
+
+In this situation, another workaround is to use a transition texture: if A and B cannot blend, use texture C which can blend with A and B:
+
+![Fixed transition](images/transition_array_blending.png)
+
+You may see this pop up quite often when using this shader, but it can often be worked around.
+The brush for this isn't perfect. This limitation can be smoothed out in the future, if a better algorithm is found which can work in real-time.
+
+
 ### Setting up bump, normals and roughness
 
-The ground shader provided by the plugin should work fine with only regular albedo and normal maps, but it supports a few features to make the ground look more realistic. It takes a particular approach to achieve that result. The main reason is that the classic splatmap approach requires sampling 4 textures at once. If we want normalmaps, it becomes 8, and if we want roughness it becomes 12, which is already a lot, in addition to internal textures Godot uses in the background. Not all GPUs allow that many textures in the shader, so a better approach is to combine them as much as possible into single images. This reduces the number of texture units, and reduces the number of fetches to do in the pixel shader.
+The main ground shaders provided by the plugin should work fine with only regular albedo, but it supports a few features to make the ground look more realistic, such as normal maps, bump and roughness. To achieve this, shaders expects packed textures. The main reason is that more than one texture has to be sampled at a time, to allow them to blend. With a classic splatmap, it's 4 at once. If we want normalmaps, it becomes 8, and if we want roughness it becomes 12 etc, which is already a lot, in addition to internal textures Godot uses in the background. Not all GPUs allow that many textures in the shader, so a better approach is to combine them as much as possible into single images. This reduces the number of texture units, and reduces the number of fetches to do in the pixel shader.
 
 ![Screenshot of the channel packer plugin](images/channel_packer.png)
 
-For this reason, the plugin requires bumpmaps to be merged in the alpha channel of the albedo texture. Similarly, roughness must also be defined in the alpha channel of the normalmap texture. This operation can be done in an image editing program such as Gimp, or with a Godot plugin such as Channel Packer (available on the asset library: https://godotengine.org/asset-library/asset/230). When you set those textures in the slots you saw in the previous section, the alpha channels will appear as a preview.
+For this reason, the plugin uses the following convention in ground textures:
 
-Bump holds a particular usage in this plugin:
-You may have noticed that when you paint multiple textures, the terrain blends them together to produce smooth transitions. Usually, a classic way is to do a "transparency" transition using the splatmap. However, this rarely gives realistic visuals, so an option is to enable `depth blending`.
+- `Albedo` in RGB, `Bump` in A
+- `Normal` in RGB, `Roughness` in A
+
+This operation can be done in an image editing program such as Gimp, or with a Godot plugin such as Channel Packer (available on the asset library: https://godotengine.org/asset-library/asset/230).
+
+
+### Depth blending
+
+`Bump` textures holds a particular usage in this plugin:
+You may have noticed that when you paint multiple textures, the terrain blends them together to produce smooth transitions. Usually, a classic way is to do a "transparency" transition using the splatmap. However, this rarely gives realistic visuals, so an option is to enable `depth blending` under `Shader Params`.
 
 ![Screenshot of depth blending VS alpha blending](images/alpha_blending_and_depth_blending.png)
 
-This feature changes the way blending operates by taking the bump of the ground textures into account. For example, if you have sand blending with pebbles, at the transition you will see sand infiltrate between the pebbles because the pixels between pebbles have lower bump than the pebbles. You can see this technique illustrated in this article: TODO Gamasutra link
-This technique works best with fairly low brush opacity, around 10%.
+This feature changes the way blending operates by taking the bump of the ground textures into account. For example, if you have sand blending with pebbles, at the transition you will see sand infiltrate between the pebbles because the pixels between pebbles have lower bump than the pebbles. You can see this technique illustrated in this article: https://www.gamasutra.com/blogs/AndreyMishkinis/20130716/196339/Advanced_Terrain_Texture_Splatting.php
+It was tweaked a bit to work with 3 or 4 textures, and works best with fairly low brush opacity, around 10%.
 
 
 ### Triplanar mapping
 
-As you saw in previous topics, making cliffs with a heightmap terrain is not recommended, because it stretches the geometry too much and makes textures look bad. Nevertheless, you can enable triplanar mapping on such texture in order for it to not look stretched. This option is in the shader section in the inspector.
+Making cliffs with a heightmap terrain is not recommended, because it stretches the geometry too much and makes textures look bad. Nevertheless, you can enable triplanar mapping on such texture in order for it to not look stretched. This option is in the shader section in the inspector.
 
 ![Screenshot of triplanar mapping VS no triplanar](images/single_sampling_and_triplanar_sampling.png)
 
-Cliffs usually are made of the same ground texture, so it is only available for textures setup in the 4th slot, called `cliff`. It could be made to work on all slots, however it involves modifying the shader to add more options, which you may see in a later article.
+In the case of the `CLASSIC4` shader, cliffs usually are made of the same ground texture, so it is only available for textures setup in the 4th slot, called `cliff`. It could be made to work on all slots, however it involves modifying the shader to add more options, which you may see in a later article.
+
+The `ARRAY` shader does not have triplanar mapping yet, but it may be added in the future.
 
 
 ### Color tint
@@ -172,6 +255,7 @@ You can color the terrain using the `Color` brush. This is pretty much modulatin
 
 ![Screenshot with color painting](images/color_painting.png)
 
+Depending on the shader, you may be able to choose which textures are affected by the colormap.
 
 
 Holes
@@ -180,6 +264,8 @@ Holes
 It is possible to cut holes in the terrain by using the `Holes` brush. Use it with `draw holes` checked to cut them, and uncheck it to erase them. This can be useful if you want to embed a cave mesh or a well on the ground. You can still use the brush because holes are also a texture covering the whole terrain, and the ground shader will basically discard pixels that are over an area where pixels have a value of zero.
 
 ![Screenshot with holes](images/hole_painting.png)
+
+At the moment, this brush uses the alpha channel of the color map.
 
 Note: this brush only produces holes visually. In order to have holes in the collider too, you have to do some tricks with collision layers because the collision shape this plugin uses (Bullet heightfield) cannot have holes. It might be added in the future, because it can be done by editing the C++ code and drop collision triangles in the main heightmap collision routine.
 
@@ -310,6 +396,8 @@ For shading purposes, it can be useful to bake a global map of the terrain. A gl
 
 To bake a global map, select the `HTerrain` node, go to the `Terrain` menu and click `Bake global map`. This will produce a texture in the terrain data directory which will be used by the default shaders automatically, depending on your settings.
 
+If you use a custom shader, you can define a specific one to use for the global map, by assigning the `custom_globalmap_shader` property. This is usually a stripped-down version of the main ground shader.
+
 
 Level of detail
 -----------------
@@ -338,18 +426,26 @@ This plugin comes with default shaders, but you are allowed to modify them and c
 
 In order to write your own ground shader, select the `HTerrain` node, and change the shader type to `Custom`. Then, select the `custom shader` property and choose `New Shader`. This will create a new shader which is pre-filled with the same source code as the last built-in shader you had selected. Doing it this way can help seeing how every feature is done and find your own way into implementing customizations.
 
-The plugin is setting several `uniform` parameter names which will be set to values specific to the plugin:
+The plugin does not actually hardcode its features based on its built-in shaders. Instead, it looks at which `uniform` parameters your shader defines, and adapts in consequence.
+A list of `uniform` parameters are recognized, some of which are required for heightmap rendering to work:
+
+TODO Make a grid and indicate types
 
 - `u_terrain_heightmap`: the heightmap, a half-precision float texture which can be sampled in the red channel. Like the other following maps, you have to access it using cell coordinates, which can be computed as seen in the built-in shader.
 - `u_terrain_normalmap`: the precalculated normalmap of the terrain, which you can use instead of computing it from the heightmap
 - `u_terrain_colormap`: the color map, which is the one modified by the color brush. The alpha channel is used for holes.
-- `u_terrain_splatmap`: the classic splatmap, where each channel determines the weight of a given texture. The sum of each channel should be 1.0.
+- `u_terrain_splatmap`: the classic 4-component splatmap, where each channel determines the weight of a given texture. The sum of each channel should be 1.0.
 - `u_terrain_globalmap`: the global albedo map.
 - `u_terrain_inverse_transform`: a 4x4 matrix containing the inverse transform of the terrain. This is useful if you need to calculate the position of the current vertex in world coordinates in the vertex shader, as seen in the builtin shader.
 - `u_terrain_normal_basis`: a 3x3 matrix containing the basis used for transforming normals. It is not always needed, but if you use `map scale` it is required to keep them correct.
+- `u_terrain_splat_index_map`: an index map, used for texturing based on a `TextureArray`. the R, G and B components multiplied by 255.0 will provide the index of the texture.
+- `u_terrain_splat_weight_map`: a 2-component weight map where a 3rd component can be obtained with `1.0 - r - g`, used for texturing based on a `TextureArray`. The sum of R and G must be 1.0.
 
 - `u_ground_albedo_bump_0` to `3`: these are up to 4 albedo textures for the ground, which you have to blend using the splatmap. Their alpha channel can contain bump.
 - `u_ground_normal_roughness_0` to `3`: similar to albedo, these are up to 4 normal textures to blend using the splatmap. Their alpha channel can contain roughness.
+
+- `u_ground_albedo_bump_array`: equivalent of the previous individual albedo textures, as an array. The plugin knows you use this texturing technique by checking the existence of this parameter.
+- `u_ground_normal_roughness_array`: equivalent of the previous individual normalmap textures, as an array.
 
 You don't have to declare them all. It's fine if you omit some of them, which is good because it frees a slot in the limited amount of `uniforms`, especially for texture units.
 Other parameters are not used by the plugin, and are shown procedurally under the `Shader params` section of the `HTerrain` node.
