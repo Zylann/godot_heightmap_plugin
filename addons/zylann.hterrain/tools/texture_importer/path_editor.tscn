@@ -1,0 +1,24 @@
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://addons/zylann.hterrain/tools/texture_importer/path_editor.gd" type="Script" id=1]
+
+[node name="PathEditor" type="HBoxContainer"]
+margin_right = 113.0
+margin_bottom = 24.0
+script = ExtResource( 1 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="LineEdit" type="LineEdit" parent="."]
+margin_right = 85.0
+margin_bottom = 24.0
+size_flags_horizontal = 3
+
+[node name="Button" type="Button" parent="."]
+margin_left = 89.0
+margin_right = 113.0
+margin_bottom = 24.0
+text = "..."
+[connection signal="text_changed" from="LineEdit" to="." method="_on_LineEdit_text_changed"]
+[connection signal="pressed" from="Button" to="." method="_on_Button_pressed"]

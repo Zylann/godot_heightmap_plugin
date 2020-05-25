@@ -1,0 +1,105 @@
+[gd_scene load_steps=3 format=2]
+
+[ext_resource path="res://addons/zylann.hterrain/tools/texture_importer/texture_import_config_editor.gd" type="Script" id=1]
+[ext_resource path="res://addons/zylann.hterrain/tools/texture_importer/path_editor.tscn" type="PackedScene" id=2]
+
+[node name="TextureConfigEditor" type="Control"]
+margin_right = 283.0
+margin_bottom = 250.0
+rect_min_size = Vector2( 0, 250 )
+script = ExtResource( 1 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="VB" type="VBoxContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="SC" type="HSplitContainer" parent="VB"]
+margin_right = 283.0
+margin_bottom = 226.0
+size_flags_vertical = 3
+
+[node name="TextureList" type="ItemList" parent="VB/SC"]
+margin_right = 100.0
+margin_bottom = 226.0
+rect_min_size = Vector2( 100, 0 )
+items = [ "0 (empty)", null, false, "1 (empty)", null, false, "2 (empty)", null, false, "3 (empty)", null, false ]
+
+[node name="SlotConfig" type="VBoxContainer" parent="VB/SC"]
+margin_left = 112.0
+margin_right = 283.0
+margin_bottom = 226.0
+
+[node name="Label" type="Label" parent="VB/SC/SlotConfig"]
+margin_right = 171.0
+margin_bottom = 14.0
+text = "Albedo"
+
+[node name="Albedo" parent="VB/SC/SlotConfig" instance=ExtResource( 2 )]
+margin_top = 18.0
+margin_right = 171.0
+margin_bottom = 42.0
+size_flags_horizontal = 3
+
+[node name="Label2" type="Label" parent="VB/SC/SlotConfig"]
+margin_top = 46.0
+margin_right = 171.0
+margin_bottom = 60.0
+text = "Bump"
+
+[node name="Bump" parent="VB/SC/SlotConfig" instance=ExtResource( 2 )]
+margin_top = 64.0
+margin_right = 171.0
+margin_bottom = 88.0
+
+[node name="Label3" type="Label" parent="VB/SC/SlotConfig"]
+margin_top = 92.0
+margin_right = 171.0
+margin_bottom = 106.0
+text = "Normal"
+
+[node name="Normal" parent="VB/SC/SlotConfig" instance=ExtResource( 2 )]
+margin_top = 110.0
+margin_right = 171.0
+margin_bottom = 134.0
+
+[node name="Label4" type="Label" parent="VB/SC/SlotConfig"]
+margin_top = 138.0
+margin_right = 171.0
+margin_bottom = 152.0
+text = "Roughness"
+
+[node name="Roughness" parent="VB/SC/SlotConfig" instance=ExtResource( 2 )]
+margin_top = 156.0
+margin_right = 171.0
+margin_bottom = 180.0
+
+[node name="HB" type="HBoxContainer" parent="VB"]
+margin_top = 230.0
+margin_right = 283.0
+margin_bottom = 250.0
+
+[node name="EraseButton" type="Button" parent="VB/HB"]
+margin_right = 74.0
+margin_bottom = 20.0
+text = "Erase Slot"
+
+[node name="Spacer" type="Control" parent="VB/HB"]
+margin_left = 78.0
+margin_right = 151.0
+margin_bottom = 20.0
+size_flags_horizontal = 3
+
+[node name="ReimportButton" type="Button" parent="VB/HB"]
+margin_left = 155.0
+margin_right = 283.0
+margin_bottom = 20.0
+text = "Generate textures"
+[connection signal="item_selected" from="VB/SC/TextureList" to="." method="_on_TextureList_item_selected"]
+[connection signal="pressed" from="VB/HB/EraseButton" to="." method="_on_EraseButton_pressed"]
+[connection signal="pressed" from="VB/HB/ReimportButton" to="." method="_on_ReimportButton_pressed"]

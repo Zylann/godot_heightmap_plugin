@@ -15,6 +15,9 @@ const LoadTextureDialog = preload("./load_texture_dialog.gd")
 const GlobalMapBaker = preload("./globalmap_baker.gd")
 const ImageFileCache = preload("../util/image_file_cache.gd")
 const Logger = preload("../util/logger.gd")
+const TextureImportConfig = preload("texture_importer/texture_import_config.gd")
+const TextureImportConfigInspectorPlugin = \
+	preload("texture_importer/texture_import_config_inspector_plugin.gd")
 
 const EditPanel = preload("./panel.tscn")
 const ProgressWindow = preload("./progress_window.tscn")
@@ -51,6 +54,7 @@ var _globalmap_baker = null
 var _menu_button : MenuButton
 var _terrain_had_data_previous_frame = false
 var _image_cache : ImageFileCache
+var _texture_import_config_editor_plugin = TextureImportConfigInspectorPlugin.new()
 
 var _brush : Brush = null
 var _brush_decal : BrushDecal = null
@@ -75,6 +79,9 @@ func _enter_tree():
 	add_custom_type("HTerrainDetailLayer", "Spatial", HTerrainDetailLayer, 
 		get_icon("detail_layer_node"))
 	add_custom_type("HTerrainData", "Resource", HTerrainData, get_icon("heightmap_data"))
+	
+	add_custom_type("HTerrainTextureImportConfig", "Resource", TextureImportConfig, null)
+	add_inspector_plugin(_texture_import_config_editor_plugin)
 	
 	_preview_generator = PreviewGenerator.new()
 	get_editor_interface().get_resource_previewer().add_preview_generator(_preview_generator)
@@ -262,6 +269,9 @@ func _exit_tree():
 	remove_custom_type("HTerrain")
 	remove_custom_type("HTerrainDetailLayer")
 	remove_custom_type("HTerrainData")
+
+	remove_custom_type("HTerrainTextureImportConfig")
+	remove_inspector_plugin(_texture_import_config_editor_plugin)
 
 
 func handles(object):
