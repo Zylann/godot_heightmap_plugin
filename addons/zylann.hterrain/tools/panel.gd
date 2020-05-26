@@ -11,7 +11,7 @@ signal detail_selected(index)
 signal detail_list_changed
 
 
-onready var _minimap = $HSplitContainer/HSplitContainer/Minimap
+onready var _minimap = $HSplitContainer/HSplitContainer/MinimapContainer/Minimap
 onready var _brush_editor = $HSplitContainer/BrushEditor
 onready var _texture_editor = $HSplitContainer/HSplitContainer/HSplitContainer/TextureEditor
 onready var _detail_editor = $HSplitContainer/HSplitContainer/HSplitContainer/DetailEditor
