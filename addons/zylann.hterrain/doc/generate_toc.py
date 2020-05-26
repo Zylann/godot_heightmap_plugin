@@ -43,7 +43,8 @@ def parse_headings(lines):
 			elem = MDElement(prev_line.strip(), 0)
 			main_heading_line_index = line_index
 
-		elif "---" in line:
+		# Careful to handle Github-flavoured tables
+		elif "---" in line and "|" not in line:
 			elem = MDElement(prev_line.strip(), 1)
 
 		elif "####" in line:
