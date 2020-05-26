@@ -35,12 +35,20 @@ var _flatten_height := 0.0
 var _texture_index := 0
 var _detail_index := 0
 var _detail_density := 1.0
-var _texture_mode := HTerrain.SHADER_CLASSIC4
 var _color := Color(1, 1, 1)
 var _mask_flag := false
+
+# Backups of edited parts of the terrain.
+# Dictionary of arrays {chunk_position: Vector2 => [Image]}
+# The index in the array corresponds to `_last_painted_maps`.
 var _undo_cache := {}
+
 var _image_utils = NativeFactory.get_image_utils()
 var _logger = Logger.get_for(self)
+
+# List of maps the last paint operation modified.
+# Array of pairs [[map_type: int, map_index: int]]
+var _last_painted_maps := []
 
 
 func get_mode() -> int:
@@ -101,8 +109,6 @@ func get_flatten_height() -> float:
 
 func set_texture_index(tid: int):
 	assert(tid >= 0)
-	# No shaders support more than 4 yet
-	assert(_texture_index < 4)
 	_texture_index = tid
 
 
@@ -170,7 +176,7 @@ func _generate_from_image(im: Image, radius: int):
 	emit_signal("shape_changed", _shape)
 
 
-static func _get_mode_channel(mode: int) -> int:
+static func _get_mode_map_types(mode: int, use_indexed_splat: bool, ti: int) -> Array:
 	assert(mode >= 0 and mode < MODE_COUNT)
 	match mode:
 		MODE_ADD, \
@@ -178,17 +184,23 @@ static func _get_mode_channel(mode: int) -> int:
 		MODE_SMOOTH, \
 		MODE_LEVEL, \
 		MODE_FLATTEN:
-			return HTerrainData.CHANNEL_HEIGHT
+			return [[HTerrainData.CHANNEL_HEIGHT, 0]]
 		MODE_COLOR:
-			return HTerrainData.CHANNEL_COLOR
+			return [[HTerrainData.CHANNEL_COLOR, 0]]
 		MODE_SPLAT:
-			return HTerrainData.CHANNEL_SPLAT
+			if use_indexed_splat:
+				return [
+					[HTerrainData.CHANNEL_SPLAT_INDEX, 0],
+					[HTerrainData.CHANNEL_SPLAT_WEIGHT, 0]
+				]
+			else:
+				return [[HTerrainData.CHANNEL_SPLAT, 0]]
 		MODE_MASK:
-			return HTerrainData.CHANNEL_COLOR
+			return [[HTerrainData.CHANNEL_COLOR, 0]]
 		MODE_DETAIL:
-			return HTerrainData.CHANNEL_DETAIL
-
-	return HTerrainData.CHANNEL_COUNT # Error
+			return [[HTerrainData.CHANNEL_DETAIL, ti]]
+		_:
+			return []
 
 
 func paint(terrain: HTerrain, cell_pos_x: int, cell_pos_y: int, override_mode: int):
@@ -204,6 +216,11 @@ func paint(terrain: HTerrain, cell_pos_x: int, cell_pos_y: int, override_mode: i
 	if override_mode != -1:
 		assert(override_mode >= 0 or override_mode < MODE_COUNT)
 		mode = override_mode
+	
+	var use_indexed_splat := terrain.is_using_texture_array()
+
+	_last_painted_maps = _get_mode_map_types(mode, use_indexed_splat, _texture_index)
+	assert(len(_last_painted_maps) > 0)
 
 	var origin_x := cell_pos_x - _shape_size / 2
 	var origin_y := cell_pos_y - _shape_size / 2
@@ -231,7 +248,10 @@ func paint(terrain: HTerrain, cell_pos_x: int, cell_pos_y: int, override_mode: i
 			_flatten(data, origin_x, origin_y)
 
 		MODE_SPLAT:
-			_paint_splat(data, origin_x, origin_y)
+			if use_indexed_splat:
+				_paint_indexed_splat(data, origin_x, origin_y)
+			else:
+				_paint_classic4_splat(data, origin_x, origin_y)
 
 		MODE_COLOR:
 			_paint_color(data, origin_x, origin_y)
@@ -243,9 +263,9 @@ func paint(terrain: HTerrain, cell_pos_x: int, cell_pos_y: int, override_mode: i
 			_paint_detail(data, origin_x, origin_y)
 			map_index = _detail_index
 
-	data.notify_region_change( \
-		Rect2(origin_x, origin_y, _shape_size, _shape_size), \
-		_get_mode_channel(mode), map_index)
+	for map in _last_painted_maps:
+		data.notify_region_change(Rect2(origin_x, origin_y, _shape_size, _shape_size), \
+			map[0], map[1])
 
 	#var time_elapsed = OS.get_ticks_msec() - time_before
 	#_logger.debug("Time elapsed painting: ", time_elapsed, "ms")
@@ -255,8 +275,10 @@ static func _is_valid_pos(pos_x: int, pos_y: int, im: Image) -> bool:
 	return not (pos_x < 0 or pos_y < 0 or pos_x >= im.get_width() or pos_y >= im.get_height())
 
 
-func _backup_for_undo(im: Image, undo_cache: Dictionary, 
+func _backup_for_undo(terrain_data: HTerrainData, undo_cache: Dictionary, 
 	rect_origin_x: int, rect_origin_y: int, rect_size_x: int, rect_size_y: int):
+	
+	assert(len(_last_painted_maps) > 0)
 
 	# Backup cells before they get changed,
 	# using chunks so that we don't save the entire grid everytime.
@@ -272,43 +294,54 @@ func _backup_for_undo(im: Image, undo_cache: Dictionary,
 		var max_y = min_y + EDIT_CHUNK_SIZE
 
 		for cpos_x in range(cmin_x, cmax_x):
-
-			var k = Util.encode_v2i(cpos_x, cpos_y)
+			var k = Vector2(cpos_x, cpos_y)
 			if undo_cache.has(k):
 				# Already backupped
 				continue
-
-			var min_x = cpos_x * EDIT_CHUNK_SIZE
-			var max_x = min_x + EDIT_CHUNK_SIZE
-
-			var invalid_min = not _is_valid_pos(min_x, min_y, im)
-			var invalid_max = not _is_valid_pos(max_x - 1, max_y - 1, im) # Note: max is excluded
-
-			if invalid_min or invalid_max:
-				# Out of bounds
-
-				# Note: this error check isn't working because data grids are 
-				# intentionally off-by-one
-				#if(invalid_min ^ invalid_max)
-				#	_logger.error("Wut? Grid might not be multiple of chunk size!");
-
-				continue
-
-			var sub_image = im.get_rect(Rect2(min_x, min_y, max_x - min_x, max_y - min_y))
-			undo_cache[k] = sub_image
+			
+			var sub_images = []
+			
+			# Get backups in the same order
+			for map in _last_painted_maps:
+				var map_type = map[0]
+				var map_index = map[1]
+				var im = terrain_data.get_image(map_type)
+				assert(im != null)
+				
+				var min_x = cpos_x * EDIT_CHUNK_SIZE
+				var max_x = min_x + EDIT_CHUNK_SIZE
+	
+				var invalid_min = not _is_valid_pos(min_x, min_y, im)
+				var invalid_max = not _is_valid_pos(max_x - 1, max_y - 1, im) # Note: max is excluded
+	
+				if invalid_min or invalid_max:
+					# Out of bounds
+	
+					# Note: this error check isn't working because data grids are 
+					# intentionally off-by-one
+					#if(invalid_min ^ invalid_max)
+					#	_logger.error("Wut? Grid might not be multiple of chunk size!");
+	
+					continue
+	
+				var sub_image = im.get_rect(Rect2(min_x, min_y, max_x - min_x, max_y - min_y))
+				sub_images.append(sub_image)
+			
+			if len(sub_images) > 0:
+				undo_cache[k] = sub_images
 
 
 func _paint_height(data: HTerrainData, origin_x: int, origin_y: int, speed: float):
 	var im := data.get_image(HTerrainData.CHANNEL_HEIGHT)
 	assert(im != null)
-	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
+	_backup_for_undo(data, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
 	_image_utils.add_red_brush(im, _shape, Vector2(origin_x, origin_y), speed * _opacity)
 
 
 func _smooth_height(data: HTerrainData, origin_x: int, origin_y: int, speed: float):
 	var im := data.get_image(HTerrainData.CHANNEL_HEIGHT)
 	assert(im != null)
-	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
+	_backup_for_undo(data, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
 	_image_utils.blur_red_brush(
 		im, _shape, Vector2(origin_x, origin_y), speed * _opacity)
 
@@ -316,7 +349,7 @@ func _smooth_height(data: HTerrainData, origin_x: int, origin_y: int, speed: flo
 func _level_height(data: HTerrainData, origin_x: int, origin_y: int, speed: float):
 	var im := data.get_image(HTerrainData.CHANNEL_HEIGHT)
 	assert(im != null)
-	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
+	_backup_for_undo(data, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
 	# Perform sum at full opacity, we'll use it for the next operation
 	var sum = _image_utils.get_red_sum_weighted(im, _shape, Vector2(origin_x, origin_y), 1.0)
 	var target_value = sum / _shape_sum
@@ -327,48 +360,138 @@ func _level_height(data: HTerrainData, origin_x: int, origin_y: int, speed: floa
 func _flatten(data: HTerrainData, origin_x: int, origin_y: int):
 	var im = data.get_image(HTerrainData.CHANNEL_HEIGHT)
 	assert(im != null)
-	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
+	_backup_for_undo(data, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
 	_image_utils.lerp_channel_brush(
 		im, _shape, Vector2(origin_x, origin_y), 1.0, _flatten_height, 0)
 
 
-func _paint_splat(data: HTerrainData, origin_x: int, origin_y: int):
+func _paint_classic4_splat(data: HTerrainData, origin_x: int, origin_y: int):
 	var im := data.get_image(HTerrainData.CHANNEL_SPLAT)
 	assert(im != null)
 
-	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
+	_backup_for_undo(data, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
 
-	if _texture_mode == HTerrain.SHADER_CLASSIC4:
-		var target_color = Color(0, 0, 0, 0)
-		target_color[_texture_index] = 1.0
-		_image_utils.lerp_color_brush(
-			im, _shape, Vector2(origin_x, origin_y), _opacity, target_color)
+	var target_color = Color(0, 0, 0, 0)
+	target_color[_texture_index] = 1.0
+	_image_utils.lerp_color_brush(
+		im, _shape, Vector2(origin_x, origin_y), _opacity, target_color)
 
-#	elif _texture_mode == HTerrain.SHADER_ARRAY:
-#		var shape_threshold = 0.1
-#
-#		for y in range(min_y, max_y):
-#			var py = y - min_noclamp_y
-#
-#			for x in range(min_x, max_x):
-#				var px = x - min_noclamp_x
-#
-#				var shape_value = _shape[py][px]
-#
-#				if shape_value > shape_threshold:
-#					# TODO Improve weight blending, it looks meh
-#					var c = Color()
-#					c.r = float(_texture_index) / 256.0
-#					c.g = clamp(_opacity, 0.0, 1.0)
-#					im.set_pixel(x, y, c)
-	else:
-		_logger.error("Unknown texture mode {0}".format([_texture_mode]))
+
+# TODO In the editor, create that map when the shader needing it is assigned?
+static func _get_or_create_map(data: HTerrainData, map_type: int) -> Image:
+	if not data.has_texture(map_type, 0):
+		data._edit_add_map(map_type)
+	return data.get_image(map_type, 0)
+
+
+func _paint_indexed_splat(data: HTerrainData, origin_x: int, origin_y: int):
+	var index_map := _get_or_create_map(data, HTerrainData.CHANNEL_SPLAT_INDEX)
+	var weight_map := _get_or_create_map(data, HTerrainData.CHANNEL_SPLAT_WEIGHT)
+	
+	_backup_for_undo(data, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
+	
+	# TODO Accelerated code for this operation
+	
+	var min_x := origin_x
+	var min_y := origin_y
+	var max_x := min_x + _shape.get_width()
+	var max_y := min_y + _shape.get_height()
+	var min_noclamp_x := min_x
+	var min_noclamp_y := min_y
+
+	min_x = Util.clamp_int(min_x, 0, index_map.get_width())
+	min_y = Util.clamp_int(min_y, 0, index_map.get_height())
+	max_x = Util.clamp_int(max_x, 0, index_map.get_width())
+	max_y = Util.clamp_int(max_y, 0, index_map.get_height())
+	
+	var texture_index_f := float(_texture_index) / 255.0
+	var speed := _opacity * 0.5
+	var all_texture_index_f := Color(texture_index_f, texture_index_f, texture_index_f)
+	var ci := _texture_index % 3
+	var cm := Color(-1, -1, -1)
+	cm[ci] = 1
+
+	index_map.lock()
+	weight_map.lock()
+	_shape.lock()
+
+	for y in range(min_y, max_y):
+		var by := y - min_noclamp_y
+
+		for x in range(min_x, max_x):
+			var bx := x - min_noclamp_x
+
+			var shape_value := _shape.get_pixel(bx, by).r * speed
+			if shape_value == 0.0:
+				continue
+
+			var i := index_map.get_pixel(x, y)
+			var w := weight_map.get_pixel(x, y)
+			
+			# Decompress third weight to make computations easier
+			w[2] = 1.0 - w[0] - w[1]
+			
+			# The index map tells which textures to blend.
+			# The weight map tells their blending amounts.
+			# This brings the limitation that up to 3 textures can blend at a time in a given pixel.
+			# Painting this in real time can be a challenge.
+			
+			# The approach here is a compromise for simplicity.
+			# Each texture is associated a fixed component of the index map (R, G or B),
+			# so two neighbor pixels having the same component won't be guaranteed to blend.
+			# In other words, texture T will not be able to blend with T + N * k,
+			# where k is an integer, and N is the number of components in the index map (up to 4).
+			# It might still be able to blend due to a special case when an area is uniform,
+			# but not otherwise.
+			
+			# Dynamic component assignment sounds like the alternative, however I wasn't able
+			# to find a painting algorithm that wasn't confusing, at least the current one is
+			# predictable.
+			
+			# Need to use approximation because Color is float but GDScript uses doubles...
+			if abs(i[ci] - texture_index_f) > 0.001:
+				# Pixel does not have our texture index,
+				# transfer its weight to other components first
+				if w[ci] > shape_value:
+					w -= cm * shape_value
+					
+				elif w[ci] >= 0.0:
+					w[ci] = 0.0
+					i[ci] = texture_index_f
+					
+			else:
+				# Pixel has our texture index, increase its weight
+				if w[ci] + shape_value < 1.0:
+					w += cm * shape_value
+					
+				else:
+					# Pixel weight is full, we can set all components to the same index.
+					# Need to nullify other weights because they would otherwise never reach
+					# zero due to normalization
+					w = Color(0, 0, 0)
+					w[ci] = 1.0
+					i = all_texture_index_f
+			
+			# No `saturate` function in Color??
+			w[0] = clamp(w[0], 0.0, 1.0)
+			w[1] = clamp(w[1], 0.0, 1.0)
+			w[2] = clamp(w[2], 0.0, 1.0)
+			
+			# Renormalize
+			w /= w[0] + w[1] + w[2]
+			
+			index_map.set_pixel(x, y, i)
+			weight_map.set_pixel(x, y, w)
+
+	index_map.lock()
+	weight_map.lock()
+	_shape.unlock()
 
 
 func _paint_color(data: HTerrainData, origin_x: int, origin_y: int):
 	var im := data.get_image(HTerrainData.CHANNEL_COLOR)
 	assert(im != null)
-	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
+	_backup_for_undo(data, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
 	_image_utils.lerp_color_brush(
 		im, _shape, Vector2(origin_x, origin_y), _opacity, _color)
 
@@ -376,7 +499,7 @@ func _paint_color(data: HTerrainData, origin_x: int, origin_y: int):
 func _paint_detail(data: HTerrainData, origin_x: int, origin_y: int):
 	var im := data.get_image(HTerrainData.CHANNEL_DETAIL, _detail_index)
 	assert(im != null)
-	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
+	_backup_for_undo(data, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
 	var col := Color(_detail_density, _detail_density, _detail_density)
 	# Need to use RGB because detail layers use the L8 format.
 	# If we used only R, get_pixel() still converts RGB into V (which is max(R, G, B))
@@ -387,7 +510,7 @@ func _paint_detail(data: HTerrainData, origin_x: int, origin_y: int):
 func _paint_mask(data: HTerrainData, origin_x: int, origin_y: int):
 	var im := data.get_image(HTerrainData.CHANNEL_COLOR)
 	assert(im != null)
-	_backup_for_undo(im, _undo_cache, origin_x, origin_y, _shape_size, _shape_size);
+	_backup_for_undo(data, _undo_cache, origin_x, origin_y, _shape_size, _shape_size);
 	var mask_value := 1.0 if _mask_flag else 0.0
 	_image_utils.lerp_channel_brush(
 		im, _shape, Vector2(origin_x, origin_y), 1.0, mask_value, 3)
@@ -396,9 +519,8 @@ func _paint_mask(data: HTerrainData, origin_x: int, origin_y: int):
 static func _fetch_redo_chunks(im: Image, keys: Array) -> Array:
 	var output = []
 	for key in keys:
-		var cpos = Util.decode_v2i(key)
-		var min_x = cpos[0] * EDIT_CHUNK_SIZE
-		var min_y = cpos[1] * EDIT_CHUNK_SIZE
+		var min_x = int(key.x) * EDIT_CHUNK_SIZE
+		var min_y = int(key.y) * EDIT_CHUNK_SIZE
 		var max_x = min_x + 1 * EDIT_CHUNK_SIZE
 		var max_y = min_y + 1 * EDIT_CHUNK_SIZE
 		var sub_image = im.get_rect(Rect2(min_x, min_y, max_x - min_x, max_y - min_y))
@@ -410,36 +532,44 @@ func _edit_pop_undo_redo_data(heightmap_data: HTerrainData) -> Dictionary:
 	# TODO If possible, use a custom Reference class to store this data into the UndoRedo API,
 	# but WITHOUT exposing it to scripts (so we won't need the following conversions!)
 
-	var chunk_positions_keys := _undo_cache.keys()
+	assert(len(_last_painted_maps) > 0)
 
-	var channel := _get_mode_channel(_mode)
-	assert(channel != HTerrainData.CHANNEL_COUNT)
+	var chunk_positions := _undo_cache.keys()
+	
+	var maps_redo_data = []
+	var maps_undo_data = []
+		
+	for painted_index in len(_last_painted_maps):
+		var map = _last_painted_maps[painted_index]
+		var map_type = map[0]
+		var map_index = map[1]
+		
+		var im = heightmap_data.get_image(map_type, map_index)
+		assert(im != null)
 
-	var im := heightmap_data.get_image(channel)
-	assert(im != null)
-
-	var redo_data := _fetch_redo_chunks(im, chunk_positions_keys)
-
-	# Convert chunk positions to flat int array
-	var undo_data := []
-	var chunk_positions := PoolIntArray()
-	chunk_positions.resize(chunk_positions_keys.size() * 2)
-
-	var i := 0
-	for key in chunk_positions_keys:
-		var cpos = Util.decode_v2i(key)
-		chunk_positions[i] = cpos[0]
-		chunk_positions[i + 1] = cpos[1]
-		i += 2
-		# Also gather pre-cached data for undo, in the same order
-		undo_data.append(_undo_cache[key])
+		var redo_chunks = _fetch_redo_chunks(im, chunk_positions)
+		
+		maps_redo_data.append({
+			"map_type": map_type,
+			"map_index": map_index,
+			"chunks": redo_chunks
+		})
+		
+		var undo_chunks = []
+		for key in chunk_positions:
+			# Same order as in "chunk_positions" later
+			undo_chunks.append(_undo_cache[key][painted_index])
+		
+		maps_undo_data.append({
+			"map_type": map_type,
+			"map_index": map_index,
+			"chunks": undo_chunks
+		})
 
 	var data := {
-		"undo": undo_data,
-		"redo": redo_data,
-		"chunk_positions": chunk_positions,
-		"channel": channel,
-		"index": 0,
+		"undo": maps_undo_data,
+		"redo": maps_redo_data,
+		"chunk_positions": PoolVector2Array(chunk_positions),
 		"chunk_size": EDIT_CHUNK_SIZE
 	}
 

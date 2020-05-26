@@ -1,0 +1,20 @@
+[gd_scene load_steps=3 format=2]
+
+[ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/texture_list.gd" type="Script" id=1]
+[ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/flow_container.gd" type="Script" id=2]
+
+[node name="TextureList" type="ScrollContainer"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+scroll_horizontal_enabled = false
+script = ExtResource( 1 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Container" type="Container" parent="."]
+margin_right = 800.0
+margin_bottom = 82.0
+rect_min_size = Vector2( 0, 82 )
+size_flags_horizontal = 3
+script = ExtResource( 2 )

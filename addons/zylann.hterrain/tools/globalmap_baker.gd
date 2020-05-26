@@ -1,9 +1,11 @@
-tool
-extends Node
 
 # Bakes a global albedo map using the same shader the terrain uses,
 # but renders top-down in orthographic mode.
 
+tool
+extends Node
+
+const HTerrain = preload("../hterrain.gd")
 const HTerrainData = preload("../hterrain_data.gd")
 const HTerrainMesher = preload("../hterrain_mesher.gd")
 
@@ -12,13 +14,11 @@ const VIEWPORT_SIZE = 512
 signal progress_notified(info)
 signal permanent_change_performed(message)
 
-var _terrain = null
+var _terrain : HTerrain = null
 var _viewport : Viewport = null
 var _plane : MeshInstance = null
 var _camera : Camera = null
 var _sectors := []
-var _dummy_texture = preload("./icons/empty.png")
-var _shader = preload("../shaders/simple4_global.shader")
 var _sector_index := 0
 
 
@@ -26,26 +26,26 @@ func _ready():
 	set_process(false)
 
 
-func bake(terrain):
+func bake(terrain: HTerrain):
 	assert(terrain != null)
-	var data = terrain.get_data()
+	var data := terrain.get_data()
 	assert(data != null)
 	_terrain = terrain
 
-	var splatmap = data.get_texture(HTerrainData.CHANNEL_SPLAT)
-	var colormap = data.get_texture(HTerrainData.CHANNEL_COLOR)
+	var splatmap := data.get_texture(HTerrainData.CHANNEL_SPLAT)
+	var colormap := data.get_texture(HTerrainData.CHANNEL_COLOR)
 	
 	if _viewport == null:
 		_setup_scene()
 	
-	var terrain_size = data.get_resolution()
-	var cw = terrain_size / VIEWPORT_SIZE
-	var ch = terrain_size / VIEWPORT_SIZE
+	var terrain_size := data.get_resolution()
+	var cw := terrain_size / VIEWPORT_SIZE
+	var ch := terrain_size / VIEWPORT_SIZE
 	for y in ch:
 		for x in cw:
 			_sectors.append(Vector2(x, y))
 	
-	var mat = _plane.material_override
+	var mat := _plane.material_override
 	_terrain.setup_globalmap_material(mat)
 
 	_sector_index = 0
@@ -65,7 +65,6 @@ func _setup_scene():
 	_viewport.debug_draw = Viewport.DEBUG_DRAW_UNSHADED
 	
 	var mat = ShaderMaterial.new()
-	mat.shader = _shader
 	
 	_plane = MeshInstance.new()
 	# Make a very small mesh, vertex precision isn't required
@@ -133,7 +132,7 @@ func _grab_image(sector: Vector2):
 	var src := tex.get_data()
 	
 	assert(_terrain != null)
-	var data := _terrain.get_data() as HTerrainData
+	var data := _terrain.get_data()
 	assert(data != null)
 	
 	if data.get_map_count(HTerrainData.CHANNEL_GLOBAL_ALBEDO) == 0:

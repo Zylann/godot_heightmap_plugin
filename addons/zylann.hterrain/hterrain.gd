@@ -11,15 +11,40 @@ const Util = preload("./util/util.gd")
 const HTerrainCollider = preload("./hterrain_collider.gd")
 const Logger = preload("./util/logger.gd")
 
-const CLASSIC4_SHADER_PATH = "res://addons/zylann.hterrain/shaders/simple4.shader"
-const CLASSIC4_LITE_SHADER_PATH = "res://addons/zylann.hterrain/shaders/simple4_lite.shader"
-const LOW_POLY_SHADER_PATH = "res://addons/zylann.hterrain/shaders/low_poly.shader"
-const _NORMAL_BAKER_PATH = "res://addons/zylann.hterrain/tools/normalmap_baker.gd"
+const SHADER_CLASSIC4 = "Classic4"
+const SHADER_CLASSIC4_LITE = "Classic4Lite"
+const SHADER_LOW_POLY = "LowPoly"
+const SHADER_ARRAY = "Array"
+const SHADER_CUSTOM = "Custom"
 
-const SHADER_PARAM_HEIGHT_TEXTURE = "u_terrain_heightmap"
-const SHADER_PARAM_NORMAL_TEXTURE = "u_terrain_normalmap"
-const SHADER_PARAM_COLOR_TEXTURE = "u_terrain_colormap"
-const SHADER_PARAM_SPLAT_TEXTURE = "u_terrain_splatmap"
+const _SHADER_TYPE_HINT_STRING = str(
+	SHADER_CLASSIC4, ",",
+	SHADER_CLASSIC4_LITE, ",",
+	SHADER_LOW_POLY, ",",
+	SHADER_ARRAY, ",",
+	SHADER_CUSTOM
+)
+
+const _builtin_shaders = {
+	SHADER_CLASSIC4: {
+		path = "res://addons/zylann.hterrain/shaders/simple4.shader",
+		global_path = "res://addons/zylann.hterrain/shaders/simple4_global.shader"
+	},
+	SHADER_CLASSIC4_LITE: {
+		path = "res://addons/zylann.hterrain/shaders/simple4_lite.shader",
+		global_path = "res://addons/zylann.hterrain/shaders/simple4_global.shader"
+	},
+	SHADER_LOW_POLY: {
+		path = "res://addons/zylann.hterrain/shaders/low_poly.shader",
+		global_path = "" # Not supported
+	},
+	SHADER_ARRAY: {
+		path = "res://addons/zylann.hterrain/shaders/array.shader",
+		global_path = "res://addons/zylann.hterrain/shaders/array_global.shader"
+	}
+}
+
+const _NORMAL_BAKER_PATH = "res://addons/zylann.hterrain/tools/normalmap_baker.gd"
 
 const SHADER_PARAM_INVERSE_TRANSFORM = "u_terrain_inverse_transform"
 const SHADER_PARAM_NORMAL_BASIS = "u_terrain_normal_basis"
@@ -33,6 +58,8 @@ const _api_shader_params = {
 	"u_terrain_normalmap": true,
 	"u_terrain_colormap": true,
 	"u_terrain_splatmap": true,
+	"u_terrain_splat_index_map": true,
+	"u_terrain_splat_weight_map": true,
 	"u_terrain_globalmap": true,
 
 	"u_terrain_inverse_transform": true,
@@ -56,21 +83,12 @@ const _api_shader_ground_albedo_params = {
 	"u_ground_albedo_bump_3": true
 }
 
-const SHADER_CLASSIC4 = "Classic4"
-const SHADER_CLASSIC4_LITE = "Classic4Lite"
-const SHADER_LOW_POLY = "LowPoly"
-const SHADER_CUSTOM = "Custom"
-
-const _SHADER_TYPE_HINT_STRING = str(
-	SHADER_CLASSIC4, ",",
-	SHADER_CLASSIC4_LITE, ",",
-	SHADER_LOW_POLY, ",",
-	SHADER_CUSTOM)
-
+# Ground texture types
 # Note: the alpha channel is used to pack additional maps
 const GROUND_ALBEDO_BUMP = 0
 const GROUND_NORMAL_ROUGHNESS = 1
 const GROUND_TEXTURE_TYPE_COUNT = 2
+
 const GROUND_CLASSIC_TEXTURE_MAX = 4
 
 const MIN_CHUNK_SIZE = 16
@@ -81,13 +99,14 @@ const _ground_enum_to_name = [
 	"normal_roughness"
 ]
 
-const DEBUG_AABB = false
+const _DEBUG_AABB = false
 
 signal transform_changed(global_transform)
 
 export var collision_enabled := true setget set_collision_enabled
 export(float, 0.0, 1.0) var ambient_wind := 0.0 setget set_ambient_wind
 export(int, 2, 5) var lod_scale := 2.0 setget set_lod_scale, get_lod_scale
+export(Shader) var custom_globalmap_shader
 
 # TODO Replace with `size` in world units?
 # Prefer using this instead of scaling the node's transform.
@@ -97,6 +116,7 @@ export var map_scale := Vector3(1, 1, 1) setget set_map_scale
 
 var _custom_shader : Shader = null
 var _shader_type := SHADER_CLASSIC4_LITE
+var _shader_uses_texture_array := false
 var _material := ShaderMaterial.new()
 var _material_params_need_update := false
 
@@ -133,6 +153,7 @@ var _normals_baker = null
 
 func _init():
 	_logger.debug("Create HeightMap")
+	# This sets up the defaults. They may be overriden shortly after by the scene loader.
 
 	_lodder.set_callbacks( \
 		funcref(self, "_cb_make_chunk"), \
@@ -147,7 +168,7 @@ func _init():
 	_material.set_shader_param("u_ground_uv_scale_vec4", Color(20, 20, 20, 20))
 	_material.set_shader_param("u_depth_blending", true)
 
-	_material.shader = load(CLASSIC4_LITE_SHADER_PATH)
+	_material.shader = load(_builtin_shaders[_shader_type].path)
 	
 	_ground_textures.resize(GROUND_CLASSIC_TEXTURE_MAX)
 	for slot in len(_ground_textures):
@@ -206,11 +227,11 @@ func _get_property_list():
 	]
 
 	if _material.shader != null:
-		var shader_params = VisualServer.shader_get_param_list(_material.shader.get_rid())
+		var shader_params := VisualServer.shader_get_param_list(_material.shader.get_rid())
 		for p in shader_params:
 			if _api_shader_params.has(p.name):
 				continue
-			var cp = {}
+			var cp := {}
 			for k in p:
 				cp[k] = p[k]
 			cp.name = str("shader_params/", p.name)
@@ -565,9 +586,9 @@ func _reset_ground_chunks():
 
 	_chunks.resize(_lodder.get_lod_count())
 
-	var cres = _data.get_resolution() / _chunk_size
-	var csize_x = cres
-	var csize_y = cres
+	var cres := _data.get_resolution() / _chunk_size
+	var csize_x := cres
+	var csize_y := cres
 
 	for lod in range(_lodder.get_lod_count()):
 		_logger.debug(str("Create grid for lod ", lod, ", ", csize_x, "x", csize_y))
@@ -626,19 +647,11 @@ func set_shader_type(type: String):
 	if type == _shader_type:
 		return
 	_shader_type = type
-
-	match _shader_type:
-		SHADER_CLASSIC4:
-			_material.shader = load(CLASSIC4_SHADER_PATH) as Shader
-		SHADER_CLASSIC4_LITE:
-			_material.shader = load(CLASSIC4_LITE_SHADER_PATH) as Shader
-		SHADER_LOW_POLY:
-			_material.shader = load(LOW_POLY_SHADER_PATH) as Shader
-		SHADER_CUSTOM:
-			_material.shader = _custom_shader
-		_:
-			_logger.error("Unknown shader type: '{0}'".format([_shader_type]))
-			_material.shader = load(CLASSIC4_SHADER_PATH) as Shader
+	
+	if _shader_type == SHADER_CUSTOM:
+		_material.shader = _custom_shader
+	else:
+		_material.shader = load(_builtin_shaders[_shader_type].path)
 
 	_material_params_need_update = true
 	
@@ -661,9 +674,9 @@ func set_custom_shader(shader: Shader):
 		# When the new shader is empty, allow to fork from the previous shader
 		if shader.get_code().empty():
 			_logger.debug("Populating custom shader with default code")
-			var src = _material.shader
+			var src := _material.shader
 			if src == null:
-				src = load(CLASSIC4_SHADER_PATH)
+				src = load(_builtin_shaders[SHADER_CLASSIC4].path)
 			shader.set_code(src.code)
 			# TODO If code isn't empty,
 			# verify existing parameters and issue a warning if important ones are missing
@@ -689,23 +702,17 @@ func _on_custom_shader_changed():
 func _update_material_params():
 	assert(_material != null)
 	_logger.debug("Updating terrain material params")
-
-	var height_texture
-	var normal_texture
-	var color_texture
-	var splat_texture
-	var global_texture
-	var res = Vector2(-1, -1)
+	
+	var terrain_textures := {}
+	var res := Vector2(-1, -1)
 
 	# TODO Only get textures the shader supports
 
 	if has_data():
-		height_texture = _data.get_texture(HTerrainData.CHANNEL_HEIGHT)
-		normal_texture = _data.get_texture(HTerrainData.CHANNEL_NORMAL)
-		color_texture = _data.get_texture(HTerrainData.CHANNEL_COLOR)
-		splat_texture = _data.get_texture(HTerrainData.CHANNEL_SPLAT)
-		if _data.get_map_count(HTerrainData.CHANNEL_GLOBAL_ALBEDO) != 0:
-			global_texture = _data.get_texture(HTerrainData.CHANNEL_GLOBAL_ALBEDO)
+		for map_type in HTerrainData.CHANNEL_COUNT:
+			var param_name: String = HTerrainData.get_map_type_shader_param_name(map_type)
+			if _data.has_texture(map_type, 0):
+				terrain_textures[param_name] = _data.get_texture(map_type, 0)
 		res.x = _data.get_resolution()
 		res.y = res.x
 
@@ -719,18 +726,18 @@ func _update_material_params():
 		# This is needed to properly transform normals if the terrain is scaled
 		var normal_basis = gt.basis.inverse().transposed()
 		_material.set_shader_param(SHADER_PARAM_NORMAL_BASIS, normal_basis)
-
-	_material.set_shader_param(SHADER_PARAM_HEIGHT_TEXTURE, height_texture)
-	_material.set_shader_param(SHADER_PARAM_NORMAL_TEXTURE, normal_texture)
-	_material.set_shader_param(SHADER_PARAM_COLOR_TEXTURE, color_texture)
-	_material.set_shader_param(SHADER_PARAM_SPLAT_TEXTURE, splat_texture)
-	_material.set_shader_param("u_terrain_globalmap", global_texture)
+	
+	for param_name in terrain_textures:
+		var tex = terrain_textures[param_name]
+		_material.set_shader_param(param_name, tex)
 
 	for slot in len(_ground_textures):
 		var textures = _ground_textures[slot]
 		for type in len(textures):
-			var shader_param = get_ground_texture_shader_param(type, slot)
+			var shader_param = _get_ground_texture_shader_param_name(type, slot)
 			_material.set_shader_param(shader_param, textures[type])
+	
+	_shader_uses_texture_array = false
 	
 	var shader := _material.shader
 	if shader != null:
@@ -739,29 +746,55 @@ func _update_material_params():
 		for p in param_list:
 			if _api_shader_ground_albedo_params.has(p.name):
 				_ground_texture_count_cache += 1
+			if p.name == "u_ground_albedo_bump_array":
+				_shader_uses_texture_array = true
+
+
+func is_using_texture_array() -> bool:
+	return _shader_uses_texture_array
+
+
+static func _get_common_shader_params(shader1: Shader, shader2: Shader) -> Array:
+	var shader1_param_names := {}
+	var common_params := []
+	
+	var shader1_params := VisualServer.shader_get_param_list(shader1.get_rid())
+	var shader2_params := VisualServer.shader_get_param_list(shader2.get_rid())
+	
+	for p in shader1_params:
+		shader1_param_names[p.name] = true
+	
+	for p in shader2_params:
+		if shader1_param_names.has(p.name):
+			common_params.append(p.name)
+	
+	return common_params
 
 
 # Helper used for globalmap baking
 func setup_globalmap_material(mat: ShaderMaterial):
-	var color_texture: Texture
-	var splat_texture: Texture
+	mat.shader = get_globalmap_shader()
+	if mat.shader == null:
+		_logger.error("Could not find a shader to use for baking the global map.")
+		return
+	# Copy all parameters shaders have in common
+	var common_params = _get_common_shader_params(mat.shader, _material.shader)
+	for param_name in common_params:
+		var v = _material.get_shader_param(param_name)
+		mat.set_shader_param(param_name, v)
 
-	if has_data():
-		color_texture = _data.get_texture(HTerrainData.CHANNEL_COLOR)
-		splat_texture = _data.get_texture(HTerrainData.CHANNEL_SPLAT)
 
-	mat.set_shader_param("u_terrain_splatmap", splat_texture)
-	mat.set_shader_param("u_terrain_colormap", color_texture)
-	mat.set_shader_param("u_depth_blending", get_shader_param("u_depth_blending"))
-	mat.set_shader_param("u_ground_uv_scale", get_shader_param("u_ground_uv_scale"))
-	mat.set_shader_param("u_ground_uv_scale_vec4", get_shader_param("u_ground_uv_scale_vec4"))
-
-	for slot in len(_ground_textures):
-		var textures = _ground_textures[slot]
-		for type in len(textures):
-			var shader_param = get_ground_texture_shader_param(type, slot)
-			var tex = textures[type]
-			mat.set_shader_param(shader_param, tex)
+# Gets which shader will be used to bake the globalmap
+func get_globalmap_shader() -> Shader:
+	if _shader_type == SHADER_CUSTOM:
+		if custom_globalmap_shader != null:
+			return custom_globalmap_shader
+		_logger.warn("The terrain uses a custom shader but doesn't have one for baking the "
+			+ "global map. Will attempt to use a built-in shader.")
+		if is_using_texture_array():
+			return load(_builtin_shaders[SHADER_ARRAY].global_path) as Shader
+		return load(_builtin_shaders[SHADER_CLASSIC4].global_path) as Shader
+	return load(_builtin_shaders[_shader_type].global_path) as Shader
 
 
 func set_lod_scale(lod_scale: float):
@@ -849,8 +882,8 @@ func _process(delta: float):
 			return
 
 		if _data.get_resolution() != 0:
-			var gt = get_internal_transform()
-			var local_viewer_pos = gt.affine_inverse() * viewer_pos
+			var gt := get_internal_transform()
+			var local_viewer_pos := gt.affine_inverse() * viewer_pos
 			#var time_before = OS.get_ticks_msec()
 			_lodder.update(local_viewer_pos)
 			#var time_elapsed = OS.get_ticks_msec() - time_before
@@ -871,7 +904,7 @@ func _process(delta: float):
 	# chunk got joined or split requires them to create or revert seams
 	var precount = _pending_chunk_updates.size()
 	for i in range(precount):
-		var u = _pending_chunk_updates[i]
+		var u: PendingChunkUpdate = _pending_chunk_updates[i]
 
 		# In case the chunk got split
 		for d in 4:
@@ -886,23 +919,23 @@ func _process(delta: float):
 
 		# In case the chunk got joined
 		if u.lod > 0:
-			var cpos_upper_x = u.pos_x * 2
-			var cpos_upper_y = u.pos_y * 2
-			var nlod = u.lod - 1
+			var cpos_upper_x := u.pos_x * 2
+			var cpos_upper_y := u.pos_y * 2
+			var nlod := u.lod - 1
 
 			for rd in 8:
 				var ncpos_upper_x = cpos_upper_x + s_rdirs[rd][0]
 				var ncpos_upper_y = cpos_upper_y + s_rdirs[rd][1]
 
-				var nchunk = _get_chunk_at(ncpos_upper_x, ncpos_upper_y, nlod)
+				var nchunk := _get_chunk_at(ncpos_upper_x, ncpos_upper_y, nlod)
 				if nchunk != null and nchunk.is_active():
 					_add_chunk_update(nchunk, ncpos_upper_x, ncpos_upper_y, nlod)
 
 	# Update chunks
-	var lvisible = is_visible_in_tree()
+	var lvisible := is_visible_in_tree()
 	for i in range(len(_pending_chunk_updates)):
-		var u = _pending_chunk_updates[i]
-		var chunk = _get_chunk_at(u.pos_x, u.pos_y, u.lod)
+		var u: PendingChunkUpdate = _pending_chunk_updates[i]
+		var chunk := _get_chunk_at(u.pos_x, u.pos_y, u.lod)
 		assert(chunk != null)
 		_update_chunk(chunk, u.lod, lvisible)
 		_updated_chunks += 1
@@ -1018,7 +1051,7 @@ func _cb_make_chunk(cpos_x: int, cpos_y: int, lod: int):
 		var origin_in_cells_x := cpos_x * _chunk_size * lod_factor
 		var origin_in_cells_y := cpos_y * _chunk_size * lod_factor
 
-		if DEBUG_AABB:
+		if _DEBUG_AABB:
 			chunk = HTerrainChunkDebug.new(
 				self, origin_in_cells_x, origin_in_cells_y, _material)
 		else:
@@ -1080,7 +1113,7 @@ func cell_raycast(origin_world: Vector3, dir_world: Vector3, max_distance: float
 
 # TODO Rename these "splat textures"
 
-static func get_ground_texture_shader_param(ground_texture_type: int, slot: int) -> String:
+static func _get_ground_texture_shader_param_name(ground_texture_type: int, slot: int) -> String:
 	assert(typeof(slot) == TYPE_INT and slot >= 0)
 	_check_ground_texture_type(ground_texture_type)
 	return str(SHADER_PARAM_GROUND_PREFIX, 
@@ -1089,16 +1122,39 @@ static func get_ground_texture_shader_param(ground_texture_type: int, slot: int)
 
 func get_ground_texture(slot: int, type: int) -> Texture:
 	_check_slot(slot)
-	var shader_param = get_ground_texture_shader_param(type, slot)
+	var shader_param = _get_ground_texture_shader_param_name(type, slot)
 	return _material.get_shader_param(shader_param)
 
 
 func set_ground_texture(slot: int, type: int, tex: Texture):
 	_check_slot(slot)
 	assert(tex == null or tex is Texture)
-	var shader_param = get_ground_texture_shader_param(type, slot)
+	var shader_param = _get_ground_texture_shader_param_name(type, slot)
 	_material.set_shader_param(shader_param, tex)
 	_ground_textures[slot][type] = tex
+
+
+func _get_ground_texture_array_param_name(type: int) -> String:
+	match type:
+		GROUND_ALBEDO_BUMP:
+			return "u_ground_albedo_bump_array"
+		GROUND_NORMAL_ROUGHNESS:
+			return "u_ground_normal_roughness_array"
+		_:
+			_logger.error("Unknown texture type {0}".format([type]))
+			return ""
+
+
+# Helper to get texture array
+func get_ground_texture_array(type: int) -> TextureArray:
+	var param_name = _get_ground_texture_array_param_name(type)
+	return _material.get_shader_param(param_name)
+
+
+# Helper to set texture array
+func set_ground_texture_array(type: int, texture_array: TextureArray):
+	var param_name = _get_ground_texture_array_param_name(type)
+	_material.set_shader_param(param_name, texture_array)
 
 
 func _internal_add_detail_layer(layer):

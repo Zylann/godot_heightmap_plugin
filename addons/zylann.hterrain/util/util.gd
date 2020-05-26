@@ -13,16 +13,16 @@ static func next_power_of_two(x: int) -> int:
 
 
 # Godot doesn't expose Vector2i, and Vector2 has float limitations
-static func encode_v2i(x: int, y: int):
-	return (x & 0xffff) | ((y << 16) & 0xffff0000)  
+#static func encode_v2i(x: int, y: int):
+#	return (x & 0xffff) | ((y << 16) & 0xffff0000)  
 
 
 # Godot doesn't expose Vector2i, and Vector2 has float limitations
-static func decode_v2i(k: int) -> Array:
-	return [
-		k & 0xffff,
-		(k >> 16) & 0xffff
-	]
+#static func decode_v2i(k: int) -> Array:
+#	return [
+#		k & 0xffff,
+#		(k >> 16) & 0xffff
+#	]
 
 
 # `min` turns numbers into float

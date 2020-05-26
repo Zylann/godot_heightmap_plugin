@@ -16,6 +16,7 @@ const GlobalMapBaker = preload("./globalmap_baker.gd")
 const ImageFileCache = preload("../util/image_file_cache.gd")
 const Logger = preload("../util/logger.gd")
 
+# TODO Suffix with Scene
 const EditPanel = preload("./panel.tscn")
 const ProgressWindow = preload("./progress_window.tscn")
 const GeneratorDialog = preload("./generator/generator_dialog.tscn")
@@ -446,39 +447,24 @@ func _paint_completed():
 	assert(heightmap_data != null)
 	
 	var ur_data = _brush._edit_pop_undo_redo_data(heightmap_data)
-	
 	var ur = get_undo_redo()
 	
-	var action_name = ""
-	match ur_data.channel:
-		
-		HTerrainData.CHANNEL_COLOR:
-			action_name = "Modify HeightMapData Color"
-			
-		HTerrainData.CHANNEL_SPLAT:
-			action_name = "Modify HeightMapData Splat"
-			
-		HTerrainData.CHANNEL_HEIGHT:
-			action_name = "Modify HeightMapData Height"
-
-		HTerrainData.CHANNEL_DETAIL:
-			action_name = "Modify HeightMapData Detail"
-			
-		_:
-			action_name = "Modify HeightMapData"
+	var action_name := "Modify HeightMapData "
+	for i in len(ur_data.undo):
+		var map_info = ur_data.undo[i]
+		var map_debug_name = HTerrainData.get_map_debug_name(map_info.map_type, map_info.map_index)
+		if i > 0:
+			action_name += " and "
+		action_name += map_debug_name
 	
-	var undo_data = {
+	var undo_data := {
 		"chunk_positions": ur_data.chunk_positions,
 		"data": ur_data.redo,
-		"channel": ur_data.channel,
-		"index": ur_data.index,
 		"chunk_size": ur_data.chunk_size
 	}
-	var redo_data = {
+	var redo_data := {
 		"chunk_positions": ur_data.chunk_positions,
 		"data": ur_data.undo,
-		"channel": ur_data.channel,
-		"index": ur_data.index,
 		"chunk_size": ur_data.chunk_size
 	}
 
@@ -503,8 +489,8 @@ func _terrain_exited_scene():
 
 func _menu_item_selected(id):
 	_logger.debug(str("Menu item selected ", id))
+	
 	match id:
-		
 		MENU_IMPORT_MAPS:
 			_import_dialog.popup_centered()
 					

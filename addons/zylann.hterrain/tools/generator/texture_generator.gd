@@ -127,7 +127,8 @@ func set_resolution(res: Vector2):
 
 # Tell image outputs to include extra pixels on the edges.
 # This extends the resolution of images compared to the base resolution.
-# The initial use case for this is to generate terrain tiles where edge pixels are shared with the neighor tiles.
+# The initial use case for this is to generate terrain tiles where edge pixels are
+# shared with the neighor tiles.
 func set_output_padding(p: Array):
 	assert(typeof(p) == TYPE_ARRAY)
 	assert(len(p) == 4)
@@ -243,7 +244,8 @@ func _setup_pass(p: Pass):
 		var pad_offset_ndc = ((_viewport.size - _resolution) / 2) / _viewport.size
 		var offset_ndc = -pad_offset_ndc + p.tile_pos / scale_ndc
 		
-		# Because padding may be used around the generated area, the shader can use these predefined parameters,
+		# Because padding may be used around the generated area,
+		# the shader can use these predefined parameters,
 		# and apply the following to SCREEN_UV to adjust its calculations:
 		# 	vec2 uv = (SCREEN_UV + u_uv_offset) * u_uv_scale;
 		
