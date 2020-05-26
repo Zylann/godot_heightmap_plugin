@@ -774,6 +774,9 @@ static func _get_common_shader_params(shader1: Shader, shader2: Shader) -> Array
 # Helper used for globalmap baking
 func setup_globalmap_material(mat: ShaderMaterial):
 	mat.shader = get_globalmap_shader()
+	if mat.shader == null:
+		_logger.error("Could not find a shader to use for baking the global map.")
+		return
 	# Copy all parameters shaders have in common
 	var common_params = _get_common_shader_params(mat.shader, _material.shader)
 	for param_name in common_params:
@@ -784,7 +787,13 @@ func setup_globalmap_material(mat: ShaderMaterial):
 # Gets which shader will be used to bake the globalmap
 func get_globalmap_shader() -> Shader:
 	if _shader_type == SHADER_CUSTOM:
-		return custom_globalmap_shader
+		if custom_globalmap_shader != null:
+			return custom_globalmap_shader
+		_logger.warn("The terrain uses a custom shader but doesn't have one for baking the "
+			+ "global map. Will attempt to use a built-in shader.")
+		if is_using_texture_array():
+			return load(_builtin_shaders[SHADER_ARRAY].global_path) as Shader
+		return load(_builtin_shaders[SHADER_CLASSIC4].global_path) as Shader
 	return load(_builtin_shaders[_shader_type].global_path) as Shader
 
 
