@@ -53,9 +53,15 @@ void fragment() {
 
 	// Get bump at normal resolution so depth blending is accurate
 	vec2 ground_uv = UV / u_ground_uv_scale;
-	vec4 ab0 = texture(u_ground_albedo_bump_array, vec3(ground_uv, splat_indexes.x));
-	vec4 ab1 = texture(u_ground_albedo_bump_array, vec3(ground_uv, splat_indexes.y));
-	vec4 ab2 = texture(u_ground_albedo_bump_array, vec3(ground_uv, splat_indexes.z));
+	float b0 = texture(u_ground_albedo_bump_array, vec3(ground_uv, splat_indexes.x)).a;
+	float b1 = texture(u_ground_albedo_bump_array, vec3(ground_uv, splat_indexes.y)).a;
+	float b2 = texture(u_ground_albedo_bump_array, vec3(ground_uv, splat_indexes.z)).a;
+
+	// Take the center of the highest mip as color, because we can't see details from far away.
+	vec2 ndc_center = vec2(0.5, 0.5);
+	vec3 a0 = textureLod(u_ground_albedo_bump_array, vec3(ndc_center, splat_indexes.x), 10.0).rgb;
+	vec3 a1 = textureLod(u_ground_albedo_bump_array, vec3(ndc_center, splat_indexes.y), 10.0).rgb;
+	vec3 a2 = textureLod(u_ground_albedo_bump_array, vec3(ndc_center, splat_indexes.z), 10.0).rgb;
 
 	vec3 splat_weights = vec3(
 		tex_splat_weights.r, 
@@ -65,12 +71,12 @@ void fragment() {
 	
 	// TODO An #ifdef macro would be nice! Or copy/paste everything in a different shader...
 	if (u_depth_blending) {
-		splat_weights = get_depth_blended_weights(splat_weights, vec3(ab0.a, ab1.a, ab2.a));
+		splat_weights = get_depth_blended_weights(splat_weights, vec3(b0, b1, b2));
 	}
 
 	ALBEDO = tint.rgb * (
-		  ab0.rgb * splat_weights.x 
-		+ ab1.rgb * splat_weights.y
-		+ ab2.rgb * splat_weights.z
+		  a0 * splat_weights.x 
+		+ a1 * splat_weights.y
+		+ a2 * splat_weights.z
 	);
 }
