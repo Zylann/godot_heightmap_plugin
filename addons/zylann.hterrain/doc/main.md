@@ -429,23 +429,21 @@ In order to write your own ground shader, select the `HTerrain` node, and change
 The plugin does not actually hardcode its features based on its built-in shaders. Instead, it looks at which `uniform` parameters your shader defines, and adapts in consequence.
 A list of `uniform` parameters are recognized, some of which are required for heightmap rendering to work:
 
-TODO Make a grid and indicate types
-
-- `u_terrain_heightmap`: the heightmap, a half-precision float texture which can be sampled in the red channel. Like the other following maps, you have to access it using cell coordinates, which can be computed as seen in the built-in shader.
-- `u_terrain_normalmap`: the precalculated normalmap of the terrain, which you can use instead of computing it from the heightmap
-- `u_terrain_colormap`: the color map, which is the one modified by the color brush. The alpha channel is used for holes.
-- `u_terrain_splatmap`: the classic 4-component splatmap, where each channel determines the weight of a given texture. The sum of each channel should be 1.0.
-- `u_terrain_globalmap`: the global albedo map.
-- `u_terrain_inverse_transform`: a 4x4 matrix containing the inverse transform of the terrain. This is useful if you need to calculate the position of the current vertex in world coordinates in the vertex shader, as seen in the builtin shader.
-- `u_terrain_normal_basis`: a 3x3 matrix containing the basis used for transforming normals. It is not always needed, but if you use `map scale` it is required to keep them correct.
-- `u_terrain_splat_index_map`: an index map, used for texturing based on a `TextureArray`. the R, G and B components multiplied by 255.0 will provide the index of the texture.
-- `u_terrain_splat_weight_map`: a 2-component weight map where a 3rd component can be obtained with `1.0 - r - g`, used for texturing based on a `TextureArray`. The sum of R and G must be 1.0.
-
-- `u_ground_albedo_bump_0` to `3`: these are up to 4 albedo textures for the ground, which you have to blend using the splatmap. Their alpha channel can contain bump.
-- `u_ground_normal_roughness_0` to `3`: similar to albedo, these are up to 4 normal textures to blend using the splatmap. Their alpha channel can contain roughness.
-
-- `u_ground_albedo_bump_array`: equivalent of the previous individual albedo textures, as an array. The plugin knows you use this texturing technique by checking the existence of this parameter.
-- `u_ground_normal_roughness_array`: equivalent of the previous individual normalmap textures, as an array.
+Parameter name                      | Type             | Format  | Description
+------------------------------------|------------------|---------|--------------
+`u_terrain_heightmap`               | `sampler2D`      | `RH`    | The heightmap, a half-precision float texture which can be sampled in the red channel. Like the other following maps, you have to access it using cell coordinates, which can be computed as seen in the built-in shader.
+`u_terrain_normalmap`               | `sampler2D`      | `RGB8`  | The precalculated normalmap of the terrain, which you can use instead of computing it from the heightmap
+`u_terrain_colormap`                | `sampler2D`      | `RGBA8` | The color map, which is the one modified by the color brush. The alpha channel is used for holes.
+`u_terrain_splatmap`                | `sampler2D`      | `RGBA8` | The classic 4-component splatmap, where each channel determines the weight of a given texture. The sum of each channel should be 1.0.
+`u_terrain_globalmap`               | `sampler2D`      | `RGB8`  | The global albedo map.
+`u_terrain_splat_index_map`         | `sampler2D`      | `RGB8`  | An index map, used for texturing based on a `TextureArray`. the R, G and B components multiplied by 255.0 will provide the index of the texture.
+`u_terrain_splat_weight_map`        | `sampler2D`      | `RG8`   | A 2-component weight map where a 3rd component can be obtained with `1.0 - r - g`, used for texturing based on a `TextureArray`. The sum of R and G must be 1.0.
+`u_ground_albedo_bump_0`...`3`      | `sampler2D`      | `RGBA8` | These are up to 4 albedo textures for the ground, which you have to blend using the splatmap. Their alpha channel can contain bump.
+`u_ground_normal_roughness_0`...`3` | `sampler2D`      | `RGBA8` | Similar to albedo, these are up to 4 normal textures to blend using the splatmap. Their alpha channel can contain roughness.
+`u_ground_albedo_bump_array`        | `sampler2DArray` | `RGBA8` | Equivalent of the previous individual albedo textures, as an array. The plugin knows you use this texturing technique by checking the existence of this parameter.
+`u_ground_normal_roughness_array`   | `sampler2DArray` | `RGBA8` | Equivalent of the previous individual normalmap textures, as an array.
+`u_terrain_inverse_transform`       | `mat4x4`         |         | A 4x4 matrix containing the inverse transform of the terrain. This is useful if you need to calculate the position of the current vertex in world coordinates in the vertex shader, as seen in the builtin shader.
+`u_terrain_normal_basis`            | `mat3x3`         |         | A 3x3 matrix containing the basis used for transforming normals. It is not always needed, but if you use `map scale` it is required to keep them correct.
 
 You don't have to declare them all. It's fine if you omit some of them, which is good because it frees a slot in the limited amount of `uniforms`, especially for texture units.
 Other parameters are not used by the plugin, and are shown procedurally under the `Shader params` section of the `HTerrain` node.
@@ -464,10 +462,12 @@ They share the following parameters with ground shaders:
 
 And there also have specific parameters which you can use:
 
-- `u_terrain_detailmap`: this one contains the grass density, from 0 to 1. Depending on this, you may hide instances by outputting degenerate triangles, or let them pass through. The builtin shader contains an example.
-- `u_albedo_alpha`: this is the texture applied to the quad, typically transparent grass.
-- `u_view_distance`: how far details are supposed to render. Beyond this range, the plugin will cull chunks away, so it is a good idea to use this in the shader to smoothly fade pixels in the distance to hide this process.
-- `u_ambient_wind`: combined `vec2` parameter for ambient wind. `x` is the amplitude, and `y` is a time value. It is better to use it instead of directly `TIME` because it allows to animate speed without causing stutters.
+Parameter name                      | Type             | Format  | Description
+------------------------------------|------------------|---------|--------------
+`u_terrain_detailmap`               | `sampler2D`      | `R8`    | This one contains the grass density, from 0 to 1. Depending on this, you may hide instances by outputting degenerate triangles, or let them pass through. The builtin shader contains an example.
+`u_albedo_alpha`                    | `sampler2D`      | `RGBA8` | This is the texture applied to the whole model, typically transparent grass.
+`u_view_distance`                   | `float`          |         | How far details are supposed to render. Beyond this range, the plugin will cull chunks away, so it is a good idea to use this in the shader to smoothly fade pixels in the distance to hide this process.
+`u_ambient_wind`                    | `vec2`           |         | Combined `vec2` parameter for ambient wind. `x` is the amplitude, and `y` is a time value. It is better to use it instead of directly `TIME` because it allows to animate speed without causing stutters.
 
 
 Scripting
