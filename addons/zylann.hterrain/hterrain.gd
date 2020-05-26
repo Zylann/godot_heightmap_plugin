@@ -424,8 +424,8 @@ func set_map_scale(p_map_scale: Vector3):
 # which is different from Spatial.global_transform gives
 # (that one must only have translation)
 func get_internal_transform() -> Transform:
-	# Terrain can only be scaled and translated,
-	return Transform(Basis().scaled(map_scale), translation)
+	# Terrain can only be self-scaled and translated,
+	return Transform(Basis().scaled(map_scale), global_transform.origin)
 
 
 func _notification(what: int):
