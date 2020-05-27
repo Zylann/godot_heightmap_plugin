@@ -26,6 +26,7 @@ public:
     void lerp_color_brush(Ref<Image> image_ref, Ref<Image> brush_ref, Vector2 p_pos, float factor, Color target_value) const;
     float generate_gaussian_brush(Ref<Image> image_ref) const;
     void blur_red_brush(Ref<Image> image_ref, Ref<Image> brush_ref, Vector2 p_pos, float factor);
+    void paint_indexed_splat(Ref<Image> index_map_ref, Ref<Image> weight_map_ref, Ref<Image> brush_ref, Vector2 p_pos, int texture_index, float factor);
     //void erode_red_brush(Ref<Image> image_ref, Ref<Image> brush_ref, Vector2 p_pos, float factor);
 
 private:

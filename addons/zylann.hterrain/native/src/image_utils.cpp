@@ -211,8 +211,8 @@ void ImageUtils::blur_red_brush(Ref<Image> image_ref, Ref<Image> brush_ref, Vect
     }
 
     IntRange2D range = IntRange2D::from_min_max(p_pos, brush.get_size());
-    int min_x_noclamp = range.min_x;
-    int min_y_noclamp = range.min_y;
+    const int min_x_noclamp = range.min_x;
+    const int min_y_noclamp = range.min_y;
     range.clip(Vector2i(image.get_size()));
 
     const int buffer_offset_left = -1;
@@ -224,20 +224,20 @@ void ImageUtils::blur_red_brush(Ref<Image> image_ref, Ref<Image> brush_ref, Vect
 
     // Apply blur
     for (int y = range.min_y; y < range.max_y; ++y) {
-        int brush_y = y - min_y_noclamp;
+        const int brush_y = y - min_y_noclamp;
 
         for (int x = range.min_x; x < range.max_x; ++x) {
-            int brush_x = x - min_x_noclamp;
+            const int brush_x = x - min_x_noclamp;
 
-            float brush_value = brush.get_pixel(brush_x, brush_y).r * factor;
+            const float brush_value = brush.get_pixel(brush_x, brush_y).r * factor;
 
             buffer_i = (brush_x + 1) + (brush_y + 1) * buffer_width;
 
-            float p10 = _blur_buffer[buffer_i + buffer_offset_top];
-            float p01 = _blur_buffer[buffer_i + buffer_offset_left];
-            float p11 = _blur_buffer[buffer_i];
-            float p21 = _blur_buffer[buffer_i + buffer_offset_right];
-            float p12 = _blur_buffer[buffer_i + buffer_offset_bottom];
+            const float p10 = _blur_buffer[buffer_i + buffer_offset_top];
+            const float p01 = _blur_buffer[buffer_i + buffer_offset_left];
+            const float p11 = _blur_buffer[buffer_i];
+            const float p21 = _blur_buffer[buffer_i + buffer_offset_right];
+            const float p12 = _blur_buffer[buffer_i + buffer_offset_bottom];
 
             // Average
             float m = (p10 + p01 + p11 + p21 + p12) * 0.2f;
@@ -251,6 +251,104 @@ void ImageUtils::blur_red_brush(Ref<Image> image_ref, Ref<Image> brush_ref, Vect
     brush.lock();
 }
 
+void ImageUtils::paint_indexed_splat(Ref<Image> index_map_ref, Ref<Image> weight_map_ref,
+        Ref<Image> brush_ref, Vector2 p_pos, int texture_index, float factor) {
+
+    ERR_FAIL_COND(index_map_ref.is_null());
+    ERR_FAIL_COND(weight_map_ref.is_null());
+    ERR_FAIL_COND(brush_ref.is_null());
+    Image &index_map = **index_map_ref;
+    Image &weight_map = **weight_map_ref;
+    Image &brush = **brush_ref;
+
+    ERR_FAIL_COND(index_map.get_size() != weight_map.get_size());
+
+    factor = Math::clamp(factor, 0.f, 1.f);
+
+    IntRange2D range = IntRange2D::from_min_max(p_pos, brush.get_size());
+    const int min_x_noclamp = range.min_x;
+    const int min_y_noclamp = range.min_y;
+    range.clip(Vector2i(index_map.get_size()));
+
+    const float texture_index_f = float(texture_index) / 255.f;
+    const Color all_texture_index_f(texture_index_f, texture_index_f, texture_index_f);
+    const int ci = texture_index % 3;
+    Color cm(-1, -1, -1);
+    cm[ci] = 1;
+
+    brush.lock();
+    index_map.lock();
+    weight_map.lock();
+
+    for (int y = range.min_y; y < range.max_y; ++y) {
+        const int brush_y = y - min_y_noclamp;
+
+        for (int x = range.min_x; x < range.max_x; ++x) {
+            const int brush_x = x - min_x_noclamp;
+
+            const float brush_value = brush.get_pixel(brush_x, brush_y).r * factor;
+
+            if (brush_value == 0.f) {
+                continue;
+            }
+
+            Color i = index_map.get_pixel(x, y);
+            Color w = weight_map.get_pixel(x, y);
+
+            // Decompress third weight to make computations easier
+            w[2] = 1.f - w[0] - w[1];
+
+            if (abs(i[ci] - texture_index_f) > 0.001f) {
+                // Pixel does not have our texture index,
+                // transfer its weight to other components first
+                if (w[ci] > brush_value) {
+                    w[0] -= cm[0] * brush_value;
+                    w[1] -= cm[1] * brush_value;
+                    w[2] -= cm[2] * brush_value;
+
+                } else if (w[ci] >= 0.f) {
+                    w[ci] = 0.f;
+                    i[ci] = texture_index_f;
+                }
+
+            } else {
+                // Pixel has our texture index, increase its weight
+                if (w[ci] + brush_value < 1.f) {
+                    w[0] += cm[0] * brush_value;
+                    w[1] += cm[1] * brush_value;
+                    w[2] += cm[2] * brush_value;
+
+                } else {
+                    // Pixel weight is full, we can set all components to the same index.
+                    // Need to nullify other weights because they would otherwise never reach
+                    // zero due to normalization
+                    w = Color(0, 0, 0);
+                    w[ci] = 1.0;
+                    i = all_texture_index_f;
+                }
+            }
+
+            // No `saturate` function in Color??
+            w[0] = Math::clamp(w[0], 0.f, 1.f);
+            w[1] = Math::clamp(w[1], 0.f, 1.f);
+            w[2] = Math::clamp(w[2], 0.f, 1.f);
+
+            // Renormalize
+            const float sum = w[0] + w[1] + w[2];
+            w[0] /= sum;
+            w[1] /= sum;
+            w[2] /= sum;
+
+            index_map.set_pixel(x, y, i);
+            weight_map.set_pixel(x, y, w);
+        }
+    }
+
+    brush.lock();
+    index_map.unlock();
+    weight_map.unlock();
+}
+
 void ImageUtils::_register_methods() {
     register_method("get_red_range", &ImageUtils::get_red_range);
     register_method("get_red_sum", &ImageUtils::get_red_sum);
@@ -260,6 +358,7 @@ void ImageUtils::_register_methods() {
     register_method("lerp_color_brush", &ImageUtils::lerp_color_brush);
     register_method("generate_gaussian_brush", &ImageUtils::generate_gaussian_brush);
     register_method("blur_red_brush", &ImageUtils::blur_red_brush);
+    register_method("paint_indexed_splat", &ImageUtils::paint_indexed_splat);
 }
 
 } // namespace godot

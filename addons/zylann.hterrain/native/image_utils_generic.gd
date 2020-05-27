@@ -270,3 +270,100 @@ func blur_red_brush(im: Image, brush: Image, pos: Vector2, factor: float):
 	buffer.unlock()
 	brush.unlock()
 
+
+func paint_indexed_splat(index_map: Image, weight_map: Image, brush: Image, pos: Vector2, \
+	texture_index: int, factor: float):
+	
+	var min_x := pos.x
+	var min_y := pos.y
+	var max_x := min_x + brush.get_width()
+	var max_y := min_y + brush.get_height()
+	var min_noclamp_x := min_x
+	var min_noclamp_y := min_y
+
+	min_x = Util.clamp_int(min_x, 0, index_map.get_width())
+	min_y = Util.clamp_int(min_y, 0, index_map.get_height())
+	max_x = Util.clamp_int(max_x, 0, index_map.get_width())
+	max_y = Util.clamp_int(max_y, 0, index_map.get_height())
+	
+	var texture_index_f := float(texture_index) / 255.0
+	var all_texture_index_f := Color(texture_index_f, texture_index_f, texture_index_f)
+	var ci := texture_index % 3
+	var cm := Color(-1, -1, -1)
+	cm[ci] = 1
+
+	index_map.lock()
+	weight_map.lock()
+	brush.lock()
+
+	for y in range(min_y, max_y):
+		var by := y - min_noclamp_y
+
+		for x in range(min_x, max_x):
+			var bx := x - min_noclamp_x
+
+			var shape_value := brush.get_pixel(bx, by).r * factor
+			if shape_value == 0.0:
+				continue
+
+			var i := index_map.get_pixel(x, y)
+			var w := weight_map.get_pixel(x, y)
+			
+			# Decompress third weight to make computations easier
+			w[2] = 1.0 - w[0] - w[1]
+			
+			# The index map tells which textures to blend.
+			# The weight map tells their blending amounts.
+			# This brings the limitation that up to 3 textures can blend at a time in a given pixel.
+			# Painting this in real time can be a challenge.
+			
+			# The approach here is a compromise for simplicity.
+			# Each texture is associated a fixed component of the index map (R, G or B),
+			# so two neighbor pixels having the same component won't be guaranteed to blend.
+			# In other words, texture T will not be able to blend with T + N * k,
+			# where k is an integer, and N is the number of components in the index map (up to 4).
+			# It might still be able to blend due to a special case when an area is uniform,
+			# but not otherwise.
+			
+			# Dynamic component assignment sounds like the alternative, however I wasn't able
+			# to find a painting algorithm that wasn't confusing, at least the current one is
+			# predictable.
+			
+			# Need to use approximation because Color is float but GDScript uses doubles...
+			if abs(i[ci] - texture_index_f) > 0.001:
+				# Pixel does not have our texture index,
+				# transfer its weight to other components first
+				if w[ci] > shape_value:
+					w -= cm * shape_value
+					
+				elif w[ci] >= 0.0:
+					w[ci] = 0.0
+					i[ci] = texture_index_f
+					
+			else:
+				# Pixel has our texture index, increase its weight
+				if w[ci] + shape_value < 1.0:
+					w += cm * shape_value
+					
+				else:
+					# Pixel weight is full, we can set all components to the same index.
+					# Need to nullify other weights because they would otherwise never reach
+					# zero due to normalization
+					w = Color(0, 0, 0)
+					w[ci] = 1.0
+					i = all_texture_index_f
+			
+			# No `saturate` function in Color??
+			w[0] = clamp(w[0], 0.0, 1.0)
+			w[1] = clamp(w[1], 0.0, 1.0)
+			w[2] = clamp(w[2], 0.0, 1.0)
+			
+			# Renormalize
+			w /= w[0] + w[1] + w[2]
+			
+			index_map.set_pixel(x, y, i)
+			weight_map.set_pixel(x, y, w)
+
+	index_map.lock()
+	weight_map.lock()
+	brush.unlock()
