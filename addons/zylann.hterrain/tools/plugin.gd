@@ -457,6 +457,14 @@ func _paint_completed():
 			action_name += " and "
 		action_name += map_debug_name
 	
+	# Cache images to disk so RAM does not continuously go up (or at least much slower)
+	for maps_info in [ur_data.undo, ur_data.redo]:
+		for map_info in maps_info:
+			var chunk_list : Array = map_info.chunks
+			for i in len(chunk_list):
+				var im: Image = chunk_list[i]
+				chunk_list[i] = _image_cache.save_image(im)
+	
 	var undo_data := {
 		"chunk_positions": ur_data.chunk_positions,
 		"data": ur_data.redo,
@@ -469,8 +477,8 @@ func _paint_completed():
 	}
 
 	ur.create_action(action_name)
-	ur.add_do_method(heightmap_data, "_edit_apply_undo", undo_data)
-	ur.add_undo_method(heightmap_data, "_edit_apply_undo", redo_data)
+	ur.add_do_method(heightmap_data, "_edit_apply_undo", undo_data, _image_cache)
+	ur.add_undo_method(heightmap_data, "_edit_apply_undo", redo_data, _image_cache)
 
 	# Small hack here:
 	# commit_actions executes the do method, however terrain modifications are heavy ones,

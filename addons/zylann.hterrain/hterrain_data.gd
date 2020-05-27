@@ -10,6 +10,7 @@ const Util = preload("./util/util.gd")
 const Errors = preload("./util/errors.gd")
 const NativeFactory = preload("./native/factory.gd")
 const Logger = preload("./util/logger.gd")
+const ImageFileCache = preload("./util/image_file_cache.gd")
 
 # Note: indexes matters for saving, don't re-order
 # TODO Rename "CHANNEL" to "MAP", makes more sense and less confusing with RGBA channels
@@ -437,13 +438,10 @@ func notify_region_change(p_rect: Rect2, channel: int, index := 0):
 
 func notify_full_change():
 	for maptype in range(CHANNEL_COUNT):
-
 		# Ignore normals because they get updated along with heights
 		if maptype == CHANNEL_NORMAL:
 			continue
-
 		var maps = _maps[maptype]
-
 		for index in len(maps):
 			notify_region_change(Rect2(0, 0, _resolution, _resolution), maptype, index)
 
@@ -452,24 +450,21 @@ func _edit_set_disable_apply_undo(e: bool):
 	_edit_disable_apply_undo = e
 
 
-func _edit_apply_undo(undo_data: Dictionary):
+func _edit_apply_undo(undo_data: Dictionary, image_cache: ImageFileCache):
 	if _edit_disable_apply_undo:
 		return
 
-	var chunk_positions = undo_data["chunk_positions"]
-	var map_infos = undo_data["data"]
-	var chunk_size := undo_data["chunk_size"] as int
+	var chunk_positions: Array = undo_data["chunk_positions"]
+	var map_infos: Array = undo_data["data"]
+	var chunk_size: int = undo_data["chunk_size"]
 
 	# Validate input
-
-	assert(typeof(chunk_positions) == TYPE_VECTOR2_ARRAY)
 
 	for map_info in map_infos:
 		assert(map_info.map_type >= 0 and map_info.map_type < CHANNEL_COUNT)
 		assert(len(map_info.chunks) == len(chunk_positions))
-		for im in map_info.chunks:
-			assert(typeof(im) == TYPE_OBJECT)
-			assert(im is Image)
+		for im_cache_id in map_info.chunks:
+			assert(typeof(im_cache_id) == TYPE_INT)
 
 	# Apply for each map
 	for map_info in map_infos:
@@ -479,7 +474,7 @@ func _edit_apply_undo(undo_data: Dictionary):
 		var regions_changed := []
 		
 		for chunk_index in len(map_info.chunks):
-			var cpos = chunk_positions[chunk_index]
+			var cpos : Vector2 = chunk_positions[chunk_index]
 			var cpos_x := int(cpos.x)
 			var cpos_y := int(cpos.y)
 	
@@ -488,7 +483,8 @@ func _edit_apply_undo(undo_data: Dictionary):
 			var max_x := min_x + chunk_size
 			var max_y := min_y + chunk_size
 	
-			var data := map_info.chunks[chunk_index] as Image
+			var data_id = map_info.chunks[chunk_index]
+			var data := image_cache.load_image(data_id)
 			assert(data != null)
 	
 			var data_rect := Rect2(0, 0, data.get_width(), data.get_height())

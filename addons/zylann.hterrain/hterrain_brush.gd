@@ -19,8 +19,10 @@ const MODE_DETAIL = 7
 const MODE_LEVEL = 8
 const MODE_COUNT = 9
 
-# Size of chunks used for undo/redo (so we don't backup the entire terrain everytime)
-const EDIT_CHUNK_SIZE = 16
+# Size of chunks used for undo/redo (so we don't backup the entire terrain everytime).
+# It used to be 16 but I increased it because now we save tiles to files so RAM isn't cluttered.
+# Larger size means less files, because accessing many files is slow on Windows.
+const EDIT_CHUNK_SIZE = 128
 
 signal shape_changed(shape)
 
@@ -473,7 +475,9 @@ func _edit_pop_undo_redo_data(heightmap_data: HTerrainData) -> Dictionary:
 	var data := {
 		"undo": maps_undo_data,
 		"redo": maps_redo_data,
-		"chunk_positions": PoolVector2Array(chunk_positions),
+		# TODO This should be PoolVector2Array but I had to untype it
+		# See https://github.com/godotengine/godot/issues/18094
+		"chunk_positions": chunk_positions,
 		"chunk_size": EDIT_CHUNK_SIZE
 	}
 
