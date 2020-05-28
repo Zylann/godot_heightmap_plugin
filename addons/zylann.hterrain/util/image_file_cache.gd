@@ -2,13 +2,22 @@
 # Used to store temporary images on disk.
 # This is useful for undo/redo as image edition can quickly fill up memory.
 
+# Image data is stored in archive files together. If the file exceeds a predefined size, a new one is created.
+# Writing to disk is performed from a thread, to leave the main thread responsive.
+# However if you want to obtain an image back while it didn't save yet, the main thread will block.
+# When the application or plugin is closed, the files get cleared.
+
 const Logger = preload("./logger.gd")
+
+const CACHE_FILE_SIZE_THRESHOLD = 1048576
 
 var _cache_dir := ""
 var _next_id := 0
 var _session_id := ""
 var _cache_image_info := {}
 var _logger = Logger.get_for(self)
+var _current_cache_file_index := 0
+var _cache_file_offset := 0
 
 var _saving_thread := Thread.new()
 var _save_queue := []
@@ -38,35 +47,48 @@ func _init(cache_dir: String):
 # TODO Cannot cleanup the cache in destructor!
 # Godot doesn't allow me to call clear()...
 # https://github.com/godotengine/godot/issues/31166
-func _notification(what):
+func _notification(what: int):
 	if what == NOTIFICATION_PREDELETE:
 		#clear()
-		print("Destroying")
 		_save_thread_running = false
 		_save_semaphore.post()
 		_saving_thread.wait_to_finish()
-		print("Destroyed")
+
+
+func _create_new_cache_file(fpath: String):
+	var f := File.new()
+	var err := f.open(fpath, File.WRITE)
+	if err != OK:
+		_logger.error("Failed to create new cache file {0}, error {1}".format([fpath, err]))
+		return
+	f.close()
+
+
+func _get_current_cache_file_name() -> String:
+	return _cache_dir.plus_file(str(_session_id, "_", _current_cache_file_index, ".cache"))
 
 
 func save_image(im: Image) -> int:
-	var id := _next_id
-	var fpath := _cache_dir.plus_file(str(_session_id, "_", id))
+	var fpath := _get_current_cache_file_name()
+	if _next_id == 0:
+		# First file
+		_create_new_cache_file(fpath)
 
-	var ext := _get_image_extension(im)
-	if ext == "":
-		_logger.error(str("Cannot save image format ", im.get_format()))
-		return -1
-	fpath += "."
-	fpath += ext
+	var id := _next_id
+	_next_id += 1
 	
-	var item = {
+	var item := {
 		"image": im,
-		# Remembering original format is important,
-		# because Godot's image loader often force-converts into larger formats
-		"format": im.get_format(),
 		"path": fpath,
+		"data_offset": _cache_file_offset,
 		"saved": false
 	}
+	
+	_cache_file_offset += _get_image_data_size(im)
+	if _cache_file_offset >= CACHE_FILE_SIZE_THRESHOLD:
+		_cache_file_offset = 0
+		_current_cache_file_index += 1
+		_create_new_cache_file(_get_current_cache_file_name())
 
 	_cache_image_info[id] = item
 	
@@ -76,8 +98,31 @@ func save_image(im: Image) -> int:
 	
 	_save_semaphore.post()
 	
-	_next_id += 1
 	return id
+
+
+static func _get_image_data_size(im: Image) -> int:
+	return 1 + 4 + 4 + 4 + len(im.get_data())
+
+
+static func _write_image(f: File, im: Image):
+	f.store_8(im.get_format())
+	f.store_32(im.get_width())
+	f.store_32(im.get_height())
+	var data := im.get_data()
+	f.store_32(len(data))
+	f.store_buffer(data)
+
+
+static func _read_image(f: File) -> Image:
+	var format := f.get_8()
+	var width := f.get_32()
+	var height := f.get_32()
+	var data_size := f.get_32()
+	var data := f.get_buffer(data_size)
+	var im = Image.new()
+	im.create_from_data(width, height, false, format, data)
+	return im
 
 
 func load_image(id: int) -> Image:
@@ -96,23 +141,19 @@ func load_image(id: int) -> Image:
 			return null
 	
 	var fpath := info.path as String
-
-	var im : Image
-	var err : int
-	if fpath.ends_with(".res"):
-		im = ResourceLoader.load(fpath)
-		if im == null:
-			err = ERR_CANT_OPEN
-	else:
-		im = Image.new()
-		err = im.load(fpath)
-
+	
+	var f := File.new()
+	var err = f.open(fpath, File.READ)
 	if err != OK:
 		_logger.error("Could not load cached image from {0}, error {1}" \
 			.format([fpath, err]))
 		return null
-
-	im.convert(info.format)
+	
+	f.seek(info.data_offset)
+	var im = _read_image(f)
+	f.close()
+	
+	assert(im != null)
 	return im
 
 
@@ -131,12 +172,13 @@ func clear():
 		_logger.error("Could not start list_dir_begin in '{0}'".format([_cache_dir]))
 		return
 		
+	# Delete all cache files
 	while true:
 		var fpath := dir.get_next()
 		if fpath == "":
 			break
-		if fpath.ends_with(".png") or fpath.ends_with(".res"):
-			_logger.debug(str("Deleted ", fpath))
+		if fpath.ends_with(".cache"):
+			_logger.debug(str("Deleting ", fpath))
 			err = dir.remove(fpath)
 			if err != OK:
 				_logger.error("Failed to delete cache file '{0}'" \
@@ -161,13 +203,35 @@ func _save_thread_func(_unused_userdata):
 		_save_queue.clear()
 		_save_queue_mutex.unlock()
 		
-		if len(to_save) > 0:
-			for item in to_save:
-				_save_image(item.image, item.path)
-				# Notify main thread
-				call_deferred("_on_image_saved", item)
-		else:
+		if len(to_save) == 0:
 			_save_semaphore.wait()
+			continue
+			
+		var f := File.new()
+		var path := ""
+		
+		for item in to_save:
+			# Keep re-using the same file if we did not change path.
+			# It makes I/Os faster.
+			if item.path != path:
+				path = item.path
+				if f.is_open():
+					f.close()
+				var err := f.open(path, File.READ_WRITE)
+				if err != OK:
+					call_deferred("_on_error", "Could not open file {0}, error {1}" \
+						.format([path, err]))
+					continue
+			
+			f.seek(item.data_offset)
+			_write_image(f, item.image)
+			# Notify main thread.
+			# The thread does not modify data, only reads it.
+			call_deferred("_on_image_saved", item)
+
+
+func _on_error(msg: String):
+	_logger.error(msg)
 
 
 func _on_image_saved(item: Dictionary):
@@ -175,33 +239,5 @@ func _on_image_saved(item: Dictionary):
 	item.saved = true
 	# Should remove image from memory (for usually being last reference)
 	item.image = null
-
-
-static func _save_image(im: Image, fpath: String) -> int:
-	var err
-	if fpath.ends_with(".png"):
-		err = im.save_png(fpath)
-	else:
-		err = ResourceSaver.save(fpath, im)
-	return err
-
-
-static func _get_image_extension(im: Image) -> String:
-	match im.get_format():
-		Image.FORMAT_R8,\
-		Image.FORMAT_RG8,\
-		Image.FORMAT_RGB8,\
-		Image.FORMAT_RGBA8:
-			return "png"
-		Image.FORMAT_RH,\
-		Image.FORMAT_RGH,\
-		Image.FORMAT_RGBH,\
-		Image.FORMAT_RGBAH:
-			# TODO Can't save an EXR to user://
-			# See https://github.com/godotengine/godot/issues/34490
-#			fpath += ".exr"
-#			err = im.save_exr(fpath)
-			return "res"
-	return ""
 
 

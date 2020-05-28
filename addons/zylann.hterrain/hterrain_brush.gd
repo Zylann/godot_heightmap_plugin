@@ -20,9 +20,7 @@ const MODE_LEVEL = 8
 const MODE_COUNT = 9
 
 # Size of chunks used for undo/redo (so we don't backup the entire terrain everytime).
-# It used to be 16 but I increased it because now we save tiles to files so RAM isn't cluttered.
-# Larger size means less files, because accessing many files is slow on Windows.
-const EDIT_CHUNK_SIZE = 128
+const EDIT_CHUNK_SIZE = 64
 
 signal shape_changed(shape)
 
