@@ -46,6 +46,7 @@ HTerrain plugin documentation
         - [Before reporting any bug](#before-reporting-any-bug)
         - [If you report a new bug](#if-you-report-a-new-bug)
         - [Terrain not saving / not up to date / not showing](#terrain-not-saving-/-not-up-to-date-/-not-showing)
+        - [Temporary files](#temporary-files)
 <!-- /TOC -->
 
 
@@ -631,3 +632,13 @@ This issue happened a few times and had various causes so if the checks mentionn
 - If they are present, make sure Godot has imported those textures. If it didn't, unfocus the editor, and focus it back (you should see a short progress bar as it does it)
 - Check if you used Ctrl+Z (undo) after a non-undoable action: https://github.com/Zylann/godot_heightmap_plugin/issues/101
 - If your problem relates to collisions in editor, update the collider using `Terrain -> Update Editor Collider`, because this one does not update automatically yet
+
+
+### Temporary files
+
+The plugin creates temporary files to avoid cluttering memory. They are necessary for some functionalities to work. Those files should be cleaned up automatically when you close the editor or if you turn off the plugin. However, if a crash occurs or something else goes wrong, they might not get removed. If you want to check them out, they are located in `user://hterrain_image_cache`.
+
+On Windows, that directory corresponds to `C:\Users\Username\AppData\Roaming\Godot\app_userdata\ProjectName\hterrain_image_cache`.
+
+For other platforms: https://docs.godotengine.org/en/stable/tutorials/io/data_paths.html#editor-data-paths
+
