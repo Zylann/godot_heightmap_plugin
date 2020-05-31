@@ -5,6 +5,26 @@ This is a high-level changelog for each released versions of the plugin.
 For a more detailed list of past and incoming changes, see the commit history.
 
 
+1.3
+----
+
+- Added new Array shader allowing up to 256 ground textures, and new docs about this workflow
+- Added shaded view to the minimap with a camera icon, quadtree view is optional
+- Added simple "low-poly" shader without textures
+- Added per-texture color factor and UV scale to the main Classic4 shader (thanks Tinmanjuggernaut)
+- Added ability to specify a custom detail mesh, and bundled a few in `models/` folder
+- Added an option to choose endianess when importing a raw heightmap
+- Added EXR to heightmap import options
+- Reworked ground texture selector to display packed and array textures correctly
+- The default shader is now CLASSIC4_LITE, the other one needs extra setup
+- Fixed rare terrain chunk popping due to vertical size wrongly rounded
+- Fixed undo not working correctly with more than one detail layer
+- Fixed texture editor allowing to load textures from outside the project (which doesn't work)
+- Fixed texture editor not allowing to choose JPG images
+- Fixed global translation not being taken into account (local was used as global)
+- Fixed Godot crashing or running out of memory after lots of edits
+
+
 1.2.1
 ------
 
