@@ -671,16 +671,19 @@ func _spawn_vertical_bound_boxes():
 	var mat = SpatialMaterial.new()
 	mat.flags_transparent = true
 	mat.albedo_color = Color(1,1,1,0.2)
+	data._chunked_vertical_bounds.lock()
 	for cy in range(30, 60):
 		for cx in range(30, 60):
-			var vb = data._chunked_vertical_bounds[cy][cx]
+			var vb = data._chunked_vertical_bounds.get_pixel(cx, cy)
+			var minv = vb.r
+			var maxv = vb.g
 			var mi = MeshInstance.new()
 			mi.mesh = CubeMesh.new()
 			var cs = HTerrainData.VERTICAL_BOUNDS_CHUNK_SIZE
-			mi.mesh.size = Vector3(cs, vb.maxv - vb.minv, cs)
+			mi.mesh.size = Vector3(cs, maxv - minv, cs)
 			mi.translation = Vector3(
 				(float(cx) + 0.5) * cs,
-				vb.minv + mi.mesh.size.y * 0.5, 
+				minv + mi.mesh.size.y * 0.5, 
 				(float(cy) + 0.5) * cs)
 			mi.translation *= _node.map_scale
 			mi.scale = _node.map_scale
@@ -688,6 +691,8 @@ func _spawn_vertical_bound_boxes():
 			_node.add_child(mi)
 			mi.owner = get_editor_interface().get_edited_scene_root()
 			
+	data._chunked_vertical_bounds.unlock()
+	
 #	if p_event is InputEventKey:
 #		if p_event.pressed == false:
 #			if p_event.scancode == KEY_SPACE and p_event.control:
