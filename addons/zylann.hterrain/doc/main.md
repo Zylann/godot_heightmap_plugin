@@ -166,6 +166,8 @@ Painting is very similar to scultping, because it's still editing an image in th
 
 ### Array workflow
 
+**WARNING: this workflow is still experimental. It's not ideal and has known flaws, so it may change in the future.**
+
 The `ARRAY` shader uses a more advanced technique to render ground textures. Instead of one splatmap and many individual textures, it uses two splatmaps and a `TextureArray`.
 
 The splatmaps are different from the classic one:
