@@ -34,7 +34,7 @@ const _map_types = {
 		default_count = 1,
 		can_be_saved_as_png = false,
 		authored = true,
-		sgrb = false
+		srgb = false
 	},
 	CHANNEL_NORMAL: {
 		name = "normal",
@@ -45,7 +45,7 @@ const _map_types = {
 		default_count = 1,
 		can_be_saved_as_png = true,
 		authored = false,
-		sgrb = false
+		srgb = false
 	},
 	CHANNEL_SPLAT: {
 		name = "splat",
@@ -56,7 +56,7 @@ const _map_types = {
 		default_count = 1,
 		can_be_saved_as_png = true,
 		authored = true,
-		sgrb = false
+		srgb = false
 	},
 	CHANNEL_COLOR: {
 		name = "color",
@@ -67,7 +67,7 @@ const _map_types = {
 		default_count = 1,
 		can_be_saved_as_png = true,
 		authored = true,
-		sgrb = true
+		srgb = true
 	},
 	CHANNEL_DETAIL: {
 		name = "detail",
@@ -78,7 +78,7 @@ const _map_types = {
 		default_count = 0,
 		can_be_saved_as_png = true,
 		authored = true,
-		sgrb = false
+		srgb = false
 	},
 	CHANNEL_GLOBAL_ALBEDO: {
 		name = "global_albedo",
@@ -89,7 +89,7 @@ const _map_types = {
 		default_count = 0,
 		can_be_saved_as_png = true,
 		authored = false,
-		sgrb = true
+		srgb = true
 	},
 	CHANNEL_SPLAT_INDEX: {
 		name = "splat_index",
@@ -100,7 +100,7 @@ const _map_types = {
 		default_count = 0,
 		can_be_saved_as_png = true,
 		authored = true,
-		sgrb = false
+		srgb = false
 	},
 	CHANNEL_SPLAT_WEIGHT: {
 		name = "splat_weight",
@@ -111,7 +111,7 @@ const _map_types = {
 		default_count = 0,
 		can_be_saved_as_png = true,
 		authored = true,
-		sgrb = false
+		srgb = false
 	}
 }
 
