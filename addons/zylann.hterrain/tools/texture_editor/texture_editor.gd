@@ -36,7 +36,7 @@ static func _get_slot_count(terrain: HTerrain) -> int:
 		if texture_array == null:
 			return 0
 		return texture_array.get_depth()
-	return terrain.get_cached_ground_texture_slot_count()
+	return terrain.get_classic_ground_texture_count()
 
 
 func _process(delta: float):

@@ -15,6 +15,7 @@ const SHADER_CLASSIC4 = "Classic4"
 const SHADER_CLASSIC4_LITE = "Classic4Lite"
 const SHADER_LOW_POLY = "LowPoly"
 const SHADER_ARRAY = "Array"
+const SHADER_MULTISPLAT16 = "MultiSplat16"
 const SHADER_CUSTOM = "Custom"
 
 const _SHADER_TYPE_HINT_STRING = str(
@@ -22,6 +23,7 @@ const _SHADER_TYPE_HINT_STRING = str(
 	SHADER_CLASSIC4_LITE, ",",
 	SHADER_LOW_POLY, ",",
 	SHADER_ARRAY, ",",
+	SHADER_MULTISPLAT16, ",",
 	SHADER_CUSTOM
 )
 
@@ -37,6 +39,11 @@ const _builtin_shaders = {
 	SHADER_LOW_POLY: {
 		path = "res://addons/zylann.hterrain/shaders/low_poly.shader",
 		global_path = "" # Not supported
+	},
+	SHADER_MULTISPLAT16: {
+		path = "res://addons/zylann.hterrain/shaders/multisplat16.shader",
+		# TODO Proper global one
+		global_path = "res://addons/zylann.hterrain/shaders/multisplat16.shader"
 	},
 	SHADER_ARRAY: {
 		path = "res://addons/zylann.hterrain/shaders/array.shader",
@@ -58,22 +65,15 @@ const _api_shader_params = {
 	"u_terrain_normalmap": true,
 	"u_terrain_colormap": true,
 	"u_terrain_splatmap": true,
+	"u_terrain_splatmap_1": true,
+	"u_terrain_splatmap_2": true,
+	"u_terrain_splatmap_3": true,
 	"u_terrain_splat_index_map": true,
 	"u_terrain_splat_weight_map": true,
 	"u_terrain_globalmap": true,
 
 	"u_terrain_inverse_transform": true,
-	"u_terrain_normal_basis": true,
-
-	"u_ground_albedo_bump_0": true,
-	"u_ground_albedo_bump_1": true,
-	"u_ground_albedo_bump_2": true,
-	"u_ground_albedo_bump_3": true,
-
-	"u_ground_normal_roughness_0": true,
-	"u_ground_normal_roughness_1": true,
-	"u_ground_normal_roughness_2": true,
-	"u_ground_normal_roughness_3": true
+	"u_terrain_normal_basis": true
 }
 
 const _api_shader_ground_albedo_params = {
@@ -123,9 +123,8 @@ var _material_params_need_update := false
 # Array of 2-textures arrays.
 # This array does not shrink, to avoid loosing assigned textures
 # when changing to a shader that supports less textures.
-var _ground_textures := []
-# Actual number of textures supported by the shader currently selected
-var _ground_texture_count_cache = 0
+#var _ground_textures := []
+var _classic_ground_texture_count_cache = 0
 
 var _data: HTerrainData = null
 
@@ -170,11 +169,11 @@ func _init():
 
 	_material.shader = load(_builtin_shaders[_shader_type].path)
 	
-	_ground_textures.resize(GROUND_CLASSIC_TEXTURE_MAX)
-	for slot in len(_ground_textures):
-		var e = []
-		e.resize(GROUND_TEXTURE_TYPE_COUNT)
-		_ground_textures[slot] = e
+#	_ground_textures.resize(GROUND_CLASSIC_TEXTURE_MAX)
+#	for slot in len(_ground_textures):
+#		var e = []
+#		e.resize(GROUND_TEXTURE_TYPE_COUNT)
+#		_ground_textures[slot] = e
 
 	if collision_enabled:
 		if _check_heightmap_collider_support():
@@ -240,15 +239,15 @@ func _get_property_list():
 	# Can't query the shader to know how many textures it has,
 	# because the scene loader may not have assigned the shader property yet...
 	# So we have to list all possible texture properties there can be
-	for i in GROUND_CLASSIC_TEXTURE_MAX:
-		for t in _ground_enum_to_name:
-			props.append({
-				"name": "ground/" + t + "_" + str(i),
-				"type": TYPE_OBJECT,
-				"usage": PROPERTY_USAGE_STORAGE,
-				"hint": PROPERTY_HINT_RESOURCE_TYPE,
-				"hint_string": "Texture"
-			})
+#	for i in GROUND_CLASSIC_TEXTURE_MAX:
+#		for t in _ground_enum_to_name:
+#			props.append({
+#				"name": "ground/" + t + "_" + str(i),
+#				"type": TYPE_OBJECT,
+#				"usage": PROPERTY_USAGE_STORAGE,
+#				"hint": PROPERTY_HINT_RESOURCE_TYPE,
+#				"hint_string": "Texture"
+#			})
 
 	return props
 
@@ -265,12 +264,12 @@ func _get(key: String):
 		else:
 			return _data
 
-	if key.begins_with("ground/"):
-		for ground_texture_type in range(GROUND_TEXTURE_TYPE_COUNT):
-			var type_name = _ground_enum_to_name[ground_texture_type]
-			if key.begins_with(str("ground/", type_name, "_")):
-				var i = key.right(len(key) - 1).to_int()
-				return get_ground_texture(i, ground_texture_type)
+#	if key.begins_with("ground/"):
+#		for ground_texture_type in range(GROUND_TEXTURE_TYPE_COUNT):
+#			var type_name = _ground_enum_to_name[ground_texture_type]
+#			if key.begins_with(str("ground/", type_name, "_")):
+#				var i = key.right(len(key) - 1).to_int()
+#				return get_ground_texture(i, ground_texture_type)
 
 	elif key == "shader_type":
 		return get_shader_type()
@@ -295,6 +294,8 @@ func _set(key: String, value):
 	elif key == "_terrain_data":
 		set_data(value)
 
+	# TODO Legacy. Before ground textures were properties of the node,
+	# now they are just shader params
 	if key.begins_with("ground/"):
 		for ground_texture_type in range(GROUND_TEXTURE_TYPE_COUNT):
 			var type_name = _ground_enum_to_name[ground_texture_type]
@@ -699,20 +700,67 @@ func _on_custom_shader_changed():
 	_material_params_need_update = true
 
 
+func _add_missing_maps_required_by_shader(shader_param_list : Array):
+	if not has_data():
+		print("No data, can't add missing maps")
+		return
+	for p in shader_param_list:
+		print("Checking param ", p.name)
+		var mp = HTerrainData.get_map_type_and_index_from_shader_param_name(p.name)
+		print("Res: ", mp)
+		if mp == null:
+			print("Not recognized: ", p.name)
+			continue
+		var map_type: int = mp[0]
+		var map_index: int = mp[1]
+		# Add map if not present yet
+		while not _data.has_texture(map_type, map_index):
+			_logger.debug("Map {0} required by shader, "
+				+ "but not available in terrain data. Will be added." \
+				.format([HTerrainData.get_map_debug_name(map_type, map_index)]))
+			_data._edit_add_map(map_type)
+		print("Has ", HTerrainData.get_map_debug_name(map_type, map_index))
+
+
 func _update_material_params():
 	assert(_material != null)
 	_logger.debug("Updating terrain material params")
+	print("Hello?")
+	
+	# TODO Only get textures the shader supports
+
+	_shader_uses_texture_array = false
+
+	var shader := _material.shader
+	print("Shader: ", shader)
+	if shader != null:
+		var param_list := VisualServer.shader_get_param_list(shader.get_rid())
+		
+		_classic_ground_texture_count_cache = 0
+		
+		for p in param_list:
+			if _api_shader_ground_albedo_params.has(p.name):
+				_classic_ground_texture_count_cache += 1
+			if p.name == "u_ground_albedo_bump_array":
+				_shader_uses_texture_array = true
+				
+		if Engine.editor_hint:
+			print("Editor hint")
+			_add_missing_maps_required_by_shader(param_list)
+		else:
+			print("Not editor")
+	else:
+		print("No shader")
 	
 	var terrain_textures := {}
 	var res := Vector2(-1, -1)
 
-	# TODO Only get textures the shader supports
-
 	if has_data():
 		for map_type in HTerrainData.CHANNEL_COUNT:
-			var param_name: String = HTerrainData.get_map_type_shader_param_name(map_type)
-			if _data.has_texture(map_type, 0):
-				terrain_textures[param_name] = _data.get_texture(map_type, 0)
+			var count := _data.get_map_count(map_type)
+			for i in count:
+				var param_name := HTerrainData.get_map_shader_param_name(map_type, i)
+				terrain_textures[param_name] = _data.get_texture(map_type, i)
 		res.x = _data.get_resolution()
 		res.y = res.x
 
@@ -731,23 +779,11 @@ func _update_material_params():
 		var tex = terrain_textures[param_name]
 		_material.set_shader_param(param_name, tex)
 
-	for slot in len(_ground_textures):
-		var textures = _ground_textures[slot]
-		for type in len(textures):
-			var shader_param = _get_ground_texture_shader_param_name(type, slot)
-			_material.set_shader_param(shader_param, textures[type])
-	
-	_shader_uses_texture_array = false
-	
-	var shader := _material.shader
-	if shader != null:
-		var param_list := VisualServer.shader_get_param_list(shader.get_rid())
-		_ground_texture_count_cache = 0
-		for p in param_list:
-			if _api_shader_ground_albedo_params.has(p.name):
-				_ground_texture_count_cache += 1
-			if p.name == "u_ground_albedo_bump_array":
-				_shader_uses_texture_array = true
+#	for slot in len(_ground_textures):
+#		var textures = _ground_textures[slot]
+#		for type in len(textures):
+#			var shader_param = _get_ground_texture_shader_param_name(type, slot)
+#			_material.set_shader_param(shader_param, textures[type])
 
 
 func is_using_texture_array() -> bool:
@@ -1009,6 +1045,7 @@ func _add_chunk_update(chunk: HTerrainChunk, pos_x: int, pos_y: int, lod: int):
 	# because of normals and seams being updated
 
 
+# TODO Document what this actually does, it's about LOD
 # Used when editing an existing terrain
 func set_area_dirty(origin_in_cells_x: int, origin_in_cells_y: int, \
 					size_in_cells_x: int, size_in_cells_y: int):
@@ -1111,8 +1148,6 @@ func cell_raycast(origin_world: Vector3, dir_world: Vector3, max_distance: float
 	return _data.cell_raycast(origin, dir, max_distance)
 
 
-# TODO Rename these "splat textures"
-
 static func _get_ground_texture_shader_param_name(ground_texture_type: int, slot: int) -> String:
 	assert(typeof(slot) == TYPE_INT and slot >= 0)
 	_check_ground_texture_type(ground_texture_type)
@@ -1120,18 +1155,20 @@ static func _get_ground_texture_shader_param_name(ground_texture_type: int, slot
 		_ground_enum_to_name[ground_texture_type], "_", slot)
 
 
+# Helper to get individual ground texture
 func get_ground_texture(slot: int, type: int) -> Texture:
-	_check_slot(slot)
+	#_check_slot(slot)
 	var shader_param = _get_ground_texture_shader_param_name(type, slot)
 	return _material.get_shader_param(shader_param)
 
 
+# Helper to set individual ground texture
 func set_ground_texture(slot: int, type: int, tex: Texture):
-	_check_slot(slot)
+	#_check_slot(slot)
 	assert(tex == null or tex is Texture)
 	var shader_param = _get_ground_texture_shader_param_name(type, slot)
 	_material.set_shader_param(shader_param, tex)
-	_ground_textures[slot][type] = tex
+	#_ground_textures[slot][type] = tex
 
 
 func _get_ground_texture_array_param_name(type: int) -> String:
@@ -1191,9 +1228,9 @@ func set_ambient_wind(amplitude: float):
 		layer.update_material()
 
 
-func _check_slot(slot: int):
-	assert(typeof(slot) == TYPE_INT)
-	assert(slot >= 0 and slot < len(_ground_textures))
+#func _check_slot(slot: int):
+#	assert(typeof(slot) == TYPE_INT)
+#	assert(slot >= 0 and slot < len(_ground_textures))
 
 
 static func _check_ground_texture_type(ground_texture_type: int):
@@ -1202,24 +1239,31 @@ static func _check_ground_texture_type(ground_texture_type: int):
 
 
 # @obsolete
-func get_ground_texture_slot_count() -> int:
-	_logger.error("get_ground_texture_slot_count is obsolete, " \
-		+ "use get_max_ground_texture_slot_count instead")
-	return get_max_ground_texture_slot_count()
+#func get_ground_texture_slot_count() -> int:
+#	_logger.error("get_ground_texture_slot_count is obsolete, " \
+#		+ "use get_max_ground_texture_slot_count instead")
+#	return get_max_ground_texture_slot_count()
 
 
-func get_max_ground_texture_slot_count() -> int:
-	return len(_ground_textures)
+#func get_max_ground_texture_slot_count() -> int:
+#	return len(_ground_textures)
 
 
 # This is a cached value based on the actual number of texture parameters
 # in the current shader. It won't update immediately when the shader changes,
 # only after a frame. This is mostly used in the editor.
-func get_cached_ground_texture_slot_count() -> int:
-	return _ground_texture_count_cache
+#func get_cached_ground_texture_slot_count() -> int:
+#	return _ground_texture_count_cache
 
 
-func _edit_debug_draw(ci):
+# Returns how many individual ground textures are supported by the current shader.
+# If a texture array is used, this function will return 0, as the number of texture may
+# depend on the texture array itself.
+func get_classic_ground_texture_count() -> int:
+	return _classic_ground_texture_count_cache
+
+
+func _edit_debug_draw(ci: CanvasItem):
 	_lodder.debug_draw_tree(ci)
 
 
@@ -1227,6 +1271,7 @@ func _get_configuration_warning():
 	if _data == null:
 		return "The terrain is missing data.\n" \
 			+ "Select the `Data Directory` property in the inspector to assign it."
+	# TODO Warn about unused data maps
 	return ""
 
 

@@ -176,7 +176,9 @@ func _generate_from_image(im: Image, radius: int):
 	emit_signal("shape_changed", _shape)
 
 
-static func _get_mode_map_types(mode: int, use_indexed_splat: bool, ti: int) -> Array:
+static func _get_mode_map_types(mode: int, use_indexed_splat: bool, ti: int,
+	use_multisplat: bool) -> Array:
+		
 	assert(mode >= 0 and mode < MODE_COUNT)
 	match mode:
 		MODE_ADD, \
@@ -188,7 +190,15 @@ static func _get_mode_map_types(mode: int, use_indexed_splat: bool, ti: int) -> 
 		MODE_COLOR:
 			return [[HTerrainData.CHANNEL_COLOR, 0]]
 		MODE_SPLAT:
-			if use_indexed_splat:
+			if use_multisplat:
+				# TODO Don't hardcode that
+				return [
+					[HTerrainData.CHANNEL_SPLAT, 0],
+					[HTerrainData.CHANNEL_SPLAT, 1],
+					[HTerrainData.CHANNEL_SPLAT, 2],
+					[HTerrainData.CHANNEL_SPLAT, 3]
+				]
+			elif use_indexed_splat:
 				return [
 					[HTerrainData.CHANNEL_SPLAT_INDEX, 0],
 					[HTerrainData.CHANNEL_SPLAT_WEIGHT, 0]
@@ -218,8 +228,11 @@ func paint(terrain: HTerrain, cell_pos_x: int, cell_pos_y: int, override_mode: i
 		mode = override_mode
 	
 	var use_indexed_splat := terrain.is_using_texture_array()
-
-	_last_painted_maps = _get_mode_map_types(mode, use_indexed_splat, _texture_index)
+	# TODO Find a better way to detect that
+	var use_multisplat := terrain.get_shader_type() == HTerrain.SHADER_MULTISPLAT16
+	
+	_last_painted_maps = _get_mode_map_types(mode, use_indexed_splat, _texture_index, 
+		use_multisplat)
 	assert(len(_last_painted_maps) > 0)
 
 	var origin_x := cell_pos_x - _shape_size / 2
@@ -248,7 +261,10 @@ func paint(terrain: HTerrain, cell_pos_x: int, cell_pos_y: int, override_mode: i
 			_flatten(data, origin_x, origin_y)
 
 		MODE_SPLAT:
-			if use_indexed_splat:
+			if use_multisplat:
+				# TODO Multisplat should basically be the same as classic4
+				_paint_multisplat(data, origin_x, origin_y)
+			elif use_indexed_splat:
 				_paint_indexed_splat(data, origin_x, origin_y)
 			else:
 				_paint_classic4_splat(data, origin_x, origin_y)
@@ -312,7 +328,8 @@ func _backup_for_undo(terrain_data: HTerrainData, undo_cache: Dictionary,
 				var max_x = min_x + EDIT_CHUNK_SIZE
 	
 				var invalid_min = not _is_valid_pos(min_x, min_y, im)
-				var invalid_max = not _is_valid_pos(max_x - 1, max_y - 1, im) # Note: max is excluded
+				# Note: max is excluded
+				var invalid_max = not _is_valid_pos(max_x - 1, max_y - 1, im)
 	
 				if invalid_min or invalid_max:
 					# Out of bounds
@@ -378,18 +395,89 @@ func _paint_classic4_splat(data: HTerrainData, origin_x: int, origin_y: int):
 
 
 # TODO In the editor, create that map when the shader needing it is assigned?
-static func _get_or_create_map(data: HTerrainData, map_type: int) -> Image:
-	if not data.has_texture(map_type, 0):
+static func _get_or_create_map(data: HTerrainData, map_type: int, index: int) -> Image:
+	while not data.has_texture(map_type, index):
 		data._edit_add_map(map_type)
-	return data.get_image(map_type, 0)
+	return data.get_image(map_type, index)
 
 
 func _paint_indexed_splat(data: HTerrainData, origin_x: int, origin_y: int):
-	var index_map := _get_or_create_map(data, HTerrainData.CHANNEL_SPLAT_INDEX)
-	var weight_map := _get_or_create_map(data, HTerrainData.CHANNEL_SPLAT_WEIGHT)
+	var index_map := _get_or_create_map(data, HTerrainData.CHANNEL_SPLAT_INDEX, 0)
+	var weight_map := _get_or_create_map(data, HTerrainData.CHANNEL_SPLAT_WEIGHT, 0)
 	_backup_for_undo(data, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
 	_image_utils.paint_indexed_splat(index_map, weight_map, _shape, Vector2(origin_x, origin_y), 
 		_texture_index, 0.5 * _opacity)
+
+
+func _paint_multisplat(data: HTerrainData, origin_x: int, origin_y: int):
+	var map_count := data.get_map_count(HTerrainData.CHANNEL_SPLAT)
+	var weight_maps = []
+	for i in map_count:
+		weight_maps.append(data.get_image(HTerrainData.CHANNEL_SPLAT, i))
+	_backup_for_undo(data, _undo_cache, origin_x, origin_y, _shape_size, _shape_size)
+	
+	var min_x = origin_x
+	var min_y = origin_y
+	var max_x = min_x + _shape.get_width()
+	var max_y = min_y + _shape.get_height()
+	var min_noclamp_x = min_x
+	var min_noclamp_y = min_y
+
+	var im : Image = weight_maps[0]
+	min_x = Util.clamp_int(min_x, 0, im.get_width())
+	min_y = Util.clamp_int(min_y, 0, im.get_height())
+	max_x = Util.clamp_int(max_x, 0, im.get_width())
+	max_y = Util.clamp_int(max_y, 0, im.get_height())
+	
+	var factor = _opacity * 0.5
+	var target_weight_map_index = _texture_index / 4
+	var target_weight_map_color := Color(0, 0, 0, 0)
+	target_weight_map_color[_texture_index % 4] = 1.0
+	
+	var target_values = []
+	target_values.resize(len(weight_maps))
+	for i in len(weight_maps):
+		if i == target_weight_map_index:
+			target_values[i] = target_weight_map_color
+		else:
+			target_values[i] = Color(0, 0, 0, 0)
+
+	var colors = []
+	colors.resize(len(weight_maps))
+
+	_shape.lock()
+
+	for i in len(weight_maps):
+		weight_maps[i].lock()
+
+	for y in range(min_y, max_y):
+		var by = y - min_noclamp_y
+
+		for x in range(min_x, max_x):
+			var bx = x - min_noclamp_x
+			var sum := 0.0
+
+			for i in len(weight_maps):
+				im = weight_maps[i]
+				
+				var shape_value = _shape.get_pixel(bx, by).r
+				var c = im.get_pixel(x, y).linear_interpolate(
+					target_values[i], factor * shape_value)
+				colors[i] = c
+				
+				sum += c.r + c.g + c.b + c.a
+			
+			sum = max(sum, 0.0001)
+
+			# Assign normalized weights
+			for i in len(weight_maps):
+				im = weight_maps[i]
+				im.set_pixel(x, y, colors[i] / sum)
+
+	for i in len(weight_maps):
+		weight_maps[i].unlock()
+
+	_shape.unlock()
 
 
 func _paint_color(data: HTerrainData, origin_x: int, origin_y: int):

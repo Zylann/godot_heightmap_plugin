@@ -34,7 +34,7 @@ const _map_types = {
 		default_count = 1,
 		can_be_saved_as_png = false,
 		authored = true,
-		sgrb = false
+		srgb = false
 	},
 	CHANNEL_NORMAL: {
 		name = "normal",
@@ -45,18 +45,23 @@ const _map_types = {
 		default_count = 1,
 		can_be_saved_as_png = true,
 		authored = false,
-		sgrb = false
+		srgb = false
 	},
 	CHANNEL_SPLAT: {
 		name = "splat",
-		shader_param_name = "u_terrain_splatmap",
+		shader_param_name = [
+			"u_terrain_splatmap", # not _0 for compatibility
+			"u_terrain_splatmap_1",
+			"u_terrain_splatmap_2",
+			"u_terrain_splatmap_3",
+		],
 		texture_flags = Texture.FLAG_FILTER,
 		texture_format = Image.FORMAT_RGBA8,
-		default_fill = Color(1, 0, 0, 0),
+		default_fill = [Color(1, 0, 0, 0), Color(0, 0, 0, 0)],
 		default_count = 1,
 		can_be_saved_as_png = true,
 		authored = true,
-		sgrb = false
+		srgb = false
 	},
 	CHANNEL_COLOR: {
 		name = "color",
@@ -67,7 +72,7 @@ const _map_types = {
 		default_count = 1,
 		can_be_saved_as_png = true,
 		authored = true,
-		sgrb = true
+		srgb = true
 	},
 	CHANNEL_DETAIL: {
 		name = "detail",
@@ -78,7 +83,7 @@ const _map_types = {
 		default_count = 0,
 		can_be_saved_as_png = true,
 		authored = true,
-		sgrb = false
+		srgb = false
 	},
 	CHANNEL_GLOBAL_ALBEDO: {
 		name = "global_albedo",
@@ -89,7 +94,7 @@ const _map_types = {
 		default_count = 0,
 		can_be_saved_as_png = true,
 		authored = false,
-		sgrb = true
+		srgb = true
 	},
 	CHANNEL_SPLAT_INDEX: {
 		name = "splat_index",
@@ -100,7 +105,7 @@ const _map_types = {
 		default_count = 0,
 		can_be_saved_as_png = true,
 		authored = true,
-		sgrb = false
+		srgb = false
 	},
 	CHANNEL_SPLAT_WEIGHT: {
 		name = "splat_weight",
@@ -111,7 +116,7 @@ const _map_types = {
 		default_count = 0,
 		can_be_saved_as_png = true,
 		authored = true,
-		sgrb = false
+		srgb = false
 	}
 }
 
@@ -271,13 +276,13 @@ func resize(p_res: int, stretch := true, anchor := Vector2(-1, -1)):
 
 			var map := maps[index] as Map
 			var im := map.image
-
+			
 			if im == null:
 				_logger.debug("Image not in memory, creating it")
 				im = Image.new()
 				im.create(_resolution, _resolution, false, get_channel_format(channel))
 
-				var fill_color = _map_types[channel].default_fill
+				var fill_color = _get_map_default_fill_color(channel, index)
 				if fill_color != null:
 					_logger.debug(str("Fill with ", fill_color))
 					im.fill(fill_color)
@@ -291,14 +296,33 @@ func resize(p_res: int, stretch := true, anchor := Vector2(-1, -1)):
 					if stretch:
 						im.resize(_resolution, _resolution)
 					else:
+						var fill_color = _get_map_default_fill_color(channel, index)
 						map.image = Util.get_cropped_image(im, _resolution, _resolution, \
-							_map_types[channel].default_fill, anchor)
+							fill_color, anchor)
 
 			map.modified = true
 
 	_update_all_vertical_bounds()
 
 	emit_signal("resolution_changed")
+
+
+# TODO Can't hint it, the return is a nullable Color
+static func _get_map_default_fill_color(map_type: int, map_index: int):
+	var config = _map_types[map_type].default_fill
+	if config == null:
+		# No fill required
+		return null
+	if typeof(config) == TYPE_COLOR:
+		# Standard color fill
+		return config
+	assert(typeof(config) == TYPE_ARRAY)
+	assert(len(config) == 2)
+	if map_index == 0:
+		# First map has this config
+		return config[0]
+	# Others have this
+	return config[1]
 
 
 static func _get_clamped(im: Image, x: int, y: int) -> Color:
@@ -618,16 +642,6 @@ func get_map_count(map_type: int) -> int:
 	return 0
 
 
-# TODO Deprecated
-func _edit_add_detail_map():
-	return _edit_add_map(CHANNEL_DETAIL)
-
-
-# TODO Deprecated
-func _edit_remove_detail_map(index):
-	_edit_remove_map(CHANNEL_DETAIL, index)
-
-
 func _edit_add_map(map_type: int) -> int:
 	# TODO Check minimum and maximum instances of a given map
 	_logger.debug(str("Adding map of type ", get_channel_name(map_type)))
@@ -638,6 +652,9 @@ func _edit_add_map(map_type: int) -> int:
 	map.image = Image.new()
 	map.image.create(_resolution, _resolution, false, get_channel_format(map_type))
 	var index = len(maps)
+	var default_color = _get_map_default_fill_color(map_type, index)
+	if default_color != null:
+		map.image.fill(default_color)
 	maps.append(map)
 	emit_signal("map_added", map_type, index)
 	return index
@@ -1541,14 +1558,30 @@ static func get_map_debug_name(map_type: int, index: int) -> String:
 	return str(get_channel_name(map_type), "[", index, "]")
 
 
-func _get_map_filename(c: int, index: int) -> String:
-	var name = get_channel_name(c)
-	var id = _maps[c][index].id
+func _get_map_filename(map_type: int, index: int) -> String:
+	var name = get_channel_name(map_type)
+	var id = _maps[map_type][index].id
 	if id > 0:
 		name += str(id + 1)
 	return name
 
 
-static func get_map_type_shader_param_name(map_type: int) -> String:
-	return _map_types[map_type].shader_param_name as String
+static func get_map_shader_param_name(map_type: int, index: int) -> String:
+	var param_name = _map_types[map_type].shader_param_name
+	if typeof(param_name) == TYPE_STRING:
+		return param_name
+	return param_name[index]
 
+
+# TODO Can't type hint because it returns a nullable array
+static func get_map_type_and_index_from_shader_param_name(p_name: String):
+	for map_type in _map_types:
+		var pn = _map_types[map_type].shader_param_name
+		if typeof(pn) == TYPE_STRING:
+			if pn == p_name:
+				return [map_type, 0]
+		else:
+			for i in len(pn):
+				if pn[i] == p_name:
+					return [map_type, i]
+	return null
