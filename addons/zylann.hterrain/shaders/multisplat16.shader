@@ -69,6 +69,81 @@ vec4 texture_triplanar(sampler2D tex, vec3 world_pos, vec3 blend) {
 	return xaxis * blend.x + yaxis * blend.y + zaxis * blend.z;
 }
 
+void get_splat_weights(vec2 uv, out vec4 out_high_indices, out vec4 out_high_weights) {
+	vec4 ew0 = texture(u_terrain_splatmap, uv);
+	vec4 ew1 = texture(u_terrain_splatmap_1, uv);
+	vec4 ew2 = texture(u_terrain_splatmap_2, uv);
+	vec4 ew3 = texture(u_terrain_splatmap_3, uv);
+	
+	float weights[16] = {
+		ew0.r, ew0.g, ew0.b, ew0.a,
+		ew1.r, ew1.g, ew1.b, ew1.a,
+		ew2.r, ew2.g, ew2.b, ew2.a,
+		ew3.r, ew3.g, ew3.b, ew3.a
+	};
+	
+//		float weights_sum = 0.0;
+//		for (int i = 0; i < 16; ++i) {
+//			weights_sum += weights[i];
+//		}
+//		for (int i = 0; i < 16; ++i) {
+//			weights_sum /= weights_sum;
+//		}
+//		weights_sum=1.1;
+	
+	// Now we have to pick the 4 highest weights and use them to blend textures.
+
+	// Using arrays because Godot's shader version doesn't support dynamic indexing of vectors
+	// TODO We should not need to initialize, but apparently we don't always find 4 weights
+	int high_indices_array[4] = {0, 0, 0, 0};
+	float high_weights_array[4] = {0.0, 0.0, 0.0, 0.0};
+	int count = 0;
+	// We know weights are supposed to be normalized.
+	// That means the highest value of the pivot above which we can find 4 results
+	// is 1.0 / 4.0. However that would mean exactly 4 textures have exactly that weight,
+	// which is very unlikely. If we consider 1.0 / 5.0, we are a bit more likely to find
+	// 4 results, and finding 5 results remains almost impossible.
+	float pivot = /*weights_sum*/1.0 / 5.0;
+	
+	for (int i = 0; i < 16; ++i) {
+		if (weights[i] > pivot) {
+			high_weights_array[count] = weights[i];
+			high_indices_array[count] = i;
+			weights[i] = 0.0;
+			++count;
+		}
+	}
+	
+	while (count < 4 && pivot > 0.0) {
+		float max_weight = 0.0;
+		int max_index = 0;
+		
+		for (int i = 0; i < 16; ++i) {
+			if (/*weights[i] <= pivot && */weights[i] > max_weight) {
+				max_weight = weights[i];
+				max_index = i;
+				weights[i] = 0.0;
+			}
+		}
+		
+		high_indices_array[count] = max_index;
+		high_weights_array[count] = max_weight;
+		++count;
+		pivot = max_weight;
+	}
+			
+	out_high_weights = vec4(
+		high_weights_array[0], high_weights_array[1], 
+		high_weights_array[2], high_weights_array[3]);
+	
+	out_high_indices = vec4(
+		float(high_indices_array[0]), float(high_indices_array[1]),
+		float(high_indices_array[2]), float(high_indices_array[3]));
+	
+	out_high_weights /= 
+		out_high_weights.r + out_high_weights.g + out_high_weights.b + out_high_weights.a;
+}
+
 void vertex() {
 	vec4 wpos = WORLD_MATRIX * vec4(VERTEX, 1);
 	vec2 cell_coords = (u_terrain_inverse_transform * wpos).xz;
@@ -82,12 +157,12 @@ void vertex() {
 	wpos.y = h;
 
 	vec3 base_ground_uv = vec3(cell_coords.x, h * WORLD_MATRIX[1][1], cell_coords.y);
-	v_ground_uv = base_ground_uv * u_ground_uv_scale;
+	v_ground_uv = base_ground_uv / u_ground_uv_scale;
 
-	// Putting this in vertex saves 2 fetches from the fragment shader,
+	// Putting this in vertex saves a fetch from the fragment shader,
 	// which is good for performance at a negligible quality cost,
 	// provided that geometry is a regular grid that decimates with LOD.
-	// (downside is LOD will also decimate tint and splat, but it's not bad overall)
+	// (downside is LOD will also decimate it, but it's not bad overall)
 	vec4 tint = texture(u_terrain_colormap, UV);
 	v_hole = tint.a;
 	v_tint = tint.rgb;
@@ -121,68 +196,10 @@ void fragment() {
 	// Eventually, there could be a split between near and far shaders in the future,
 	// if relevant on high-end GPUs
 	if (globalmap_factor < 1.0) {
-		vec4 ew0 = texture(u_terrain_splatmap, UV);
-		vec4 ew1 = texture(u_terrain_splatmap_1, UV);
-		vec4 ew2 = texture(u_terrain_splatmap_2, UV);
-		vec4 ew3 = texture(u_terrain_splatmap_3, UV);
+		vec4 high_indices;
+		vec4 high_weights;
+		get_splat_weights(UV, high_indices, high_weights);
 		
-		float weights[16] = {
-			ew0.r, ew0.g, ew0.b, ew0.a,
-			ew1.r, ew1.g, ew1.b, ew1.a,
-			ew2.r, ew2.g, ew2.b, ew2.a,
-			ew3.r, ew3.g, ew3.b, ew3.a
-		};
-		
-		// Now we have to pick the 4 highest weights and use them to blend textures.
-
-		// Using arrays because Godot's shader version doesn't support dynamic indexing of vectors
-		int high_indices_array[4];
-		float high_weights_array[4];
-		int count = 0;
-		// We know weights are supposed to be normalized.
-		// That means the highest value of the pivot above which we can find 4 results
-		// is 1.0 / 4.0. However that would mean exactly 4 textures have exactly that weight,
-		// which is very unlikely. If we consider 1.0 / 5.0, we are a bit more likely to find
-		// 4 results, and finding 5 results remains almost impossible.
-		float pivot = 1.0 / 5.0;
-		
-		for (int i = 0; i < 16; ++i) {
-			if (weights[i] > pivot) {
-				high_weights_array[count] = weights[i];
-				high_indices_array[count] = i;
-				weights[i] = 0.0;
-				++count;
-			}
-		}
-		
-		while (count < 4 && pivot > 0.0) {
-			float max_weight = 0.0;
-			int max_index = 0;
-			
-			for (int i = 0; i < 16; ++i) {
-				if (weights[i] <= pivot && weights[i] > max_weight) {
-					max_weight = weights[i];
-					max_index = i;
-					weights[i] = 0.0;
-				}
-			}
-			
-			high_indices_array[count] = max_index;
-			high_weights_array[count] = max_weight;
-			++count;
-			pivot = max_weight;
-		}
-		
-		vec4 high_weights = vec4(
-			high_weights_array[0], high_weights_array[1], 
-			high_weights_array[2], high_weights_array[3]);
-		
-		vec4 high_indices = vec4(
-			float(high_indices_array[0]), float(high_indices_array[1]),
-			float(high_indices_array[2]), float(high_indices_array[3]));
-		
-		high_weights /= high_weights.r + high_weights.g + high_weights.b + high_weights.a;
-
 		vec4 ab0 = texture(u_ground_albedo_bump_array, vec3(v_ground_uv.xz, high_indices.x));
 		vec4 ab1 = texture(u_ground_albedo_bump_array, vec3(v_ground_uv.xz, high_indices.y));
 		vec4 ab2 = texture(u_ground_albedo_bump_array, vec3(v_ground_uv.xz, high_indices.z));
@@ -250,6 +267,9 @@ void fragment() {
 		ALBEDO = mix(ALBEDO, global_albedo, globalmap_factor);
 		ROUGHNESS = mix(ROUGHNESS, 1.0, globalmap_factor);
 
+//		if(count < 3) {
+//			ALBEDO = vec3(1.0, 0.0, 0.0);
+//		}
 		// Show splatmap weights
 		//ALBEDO = w.rgb;
 	}

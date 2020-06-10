@@ -701,15 +701,9 @@ func _on_custom_shader_changed():
 
 
 func _add_missing_maps_required_by_shader(shader_param_list : Array):
-	if not has_data():
-		print("No data, can't add missing maps")
-		return
 	for p in shader_param_list:
-		print("Checking param ", p.name)
 		var mp = HTerrainData.get_map_type_and_index_from_shader_param_name(p.name)
-		print("Res: ", mp)
 		if mp == null:
-			print("Not recognized: ", p.name)
 			continue
 		var map_type: int = mp[0]
 		var map_index: int = mp[1]
@@ -719,20 +713,17 @@ func _add_missing_maps_required_by_shader(shader_param_list : Array):
 				+ "but not available in terrain data. Will be added." \
 				.format([HTerrainData.get_map_debug_name(map_type, map_index)]))
 			_data._edit_add_map(map_type)
-		print("Has ", HTerrainData.get_map_debug_name(map_type, map_index))
 
 
 func _update_material_params():
 	assert(_material != null)
 	_logger.debug("Updating terrain material params")
-	print("Hello?")
 	
 	# TODO Only get textures the shader supports
 
 	_shader_uses_texture_array = false
 
 	var shader := _material.shader
-	print("Shader: ", shader)
 	if shader != null:
 		var param_list := VisualServer.shader_get_param_list(shader.get_rid())
 		
@@ -745,12 +736,7 @@ func _update_material_params():
 				_shader_uses_texture_array = true
 				
 		if Engine.editor_hint:
-			print("Editor hint")
 			_add_missing_maps_required_by_shader(param_list)
-		else:
-			print("Not editor")
-	else:
-		print("No shader")
 	
 	var terrain_textures := {}
 	var res := Vector2(-1, -1)

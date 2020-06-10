@@ -47,7 +47,6 @@ func get_chunk(lod: int, seams: int) -> Mesh:
 
 
 static func make_flat_chunk(quad_count_x: int, quad_count_y: int, stride: int, seams: int) -> Mesh:
-
 	var positions = PoolVector3Array()
 	positions.resize((quad_count_x + 1) * (quad_count_y + 1))
 
