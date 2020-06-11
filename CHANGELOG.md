@@ -5,6 +5,12 @@ This is a high-level changelog for each released versions of the plugin.
 For a more detailed list of past and incoming changes, see the commit history.
 
 
+1.3.1
+------
+
+- Fixed new terrain maps saving with wrong import settings
+
+
 1.3
 ----
 
