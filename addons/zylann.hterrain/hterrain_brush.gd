@@ -432,6 +432,10 @@ static func _fetch_redo_chunks(im: Image, keys: Array) -> Array:
 	return output
 
 
+func _edit_has_undo_data() -> bool:
+	return len(_undo_cache) > 0
+
+
 func _edit_pop_undo_redo_data(heightmap_data: HTerrainData) -> Dictionary:
 	# TODO If possible, use a custom Reference class to store this data into the UndoRedo API,
 	# but WITHOUT exposing it to scripts (so we won't need the following conversions!)
