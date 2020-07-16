@@ -65,6 +65,9 @@ vec4 texture_triplanar(sampler2D tex, vec3 world_pos, vec3 blend) {
 
 void vertex() {
 	vec2 cell_coords = (u_terrain_inverse_transform * WORLD_MATRIX * vec4(VERTEX, 1)).xz;
+	// Must add a half-offset so that we sample the center of pixels,
+	// otherwise bilinear filtering of the textures will give us mixed results.
+	cell_coords += vec2(0.5);
 
 	// Normalized UV
 	UV = cell_coords / vec2(textureSize(u_terrain_heightmap, 0));
@@ -88,12 +91,13 @@ void vertex() {
 }
 
 void fragment() {
-
-	if(v_tint.a < 0.5)
+	if (v_tint.a < 0.5) {
 		// TODO Add option to use vertex discarding instead, using NaNs
 		discard;
+	}
 	
-	vec3 terrain_normal_world = u_terrain_normal_basis * (unpack_normal(texture(u_terrain_normalmap, UV)) * vec3(1,1,-1));
+	vec3 terrain_normal_world = 
+		u_terrain_normal_basis * (unpack_normal(texture(u_terrain_normalmap, UV)) * vec3(1, 1, -1));
 	terrain_normal_world = normalize(terrain_normal_world);
 
 	// TODO Detail should only be rasterized on nearby chunks (needs proximity management to switch shaders)

@@ -50,6 +50,9 @@ vec3 get_depth_blended_weights(vec3 splat, vec3 bumps) {
 void vertex() {
 	vec4 wpos = WORLD_MATRIX * vec4(VERTEX, 1);
 	vec2 cell_coords = (u_terrain_inverse_transform * wpos).xz;
+	// Must add a half-offset so that we sample the center of pixels,
+	// otherwise bilinear filtering of the textures will give us mixed results (#183)
+	cell_coords += vec2(0.5);
 
 	// Normalized UV
 	UV = cell_coords / vec2(textureSize(u_terrain_heightmap, 0));

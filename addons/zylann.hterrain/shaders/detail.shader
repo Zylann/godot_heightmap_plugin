@@ -41,6 +41,10 @@ vec3 get_ambient_wind_displacement(vec2 uv, float hash) {
 void vertex() {
 	vec4 obj_pos = WORLD_MATRIX * vec4(0, 1, 0, 1);
 	vec3 cell_coords = (u_terrain_inverse_transform * obj_pos).xyz;
+	// Must add a half-offset so that we sample the center of pixels,
+	// otherwise bilinear filtering of the textures will give us mixed results (#183)
+	cell_coords.xz += vec2(0.5);
+	
 	vec2 map_uv = cell_coords.xz / vec2(textureSize(u_terrain_heightmap, 0));
 	v_map_uv = map_uv;
 
