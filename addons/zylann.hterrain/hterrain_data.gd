@@ -737,14 +737,10 @@ func get_region_aabb(origin_in_cells_x: int, origin_in_cells_y: int, \
 	var cmax_x := (origin_in_cells_x + size_in_cells_x - 1) / VERTICAL_BOUNDS_CHUNK_SIZE + 1
 	var cmax_y := (origin_in_cells_y + size_in_cells_y - 1) / VERTICAL_BOUNDS_CHUNK_SIZE + 1
 
-	if cmin_x < 0:
-		cmin_x = 0
-	if cmin_y < 0:
-		cmin_y = 0
-	if cmax_x >= _chunked_vertical_bounds.get_width():
-		cmax_x = _chunked_vertical_bounds.get_width()
-	if cmax_y >= _chunked_vertical_bounds.get_height():
-		cmax_y = _chunked_vertical_bounds.get_height()
+	cmin_x = Util.clamp_int(cmin_x, 0, _chunked_vertical_bounds.get_width() - 1)
+	cmin_y = Util.clamp_int(cmin_y, 0, _chunked_vertical_bounds.get_height() - 1)
+	cmax_x = Util.clamp_int(cmax_x, 0, _chunked_vertical_bounds.get_width())
+	cmax_y = Util.clamp_int(cmax_y, 0, _chunked_vertical_bounds.get_height())
 
 	_chunked_vertical_bounds.lock()
 	

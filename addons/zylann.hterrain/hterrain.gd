@@ -17,6 +17,8 @@ const SHADER_LOW_POLY = "LowPoly"
 const SHADER_ARRAY = "Array"
 const SHADER_CUSTOM = "Custom"
 
+const MIN_MAP_SCALE = 0.01
+
 const _SHADER_TYPE_HINT_STRING = str(
 	SHADER_CLASSIC4, ",",
 	SHADER_CLASSIC4_LITE, ",",
@@ -412,10 +414,9 @@ func set_chunk_size(p_cs: int):
 func set_map_scale(p_map_scale: Vector3):
 	if map_scale == p_map_scale:
 		return
-	var e = 0.01
-	assert(p_map_scale.x > e)
-	assert(p_map_scale.y > e)
-	assert(p_map_scale.z > e)
+	p_map_scale.x = max(p_map_scale.x, MIN_MAP_SCALE)
+	p_map_scale.y = max(p_map_scale.y, MIN_MAP_SCALE)
+	p_map_scale.z = max(p_map_scale.z, MIN_MAP_SCALE)
 	map_scale = p_map_scale
 	_on_transform_changed()
 
