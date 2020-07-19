@@ -459,6 +459,12 @@ func _notification(what: int):
 
 func _on_transform_changed():
 	_logger.debug("Transform changed")
+
+	if not is_inside_tree():
+		# The transform and other properties can be set by the scene loader,
+		# before we enter the tree
+		return
+
 	var gt = get_internal_transform()
 
 	_for_all_chunks(TransformChangedAction.new(gt))
@@ -1176,12 +1182,14 @@ func get_detail_layers() -> Array:
 
 # @obsolete
 func set_detail_texture(slot, tex):
-	_logger.error("HTerrain.set_detail_texture is obsolete, use HTerrainDetailLayer.texture instead")
+	_logger.error(
+		"HTerrain.set_detail_texture is obsolete, use HTerrainDetailLayer.texture instead")
 
 
 # @obsolete
 func get_detail_texture(slot):
-	_logger.error("HTerrain.get_detail_texture is obsolete, use HTerrainDetailLayer.texture instead")
+	_logger.error(
+		"HTerrain.get_detail_texture is obsolete, use HTerrainDetailLayer.texture instead")
 
 
 func set_ambient_wind(amplitude: float):
