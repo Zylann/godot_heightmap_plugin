@@ -82,7 +82,7 @@ Note: if you don't have a default environment, it's possible that you won't see 
 
 By default, the terrain is a bit small, so if you want to make it bigger, there are two ways:
 
-- Modify `map_scale`, which will scale the ground without modifying the scale of all child nodes while using the same memory
+- Modify `map_scale`, which will scale the ground without modifying the scale of all child nodes while using the same memory. As the scale cannot be equal or less than `0`, the limit of `0.01` (1 cm per cell) was set as an arbitrary safety guard. This value is still high enough to not run into precision floating-point problems.
 - Use the `resize` tool in the `Terrain` menu, which will increase the resolution instead and take more memory.
 
 ![Screenshot of the resize tool](images/resize_tool.png)
