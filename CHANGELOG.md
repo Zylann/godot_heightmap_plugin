@@ -5,6 +5,15 @@ This is a high-level changelog for each released versions of the plugin.
 For a more detailed list of past and incoming changes, see the commit history.
 
 
+1.3.2
+-----
+
+- Fixed error when finishing a paint gesture while not having painted anything
+- Fixed small inaccuracy between the heightmap pixels and visual position of vertices (#183)
+- Fixed errors when setting `map_scale` to `0.01` and below
+- Fixed error when saving a terrain with `map_scale` different than its default value
+
+
 1.3.1
 ------
 
