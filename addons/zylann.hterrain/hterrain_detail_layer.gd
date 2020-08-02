@@ -183,7 +183,8 @@ func set_layer_index(v: int):
 	if layer_index == v:
 		return
 	layer_index = v
-	_update_material()
+	if is_inside_tree():
+		_update_material()
 
 
 func get_layer_index() -> int:
@@ -194,7 +195,8 @@ func set_view_distance(v: float):
 	if view_distance == v:
 		return
 	view_distance = max(v, 1.0)
-	_update_material()
+	if is_inside_tree():
+		_update_material()
 
 
 func get_view_distance() -> float:
