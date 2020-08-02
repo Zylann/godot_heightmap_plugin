@@ -859,8 +859,10 @@ func _update_viewer_position(camera: Camera):
 		var viewport := get_viewport()
 		if viewport != null:
 			camera = viewport.get_camera()
+	
 	if camera == null:
 		return
+	
 	if camera.projection == Camera.PROJECTION_ORTHOGONAL:
 		# In this mode, due to the fact Godot does not allow negative near plane,
 		# users have to pull the camera node very far away, but it confuses LOD
@@ -870,9 +872,12 @@ func _update_viewer_position(camera: Camera):
 		var cam_dir := -camera.global_transform.basis.z
 		var max_distance := camera.far * 1.2
 		var hit_cell_pos = cell_raycast(cam_pos, cam_dir, max_distance)
+		
 		if hit_cell_pos != null:
-			var cell_to_world = get_internal_transform()
-			_viewer_pos_world = cell_to_world * hit_cell_pos
+			var cell_to_world := get_internal_transform()
+			var h := _data.get_height_at(hit_cell_pos.x, hit_cell_pos.y)
+			_viewer_pos_world = cell_to_world * Vector3(hit_cell_pos.x, h, hit_cell_pos.y)
+			
 	else:
 		_viewer_pos_world = camera.global_transform.origin
 
@@ -1106,11 +1111,12 @@ static func _get_height_or_default(im: Image, pos_x: int, pos_y: int):
 # Performs a raycast to the terrain without using the collision engine.
 # This is mostly useful in the editor, where the collider can't be updated in realtime.
 # Returns cell hit position as Vector2, or null if there was no hit.
+# TODO Cannot type hint nullable return value
 func cell_raycast(origin_world: Vector3, dir_world: Vector3, max_distance: float):
 	assert(typeof(origin_world) == TYPE_VECTOR3)
 	assert(typeof(dir_world) == TYPE_VECTOR3)
 	if not has_data():
-		return false
+		return null
 	# Transform to local (takes map scale into account)
 	var to_local := get_internal_transform().affine_inverse()
 	var origin = to_local.xform(origin_world)
