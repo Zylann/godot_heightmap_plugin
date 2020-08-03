@@ -219,7 +219,7 @@ func paint(terrain: HTerrain, cell_pos_x: int, cell_pos_y: int, override_mode: i
 	
 	var use_indexed_splat := terrain.is_using_texture_array()
 
-	_last_painted_maps = _get_mode_map_types(mode, use_indexed_splat, _texture_index)
+	_last_painted_maps = _get_mode_map_types(mode, use_indexed_splat, _detail_index)
 	assert(len(_last_painted_maps) > 0)
 
 	var origin_x := cell_pos_x - _shape_size / 2

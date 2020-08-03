@@ -492,6 +492,8 @@ func _paint_completed():
 	heightmap_data._edit_set_disable_apply_undo(true)
 	ur.commit_action()
 	heightmap_data._edit_set_disable_apply_undo(false)
+	
+	_logger.debug(action_name)
 
 
 func _terrain_exited_scene():
