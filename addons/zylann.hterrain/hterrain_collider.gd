@@ -9,7 +9,7 @@ var _terrain_data = null
 var _logger = Logger.get_for(self)
 
 
-func _init(attached_node):
+func _init(attached_node: Node):
 	_logger.debug("HTerrainCollider: creating body")
 	assert(attached_node != null)
 	_shape_rid = PhysicsServer.shape_create(PhysicsServer.SHAPE_HEIGHTMAP)
@@ -24,9 +24,9 @@ func _init(attached_node):
 
 	# TODO This is a workaround to https://github.com/godotengine/godot/issues/25304
 	PhysicsServer.shape_set_data(_shape_rid, {
-		"width": 1,
-		"depth": 1,
-		"heights": PoolRealArray([0]),
+		"width": 2,
+		"depth": 2,
+		"heights": PoolRealArray([0, 0, 0, 0]),
 		"min_height": -1,
 		"max_height": 1
 	})
