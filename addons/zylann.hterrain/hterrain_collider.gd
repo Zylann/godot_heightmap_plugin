@@ -104,7 +104,7 @@ func _update_transform(aabb=null):
 	else:
 		# In 3.2, vertical centering changed.
 		# https://github.com/godotengine/godot/pull/28326
-		trans = Transform(Basis(), 0.5 * Vector3(width, 0, depth))
+		trans = Transform(Basis(), 0.5 * Vector3(width - 1, 0, depth - 1))
 	
 	# And then apply the terrain transform
 	trans = _terrain_transform * trans
