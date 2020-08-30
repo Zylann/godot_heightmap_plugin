@@ -20,12 +20,21 @@ const SHADER_CUSTOM = "Custom"
 const MIN_MAP_SCALE = 0.01
 
 const _SHADER_TYPE_HINT_STRING = str(
-	SHADER_CLASSIC4, ",",
-	SHADER_CLASSIC4_LITE, ",",
-	SHADER_LOW_POLY, ",",
-	SHADER_ARRAY, ",",
-	SHADER_CUSTOM
+	"Classic4", ",",
+	"Classic4Lite", ",",
+	"LowPoly", ",",
+	"Array", ",",
+	"Custom"
 )
+# TODO Had to downgrade this to support Godot 3.1.
+# Referring to other constants with this syntax isn't working...
+#const _SHADER_TYPE_HINT_STRING = str(
+#	SHADER_CLASSIC4, ",",
+#	SHADER_CLASSIC4_LITE, ",",
+#	SHADER_LOW_POLY, ",",
+#	SHADER_ARRAY, ",",
+#	SHADER_CUSTOM
+#)
 
 const _builtin_shaders = {
 	SHADER_CLASSIC4: {
