@@ -926,7 +926,8 @@ func _deserialize_metadata(dict: Dictionary) -> bool:
 
 		for j in range(len(maps)):
 			var map = maps[j]
-			var id = maps_data[j].id
+			# Cast because the data comes from json, where every number is double
+			var id := int(maps_data[j].id)
 			if map == null:
 				map = Map.new(id)
 				maps[j] = map
