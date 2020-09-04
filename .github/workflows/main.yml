@@ -26,15 +26,17 @@ jobs:
           submodules: recursive
 
       # Use python 3.x release (works cross platform; best to keep self contained in it's own step)
-      #- name: Set up Python 3.x
-      #  uses: actions/setup-python@v2
-      #  with:
-      #    # Semantic version range syntax or exact version of a Python version
-      #    python-version: '3.x'
-      #    # Optional - x64 or x86 architecture, defaults to x64
-      #    architecture: 'x64'
+      # Because at the time the container comes with Python 2.7 
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v2
+        with:
+          # Semantic version range syntax or exact version of a Python version
+          python-version: '3.x'
+          # Optional - x64 or x86 architecture, defaults to x64
+          architecture: 'x64'
       
-      # Setup scons, print python version and scons version info, so if anything is broken it won't run the build.
+      # Setup scons, print python version and scons version info,
+      # so if anything is broken it won't run the build.
       - name: Configuring Python packages
         run: |
           python -c "import sys; print(sys.version)"
