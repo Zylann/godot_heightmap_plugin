@@ -58,10 +58,11 @@ elif env['platform'] == "linux":
     target_path += 'linux/'
     cpp_bindings_library += '.linux'
     if env['target'] == 'debug':
+        # -g3 means we want plenty of debug info, more than default
         env.Append(CCFLAGS = ['-fPIC', '-g3', '-Og'])
         env.Append(CXXFLAGS = ['-std=c++17'])
     else:
-        env.Append(CCFLAGS = ['-fPIC', '-g', '-O3'])
+        env.Append(CCFLAGS = ['-fPIC', '-O3'])
         env.Append(CXXFLAGS = ['-std=c++17'])
 
 elif env['platform'] == "windows":
