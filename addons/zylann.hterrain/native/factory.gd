@@ -3,8 +3,11 @@ const NATIVE_PATH = "res://addons/zylann.hterrain/native/"
 
 const ImageUtilsGeneric = preload("./image_utils_generic.gd")
 
+# See https://docs.godotengine.org/en/3.2/classes/class_os.html#class-os-method-get-name
 const _supported_os = {
-	"Windows": true
+	"Windows": true,
+	#"OSX": true,
+	#"X11": true
 }
 
 

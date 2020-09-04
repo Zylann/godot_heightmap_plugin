@@ -42,6 +42,14 @@ HTerrain plugin documentation
         - [Creating the terrain from script](#creating-the-terrain-from-script)
         - [Procedural generation](#procedural-generation)
     - [Export](#export)
+    - [GDNative](#gdnative)
+        - [Building instructions](#building-instructions)
+            - [If you got the plugin from the asset library](#if-you-got-the-plugin-from-the-asset-library)
+            - [If you cloned the plugin using Git](#if-you-cloned-the-plugin-using-git)
+            - [Build C++ bindings](#build-c++-bindings)
+            - [Build the HTerrain library](#build-the-hterrain-library)
+        - [Register the library](#register-the-library)
+        - [Debugging](#debugging)
     - [Troubleshooting](#troubleshooting)
         - [Before reporting any bug](#before-reporting-any-bug)
         - [If you report a new bug](#if-you-report-a-new-bug)
@@ -601,6 +609,81 @@ Everything under `res://addons/zylann.hterrain/tools/` folder is required for th
 The documentation in `res://addons/zylann.hterrain/doc/` can also be removed, but this one contains a `.gdignore` file so hopefully Godot will automatically ignore it even in the editor.
 
 
+GDNative
+-----------
+
+This plugin contains an optional native component, which speeds up some operations such as sculpting the terrain. However, at time of writing, a prebuilt binary is built-in only on Windows, but I'm not yet able to build for other platforms so you may need to do it yourself, until I can provide an official one.
+
+Before doing this, it's preferable to close the Godot editor so it won't lock the library files.
+Note that these steps are very similar to GDNative C++ development, which repeats parts of this tutorial: https://docs.godotengine.org/en/3.2/tutorials/plugins/gdnative/gdnative-cpp-example.html
+
+### Building instructions
+
+To build the library, you will need to install the following:
+- Python 3.6 or later
+- The SCons build system
+- A C++ compiler
+- The Git version control system
+
+#### If you got the plugin from the asset library
+
+You will need to download C++ bindings for Godot. Go to `res://addons/zylann.hterrain/native`, open a command prompt, and run the following commands:
+
+```
+git clone https://github.com/GodotNativeTools/godot-cpp
+cd godot-cpp
+git submodule update --init --recursive
+```
+
+#### If you cloned the plugin using Git
+
+In this case the C++ bindings submodule will already be there, and will need to be updated. Go to `res://addons/zylann.hterrain/native`, open a command prompt, and run the following commands:
+
+```
+git submodule update --init --recursive target=release
+``` 
+
+#### Build C++ bindings
+
+Now go to `res://addons/zylann.hterrain/native/cpp-bindings`, open a command prompt (or re-use the one you have already), and run this command:
+
+```
+scons platform=<yourplatform> generate_bindings=yes target=release
+```
+
+`yourplatform` must match the platform you want to build for. It should be one of the following:
+- `windows`
+- `linux`
+- `osx`
+
+#### Build the HTerrain library
+
+Go back to `res://addons/zylann.hterrain/native`, and run this command, which has similar options as the one we saw before:
+
+```
+scons platform=<yourplatform> target=release
+```
+
+This will produce a library file under the `bin/` folder.
+
+### Register the library
+
+Now the last step is to tell the plugin the library is available. In the `native/` folder, open the `hterrain.gdnlib` resource in a text editor, and add the path to the library under the `[entry]` category. Here is an example for several platforms:
+
+```
+OSX.64 = "res://addons/zylann.hterrain/native/bin/linux/libhterrain_native.dylib"
+OSX.32 = "res://addons/zylann.hterrain/native/bin/linux/libhterrain_native.dylib"
+Windows.64 = "res://addons/zylann.hterrain/native/bin/linux/libhterrain_native.dll"
+X11.64 = "res://addons/zylann.hterrain/native/bin/linux/libhterrain_native.so"
+```
+
+Finally, open the `factory.gd` script, and add an OS entry for your platform. The plugin should now be ready to use the native library.
+
+### Debugging
+
+If you get a crash or misbehavior, check logs first to make sure Godot was able to load the library. If you want to use a C++ debugger, you can repeat this setup, only  replacing `release` with `debug` when running SCons. This will then allow you to attach to Godot and place breakpoints (which works best if you also use a debug Godot version).
+
+
 Troubleshooting
 -----------------
 
@@ -643,4 +726,3 @@ The plugin creates temporary files to avoid cluttering memory. They are necessar
 On Windows, that directory corresponds to `C:\Users\Username\AppData\Roaming\Godot\app_userdata\ProjectName\hterrain_image_cache`.
 
 For other platforms: https://docs.godotengine.org/en/stable/tutorials/io/data_paths.html#editor-data-paths
-
