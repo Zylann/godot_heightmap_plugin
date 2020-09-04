@@ -48,13 +48,16 @@ jobs:
         run: |
           cd addons/zylann.hterrain/native/godot-cpp
           scons platform=linux target=release generate_bindings=yes
+      # TODO use cache to avoid generating bindings all the time? It's the longest step
       
       - name: Build library
         run: |
           cd addons/zylann.hterrain/native
           scons platform=linux target=release
       
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
-        run: |
-          echo TODO deploy later
+      # Make build available
+      - uses: actions/upload-artifact@v2
+        with:
+          name: libhterrain_native.so
+          path: addons/zylann.hterrain/native/bin/linux/libhterrain_native.so
+
