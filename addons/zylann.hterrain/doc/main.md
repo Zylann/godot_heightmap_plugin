@@ -668,13 +668,27 @@ This will produce a library file under the `bin/` folder.
 
 ### Register the library
 
-Now the last step is to tell the plugin the library is available. In the `native/` folder, open the `hterrain.gdnlib` resource in a text editor, and add the path to the library under the `[entry]` category. Here is an example for several platforms:
+Now the last step is to tell the plugin the library is available. In the `native/` folder, open the `hterrain.gdnlib` resource in a text editor, and add the path to the library under the `[entry]` category. Here is an example of how it should look like for several platforms:
 
 ```
-OSX.64 = "res://addons/zylann.hterrain/native/bin/linux/libhterrain_native.dylib"
-OSX.32 = "res://addons/zylann.hterrain/native/bin/linux/libhterrain_native.dylib"
-Windows.64 = "res://addons/zylann.hterrain/native/bin/linux/libhterrain_native.dll"
+[general]
+
+singleton=false
+load_once=true
+symbol_prefix="godot_"
+reloadable=false
+
+[entry]
+
+OSX.64 = "res://addons/zylann.hterrain/native/bin/osx64/libhterrain_native.dylib"
+OSX.32 = "res://addons/zylann.hterrain/native/bin/osx32/libhterrain_native.dylib"
+Windows.64 = "res://addons/zylann.hterrain/native/bin/win64/libhterrain_native.dll"
 X11.64 = "res://addons/zylann.hterrain/native/bin/linux/libhterrain_native.so"
+
+[dependencies]
+
+Windows.64=[  ]
+X11.64=[  ]
 ```
 
 Finally, open the `factory.gd` script, and add an OS entry for your platform. The plugin should now be ready to use the native library.
