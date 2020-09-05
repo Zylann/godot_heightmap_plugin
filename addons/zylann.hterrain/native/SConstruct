@@ -64,7 +64,7 @@ elif env['platform'] == "linux":
     else:
         env.Append(CCFLAGS = ['-fPIC', '-O3'])
         env.Append(CXXFLAGS = ['-std=c++17'])
-        env.Append(LINKFLAGS = ['-s'])
+        env.Append(LINKFLAGS = ['-s', '-Wl,--gc-sections'])
 
 elif env['platform'] == "windows":
     target_path += 'win64/'
