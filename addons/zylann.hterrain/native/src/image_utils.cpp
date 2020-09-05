@@ -298,7 +298,7 @@ void ImageUtils::paint_indexed_splat(Ref<Image> index_map_ref, Ref<Image> weight
 			// Decompress third weight to make computations easier
 			w[2] = 1.f - w[0] - w[1];
 
-			if (abs(i[ci] - texture_index_f) > 0.001f) {
+			if (std::abs(i[ci] - texture_index_f) > 0.001f) {
 				// Pixel does not have our texture index,
 				// transfer its weight to other components first
 				if (w[ci] > brush_value) {
