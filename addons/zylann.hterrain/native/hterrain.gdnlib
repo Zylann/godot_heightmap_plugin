@@ -8,6 +8,7 @@ reloadable = false
 [entry]
 
 Windows.64 = "res://addons/zylann.hterrain/native/bin/win64/hterrain_native.dll"
+X11.64 = "res://addons/zylann.hterrain/native/bin/linux/hterrain_native.so"
 
 [dependencies]
 

@@ -612,7 +612,7 @@ The documentation in `res://addons/zylann.hterrain/doc/` can also be removed, bu
 GDNative
 -----------
 
-This plugin contains an optional native component, which speeds up some operations such as sculpting the terrain. However, at time of writing, a prebuilt binary is built-in only on Windows, but I'm not yet able to build for other platforms so you may need to do it yourself, until I can provide an official one.
+This plugin contains an optional native component, which speeds up some operations such as sculpting the terrain. However, at time of writing, a prebuilt binary is built-in only on `Windows` and `Linux`, I'm not yet able to build for other platforms so you may need to do it yourself, until I can provide an official one.
 
 Before doing this, it's preferable to close the Godot editor so it won't lock the library files.
 Note that these steps are very similar to GDNative C++ development, which repeats parts of this tutorial: https://docs.godotengine.org/en/3.2/tutorials/plugins/gdnative/gdnative-cpp-example.html
