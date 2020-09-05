@@ -166,7 +166,7 @@ You will notice 4 slots for these, next to the brush settings, named `ground0`, 
 
 ![Screenshot of the texture dialog](images/texture_dialog.png)
 
-This opens a window that lets you choose two main textures: albedo an normals. Note: if you use the `CLASSIC4_LITE` shader, you don't have to setup normals. For now, you can assign the albedo texture, and the normalmap if you have one, then click `Ok`.
+This opens a window that lets you choose two main textures: albedo and normals. Note: if you use the `CLASSIC4_LITE` shader, you don't have to setup normals. For now, you can assign the albedo texture, and the normalmap if you have one, then click `Ok`.
 
 The default slot covers the whole terrain by default, because the splatmap is initialized with a red color `(1, 0, 0, 0)`. You can setup other textures in the other slots, so they will layer on top of the others.
 Painting is very similar to scultping, because it's still editing an image in the end. You can also choose the opacity, size and shape of the brush.
