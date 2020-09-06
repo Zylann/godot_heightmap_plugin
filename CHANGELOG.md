@@ -5,6 +5,16 @@ This is a high-level changelog for each released versions of the plugin.
 For a more detailed list of past and incoming changes, see the commit history.
 
 
+1.3.4
+------
+
+- GDNative acceleration now has a prebuilt binary on Linux
+- Fixed collider being offset by half a cell
+- Fixed default 1x1 shape data causing an assertion in Bullet since Godot 3.2.3, using 2x2 instead
+- Fixed script syntax error to workaround Godot 3.1 limitation
+- Fixed cast issue of integer ID from JSON when loading terrain data
+
+
 1.3.3
 -------
 
