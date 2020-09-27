@@ -56,6 +56,7 @@ const _builtin_shaders = {
 }
 
 const _NORMAL_BAKER_PATH = "res://addons/zylann.hterrain/tools/normalmap_baker.gd"
+const _LOOKDEV_SHADER_PATH = "res://addons/zylann.hterrain/shaders/lookdev.shader"
 
 const SHADER_PARAM_INVERSE_TRANSFORM = "u_terrain_inverse_transform"
 const SHADER_PARAM_NORMAL_BASIS = "u_terrain_normal_basis"
@@ -160,6 +161,9 @@ var _logger = Logger.get_for(self)
 
 # Editor-only
 var _normals_baker = null
+
+var _lookdev_enabled := false
+var _lookdev_material : ShaderMaterial
 
 
 func _init():
@@ -718,9 +722,13 @@ func _on_custom_shader_changed():
 func _update_material_params():
 	assert(_material != null)
 	_logger.debug("Updating terrain material params")
-	
+		
 	var terrain_textures := {}
 	var res := Vector2(-1, -1)
+	
+	var lookdev_material : ShaderMaterial
+	if _lookdev_enabled:
+		lookdev_material = _get_lookdev_material()
 
 	# TODO Only get textures the shader supports
 
@@ -742,10 +750,16 @@ func _update_material_params():
 		# This is needed to properly transform normals if the terrain is scaled
 		var normal_basis = gt.basis.inverse().transposed()
 		_material.set_shader_param(SHADER_PARAM_NORMAL_BASIS, normal_basis)
+		
+		if lookdev_material != null:
+			lookdev_material.set_shader_param(SHADER_PARAM_INVERSE_TRANSFORM, t)
+			lookdev_material.set_shader_param(SHADER_PARAM_NORMAL_BASIS, normal_basis)
 	
 	for param_name in terrain_textures:
 		var tex = terrain_textures[param_name]
 		_material.set_shader_param(param_name, tex)
+		if lookdev_material != null:
+			lookdev_material.set_shader_param(param_name, tex)
 
 	for slot in len(_ground_textures):
 		var textures = _ground_textures[slot]
@@ -1071,12 +1085,16 @@ func _cb_make_chunk(cpos_x: int, cpos_y: int, lod: int):
 		var lod_factor := _lodder.get_lod_size(lod)
 		var origin_in_cells_x := cpos_x * _chunk_size * lod_factor
 		var origin_in_cells_y := cpos_y * _chunk_size * lod_factor
+		
+		var material = _material
+		if _lookdev_enabled:
+			material = _get_lookdev_material()
 
 		if _DEBUG_AABB:
 			chunk = HTerrainChunkDebug.new(
-				self, origin_in_cells_x, origin_in_cells_y, _material)
+				self, origin_in_cells_x, origin_in_cells_y, material)
 		else:
-			chunk = HTerrainChunk.new(self, origin_in_cells_x, origin_in_cells_y, _material)
+			chunk = HTerrainChunk.new(self, origin_in_cells_x, origin_in_cells_y, material)
 		chunk.parent_transform_changed(get_internal_transform())
 
 		var grid = _chunks[lod]
@@ -1252,6 +1270,33 @@ func _get_configuration_warning():
 		return "The terrain is missing data.\n" \
 			+ "Select the `Data Directory` property in the inspector to assign it."
 	return ""
+
+
+func set_lookdev_enabled(enable: bool):
+	if _lookdev_enabled == enable:
+		return
+	_lookdev_enabled = enable
+	_material_params_need_update = true
+	if _lookdev_enabled:
+		_for_all_chunks(SetMaterialAction.new(_get_lookdev_material()))
+	else:
+		_for_all_chunks(SetMaterialAction.new(_material))
+
+
+func set_lookdev_shader_param(param_name: String, value):
+	var mat = _get_lookdev_material()
+	mat.set_shader_param(param_name, value)
+
+
+func is_lookdev_enabled() -> bool:
+	return _lookdev_enabled
+
+
+func _get_lookdev_material() -> ShaderMaterial:
+	if _lookdev_material == null:
+		_lookdev_material = ShaderMaterial.new()
+		_lookdev_material.shader = load(_LOOKDEV_SHADER_PATH)
+	return _lookdev_material
 
 
 class PendingChunkUpdate:

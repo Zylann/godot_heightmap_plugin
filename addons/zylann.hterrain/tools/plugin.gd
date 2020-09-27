@@ -32,6 +32,7 @@ const MENU_RESIZE = 3
 const MENU_UPDATE_EDITOR_COLLIDER = 4
 const MENU_GENERATE_MESH = 5
 const MENU_EXPORT_HEIGHTMAP = 6
+const MENU_LOOKDEV = 7
 
 
 # TODO Rename _terrain
@@ -50,6 +51,7 @@ var _preview_generator = null
 var _resize_dialog = null
 var _globalmap_baker = null
 var _menu_button : MenuButton
+var _lookdev_menu : PopupMenu
 var _terrain_had_data_previous_frame = false
 var _image_cache : ImageFileCache
 
@@ -122,6 +124,13 @@ func _enter_tree():
 	menu.get_popup().add_item("Generate mesh (heavy)", MENU_GENERATE_MESH)
 	menu.get_popup().add_separator()
 	menu.get_popup().add_item("Export heightmap", MENU_EXPORT_HEIGHTMAP)
+	menu.get_popup().add_separator()
+	_lookdev_menu = PopupMenu.new()
+	_lookdev_menu.name = "LookdevMenu"
+	_lookdev_menu.connect("about_to_show", self, "_on_lookdev_menu_about_to_show")
+	_lookdev_menu.connect("id_pressed", self, "_on_lookdev_menu_id_pressed")
+	menu.get_popup().add_child(_lookdev_menu)
+	menu.get_popup().add_submenu_item("Lookdev", _lookdev_menu.name, MENU_LOOKDEV)
 	menu.get_popup().connect("id_pressed", self, "_menu_item_selected")
 	_toolbar.add_child(menu)
 	_menu_button = menu
@@ -545,6 +554,44 @@ func _menu_item_selected(id):
 		MENU_EXPORT_HEIGHTMAP:
 			if _node != null and _node.get_data() != null:
 				_export_image_dialog.popup_centered()
+		
+		MENU_LOOKDEV:
+			# No actions here, it's a submenu
+			pass
+
+
+func _on_lookdev_menu_about_to_show():
+	_lookdev_menu.clear()
+	_lookdev_menu.add_check_item("Disabled")
+	_lookdev_menu.set_item_checked(0, not _node.is_lookdev_enabled())
+	_lookdev_menu.add_separator()
+	var terrain_data : HTerrainData = _node.get_data()
+	if terrain_data == null:
+		_lookdev_menu.add_item("No terrain data")
+		_lookdev_menu.set_item_disabled(0, true)
+	else:
+		for map_type in HTerrainData.CHANNEL_COUNT:
+			var count := terrain_data.get_map_count(map_type)
+			for map_index in count:
+				var map_name := HTerrainData.get_map_debug_name(map_type, map_index)
+				var lookdev_item_index := _lookdev_menu.get_item_count()
+				_lookdev_menu.add_item(map_name, lookdev_item_index)
+				_lookdev_menu.set_item_metadata(lookdev_item_index, {
+					"map_type": map_type,
+					"map_index": map_index
+				})
+
+
+func _on_lookdev_menu_id_pressed(id: int):
+	var meta = _lookdev_menu.get_item_metadata(id)
+	if meta == null:
+		_node.set_lookdev_enabled(false)
+	else:
+		_node.set_lookdev_enabled(true)
+		var data : HTerrainData = _node.get_data()
+		var map_texture = data.get_texture(meta.map_type, meta.map_index)
+		_node.set_lookdev_shader_param("u_map", map_texture)
+	_lookdev_menu.set_item_checked(0, not _node.is_lookdev_enabled())
 
 
 func _on_mode_selected(mode: int):
