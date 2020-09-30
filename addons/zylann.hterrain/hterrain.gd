@@ -575,8 +575,7 @@ func set_data(new_data: HTerrainData):
 
 	_material_params_need_update = true
 	
-	if has_method("update_configuration_warning"):
-		call("update_configuration_warning")
+	Util.update_configuration_warning(self, true)
 	
 	_logger.debug("Set data done")
 
@@ -646,17 +645,25 @@ func _on_data_map_changed(type: int, index: int):
 func _on_data_map_added(type: int, index: int):
 	if type == HTerrainData.CHANNEL_DETAIL:
 		for layer in _detail_layers:
+			# Shift indexes up since one was inserted
+			if layer.layer_index >= index:
+				layer.layer_index += 1
 			layer.update_material()
 	else:
 		_material_params_need_update = true
+	Util.update_configuration_warning(self, true)
 
 
 func _on_data_map_removed(type: int, index: int):
 	if type == HTerrainData.CHANNEL_DETAIL:
 		for layer in _detail_layers:
+			# Shift indexes down since one was removed
+			if layer.layer_index > index:
+				layer.layer_index -= 1
 			layer.update_material()
 	else:
 		_material_params_need_update = true
+	Util.update_configuration_warning(self, true)
 
 
 func get_shader_type() -> String:

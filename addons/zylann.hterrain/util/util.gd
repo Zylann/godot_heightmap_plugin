@@ -514,3 +514,15 @@ static func get_pixel_clamped(im: Image, x: int, y: int) -> Color:
 		y = im.get_height() - 1
 
 	return im.get_pixel(x, y)
+
+
+static func update_configuration_warning(node: Node, recursive: bool):
+	if not Engine.editor_hint:
+		return
+	# Godot 3.1 and older doesn't have this function
+	if node.has_method("update_configuration_warning"):
+		node.call("update_configuration_warning")
+		if recursive:
+			for i in node.get_child_count():
+				var child = node.get_child(i)
+				update_configuration_warning(child, true)

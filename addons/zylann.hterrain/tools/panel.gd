@@ -27,6 +27,14 @@ func set_terrain(terrain):
 	_detail_editor.set_terrain(terrain)
 
 
+func set_undo_redo(ur: UndoRedo):
+	_detail_editor.set_undo_redo(ur)
+
+
+func set_image_cache(image_cache):
+	_detail_editor.set_image_cache(image_cache)
+
+
 func set_camera_transform(cam_transform: Transform):
 	_minimap.set_camera_transform(cam_transform)
 

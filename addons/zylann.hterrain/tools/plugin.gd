@@ -89,7 +89,7 @@ func _enter_tree():
 	_brush_decal.set_shape(_brush.get_shape())
 	_brush.connect("shape_changed", _brush_decal, "set_shape")
 	
-	_image_cache = ImageFileCache.new("user://hterrain_image_cache")
+	_image_cache = ImageFileCache.new("user://temp_hterrain_image_cache")
 	
 	var editor_interface := get_editor_interface()
 	var base_control := editor_interface.get_base_control()
@@ -104,6 +104,8 @@ func _enter_tree():
 	_panel.call_deferred("set_brush", _brush)
 	_panel.call_deferred("set_load_texture_dialog", _load_texture_dialog)
 	_panel.call_deferred("setup_dialogs", base_control)
+	_panel.set_undo_redo(get_undo_redo())
+	_panel.set_image_cache(_image_cache)
 	_panel.connect("detail_selected", self, "_on_detail_selected")
 	_panel.connect("texture_selected", self, "_on_texture_selected")
 	_panel.connect("detail_list_changed", self, "_update_brush_buttons_availability")
@@ -303,7 +305,8 @@ func edit(object):
 	
 	if object is HTerrainDetailLayer:
 		# Auto-select layer for painting
-		_panel.set_detail_layer_index(object.get_layer_index())
+		if object.is_layer_index_valid():
+			_panel.set_detail_layer_index(object.get_layer_index())
 		_on_detail_selected(object.get_layer_index())
 	
 	_update_toolbar_menu_availability()

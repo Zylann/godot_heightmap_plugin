@@ -17,6 +17,7 @@ const DirectMeshInstance = preload("./util/direct_mesh_instance.gd")
 const Util = preload("./util/util.gd")
 const Logger = preload("./util/logger.gd")
 const DefaultMesh = preload("./models/grass_quad.obj")
+var HTerrain = load("res://addons/zylann.hterrain/hterrain.gd")
 
 const CHUNK_SIZE = 32
 const DEFAULT_SHADER_PATH = "res://addons/zylann.hterrain/shaders/detail.shader"
@@ -36,13 +37,24 @@ const _API_SHADER_PARAMS = {
 	"u_ambient_wind": true
 }
 
+# TODO Should be renamed `map_index`
+# Which detail map this layer will use
 export(int) var layer_index := 0 setget set_layer_index, get_layer_index
+
+# Texture to render on the detail meshes.
 export(Texture) var texture : Texture setget set_texture, get_texture
+
+# How far detail meshes can be seen.
 # TODO Improve speed of _get_chunk_aabb() so we can increase the limit
 # See https://github.com/Zylann/godot_heightmap_plugin/issues/155
 export(float, 1.0, 500.0) var view_distance := 100.0 setget set_view_distance, get_view_distance
+
+# Custom shader to replace the default one.
 export(Shader) var custom_shader : Shader setget set_custom_shader, get_custom_shader
+
+# Density modifier, to make more or less detail meshes appear overall.
 export(float, 0, 10) var density := 4.0 setget set_density, get_density
+
 # Mesh used for every detail instance (for example, every grass patch).
 # If not assigned, an internal quad mesh will be used.
 # I would have called it `mesh` but that's too broad and conflicts with local vars ._.
@@ -57,7 +69,7 @@ var _chunks := {}
 var _multimesh: MultiMesh = null
 var _multimesh_instance_pool := []
 var _ambient_wind_time := 0.0
-var _first_enter_tree := true
+#var _auto_pick_index_on_enter_tree := Engine.editor_hint
 var _debug_wirecube_mesh: Mesh = null
 var _debug_cubes := []
 var _logger := Logger.get_for(self)
@@ -74,9 +86,9 @@ func _enter_tree():
 	if terrain != null:
 		terrain.connect("transform_changed", self, "_on_terrain_transform_changed")
 
-		if Engine.editor_hint and _first_enter_tree:
-			_first_enter_tree = false
-			_edit_auto_pick_index()
+		#if _auto_pick_index_on_enter_tree:
+		#	_auto_pick_index_on_enter_tree = false
+		#	_auto_pick_index()
 
 		terrain._internal_add_detail_layer(self)
 
@@ -94,41 +106,38 @@ func _exit_tree():
 	_chunks.clear()
 
 
-func _edit_auto_pick_index():
-	# Automatically pick an unused layer, or create a new one
-
-	var terrain = _get_terrain()
-	if terrain == null:
-		return
-
-	var terrain_data = terrain.get_data()
-	if terrain_data == null or terrain_data.is_locked():
-		return
-
-	var auto_index := layer_index
-	var others = terrain.get_detail_layers()
-
-	if len(others) > 0:
-		var used_layers := []
-		for other in others:
-			used_layers.append(other.layer_index)
-		used_layers.sort()
-
-		auto_index = used_layers[-1] + 1
-		for i in range(1, len(used_layers)):
-			if used_layers[i - 1] - used_layers[i] > 1:
-				# Found a hole, take it instead
-				auto_index = used_layers[i] - 1
-				break
-
-	layer_index = auto_index
-
-	var map_count = terrain_data.get_map_count(HTerrainData.CHANNEL_DETAIL)
-	if layer_index >= map_count:
-		layer_index = terrain_data._edit_add_map(HTerrainData.CHANNEL_DETAIL)
+#func _auto_pick_index():
+#	# Automatically pick an unused layer
+#
+#	var terrain = _get_terrain()
+#	if terrain == null:
+#		return
+#
+#	var terrain_data = terrain.get_data()
+#	if terrain_data == null or terrain_data.is_locked():
+#		return
+#
+#	var auto_index := layer_index
+#	var others = terrain.get_detail_layers()
+#
+#	if len(others) > 0:
+#		var used_layers := []
+#		for other in others:
+#			used_layers.append(other.layer_index)
+#		used_layers.sort()
+#
+#		auto_index = used_layers[-1]
+#		for i in range(1, len(used_layers)):
+#			if used_layers[i - 1] - used_layers[i] > 1:
+#				# Found a hole, take it instead
+#				auto_index = used_layers[i] - 1
+#				break
+#
+#	print("Auto picked ", auto_index, " ")
+#	layer_index = auto_index
 
 
-func _get_property_list():
+func _get_property_list() -> Array:
 	# Dynamic properties coming from the shader
 	var props := []
 	if _material != null:
@@ -185,6 +194,7 @@ func set_layer_index(v: int):
 	layer_index = v
 	if is_inside_tree():
 		_update_material()
+		Util.update_configuration_warning(self, false)
 
 
 func get_layer_index() -> int:
@@ -499,19 +509,6 @@ func _update_material():
 	mat.set_shader_param("u_terrain_globalmap", globalmap_texture)
 
 
-# TODO Uncomment in Godot 3.1
-#func get_configuration_warning():
-#	var terrain = _get_terrain()
-#	if terrain == null:
-#		return "This node must be under a HTerrain parent"
-#	var terrain_data = terrain.get_data()
-#	if terrain_data == null:
-#		return "The terrain needs data to be assigned"
-#	if layer_index <= terrain_data.get_map_count(HTerrainData.CHANNEL_DETAIL):
-#		return "This layer's index is out of the range of maps the terrain has"
-#	return ""
-
-
 func _add_debug_cube(terrain, aabb: AABB):
 	var world = terrain.get_world()
 
@@ -532,6 +529,33 @@ func _add_debug_cube(terrain, aabb: AABB):
 
 func _regen_multimesh():
 	_multimesh = _generate_multimesh(CHUNK_SIZE, density, _get_used_mesh(), _multimesh)
+
+
+func is_layer_index_valid() -> bool:
+	var terrain = _get_terrain()
+	if terrain == null:
+		return false
+	var data = terrain.get_data()
+	if data == null:
+		return false
+	return layer_index >= 0 and layer_index < data.get_map_count(HTerrainData.CHANNEL_DETAIL)
+
+
+func _get_configuration_warning() -> String:
+	var terrain = _get_terrain()
+	if not (terrain is HTerrain):
+		return "This node must be child of an HTerrain node"
+	var data = terrain.get_data()
+	if data == null:
+		return "The terrain has no data"
+	if data.get_map_count(HTerrainData.CHANNEL_DETAIL) == 0:
+		return "The terrain does not have any detail map"
+	if layer_index < 0 or layer_index >= data.get_map_count(HTerrainData.CHANNEL_DETAIL):
+		return "Layer index is out of bounds"
+	var tex = data.get_texture(HTerrainData.CHANNEL_DETAIL, layer_index)
+	if tex == null:
+		return "The terrain does not have a map assigned in slot {0}".format([layer_index])
+	return ""
 
 
 static func _generate_multimesh(resolution: int, density: float, 

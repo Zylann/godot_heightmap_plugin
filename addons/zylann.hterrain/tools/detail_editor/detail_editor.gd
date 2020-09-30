@@ -3,6 +3,7 @@ extends Control
 
 const HTerrainData = preload("../../hterrain_data.gd")
 const HTerrainDetailLayer = preload("../../hterrain_detail_layer.gd")
+const ImageFileCache = preload("../../util/image_file_cache.gd")
 
 signal detail_selected(index)
 # Emitted when the tool added or removed a detail map
@@ -15,6 +16,8 @@ var _terrain = null
 var _dialog_target = -1
 var _placeholder_icon = load("res://addons/zylann.hterrain/tools/icons/icon_grass.svg")
 var _detail_layer_icon = load("res://addons/zylann.hterrain/tools/icons/icon_detail_layer_node.svg")
+var _undo_redo : UndoRedo
+var _image_cache : ImageFileCache
 
 
 func set_terrain(terrain):
@@ -22,6 +25,14 @@ func set_terrain(terrain):
 		return
 	_terrain = terrain
 	_update_list()
+
+
+func set_undo_redo(ur: UndoRedo):
+	_undo_redo = ur
+
+
+func set_image_cache(image_cache: ImageFileCache):
+	_image_cache = image_cache
 
 
 func set_layer_index(i):
@@ -34,12 +45,12 @@ func _update_list():
 	if _terrain == null:
 		return
 	
-	var layers = _terrain.get_detail_layers()
-	var layers_by_index = {}
-	for layer in layers:
-		if not layers_by_index.has(layer.layer_index):
-			layers_by_index[layer.layer_index] = []
-		layers_by_index[layer.layer_index].append(layer.name)
+	var layer_nodes = _terrain.get_detail_layers()
+	var layer_nodes_by_index = {}
+	for layer in layer_nodes:
+		if not layer_nodes_by_index.has(layer.layer_index):
+			layer_nodes_by_index[layer.layer_index] = []
+		layer_nodes_by_index[layer.layer_index].append(layer.name)
 
 	var data = _terrain.get_data()
 	if data != null:
@@ -50,9 +61,9 @@ func _update_list():
 			# TODO Show a preview icon
 			_item_list.add_item(str("Map ", i), _placeholder_icon)
 			
-			if layers_by_index.has(i):
+			if layer_nodes_by_index.has(i):
 				# TODO How to keep names updated with node names?
-				var names = PoolStringArray(layers_by_index[i]).join(", ")
+				var names = PoolStringArray(layer_nodes_by_index[i]).join(", ")
 				if len(names) == 1:
 					_item_list.set_item_tooltip(i, "Used by " + names)
 				else:
@@ -68,26 +79,7 @@ func _update_list():
 
 
 func _on_Add_pressed():
-	assert(_terrain != null)
-	assert(_terrain.get_data() != null)
-	
-	# TODO Make undoable
-	var layer = HTerrainDetailLayer.new()
-	# TODO Workarounds for https://github.com/godotengine/godot/issues/21410
-	layer.set_meta("_editor_icon", _detail_layer_icon)
-	layer.name = "HTerrainDetailLayer"
-	_terrain.add_child(layer)
-	layer.owner = get_tree().edited_scene_root
-	# Note: detail layers auto-add their data map in the editor,
-	# and may also pick an unused one if available
-	
-	_update_list()
-	emit_signal("detail_list_changed")
-	
-	var index = layer.layer_index
-	_item_list.select(index)
-	# select() doesn't trigger the signal
-	emit_signal("detail_selected", index)
+	_add_layer()
 
 
 func _on_Remove_pressed():
@@ -99,21 +91,87 @@ func _on_Remove_pressed():
 
 
 func _on_ConfirmationDialog_confirmed():
-	var data = _terrain.get_data()
-	data._edit_remove_map(HTerrainData.CHANNEL_DETAIL, _dialog_target)
+	_remove_layer(_dialog_target)
+
+
+func _add_layer():
+	assert(_terrain != null)
+	assert(_terrain.get_data() != null)
+	assert(_undo_redo != null)
+	var terrain_data : HTerrainData = _terrain.get_data()
+
+	# First, create node and map image	
+	var node = HTerrainDetailLayer.new()
+	# TODO Workarounds for https://github.com/godotengine/godot/issues/21410
+	node.set_meta("_editor_icon", _detail_layer_icon)
+	node.name = "HTerrainDetailLayer"
+	var map_index := terrain_data._edit_add_map(HTerrainData.CHANNEL_DETAIL)
+	var map_image := terrain_data.get_image(HTerrainData.CHANNEL_DETAIL)
+	var map_image_cache_id := _image_cache.save_image(map_image)
+	node.layer_index = map_index
 	
-	# Delete nodes that were referencing that map.
-	var layers = _terrain.get_detail_layers()
-	for layer in layers:
-		if layer.layer_index == _dialog_target:
-			layer.get_parent().remove_child(layer)
-			layer.call_deferred("free")
-		else:
-			# Shift down layer indexes
-			if layer.layer_index > _dialog_target:
-				layer.layer_index -= 1
+	# Then, create an action
+	_undo_redo.create_action("Add Detail Layer {0}".format([map_index]))
 	
-	_update_list()
+	_undo_redo.add_do_method(terrain_data, "_edit_insert_map_from_image_cache", 
+		HTerrainData.CHANNEL_DETAIL, map_index, _image_cache, map_image_cache_id)
+	_undo_redo.add_do_method(_terrain, "add_child", node)
+	_undo_redo.add_do_property(node, "owner", get_tree().edited_scene_root)
+	_undo_redo.add_do_method(self, "_update_list")
+	_undo_redo.add_do_reference(node)
+	
+	_undo_redo.add_undo_method(_terrain, "remove_child", node)
+	_undo_redo.add_undo_method(
+		terrain_data, "_edit_remove_map", HTerrainData.CHANNEL_DETAIL, map_index)
+	_undo_redo.add_undo_method(self, "_update_list")
+	
+	# Yet another instance of this hack, to prevent UndoRedo from running some of the functions,
+	# which we had to run already
+	terrain_data._edit_set_disable_apply_undo(true)
+	_undo_redo.commit_action()
+	terrain_data._edit_set_disable_apply_undo(false)
+	
+	#_update_list()
+	emit_signal("detail_list_changed")
+	
+	var index = node.layer_index
+	_item_list.select(index)
+	# select() doesn't trigger the signal
+	emit_signal("detail_selected", index)
+
+
+func _remove_layer(map_index: int):
+	var terrain_data : HTerrainData = _terrain.get_data()
+	
+	# First, cache image data
+	var image := terrain_data.get_image(HTerrainData.CHANNEL_DETAIL, map_index)
+	var image_id := _image_cache.save_image(image)
+	var nodes = _terrain.get_detail_layers()
+	var using_nodes := []
+	# Nodes using this map will be removed from the tree
+	for node in nodes:
+		if node.layer_index == map_index:
+			using_nodes.append(node)
+	
+	_undo_redo.create_action("Remove Detail Layer {0}".format([map_index]))
+	
+	_undo_redo.add_do_method(
+		terrain_data, "_edit_remove_map", HTerrainData.CHANNEL_DETAIL, map_index)
+	for node in using_nodes:
+		_undo_redo.add_do_method(_terrain, "remove_child", node)
+	_undo_redo.add_do_method(self, "_update_list")
+	
+	_undo_redo.add_undo_method(terrain_data, "_edit_insert_map_from_image_cache",
+		HTerrainData.CHANNEL_DETAIL, map_index, _image_cache, image_id)
+	for node in using_nodes:
+		_undo_redo.add_undo_method(_terrain, "add_child", node)
+		_undo_redo.add_undo_property(node, "owner", get_tree().edited_scene_root)
+		_undo_redo.add_undo_reference(node)
+	_undo_redo.add_undo_method(self, "_update_list")
+	
+	_undo_redo.commit_action()
+	
+	#_update_list()
 	emit_signal("detail_list_changed")
 
 

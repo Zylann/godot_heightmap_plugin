@@ -643,6 +643,20 @@ func _edit_add_map(map_type: int) -> int:
 	return index
 
 
+func _edit_insert_map_from_image_cache(map_type: int, index: int, image_cache, image_id: int):
+	if _edit_disable_apply_undo:
+		return
+	_logger.debug(str("Adding map of type ", get_channel_name(map_type), 
+		" from an image at index ", index))
+	while map_type >= len(_maps):
+		_maps.append([])
+	var maps = _maps[map_type]
+	var map = Map.new(_get_free_id(map_type))
+	map.image = image_cache.load_image(image_id)
+	maps.insert(index, map)
+	emit_signal("map_added", map_type, index)
+
+
 func _edit_remove_map(map_type: int, index: int):
 	# TODO Check minimum and maximum instances of a given map
 	_logger.debug(str("Removing map ", get_channel_name(map_type), " at index ", index))
@@ -811,36 +825,34 @@ func _compute_vertical_bounds_at(
 
 
 func save_data(data_dir: String):
-	if not _is_any_map_modified():
-		_logger.debug("Terrain data has no modifications to save")
-		return
-
+	_logger.debug("Saving terrain data...")
+	
 	_locked = true
 
 	_save_metadata(data_dir.plus_file(META_FILENAME))
 
-	_logger.debug("Saving terrain data...")
-
 	var map_count = _get_total_map_count()
 
 	var pi = 0
-	for channel in range(CHANNEL_COUNT):
-		var maps = _maps[channel]
+	for map_type in range(CHANNEL_COUNT):
+		var maps = _maps[map_type]
 
 		for index in range(len(maps)):
-			var map = _maps[channel][index]
+			var map = _maps[map_type][index]
 			if not map.modified:
 				_logger.debug(str(
-					"Skipping non-modified ", get_map_debug_name(channel, index)))
+					"Skipping non-modified ", get_map_debug_name(map_type, index)))
 				continue
 
-			_logger.debug(str("Saving map ", get_map_debug_name(channel, index),
-				" as ", _get_map_filename(channel, index), "..."))
+			_logger.debug(str("Saving map ", get_map_debug_name(map_type, index),
+				" as ", _get_map_filename(map_type, index), "..."))
 
-			_save_channel(data_dir, channel, index)
+			_save_map(data_dir, map_type, index)
 
 			map.modified = false
 			pi += 1
+	
+	# TODO Cleanup unused map files?
 
 	# TODO In editor, trigger reimport on generated assets
 	_locked = false
@@ -956,7 +968,7 @@ func load_data(dir_path: String):
 			_logger.debug(str("Loading map ", get_map_debug_name(map_type, index),
 				" from ", _get_map_filename(map_type, index), "..."))
 
-			_load_channel(dir_path, map_type, index)
+			_load_map(dir_path, map_type, index)
 
 			# A map that was just loaded is considered not modified yet
 			_maps[map_type][index].modified = false
@@ -979,30 +991,30 @@ func get_data_dir() -> String:
 	return resource_path.get_base_dir()
 
 
-func _save_channel(dir_path: String, channel: int, index: int) -> bool:
-	var map = _maps[channel][index]
+func _save_map(dir_path: String, map_type: int, index: int) -> bool:
+	var map = _maps[map_type][index]
 	var im = map.image
 	if im == null:
 		var tex = map.texture
 		if tex != null:
-			_logger.debug(str("Image not found for channel ", channel, 
+			_logger.debug(str("Image not found for map ", map_type, 
 				", downloading from VRAM"))
 			im = tex.get_data()
 		else:
-			_logger.debug(str("No data in channel ", channel, "[", index, "]"))
-			# This data doesn't have such channel
+			_logger.debug(str("No data in map ", map_type, "[", index, "]"))
+			# This data doesn't have such map
 			return true
 
 	var dir = Directory.new()
 	if not dir.dir_exists(dir_path):
 		dir.make_dir(dir_path)
 
-	var fpath = dir_path.plus_file(_get_map_filename(channel, index))
+	var fpath = dir_path.plus_file(_get_map_filename(map_type, index))
 
-	if _channel_can_be_saved_as_png(channel):
+	if _channel_can_be_saved_as_png(map_type):
 		fpath += ".png"
 		im.save_png(fpath)
-		_try_write_default_import_options(fpath, channel, _logger)
+		_try_write_default_import_options(fpath, map_type, _logger)
 
 	else:
 		fpath += ".res"
@@ -1018,15 +1030,15 @@ func _save_channel(dir_path: String, channel: int, index: int) -> bool:
 
 static func _try_write_default_import_options(fpath: String, channel: int, logger):
 	var imp_fpath = fpath + ".import"
-	var f = File.new()
+	var f := File.new()
 	if f.file_exists(imp_fpath):
 		# Already exists
 		return
 	
-	var map_type = _map_types[channel]
-	var texture_flags: int = map_type.texture_flags
+	var map_info = _map_types[channel]
+	var texture_flags: int = map_info.texture_flags
 	var filter := (texture_flags & Texture.FLAG_FILTER) != 0
-	var srgb: bool = map_type.srgb
+	var srgb: bool = map_info.srgb
 
 	var defaults = {
 		"remap": {
@@ -1090,21 +1102,21 @@ static func _try_write_default_import_options(fpath: String, channel: int, logge
 	f.close()
 
 
-func _load_channel(dir: String, channel: int, index: int) -> bool:
-	var fpath = dir.plus_file(_get_map_filename(channel, index))
+func _load_map(dir: String, map_type: int, index: int) -> bool:
+	var fpath = dir.plus_file(_get_map_filename(map_type, index))
 
 	# Maps must be configured before being loaded
-	var map = _maps[channel][index]
-	# while len(_maps) <= channel:
+	var map = _maps[map_type][index]
+	# while len(_maps) <= map_type:
 	# 	_maps.append([])
-	# while len(_maps[channel]) <= index:
-	# 	_maps[channel].append(null)
-	# var map = _maps[channel][index]
+	# while len(_maps[map_type]) <= index:
+	# 	_maps[map_type].append(null)
+	# var map = _maps[map_type][index]
 	# if map == null:
 	# 	map = Map.new()
-	# 	_maps[channel][index] = map
+	# 	_maps[map_type][index] = map
 
-	if _channel_can_be_saved_as_png(channel):
+	if _channel_can_be_saved_as_png(map_type):
 		fpath += ".png"
 		# In this particular case, we can use Godot ResourceLoader directly,
 		# if the texture got imported.
@@ -1115,13 +1127,13 @@ func _load_channel(dir: String, channel: int, index: int) -> bool:
 			if map.image == null:
 				map.image = Image.new()
 			map.image.load(fpath)
-			_ensure_map_format(map.image, channel, index)
+			_ensure_map_format(map.image, map_type, index)
 
 		var tex = load(fpath)
 		map.texture = tex
 
 	else:
-		var im = _try_load_0_8_0_heightmap(fpath, channel, map.image, _logger)
+		var im = _try_load_0_8_0_heightmap(fpath, map_type, map.image, _logger)
 		if typeof(im) == TYPE_BOOL:
 			return false
 		if im == null:
@@ -1134,8 +1146,8 @@ func _load_channel(dir: String, channel: int, index: int) -> bool:
 		_resolution = im.get_width()
 
 		map.image = im
-		_ensure_map_format(map.image, channel, index)
-		_upload_channel(channel, index)
+		_ensure_map_format(map.image, map_type, index)
+		_upload_channel(map_type, index)
 
 	return true
 
@@ -1203,7 +1215,8 @@ func _edit_import_maps(input: Dictionary) -> bool:
 
 	if input.has(CHANNEL_HEIGHT):
 		var params = input[CHANNEL_HEIGHT]
-		if not _import_heightmap(params.path, params.min_height, params.max_height, params.big_endian):
+		if not _import_heightmap(
+			params.path, params.min_height, params.max_height, params.big_endian):
 			return false
 
 	# TODO Import indexed maps?

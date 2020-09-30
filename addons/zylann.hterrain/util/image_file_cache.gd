@@ -2,7 +2,9 @@
 # Used to store temporary images on disk.
 # This is useful for undo/redo as image edition can quickly fill up memory.
 
-# Image data is stored in archive files together. If the file exceeds a predefined size, a new one is created.
+# Image data is stored in archive files together,
+# because when dealing with many images it speeds up filesystem I/O on Windows.
+# If the file exceeds a predefined size, a new one is created.
 # Writing to disk is performed from a thread, to leave the main thread responsive.
 # However if you want to obtain an image back while it didn't save yet, the main thread will block.
 # When the application or plugin is closed, the files get cleared.
@@ -69,6 +71,11 @@ func _get_current_cache_file_name() -> String:
 
 
 func save_image(im: Image) -> int:
+	assert(im != null)
+	if im.has_mipmaps():
+		# TODO Add support for this? Didn't need it so far
+		_logger.error("Caching an image with mipmaps, this isn't supported")
+	
 	var fpath := _get_current_cache_file_name()
 	if _next_id == 0:
 		# First file
@@ -78,7 +85,9 @@ func save_image(im: Image) -> int:
 	_next_id += 1
 	
 	var item := {
-		"image": im,
+		# Duplicate the image so we are sure nothing funny will happen to it
+		# while the thread saves it
+		"image": im.duplicate(),
 		"path": fpath,
 		"data_offset": _cache_file_offset,
 		"saved": false
