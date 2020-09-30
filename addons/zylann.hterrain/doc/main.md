@@ -38,6 +38,7 @@ HTerrain plugin documentation
     - [Custom shaders](#custom-shaders)
         - [Ground shaders](#ground-shaders)
         - [Grass shaders](#grass-shaders)
+    - [Lookdev](#lookdev)
     - [Scripting](#scripting)
         - [Creating the terrain from script](#creating-the-terrain-from-script)
         - [Procedural generation](#procedural-generation)
@@ -479,6 +480,21 @@ Parameter name                      | Type             | Format  | Description
 `u_albedo_alpha`                    | `sampler2D`      | `RGBA8` | This is the texture applied to the whole model, typically transparent grass.
 `u_view_distance`                   | `float`          |         | How far details are supposed to render. Beyond this range, the plugin will cull chunks away, so it is a good idea to use this in the shader to smoothly fade pixels in the distance to hide this process.
 `u_ambient_wind`                    | `vec2`           |         | Combined `vec2` parameter for ambient wind. `x` is the amplitude, and `y` is a time value. It is better to use it instead of directly `TIME` because it allows to animate speed without causing stutters.
+
+
+Lookdev 
+---------
+
+The plugin features an experimental debugging feature in the `Terrain` menu called "Lookdev". It temporarily replaces the ground shader with a simpler one which displays the raw value of a specific map. For example, you can see the actual values taken by a detail map by choosing one of them in the menu:
+
+![Screenshot of detail map seen with lookdev shader](images/lookdev_grass.png)
+
+It is very simple at the moment but it can also be used to display data maps which are not necessarily used for rendering. So you could also use it to paint them, even if they don't translate into a visual element in the game.
+Note: the heightmap cannot be seen with this feature because its values extend beyond usual color ranges.
+
+To turn it off, select `Disabled` in the menu.
+
+![Screenshot of detail map seen with lookdev shader](images/lookdev_menu.png)
 
 
 Scripting
