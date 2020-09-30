@@ -400,7 +400,16 @@ Once you have textured ground, you may want to add small detail objects to it, s
 ### Painting details
 
 Grass is supported throught `HTerrainDetailLayer` node. They can be created as children of the `HTerrain` node. Each layer represents one kind of detail, so you may have one layer for grass, and another for flowers, for example.
-Each layer allocates an 8-bit map over the whole terrain where each pixel tells how much density of that layer there is. Because of this technique, you can paint details just like you paint anything else, using the same brush system. It uses opacity to either add more density, or act as an eraser with an opacity of zero.
+
+Detail layers come in two parts:
+- A 8-bit density texture covering the whole terrain, also called a "detail map" at the moment. You can see how many maps the terrain has in the bottom panel after selecting the terrain.
+- A `HTerrainDetailLayer` node, which uses one of the detail maps to render instanced models based on the density.
+
+You can paint detail maps just like you paint anything else, using the same brush system. It uses opacity to either add more density, or act as an eraser with an opacity of zero.
+`HTerrainDetailLayer` nodes will then update in realtime, rendering more or less instances in places you painted.
+
+Note: a detail map can be used by more than one node, so you can have one for grass, another for flowers, and paint on the shared map to see both nodes update at the same time.
+
 
 ### Shading options
 
@@ -543,7 +552,6 @@ func _ready():
     terrain.set_data(data)
     add_child(terrain)
 ```
-
 
 ### Procedural generation
 
@@ -770,6 +778,7 @@ This issue happened a few times and had various causes so if the checks mentionn
 - If they are present, make sure Godot has imported those textures. If it didn't, unfocus the editor, and focus it back (you should see a short progress bar as it does it)
 - Check if you used Ctrl+Z (undo) after a non-undoable action: https://github.com/Zylann/godot_heightmap_plugin/issues/101
 - If your problem relates to collisions in editor, update the collider using `Terrain -> Update Editor Collider`, because this one does not update automatically yet
+- Godot seems to randomly forget where the terrain saver is, but I need help to find out why because I could never reproduce it: https://github.com/Zylann/godot_heightmap_plugin/issues/120
 
 
 ### Temporary files
