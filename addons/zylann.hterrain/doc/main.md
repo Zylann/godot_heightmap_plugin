@@ -19,6 +19,7 @@ HTerrain plugin documentation
         - [Setting up bump, normals and roughness](#setting-up-bump-normals-and-roughness)
         - [Depth blending](#depth-blending)
         - [Triplanar mapping](#triplanar-mapping)
+        - [Tiling reduction](#tiling-reduction)
         - [Color tint](#color-tint)
     - [Holes](#holes)
     - [Terrain generator](#terrain-generator)
@@ -259,6 +260,28 @@ Making cliffs with a heightmap terrain is not recommended, because it stretches 
 In the case of the `CLASSIC4` shader, cliffs usually are made of the same ground texture, so it is only available for textures setup in the 4th slot, called `cliff`. It could be made to work on all slots, however it involves modifying the shader to add more options, which you may see in a later article.
 
 The `ARRAY` shader does not have triplanar mapping yet, but it may be added in the future.
+
+
+### Tiling reduction
+
+The fact repeating textures are used for the ground also means they will not look as good at medium to far distance, due to the pattern it produces:
+
+![Screenshot of tiling artifacts](images/tiling_artifacts.png)
+
+On shaders supporting it, the `tile_reduction` parameter allows to break the patterns a bit to attenuate the effect:
+
+![Screenshot of reduced tiling artifacts](images/tiling_reduction.png)
+
+This option is present under the form of a `vec4`, where each component correspond to a texture, so you can enable it for some of them and not the others. Set a component to `1` to enable it, and `0` to disable it.
+
+This algorithm makes the shader sample the texture a second time, at a different orientation and scale, at semi-random areas of the ground:
+
+![Screenshot of the warped checker pattern used to break repetitions](images/warped_checker_variations.png)
+
+Here you can see where each of the two texture variants are being rendered. The pattern is a warped checker, which is simple enough to be procedural (avoiding the use of a noise texture), but organic enough so it shouldn't create artifacts itself. The result is made seamless by using depth blending (see [Depth blending](#depth-blending)).
+
+Although it's still possible to notice repetition over larger distances, this can be better covered by using a fade to global map (see [Global map](#global-map)).
+In addition, many games don't present a naked terrain to players: there are usually many props on top of it, such as grass, vegetation, trees, rocks, buildings, fog etc. so overall tiling textures should not really be a big deal.
 
 
 ### Color tint
