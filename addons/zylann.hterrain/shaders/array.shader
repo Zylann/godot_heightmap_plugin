@@ -25,7 +25,11 @@ varying float v_distance_to_camera;
 
 
 vec3 unpack_normal(vec4 rgba) {
-	return rgba.xzy * 2.0 - vec3(1.0);
+	vec3 n = rgba.xzy * 2.0 - vec3(1.0);
+	// Had to negate Z because it comes from Y in the normal map,
+	// and OpenGL-style normal maps are Y-up.
+	n.z *= -1.0;
+	return n;
 }
 
 vec3 get_depth_blended_weights(vec3 splat, vec3 bumps) {
@@ -75,7 +79,7 @@ void vertex() {
 
 	// Need to use u_terrain_normal_basis to handle scaling.
 	// For some reason I also had to invert Z when sampling terrain normals... not sure why
-	NORMAL = u_terrain_normal_basis * (unpack_normal(texture(u_terrain_normalmap, UV)) * vec3(1,1,-1));
+	NORMAL = u_terrain_normal_basis * unpack_normal(texture(u_terrain_normalmap, UV));
 
 	v_distance_to_camera = distance(wpos.xyz, CAMERA_MATRIX[3].xyz);
 }
@@ -87,7 +91,7 @@ void fragment() {
 	}
 
 	vec3 terrain_normal_world = 
-		u_terrain_normal_basis * (unpack_normal(texture(u_terrain_normalmap, UV)) * vec3(1,1,-1));
+		u_terrain_normal_basis * unpack_normal(texture(u_terrain_normalmap, UV));
 	terrain_normal_world = normalize(terrain_normal_world);
 	vec3 normal = terrain_normal_world;
 

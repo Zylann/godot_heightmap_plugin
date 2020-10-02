@@ -239,6 +239,14 @@ For this reason, the plugin uses the following convention in ground textures:
 
 This operation can be done in an image editing program such as Gimp, or with a Godot plugin such as Channel Packer (available on the asset library: https://godotengine.org/asset-library/asset/230).
 
+Note 1: normal maps must follow the OpenGL convention, where Y goes up. They are recognizable by being "brighter" on the top of bumpy features (because Y is green, which is the most energetic color to the human eye):
+
+![Examples of normalmap conventions](images/normalmap_conventions.png)
+
+See also https://docs.godotengine.org/en/latest/getting_started/workflow/assets/importing_images.html#normal-map
+
+Note 2: because Godot would strip out the alpha channel if a packed texture was imported as a normal map, you should not make your texture import as "Normal Map" in the importer dock.
+
 
 ### Depth blending
 
@@ -408,7 +416,7 @@ Detail layers come in two parts:
 You can paint detail maps just like you paint anything else, using the same brush system. It uses opacity to either add more density, or act as an eraser with an opacity of zero.
 `HTerrainDetailLayer` nodes will then update in realtime, rendering more or less instances in places you painted.
 
-Note: a detail map can be used by more than one node, so you can have one for grass, another for flowers, and paint on the shared map to see both nodes update at the same time.
+Note: a detail map can be used by more than one node (by setting the same index in their `layer_index` property), so you can have one for grass, another for flowers, and paint on the shared map to see both nodes update at the same time.
 
 
 ### Shading options
