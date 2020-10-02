@@ -87,6 +87,7 @@ func _on_Remove_pressed():
 	if len(selected) == 0:
 		return
 	_dialog_target = _item_list.get_selected_items()[0]
+	_confirmation_dialog.window_title = "Removing detail map {0}".format([_dialog_target])
 	_confirmation_dialog.popup_centered()
 
 

@@ -46,9 +46,8 @@ margin_left = 77.0
 margin_top = 523.0
 margin_right = 411.0
 margin_bottom = 598.0
-window_title = "Veuillez confirmer…"
-dialog_text = "Are you sure you want to remove this detail map?
-This action cannot be undone."
+window_title = "Please confirm…"
+dialog_text = "Are you sure you want to remove this detail map?"
 
 [connection signal="item_selected" from="ItemList" to="." method="_on_ItemList_item_selected"]
 [connection signal="pressed" from="HBoxContainer/Add" to="." method="_on_Add_pressed"]
