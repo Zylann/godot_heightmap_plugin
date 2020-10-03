@@ -14,6 +14,7 @@ uniform float u_globalmap_tint_bottom : hint_range(0.0, 1.0);
 uniform float u_globalmap_tint_top : hint_range(0.0, 1.0);
 uniform float u_bottom_ao : hint_range(0.0, 1.0);
 uniform vec2 u_ambient_wind; // x: amplitude, y: time
+uniform vec3 u_instance_scale = vec3(1.0, 1.0, 1.0);
 
 varying vec3 v_normal;
 varying vec2 v_map_uv;
@@ -23,7 +24,9 @@ float get_hash(vec2 c) {
 }
 
 vec3 unpack_normal(vec4 rgba) {
-	return rgba.xzy * 2.0 - vec3(1.0);
+	vec3 n = rgba.xzy * 2.0 - vec3(1.0);
+	n.z *= -1.0;
+	return n;
 }
 
 vec3 get_ambient_wind_displacement(vec2 uv, float hash) {
@@ -55,6 +58,7 @@ void vertex() {
 	if (density > hash) {
 		// Snap model to the terrain
 		float height = texture(u_terrain_heightmap, map_uv).r / cell_coords.y;
+		VERTEX *= u_instance_scale;
 		VERTEX.y += height;
 		
 		VERTEX += get_ambient_wind_displacement(UV, hash);
@@ -65,7 +69,7 @@ void vertex() {
 		COLOR.a = clamp(1.0 - dr * dr * dr, 0.0, 1.0);
 
 		// When using billboards, the normal is the same as the terrain regardless of face orientation
-		v_normal = normalize(u_terrain_normal_basis * (unpack_normal(texture(u_terrain_normalmap, map_uv)) * vec3(1, 1, -1)));
+		v_normal = normalize(u_terrain_normal_basis * unpack_normal(texture(u_terrain_normalmap, map_uv)));
 
 	} else {
 		// Discard, output degenerate triangles
