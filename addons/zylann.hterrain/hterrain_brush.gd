@@ -23,6 +23,7 @@ const MODE_COUNT = 9
 const EDIT_CHUNK_SIZE = 64
 
 signal shape_changed(shape)
+signal changed()
 
 var _radius := 0
 var _opacity := 1.0
@@ -100,7 +101,9 @@ func get_opacity() -> float:
 
 
 func set_flatten_height(flatten_height: float):
-	_flatten_height = flatten_height
+	if _flatten_height != flatten_height:
+		_flatten_height = flatten_height
+		emit_signal("changed")
 
 
 func get_flatten_height() -> float:

@@ -18,8 +18,10 @@ onready var _opacity_value_label = $GridContainer/BrushOpacityControl/Label
 onready var _opacity_control = $GridContainer/BrushOpacityControl
 onready var _opacity_label = $GridContainer/BrushOpacityLabel
 
-onready var _flatten_height_box = $GridContainer/FlattenHeightControl
+onready var _flatten_height_container = $GridContainer/HB
+onready var _flatten_height_box = $GridContainer/HB/FlattenHeightControl
 onready var _flatten_height_label = $GridContainer/FlattenHeightLabel
+onready var _flatten_height_pick_button = $GridContainer/HB/FlattenHeightPickButton
 
 onready var _color_picker = $GridContainer/ColorPickerButton
 onready var _color_label = $GridContainer/ColorLabel
@@ -90,7 +92,12 @@ func _exit_tree():
 #				mode = 0
 
 func set_brush(brush: Brush):
-	if brush != null:
+	if _brush != null:
+		_brush.disconnect("changed", self, "_on_brush_changed")
+	
+	_brush = brush
+	
+	if _brush != null:
 		# Initial params
 		_size_slider.value = brush.get_radius()
 		_opacity_slider.ratio = brush.get_opacity()
@@ -100,9 +107,14 @@ func set_brush(brush: Brush):
 		_holes_checkbox.pressed = not brush.get_mask_flag()
 
 		set_display_mode(brush.get_mode())
-		set_brush_shape_from_file(SHAPES_DIR.plus_file(DEFAULT_BRUSH))
+		_set_brush_shape_from_file(SHAPES_DIR.plus_file(DEFAULT_BRUSH))
+		
+		_brush.connect("changed", self, "_on_brush_properties_changed")
 
-	_brush = brush
+
+func _on_brush_properties_changed():
+	_flatten_height_box.value = _brush.get_flatten_height()
+	_flatten_height_pick_button.pressed = false
 
 
 func set_display_mode(mode: int):
@@ -119,13 +131,15 @@ func set_display_mode(mode: int):
 	_set_visibility_of(_color_picker, show_color)
 
 	_set_visibility_of(_flatten_height_label, show_flatten)
-	_set_visibility_of(_flatten_height_box, show_flatten)
+	_set_visibility_of(_flatten_height_container, show_flatten)
 
 	_set_visibility_of(_density_label, show_density)
 	_set_visibility_of(_density_slider, show_density)
 
 	_set_visibility_of(_holes_label, show_holes)
 	_set_visibility_of(_holes_checkbox, show_holes)
+
+	_flatten_height_pick_button.pressed = false
 
 #	_opacity_label.visible = show_opacity
 #	_opacity_control.visible = show_opacity
@@ -181,10 +195,10 @@ func _on_BrushShapeButton_pressed():
 
 
 func _on_LoadImageDialog_file_selected(path: String):
-	set_brush_shape_from_file(path)
+	_set_brush_shape_from_file(path)
 
 
-func set_brush_shape_from_file(path: String):
+func _set_brush_shape_from_file(path: String):
 	var im := Image.new()
 	var err := im.load(path)
 	if err != OK:
@@ -206,3 +220,7 @@ func set_brush_shape_from_file(path: String):
 	var tex := ImageTexture.new()
 	tex.create_from_image(im, Texture.FLAG_FILTER)
 	_shape_texture_rect.texture = tex
+
+
+func _on_FlattenHeightPickButton_pressed():
+	_brush.set_meta("pick_height", true)

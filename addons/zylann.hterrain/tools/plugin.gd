@@ -368,6 +368,20 @@ func make_visible(visible):
 		edit(null)
 
 
+# TODO Can't hint return as `Vector2?` because it's nullable
+func _get_pointed_cell_position(mouse_position: Vector2, p_camera: Camera):# -> Vector2:
+	# Need to do an extra conversion in case the editor viewport is in half-resolution mode
+	var viewport = p_camera.get_viewport()
+	var viewport_container = viewport.get_parent()
+	var screen_pos = mouse_position * viewport.size / viewport_container.rect_size
+	
+	var origin = p_camera.project_ray_origin(screen_pos)
+	var dir = p_camera.project_ray_normal(screen_pos)
+
+	var ray_distance := p_camera.far * 1.2
+	return _node.cell_raycast(origin, dir, ray_distance)
+
+
 func forward_spatial_gui_input(p_camera: Camera, p_event: InputEvent) -> bool:
 	if _node == null || _node.get_data() == null:
 		return false
@@ -395,20 +409,21 @@ func forward_spatial_gui_input(p_camera: Camera, p_event: InputEvent) -> bool:
 				if not _mouse_pressed:
 					# Just finished painting
 					_pending_paint_completed = true
+		
+			if _brush.get_mode() == Brush.MODE_FLATTEN and _brush.has_meta("pick_height") \
+			and _brush.get_meta("pick_height"):
+				_brush.set_meta("pick_height", false)
+				# Pick height
+				var hit_pos_in_cells = _get_pointed_cell_position(mb.position, p_camera)
+				if hit_pos_in_cells != null:
+					var h = _node.get_data().get_height_at(
+						int(hit_pos_in_cells.x), int(hit_pos_in_cells.y))
+					_logger.debug("Picking height {0}".format([h]))
+					_brush.set_flatten_height(h)
 
 	elif p_event is InputEventMouseMotion:
 		var mm = p_event
-		
-		# Need to do an extra conversion in case the editor viewport is in half-resolution mode
-		var viewport = p_camera.get_viewport()
-		var viewport_container = viewport.get_parent()
-		var screen_pos = mm.position * viewport.size / viewport_container.rect_size
-		
-		var origin = p_camera.project_ray_origin(screen_pos)
-		var dir = p_camera.project_ray_normal(screen_pos)
-
-		var ray_distance := p_camera.far * 1.2
-		var hit_pos_in_cells = _node.cell_raycast(origin, dir, ray_distance)
+		var hit_pos_in_cells = _get_pointed_cell_position(mm.position, p_camera)
 		if hit_pos_in_cells != null:
 			_brush_decal.set_position(Vector3(hit_pos_in_cells.x, 0, hit_pos_in_cells.y))
 			
