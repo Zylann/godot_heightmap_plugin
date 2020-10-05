@@ -66,7 +66,8 @@ var _default_shader: Shader = null
 # Vector2 => DirectMultiMeshInstance
 var _chunks := {}
 
-var _multimesh: MultiMesh = null
+var _multimesh: MultiMesh
+var _multimesh_need_regen = true
 var _multimesh_instance_pool := []
 var _ambient_wind_time := 0.0
 #var _auto_pick_index_on_enter_tree := Engine.editor_hint
@@ -79,6 +80,10 @@ func _init():
 	_default_shader = load(DEFAULT_SHADER_PATH)
 	_material = ShaderMaterial.new()
 	_material.shader = _default_shader
+	
+	_multimesh = MultiMesh.new()
+	_multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	_multimesh.color_format = MultiMesh.COLOR_8BIT
 
 
 func _enter_tree():
@@ -236,8 +241,6 @@ func set_instance_mesh(p_mesh: Mesh):
 	if p_mesh == instance_mesh:
 		return
 	instance_mesh = p_mesh
-	if _multimesh == null:
-		_multimesh = MultiMesh.new()
 	_multimesh.mesh = _get_used_mesh()
 
 
@@ -256,15 +259,7 @@ func set_density(v: float):
 	if v == density:
 		return
 	density = v
-	# If available, we modify the existing multimesh instead of replacing it.
-	# DirectMultiMeshInstance does not keep a strong reference to them,
-	# so replacing would break pooled instances.
-	_regen_multimesh()
-	# Crash workaround for Godot 3.1
-	# See https://github.com/godotengine/godot/issues/32500
-	for k in _chunks:
-		var mmi = _chunks[k]
-		mmi.set_multimesh(_multimesh)
+	_multimesh_need_regen = true
 
 
 func get_density() -> float:
@@ -326,6 +321,15 @@ func process(delta: float, viewer_pos: Vector3):
 	if terrain == null:
 		_logger.error("DetailLayer processing while terrain is null!")
 		return
+
+	if _multimesh_need_regen:
+		_regen_multimesh()
+		_multimesh_need_regen = false
+		# Crash workaround for Godot 3.1
+		# See https://github.com/godotengine/godot/issues/32500
+		for k in _chunks:
+			var mmi = _chunks[k]
+			mmi.set_multimesh(_multimesh)
 
 	var local_viewer_pos = viewer_pos - terrain.translation
 
@@ -428,8 +432,6 @@ func _load_chunk(terrain, cx: int, cz: int, aabb: AABB):
 		mmi = _multimesh_instance_pool[-1]
 		_multimesh_instance_pool.pop_back()
 	else:
-		if _multimesh == null:
-			_regen_multimesh()
 		mmi = DirectMultiMeshInstance.new()
 		mmi.set_world(terrain.get_world())
 		mmi.set_multimesh(_multimesh)
@@ -528,7 +530,10 @@ func _add_debug_cube(terrain, aabb: AABB):
 
 
 func _regen_multimesh():
-	_multimesh = _generate_multimesh(CHUNK_SIZE, density, _get_used_mesh(), _multimesh)
+	# We modify the existing multimesh instead of replacing it.
+	# DirectMultiMeshInstance does not keep a strong reference to them,
+	# so replacing would break pooled instances.
+	_generate_multimesh(CHUNK_SIZE, density, _get_used_mesh(), _multimesh)
 
 
 func is_layer_index_valid() -> bool:
@@ -558,8 +563,8 @@ func _get_configuration_warning() -> String:
 	return ""
 
 
-static func _generate_multimesh(resolution: int, density: float, 
-	mesh: Mesh, existing_multimesh: MultiMesh) -> MultiMesh:
+static func _generate_multimesh(resolution: int, density: float, mesh: Mesh, multimesh: MultiMesh):
+	assert(multimesh != null)
 		
 	var position_randomness = 0.5
 	var scale_randomness = 0.0
@@ -570,16 +575,8 @@ static func _generate_multimesh(resolution: int, density: float,
 	var random_instance_count = int(cell_count * (density - floor(density)))
 	var total_instance_count = cell_count * idensity + random_instance_count
 	
-	var mm
-	if existing_multimesh != null:
-		mm = existing_multimesh
-	else:
-		mm = MultiMesh.new()
-		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.color_format = MultiMesh.COLOR_8BIT
-
-	mm.instance_count = total_instance_count
-	mm.mesh = mesh
+	multimesh.instance_count = total_instance_count
+	multimesh.mesh = mesh
 
 	# First pass ensures uniform spread
 	var i = 0
@@ -591,20 +588,18 @@ static func _generate_multimesh(resolution: int, density: float,
 				pos.x += rand_range(-position_randomness, position_randomness)
 				pos.z += rand_range(-position_randomness, position_randomness)
 
-				mm.set_instance_color(i, Color(1, 1, 1))
-				mm.set_instance_transform(i, \
+				multimesh.set_instance_color(i, Color(1, 1, 1))
+				multimesh.set_instance_transform(i, \
 					Transform(_get_random_instance_basis(scale_randomness), pos))
 				i += 1
 	
 	# Second pass adds the rest
 	for j in random_instance_count:
 		var pos = Vector3(rand_range(0, resolution), 0, rand_range(0, resolution))
-		mm.set_instance_color(i, Color(1, 1, 1))
-		mm.set_instance_transform(i, \
+		multimesh.set_instance_color(i, Color(1, 1, 1))
+		multimesh.set_instance_transform(i, \
 			Transform(_get_random_instance_basis(scale_randomness), pos))
 		i += 1
-
-	return mm
 
 
 static func _get_random_instance_basis(scale_randomness: float) -> Basis:
