@@ -115,10 +115,8 @@ const _DEBUG_AABB = false
 
 signal transform_changed(global_transform)
 
-export var collision_enabled := true setget set_collision_enabled
 export(float, 0.0, 1.0) var ambient_wind := 0.0 setget set_ambient_wind
 export(int, 2, 5) var lod_scale := 2.0 setget set_lod_scale, get_lod_scale
-export(Shader) var custom_globalmap_shader
 
 # TODO Replace with `size` in world units?
 # Prefer using this instead of scaling the node's transform.
@@ -127,6 +125,7 @@ export(Shader) var custom_globalmap_shader
 export var map_scale := Vector3(1, 1, 1) setget set_map_scale
 
 var _custom_shader : Shader = null
+var _custom_globalmap_shader : Shader = null
 var _shader_type := SHADER_CLASSIC4_LITE
 var _shader_uses_texture_array := false
 var _material := ShaderMaterial.new()
@@ -153,7 +152,10 @@ var _pending_chunk_updates := []
 
 var _detail_layers := []
 
+var _collision_enabled := true
 var _collider: HTerrainCollider = null
+var _collision_layer := 1
+var _collision_mask := 1
 
 # Stats & debug
 var _updated_chunks := 0
@@ -191,12 +193,14 @@ func _init():
 		e.resize(GROUND_TEXTURE_TYPE_COUNT)
 		_ground_textures[slot] = e
 
-	if collision_enabled:
+	if _collision_enabled:
 		if _check_heightmap_collider_support():
-			_collider = HTerrainCollider.new(self)
+			_collider = HTerrainCollider.new(self, _collision_layer, _collision_mask)
 
 
 func _get_property_list():
+	# A lot of properties had to be exported like this instead of using `export`,
+	# because Godot 3 does not support easy categorization and lacks some hints
 	var props = [
 		{
 			# Terrain data is exposed only as a path in the editor,
@@ -225,6 +229,33 @@ func _get_property_list():
 			"hint_string": "16, 32"
 		},
 		{
+			"name": "Collision",
+			"type": TYPE_NIL,
+			"usage": PROPERTY_USAGE_GROUP
+		},
+		{
+			"name": "collision_enabled",
+			"type": TYPE_BOOL,
+			"usage": PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_STORAGE
+		},
+		{
+			"name": "collision_layer",
+			"type": TYPE_INT,
+			"usage": PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_STORAGE,
+			"hint": PROPERTY_HINT_LAYERS_3D_PHYSICS
+		},
+		{
+			"name": "collision_mask",
+			"type": TYPE_INT,
+			"usage": PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_STORAGE,
+			"hint": PROPERTY_HINT_LAYERS_3D_PHYSICS
+		},
+		{
+			"name": "Shader",
+			"type": TYPE_NIL,
+			"usage": PROPERTY_USAGE_GROUP
+		},
+		{
 			"name": "shader_type",
 			"type": TYPE_STRING,
 			"usage": PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_STORAGE,
@@ -232,8 +263,14 @@ func _get_property_list():
 			"hint_string": _SHADER_TYPE_HINT_STRING
 		},
 		{
-			# Had to specify it like this because need to be in category...
 			"name": "custom_shader",
+			"type": TYPE_OBJECT,
+			"usage": PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_STORAGE,
+			"hint": PROPERTY_HINT_RESOURCE_TYPE,
+			"hint_string": "Shader"
+		},
+		{
+			"name": "custom_globalmap_shader",
 			"type": TYPE_OBJECT,
 			"usage": PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_STORAGE,
 			"hint": PROPERTY_HINT_RESOURCE_TYPE,
@@ -292,6 +329,9 @@ func _get(key: String):
 
 	elif key == "custom_shader":
 		return get_custom_shader()
+	
+	elif key == "custom_globalmap_shader":
+		return _custom_globalmap_shader
 
 	elif key.begins_with("shader_params/"):
 		var param_name = key.right(len("shader_params/"))
@@ -299,7 +339,16 @@ func _get(key: String):
 
 	elif key == "chunk_size":
 		return _chunk_size
+	
+	elif key == "collision_enabled":
+		return _collision_enabled
+	
+	elif key == "collision_layer":
+		return _collision_layer
 
+	elif key == "collision_mask":
+		return _collision_mask
+	
 
 func _set(key: String, value):
 	if key == "data_directory":
@@ -322,6 +371,9 @@ func _set(key: String, value):
 
 	elif key == "custom_shader":
 		set_custom_shader(value)
+	
+	elif key == "custom_globalmap_shader":
+		_custom_globalmap_shader = value
 
 	elif key.begins_with("shader_params/"):
 		var param_name = key.right(len("shader_params/"))
@@ -329,6 +381,19 @@ func _set(key: String, value):
 
 	elif key == "chunk_size":
 		set_chunk_size(value)
+		
+	elif key == "collision_enabled":
+		set_collision_enabled(value)
+
+	elif key == "collision_layer":
+		_collision_layer = value
+		if _collider != null:
+			_collider.set_collision_layer(value)
+
+	elif key == "collision_mask":
+		_collision_mask = value
+		if _collider != null:
+			_collider.set_collision_mask(value)
 
 
 func get_shader_param(param_name: String):
@@ -375,11 +440,11 @@ func _check_heightmap_collider_support() -> bool:
 
 
 func set_collision_enabled(enabled: bool):
-	if collision_enabled != enabled:
-		collision_enabled = enabled
-		if collision_enabled:
+	if _collision_enabled != enabled:
+		_collision_enabled = enabled
+		if _collision_enabled:
 			if _check_heightmap_collider_support():
-				_collider = HTerrainCollider.new(self)
+				_collider = HTerrainCollider.new(self, _collision_layer, _collision_mask)
 				# Collision is not updated with data here,
 				# because loading is quite a mess at the moment...
 				# 1) This function can be called while no data has been set yet
@@ -584,7 +649,7 @@ func set_data(new_data: HTerrainData):
 # so the whole collider can be updated in one go.
 # It may be slow for ingame use, so prefer calling it when appropriate.
 func update_collider():
-	assert(collision_enabled)
+	assert(_collision_enabled)
 	assert(_collider != null)
 	_collider.create_from_terrain_data(_data)
 
@@ -824,8 +889,8 @@ func setup_globalmap_material(mat: ShaderMaterial):
 # Gets which shader will be used to bake the globalmap
 func get_globalmap_shader() -> Shader:
 	if _shader_type == SHADER_CUSTOM:
-		if custom_globalmap_shader != null:
-			return custom_globalmap_shader
+		if _custom_globalmap_shader != null:
+			return _custom_globalmap_shader
 		_logger.warn("The terrain uses a custom shader but doesn't have one for baking the "
 			+ "global map. Will attempt to use a built-in shader.")
 		if is_using_texture_array():
