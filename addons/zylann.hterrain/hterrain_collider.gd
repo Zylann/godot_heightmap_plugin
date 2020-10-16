@@ -15,7 +15,6 @@ func _init(attached_node: Node, initial_layer: int, initial_mask: int):
 	_shape_rid = PhysicsServer.shape_create(PhysicsServer.SHAPE_HEIGHTMAP)
 	_body_rid = PhysicsServer.body_create(PhysicsServer.BODY_MODE_STATIC)
 
-	# TODO Let user configure layer and mask
 	PhysicsServer.body_set_collision_layer(_body_rid, initial_layer)
 	PhysicsServer.body_set_collision_mask(_body_rid, initial_mask)
 
