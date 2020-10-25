@@ -5,6 +5,24 @@ This is a high-level changelog for each released versions of the plugin.
 For a more detailed list of past and incoming changes, see the commit history.
 
 
+
+1.4
+----
+
+- Added properties to set collision layer and mask
+- Added a parameter in `Classic4` shaders to reduce texture tiling
+- Added a scale parameter to the default grass shader
+- Added lookdev mode to visualise terrain maps with debug colors
+- Added height picking to the flatten tool
+- Adding and removing detail maps is now undoable
+- Detail layer nodes no longer auto-select their index
+- Breaking change: normal maps of ground textures now use OpenGL convention like Godot, instead of DirectX convention
+- Fixed removal of detail maps not being saved properly
+- Fixed GDNative library being registered with the wrong name on Linux
+- Fixed error when selecting a detail layer node having an index out of range
+- Fixed detail layers with a custom mesh disappearing when their density is left to default value
+
+
 1.3.4
 ------
 
