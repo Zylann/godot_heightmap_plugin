@@ -1,0 +1,269 @@
+[gd_scene load_steps=3 format=2]
+
+[ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/set_editor/source_file_item_editor.tscn" type="PackedScene" id=3]
+[ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/set_editor/texture_set_import_editor.gd" type="Script" id=4]
+
+[node name="TextureSetImportEditor" type="WindowDialog"]
+margin_right = -148.0
+margin_bottom = -121.0
+rect_min_size = Vector2( 652, 480 )
+window_title = "Texture Set Import Tool"
+script = ExtResource( 4 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Import" type="VBoxContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 8.0
+margin_top = 8.0
+margin_right = -8.0
+margin_bottom = -8.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="HS" type="HSplitContainer" parent="Import"]
+margin_right = 636.0
+margin_bottom = 284.0
+size_flags_vertical = 3
+
+[node name="VB" type="VBoxContainer" parent="Import/HS"]
+margin_right = 100.0
+margin_bottom = 284.0
+size_flags_vertical = 3
+
+[node name="Label" type="Label" parent="Import/HS/VB"]
+visible = false
+margin_right = 100.0
+margin_bottom = 14.0
+text = "Slots"
+
+[node name="SlotsList" type="ItemList" parent="Import/HS/VB"]
+margin_right = 100.0
+margin_bottom = 260.0
+rect_min_size = Vector2( 100, 0 )
+size_flags_vertical = 3
+items = [ "Item 0", null, false, "Item 1", null, false, "Item 2", null, false, "Item 3", null, false, "Item 4", null, false, "Item 5", null, false, "Item 6", null, false ]
+
+[node name="HB" type="HBoxContainer" parent="Import/HS/VB"]
+margin_top = 264.0
+margin_right = 100.0
+margin_bottom = 284.0
+
+[node name="AddSlotButton" type="Button" parent="Import/HS/VB/HB"]
+margin_right = 20.0
+margin_bottom = 20.0
+text = "+"
+
+[node name="Control" type="Control" parent="Import/HS/VB/HB"]
+margin_left = 24.0
+margin_right = 77.0
+margin_bottom = 20.0
+size_flags_horizontal = 3
+
+[node name="RemoveSlotButton" type="Button" parent="Import/HS/VB/HB"]
+margin_left = 81.0
+margin_right = 100.0
+margin_bottom = 20.0
+text = "x"
+
+[node name="VB2" type="VBoxContainer" parent="Import/HS"]
+margin_left = 112.0
+margin_right = 636.0
+margin_bottom = 284.0
+
+[node name="Label" type="Label" parent="Import/HS/VB2"]
+visible = false
+margin_right = 524.0
+margin_bottom = 14.0
+
+[node name="HB" type="HBoxContainer" parent="Import/HS/VB2"]
+margin_right = 524.0
+margin_bottom = 194.0
+
+[node name="Albedo" parent="Import/HS/VB2/HB" instance=ExtResource( 3 )]
+
+[node name="Bump" parent="Import/HS/VB2/HB" instance=ExtResource( 3 )]
+margin_left = 132.0
+margin_right = 260.0
+
+[node name="Normal" parent="Import/HS/VB2/HB" instance=ExtResource( 3 )]
+margin_left = 264.0
+margin_right = 392.0
+
+[node name="Roughness" parent="Import/HS/VB2/HB" instance=ExtResource( 3 )]
+margin_left = 396.0
+margin_right = 524.0
+
+[node name="Control" type="Control" parent="Import/HS/VB2"]
+margin_top = 198.0
+margin_right = 524.0
+margin_bottom = 202.0
+rect_min_size = Vector2( 0, 4 )
+
+[node name="Label3" type="Label" parent="Import/HS/VB2"]
+modulate = Color( 0.564706, 0.564706, 0.564706, 1 )
+margin_top = 206.0
+margin_right = 524.0
+margin_bottom = 254.0
+text = "These images should remain accessible for import to work.
+Tip: you can place them in a folder with a `.gdignore` file, so they won't take space in your exported game."
+autowrap = true
+
+[node name="Control2" type="Control" parent="Import/HS/VB2"]
+margin_top = 258.0
+margin_right = 524.0
+margin_bottom = 262.0
+rect_min_size = Vector2( 0, 4 )
+
+[node name="Spacer3" type="Control" parent="Import"]
+margin_top = 288.0
+margin_right = 636.0
+margin_bottom = 296.0
+rect_min_size = Vector2( 0, 8 )
+
+[node name="HSeparator" type="HSeparator" parent="Import"]
+margin_top = 300.0
+margin_right = 636.0
+margin_bottom = 304.0
+
+[node name="GC" type="GridContainer" parent="Import"]
+margin_top = 308.0
+margin_right = 636.0
+margin_bottom = 388.0
+custom_constants/hseparation = 8
+columns = 4
+
+[node name="Label2" type="Label" parent="Import/GC"]
+margin_top = 5.0
+margin_right = 93.0
+margin_bottom = 19.0
+text = "Import mode: "
+
+[node name="ImportModeSelector" type="OptionButton" parent="Import/GC"]
+margin_left = 101.0
+margin_right = 317.0
+margin_bottom = 24.0
+size_flags_horizontal = 3
+
+[node name="MipmapsCheckbox" type="CheckBox" parent="Import/GC"]
+margin_left = 325.0
+margin_right = 412.0
+margin_bottom = 24.0
+text = "Mipmaps"
+
+[node name="Spacer2" type="Control" parent="Import/GC"]
+margin_left = 420.0
+margin_right = 636.0
+margin_bottom = 24.0
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="Import/GC"]
+margin_top = 33.0
+margin_right = 93.0
+margin_bottom = 47.0
+text = "Compression:"
+
+[node name="CompressionSelector" type="OptionButton" parent="Import/GC"]
+margin_left = 101.0
+margin_top = 28.0
+margin_right = 317.0
+margin_bottom = 52.0
+size_flags_horizontal = 3
+
+[node name="FilterCheckBox" type="CheckBox" parent="Import/GC"]
+margin_left = 325.0
+margin_top = 28.0
+margin_right = 412.0
+margin_bottom = 52.0
+text = "Filter"
+
+[node name="Spacer" type="Control" parent="Import/GC"]
+margin_left = 420.0
+margin_top = 28.0
+margin_right = 636.0
+margin_bottom = 52.0
+
+[node name="Label3" type="Label" parent="Import/GC"]
+margin_top = 61.0
+margin_right = 93.0
+margin_bottom = 75.0
+text = "Resolution:"
+
+[node name="ResolutionSpinBox" type="SpinBox" parent="Import/GC"]
+margin_left = 101.0
+margin_top = 56.0
+margin_right = 317.0
+margin_bottom = 80.0
+min_value = 1.0
+max_value = 4096.0
+value = 1.0
+
+[node name="HB2" type="HBoxContainer" parent="Import"]
+margin_top = 392.0
+margin_right = 636.0
+margin_bottom = 416.0
+
+[node name="Label2" type="Label" parent="Import/HB2"]
+margin_top = 5.0
+margin_right = 105.0
+margin_bottom = 19.0
+text = "Import directory"
+
+[node name="ImportDirectoryLineEdit" type="LineEdit" parent="Import/HB2"]
+margin_left = 109.0
+margin_right = 608.0
+margin_bottom = 24.0
+hint_tooltip = "Files will be generated in this directory."
+size_flags_horizontal = 3
+
+[node name="BrowseImportDirectory" type="Button" parent="Import/HB2"]
+margin_left = 612.0
+margin_right = 636.0
+margin_bottom = 24.0
+text = "..."
+
+[node name="Spacer" type="Control" parent="Import"]
+margin_top = 420.0
+margin_right = 636.0
+margin_bottom = 428.0
+rect_min_size = Vector2( 0, 8 )
+
+[node name="HB" type="HBoxContainer" parent="Import"]
+margin_top = 432.0
+margin_right = 636.0
+margin_bottom = 452.0
+custom_constants/separation = 16
+alignment = 1
+
+[node name="ImportButton" type="Button" parent="Import/HB"]
+margin_left = 210.0
+margin_right = 355.0
+margin_bottom = 20.0
+text = "Import to TextureSet"
+
+[node name="CancelButton" type="Button" parent="Import/HB"]
+margin_left = 371.0
+margin_right = 425.0
+margin_bottom = 20.0
+text = "Cancel"
+
+[node name="Spacer2" type="Control" parent="Import"]
+margin_top = 456.0
+margin_right = 636.0
+margin_bottom = 464.0
+rect_min_size = Vector2( 0, 8 )
+[connection signal="item_selected" from="Import/HS/VB/SlotsList" to="." method="_on_SlotsList_item_selected"]
+[connection signal="pressed" from="Import/HS/VB/HB/AddSlotButton" to="." method="_on_AddSlotButton_pressed"]
+[connection signal="pressed" from="Import/HS/VB/HB/RemoveSlotButton" to="." method="_on_RemoveSlotButton_pressed"]
+[connection signal="item_selected" from="Import/GC/ImportModeSelector" to="." method="_on_ImportModeSelector_item_selected"]
+[connection signal="toggled" from="Import/GC/MipmapsCheckbox" to="." method="_on_MipmapsCheckbox_toggled"]
+[connection signal="item_selected" from="Import/GC/CompressionSelector" to="." method="_on_CompressionSelector_item_selected"]
+[connection signal="toggled" from="Import/GC/FilterCheckBox" to="." method="_on_FilterCheckBox_toggled"]
+[connection signal="value_changed" from="Import/GC/ResolutionSpinBox" to="." method="_on_ResolutionSpinBox_value_changed"]
+[connection signal="text_changed" from="Import/HB2/ImportDirectoryLineEdit" to="." method="_on_ImportDirectoryLineEdit_text_changed"]
+[connection signal="pressed" from="Import/HB2/BrowseImportDirectory" to="." method="_on_BrowseImportDirectory_pressed"]
+[connection signal="pressed" from="Import/HB/ImportButton" to="." method="_on_ImportButton_pressed"]
+[connection signal="pressed" from="Import/HB/CancelButton" to="." method="_on_CancelButton_pressed"]

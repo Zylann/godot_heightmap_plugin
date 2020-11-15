@@ -59,9 +59,12 @@ margin_right = 599.0
 margin_bottom = 112.0
 rect_min_size = Vector2( 100, 0 )
 script = ExtResource( 6 )
+ratio = 1.0
 
 [node name="Minimap" parent="HSplitContainer/HSplitContainer/MinimapContainer" instance=ExtResource( 5 )]
 margin_bottom = 100.0
+[connection signal="edit_pressed" from="HSplitContainer/HSplitContainer/HSplitContainer/TextureEditor" to="." method="_on_TextureEditor_edit_pressed"]
+[connection signal="import_pressed" from="HSplitContainer/HSplitContainer/HSplitContainer/TextureEditor" to="." method="_on_TextureEditor_import_pressed"]
 [connection signal="texture_selected" from="HSplitContainer/HSplitContainer/HSplitContainer/TextureEditor" to="." method="_on_TextureEditor_texture_selected"]
 [connection signal="detail_list_changed" from="HSplitContainer/HSplitContainer/HSplitContainer/DetailEditor" to="." method="_on_DetailEditor_detail_list_changed"]
 [connection signal="detail_selected" from="HSplitContainer/HSplitContainer/HSplitContainer/DetailEditor" to="." method="_on_DetailEditor_detail_selected"]

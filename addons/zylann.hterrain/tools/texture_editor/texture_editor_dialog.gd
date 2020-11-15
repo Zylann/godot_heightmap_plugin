@@ -1,3 +1,5 @@
+# TODO Unused now, may be deleted
+
 tool
 extends AcceptDialog
 

@@ -9,6 +9,7 @@ const HTerrainChunk = preload("./hterrain_chunk.gd")
 const HTerrainChunkDebug = preload("./hterrain_chunk_debug.gd")
 const Util = preload("./util/util.gd")
 const HTerrainCollider = preload("./hterrain_collider.gd")
+const HTerrainTextureSet = preload("./hterrain_texture_set.gd")
 const Logger = preload("./util/logger.gd")
 
 const SHADER_CLASSIC4 = "Classic4"
@@ -137,6 +138,9 @@ var _material_params_need_update := false
 var _ground_textures := []
 # Actual number of textures supported by the shader currently selected
 var _ground_texture_count_cache = 0
+# TODO Make use of these textures instead
+# TODO Migrate
+var _texture_set = HTerrainTextureSet.new()
 
 var _data: HTerrainData = null
 
@@ -219,6 +223,9 @@ func _get_property_list():
 			"type": TYPE_OBJECT,
 			"usage": PROPERTY_USAGE_STORAGE,
 			"hint": PROPERTY_HINT_RESOURCE_TYPE,
+			# This actually triggers `ERROR: Cannot get class`,
+			# if it were to be shown in the inspector.
+			# See https://github.com/godotengine/godot/pull/41264
 			"hint_string": "HTerrainData"
 		},
 		{
@@ -275,6 +282,17 @@ func _get_property_list():
 			"usage": PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_STORAGE,
 			"hint": PROPERTY_HINT_RESOURCE_TYPE,
 			"hint_string": "Shader"
+		},
+		{
+			"name": "texture_set",
+			"type": TYPE_OBJECT,
+			"usage": PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_STORAGE,
+			"hint": PROPERTY_HINT_RESOURCE_TYPE,
+			"hint_string": "Resource"
+			# TODO Cannot properly hint the type of the resource in the inspector. 
+			# This triggers `ERROR: Cannot get class 'HTerrainTextureSet'`
+			# See https://github.com/godotengine/godot/pull/41264
+			#"hint_string": "HTerrainTextureSet"
 		}
 	]
 
@@ -316,6 +334,9 @@ func _get(key: String):
 			return null
 		else:
 			return _data
+
+	if key == "texture_set":
+		return _texture_set
 
 	if key.begins_with("ground/"):
 		for ground_texture_type in range(GROUND_TEXTURE_TYPE_COUNT):
@@ -359,6 +380,9 @@ func _set(key: String, value):
 	elif key == "_terrain_data":
 		set_data(value)
 
+	elif key == "texture_set":
+		_texture_set = value
+
 	if key.begins_with("ground/"):
 		for ground_texture_type in range(GROUND_TEXTURE_TYPE_COUNT):
 			var type_name = _ground_enum_to_name[ground_texture_type]
@@ -396,6 +420,10 @@ func _set(key: String, value):
 			_collider.set_collision_mask(value)
 
 
+func get_texture_set() -> HTerrainTextureSet:
+	return _texture_set
+
+
 func get_shader_param(param_name: String):
 	return _material.get_shader_param(param_name)
 
@@ -404,12 +432,12 @@ func set_shader_param(param_name: String, v):
 	_material.set_shader_param(param_name, v)
 
 
-func _set_data_directory(dir: String):
-	if dir != _get_data_directory():
-		if dir == "":
+func _set_data_directory(dirpath: String):
+	if dirpath != _get_data_directory():
+		if dirpath == "":
 			set_data(null)
 		else:
-			var fpath := dir.plus_file(HTerrainData.META_FILENAME)
+			var fpath := dirpath.plus_file(HTerrainData.META_FILENAME)
 			var f := File.new()
 			if f.file_exists(fpath):
 				# Load existing
@@ -419,7 +447,7 @@ func _set_data_directory(dir: String):
 				# Create new
 				var d := HTerrainData.new()
 				d.resource_path = fpath
-				set_data(d)
+				set_data(d)		
 	else:
 		_logger.warn("Setting twice the same terrain directory??")
 
