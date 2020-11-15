@@ -95,7 +95,7 @@ static func integer_square_root(x: int) -> int:
 	return -1
 
 
-# Formats integer using a separater between each 3-digit group
+# Formats integer using a separator between each 3-digit group
 static func format_integer(n: int, sep := ",") -> String:
 	assert(typeof(n) == TYPE_INT)
 	
@@ -526,3 +526,5 @@ static func update_configuration_warning(node: Node, recursive: bool):
 			for i in node.get_child_count():
 				var child = node.get_child(i)
 				update_configuration_warning(child, true)
+
+
