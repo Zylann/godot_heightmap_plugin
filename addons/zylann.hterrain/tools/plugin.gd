@@ -518,7 +518,7 @@ func _paint_completed():
 	assert(heightmap_data != null)
 	
 	if not _brush._edit_has_undo_data():
-		# Painted nothing
+		_logger.debug("Painted nothing")
 		return
 	
 	var ur_data = _brush._edit_pop_undo_redo_data(heightmap_data)

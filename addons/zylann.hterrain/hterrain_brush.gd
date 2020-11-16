@@ -228,7 +228,9 @@ func paint(terrain: HTerrain, cell_pos_x: int, cell_pos_y: int, override_mode: i
 	var origin_x := cell_pos_x - _shape_size / 2
 	var origin_y := cell_pos_y - _shape_size / 2
 
+	# TODO This might be needed only when sculpting
 	terrain.set_area_dirty(origin_x, origin_y, _shape_size, _shape_size)
+
 	var map_index := 0
 
 	# When using sculpting tools, make it dependent on brush size
@@ -254,6 +256,11 @@ func paint(terrain: HTerrain, cell_pos_x: int, cell_pos_y: int, override_mode: i
 			if use_indexed_splat:
 				_paint_indexed_splat(data, origin_x, origin_y)
 			else:
+				var supported_slots_count := terrain.get_cached_ground_texture_slot_count()
+				if _texture_index >= supported_slots_count:
+					_logger.debug("Painting out of range of supported texture slots: {0}/{1}" \
+						.format([_texture_index, supported_slots_count]))
+					return
 				_paint_classic4_splat(data, origin_x, origin_y)
 
 		MODE_COLOR:
