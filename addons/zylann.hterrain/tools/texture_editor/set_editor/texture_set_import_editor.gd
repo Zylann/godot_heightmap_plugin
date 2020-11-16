@@ -500,8 +500,7 @@ func _on_CancelButton_pressed():
 
 
 func _on_BrowseImportDirectory_pressed():
-	# TODO Implement this
-	pass
+	_open_dir_dialog.popup_centered_ratio()
 
 
 func _on_ImportDirectoryLineEdit_text_changed(new_text: String):
