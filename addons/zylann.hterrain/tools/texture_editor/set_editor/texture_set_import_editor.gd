@@ -307,20 +307,25 @@ func _select_slot(slot_index: int):
 
 func _set_ui_slot_texture_from_path(im_path: String, type: int):
 	var ed = _texture_editors[type]
+
 	if im_path == "":
 		ed.set_texture(null)
+		ed.set_texture_tooltip("<empty>")
 		return
+	
 	var im := Image.new()
 	var err := im.load(im_path)
 	if err != OK:
 		_logger.error(str("Unable to load image from ", im_path))
 		# TODO Different icon for images that can't load?
 		ed.set_texture(null)
+		ed.set_texture_tooltip("<empty>")
 		return
-	# TODO Set tooltip with file path
+
 	var tex := ImageTexture.new()
 	tex.create_from_image(im, 0)
 	ed.set_texture(tex)
+	ed.set_texture_tooltip(im_path)
 
 
 func _set_source_image(fpath: String, type: int):
@@ -465,8 +470,10 @@ func _on_TextureArrayPrefixLineEdit_text_changed(new_text: String):
 
 
 func _on_AddSlotButton_pressed():
+	var i := len(_slots_data)
 	_slots_data.append(["", "", "", ""])
 	_update_ui_from_data()
+	_select_slot(i)
 
 
 func _on_RemoveSlotButton_pressed():

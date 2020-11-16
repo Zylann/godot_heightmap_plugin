@@ -22,6 +22,10 @@ func set_texture(tex: Texture):
 		_texture_rect.texture = tex
 
 
+func set_texture_tooltip(msg: String):
+	_texture_rect.hint_tooltip = msg
+
+
 func _on_LoadButton_pressed():
 	emit_signal("load_pressed")
 

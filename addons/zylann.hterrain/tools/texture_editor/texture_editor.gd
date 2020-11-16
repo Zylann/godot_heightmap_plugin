@@ -2,6 +2,7 @@ tool
 extends Control
 
 const HTerrain = preload("../../hterrain.gd")
+const HTerrainTextureSet = preload("../../hterrain_texture_set.gd")
 const TextureList = preload("./texture_list.gd")
 
 signal texture_selected(index)
@@ -12,6 +13,9 @@ onready var _textures_list: TextureList = $TextureList
 onready var _buttons_container = $HBoxContainer
 
 var _terrain : HTerrain = null
+var _texture_set : HTerrainTextureSet = null
+
+var _texture_list_need_update := false
 var _empty_icon = load("res://addons/zylann.hterrain/tools/icons/empty.png")
 
 
@@ -28,38 +32,66 @@ func set_terrain(terrain: HTerrain):
 
 
 static func _get_slot_count(terrain: HTerrain) -> int:
-	if terrain.is_using_texture_array():
-		var texture_array = terrain.get_ground_texture_array(HTerrain.GROUND_ALBEDO_BUMP)
-		if texture_array == null:
-			return 0
-		return texture_array.get_depth()
-	return terrain.get_cached_ground_texture_slot_count()
+	var texture_set = terrain.get_texture_set()
+	if texture_set == null:
+		return 0
+	return texture_set.get_slots_count()
 
 
 func _process(delta: float):
+	var texture_set = null
 	if _terrain != null:
-		var slot_count := _get_slot_count(_terrain)
-		if slot_count != _textures_list.get_item_count():
-			_update_texture_list()
+		texture_set = _terrain.get_texture_set()
+
+	if _texture_set != texture_set:
+		if _texture_set != null:
+			_texture_set.disconnect("changed", self, "_on_texture_set_changed")
+
+		_texture_set = texture_set
+
+		if _texture_set != null:
+			_texture_set.connect("changed", self, "_on_texture_set_changed")
+
+		_update_texture_list()
+
+	if _texture_list_need_update:
+		_update_texture_list()
+		_texture_list_need_update = false
+
+
+func _on_texture_set_changed():
+	_texture_list_need_update = true
 
 
 func _update_texture_list():
 	_textures_list.clear()
-	if _terrain != null:
-		var slot_count = _get_slot_count(_terrain)
-		if _terrain.is_using_texture_array():
-			# Texture array workflow doesn't support changing layers from here
-			_set_buttons_active(false)
-			var texture_array = _terrain.get_ground_texture_array(HTerrain.GROUND_ALBEDO_BUMP)
-			for i in slot_count:
-				var hint = _get_slot_hint_name(i, _terrain.get_shader_type())
-				_textures_list.add_item(hint, texture_array, i)
-		else:
-			_set_buttons_active(true)
-			for i in range(slot_count):
-				var tex = _terrain.get_ground_texture(i, HTerrain.GROUND_ALBEDO_BUMP)
-				var hint = _get_slot_hint_name(i, _terrain.get_shader_type())
-				_textures_list.add_item(hint, tex if tex != null else _empty_icon)
+
+	if _terrain == null:
+		_set_buttons_active(false)
+		return
+	var texture_set := _terrain.get_texture_set()
+	if texture_set == null:
+		_set_buttons_active(false)
+		return
+	_set_buttons_active(true)
+
+	var slots_count := texture_set.get_slots_count()
+
+	match texture_set.get_mode():
+		HTerrainTextureSet.MODE_TEXTURES:
+			for slot_index in slots_count:
+				var texture := texture_set.get_texture(
+					slot_index, HTerrainTextureSet.TYPE_ALBEDO_BUMP)
+				var hint = _get_slot_hint_name(slot_index, _terrain.get_shader_type())
+				if texture == null:
+					texture = _empty_icon
+				_textures_list.add_item(hint, texture)
+
+		HTerrainTextureSet.MODE_TEXTURE_ARRAYS:
+			var texture_array = texture_set.get_texture_array(HTerrainTextureSet.TYPE_ALBEDO_BUMP)
+			for slot_index in slots_count:
+				var hint = _get_slot_hint_name(slot_index, _terrain.get_shader_type())
+				_textures_list.add_item(hint, texture_array, slot_index)
 
 
 func _set_buttons_active(active: bool):

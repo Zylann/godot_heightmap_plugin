@@ -29,10 +29,11 @@ const _type_to_src_types = [
 
 const MAX_SLOTS = 16
 
-# TODO We may get rid of the mode in the future, and only use TextureArrays
+# TODO We may get rid of modes in the future, and only use TextureArrays.
+# It exists for now for backward compatibility, but it makes the API a bit confusing
 var _mode = MODE_TEXTURES
 # [type][slot] -> StreamTexture or TextureArray
-var _textures = [[null], [null]]
+var _textures = [[], []]
 
 
 static func get_texture_type_name(tt: int) -> String:
@@ -75,6 +76,7 @@ func _get(key: String):
 
 func _set(key: String, value):
 	if key == "mode":
+		# Not using set_mode() here because otherwise it could reset stuff set before...
 		_mode = value
 	if key == "textures":
 		_textures = value
@@ -98,11 +100,11 @@ func get_texture_count() -> int:
 	return len(texs)
 
 
-func get_texture(slot_index: int, ground_texture_type: int) -> Resource:
+func get_texture(slot_index: int, ground_texture_type: int) -> Texture:
 	if _mode != MODE_TEXTURES:
 		return null
 	var texs = _textures[ground_texture_type]
-	if slot_index > len(texs):
+	if slot_index >= len(texs):
 		return null
 	return texs[slot_index]
 
@@ -110,7 +112,9 @@ func get_texture(slot_index: int, ground_texture_type: int) -> Resource:
 func set_texture(slot_index: int, ground_texture_type: int, texture: Texture):
 	assert(_mode == MODE_TEXTURES)
 	var texs = _textures[ground_texture_type]
-	texs[slot_index] = texture
+	if texs[slot_index] != texture:
+		texs[slot_index] = texture
+		emit_changed()
 
 
 func get_texture_array(ground_texture_type: int) -> TextureArray:
@@ -123,7 +127,9 @@ func get_texture_array(ground_texture_type: int) -> TextureArray:
 func set_texture_array(ground_texture_type: int, texarray: TextureArray):
 	assert(_mode == MODE_TEXTURE_ARRAYS)
 	var texs = _textures[ground_texture_type]
-	texs[0] = texarray
+	if texs[0] != texarray:
+		texs[0] = texarray
+		emit_changed()
 
 
 # TODO This function only exists because of a flaw in UndoRedo
@@ -149,8 +155,14 @@ func set_mode(mode: int):
 
 
 func clear():
-	for type in TYPE_COUNT:
-		_textures[type] = [null]		
+	match _mode:
+		MODE_TEXTURES:
+			for type in TYPE_COUNT:
+				_textures[type] = []
+		MODE_TEXTURE_ARRAYS:
+			for type in TYPE_COUNT:
+				_textures[type] = [null]		
+	emit_changed()
 
 
 func insert_slot(i: int) -> int:
@@ -159,6 +171,7 @@ func insert_slot(i: int) -> int:
 		i = get_texture_count()
 	for type in TYPE_COUNT:
 		_textures[type].insert(i, null)
+	emit_changed()
 	return i
 
 
@@ -168,6 +181,7 @@ func remove_slot(i: int):
 		i = get_slots_count() - 1
 	for type in TYPE_COUNT:
 		_textures[type].remove(i)
+	emit_changed()
 
 
 func has_any_textures() -> bool:
@@ -179,27 +193,31 @@ func has_any_textures() -> bool:
 	return false
 
 
+func emit_changed():
+	emit_signal("changed")
+
+
 #func set_textures(textures: Array):
 #	_textures = textures
 
 
 # Cannot type hint because it would cause circular dependency
-func migrate_from_1_4(terrain):
-	var textures := []
-	for type in TYPE_COUNT:
-		textures.append([])
-	
-	if terrain.is_using_texture_array():
-		for type in TYPE_COUNT:
-			var tex : TextureArray = terrain.get_ground_texture_array(type)
-			textures[type] = [tex]
-		_mode = MODE_TEXTURE_ARRAYS
-		
-	else:
-		for index in terrain.get_max_ground_texture_slot_count():
-			for type in TYPE_COUNT:
-				var tex : Texture = terrain.get_ground_texture(type, index)
-				textures[type].append(tex)
-		_mode = MODE_TEXTURES
-	
-	_textures = textures
+#func migrate_from_1_4(terrain):
+#	var textures := []
+#	for type in TYPE_COUNT:
+#		textures.append([])
+#	
+#	if terrain.is_using_texture_array():
+#		for type in TYPE_COUNT:
+#			var tex : TextureArray = terrain.get_ground_texture_array(type)
+#			textures[type] = [tex]
+#		_mode = MODE_TEXTURE_ARRAYS
+#		
+#	else:
+#		for index in terrain.get_max_ground_texture_slot_count():
+#			for type in TYPE_COUNT:
+#				var tex : Texture = terrain.get_ground_texture(type, index)
+#				textures[type].append(tex)
+#		_mode = MODE_TEXTURES
+#	
+#	_textures = textures

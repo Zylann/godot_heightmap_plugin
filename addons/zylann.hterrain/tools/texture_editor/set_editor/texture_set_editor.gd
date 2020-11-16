@@ -103,7 +103,7 @@ func _update_ui_from_data():
 	if _slots_list.get_item_count() > 0:
 		if len(prev_selected_items) > 0:
 			var i : int = prev_selected_items[0]
-			if i > _slots_list.get_item_count():
+			if i >= _slots_list.get_item_count():
 				i = _slots_list.get_item_count() - 1
 			_select_slot(i)
 		else:
