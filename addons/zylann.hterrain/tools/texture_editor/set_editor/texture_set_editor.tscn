@@ -1,9 +1,10 @@
-[gd_scene load_steps=9 format=2]
+[gd_scene load_steps=10 format=2]
 
 [ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/set_editor/texture_set_editor.gd" type="Script" id=1]
 [ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/display_alpha.shader" type="Shader" id=2]
 [ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/display_color.shader" type="Shader" id=3]
 [ext_resource path="res://addons/zylann.hterrain/tools/icons/empty.png" type="Texture" id=4]
+[ext_resource path="res://addons/zylann.hterrain/tools/util/dialog_fitter.tscn" type="PackedScene" id=5]
 
 [sub_resource type="ShaderMaterial" id=1]
 shader = ExtResource( 3 )
@@ -219,7 +220,6 @@ margin_right = 280.0
 margin_bottom = 20.0
 size_flags_horizontal = 3
 text = "Textures"
-selected = 0
 
 [node name="Spacer" type="Control" parent="VB/HS/VB2/GC2"]
 margin_left = 284.0
@@ -257,6 +257,8 @@ margin_top = 302.0
 margin_right = 636.0
 margin_bottom = 304.0
 rect_min_size = Vector2( 0, 2 )
+
+[node name="DialogFitter" parent="." instance=ExtResource( 5 )]
 [connection signal="item_selected" from="VB/HS/VB/SlotsList" to="." method="_on_SlotsList_item_selected"]
 [connection signal="pressed" from="VB/HS/VB/HB/AddSlot" to="." method="_on_AddSlot_pressed"]
 [connection signal="pressed" from="VB/HS/VB/HB/RemoveSlot" to="." method="_on_RemoveSlot_pressed"]
