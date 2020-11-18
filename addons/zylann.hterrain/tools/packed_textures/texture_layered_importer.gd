@@ -239,7 +239,6 @@ static func _save_tex(
 		p_compress_mode = COMPRESS_UNCOMPRESSED # these can't go as lossy
 
 	for i in slice_count:
-		print("Saving slice ", i)
 		var image : Image = p_images[i]
 		
 		if image.get_format() != image_format:

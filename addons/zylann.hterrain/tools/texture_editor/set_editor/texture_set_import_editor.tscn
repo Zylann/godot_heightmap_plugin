@@ -5,6 +5,7 @@
 [ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/set_editor/texture_set_import_editor.gd" type="Script" id=4]
 
 [node name="TextureSetImportEditor" type="WindowDialog"]
+visible = true
 margin_right = 652.0
 margin_bottom = 480.0
 rect_min_size = Vector2( 652, 480 )
@@ -60,15 +61,15 @@ text = "+"
 
 [node name="Control" type="Control" parent="Import/HS/VB/HB"]
 margin_left = 24.0
-margin_right = 77.0
+margin_right = 79.0
 margin_bottom = 20.0
 size_flags_horizontal = 3
 
 [node name="RemoveSlotButton" type="Button" parent="Import/HS/VB/HB"]
-margin_left = 81.0
+margin_left = 83.0
 margin_right = 100.0
 margin_bottom = 20.0
-text = "x"
+text = "-"
 
 [node name="VB2" type="VBoxContainer" parent="Import/HS"]
 margin_left = 112.0

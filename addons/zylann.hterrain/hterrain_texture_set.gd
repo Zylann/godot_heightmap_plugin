@@ -27,8 +27,6 @@ const _type_to_src_types = [
 	[SRC_TYPE_NORMAL, SRC_TYPE_ROUGHNESS]
 ]
 
-const MAX_SLOTS = 16
-
 # TODO We may get rid of modes in the future, and only use TextureArrays.
 # It exists for now for backward compatibility, but it makes the API a bit confusing
 var _mode = MODE_TEXTURES
@@ -50,6 +48,17 @@ static func get_import_mode_name(mode: int) -> String:
 
 static func get_src_types_from_type(t: int) -> Array:
 	return _type_to_src_types[t]
+
+
+static func get_max_slots_for_mode(mode: int) -> int:
+	match mode:
+		MODE_TEXTURES:
+			# This is a legacy mode, where shaders can only have up to 4
+			return 4
+		MODE_TEXTURE_ARRAYS:
+			# Will probably be lifted some day
+			return 16
+	return 0
 
 
 func _get_property_list() -> Array:

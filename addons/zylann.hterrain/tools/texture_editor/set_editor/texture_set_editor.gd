@@ -69,6 +69,9 @@ func setup_dialogs(parent: Node):
 
 
 func _notification(what: int):
+	if Util.is_in_edited_scene(self):
+		return
+	
 	if what == NOTIFICATION_EXIT_TREE:
 		# Have to check for null in all of them,
 		# because otherwise it breaks in the scene editor...
@@ -76,6 +79,10 @@ func _notification(what: int):
 			_load_texture_dialog.queue_free()
 		if _load_texture_array_dialog != null:
 			_load_texture_array_dialog.queue_free()
+	
+	if what == NOTIFICATION_VISIBILITY_CHANGED:
+		if not is_visible_in_tree():
+			set_texture_set(null)
 
 
 func set_undo_redo(ur: UndoRedo):
@@ -85,7 +92,18 @@ func set_undo_redo(ur: UndoRedo):
 func set_texture_set(texture_set: HTerrainTextureSet):
 	if _texture_set == texture_set:
 		return
+	
+	if _texture_set != null:
+		_texture_set.disconnect("changed", self, "_on_texture_set_changed")
+
 	_texture_set = texture_set
+	
+	if _texture_set != null:
+		_texture_set.connect("changed", self, "_on_texture_set_changed")
+		_update_ui_from_data()
+
+
+func _on_texture_set_changed():
 	_update_ui_from_data()
 
 
@@ -108,8 +126,11 @@ func _update_ui_from_data():
 			_select_slot(i)
 		else:
 			_select_slot(0)
+	else:
+		_clear_previews()
 	
-	_add_slot_button.disabled = slots_count >= HTerrainTextureSet.MAX_SLOTS
+	var max_slots := HTerrainTextureSet.get_max_slots_for_mode(_texture_set.get_mode())
+	_add_slot_button.disabled = slots_count >= max_slots
 	_remove_slot_button.disabled = slots_count == 0
 	
 	if _texture_set.get_mode() == HTerrainTextureSet.MODE_TEXTURES:
@@ -147,6 +168,18 @@ func select_slot(slot_index: int):
 		if slot_index >= count:
 			slot_index = count - 1
 		_select_slot(slot_index)
+
+
+func _clear_previews():
+	_albedo_preview.texture = EmptyTexture
+	_bump_preview.texture = EmptyTexture
+	_normal_preview.texture = EmptyTexture
+	_roughness_preview.texture = EmptyTexture
+	
+	_albedo_preview.hint_tooltip = _get_resource_path_or_empty(null)
+	_bump_preview.hint_tooltip = _get_resource_path_or_empty(null)
+	_normal_preview.hint_tooltip = _get_resource_path_or_empty(null)
+	_roughness_preview.hint_tooltip = _get_resource_path_or_empty(null)
 
 
 func _select_slot(slot_index: int):
@@ -227,17 +260,10 @@ func _on_CloseButton_pressed():
 
 func _on_AddSlot_pressed():
 	assert(_texture_set.get_mode() == HTerrainTextureSet.MODE_TEXTURES)
-	
 	var slot_index = _texture_set.get_slots_count()
-	
 	_undo_redo.create_action("HTerrainTextureSet: add slot")
-
 	_undo_redo.add_do_method(_texture_set, "insert_slot", -1)
-	_undo_redo.add_do_method(self, "_update_ui_from_data")
-
 	_undo_redo.add_undo_method(_texture_set, "remove_slot", slot_index)
-	_undo_redo.add_undo_method(self, "_update_ui_from_data")
-
 	_undo_redo.commit_action()
 
 
@@ -252,7 +278,6 @@ func _on_RemoveSlot_pressed():
 	_undo_redo.create_action("HTerrainTextureSet: remove slot")
 
 	_undo_redo.add_do_method(_texture_set, "remove_slot", slot_index)
-	_undo_redo.add_do_method(self, "_update_ui_from_data")
 
 	_undo_redo.add_undo_method(_texture_set, "insert_slot", slot_index)
 	for type in len(textures):
@@ -263,7 +288,6 @@ func _on_RemoveSlot_pressed():
 			_undo_redo.add_undo_method(_texture_set, "set_texture_null", slot_index, type)
 		else:
 			_undo_redo.add_undo_method(_texture_set, "set_texture", slot_index, type, texture)
-	_undo_redo.add_undo_method(self, "_update_ui_from_data")
 
 	_undo_redo.commit_action()
 
@@ -412,9 +436,6 @@ func _switch_mode_action():
 		ur.add_do_method(_texture_set, "set_mode", HTerrainTextureSet.MODE_TEXTURES)
 		backup_for_undo(_texture_set, ur)
 	
-	ur.add_do_method(self, "_update_ui_from_data")
-	ur.add_undo_method(self, "_update_ui_from_data")
-		
 	ur.commit_action()
 
 

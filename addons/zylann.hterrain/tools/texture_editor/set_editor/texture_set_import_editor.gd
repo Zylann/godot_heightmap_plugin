@@ -282,7 +282,8 @@ func _update_ui_from_data():
 		else:
 			_select_slot(0)
 	
-	_add_slot_button.disabled = len(_slots_data) >= HTerrainTextureSet.MAX_SLOTS
+	var max_slots := HTerrainTextureSet.get_max_slots_for_mode(_import_mode)
+	_add_slot_button.disabled = len(_slots_data) >= max_slots
 	_remove_slot_button.disabled = len(_slots_data) == 0
 
 
@@ -377,7 +378,7 @@ func _smart_pick_files(albedo_fpath: String):
 		return
 	
 	var dirpath := albedo_fpath.get_base_dir()
-	var fnames = _get_files_in_directory(dirpath, _logger)
+	var fnames := _get_files_in_directory(dirpath, _logger)
 	
 	var types := [
 		HTerrainTextureSet.SRC_TYPE_BUMP,
@@ -446,13 +447,13 @@ func _on_SlotsList_item_selected(index: int):
 	_select_slot(index)
 
 
-func _on_ImportModeSelector_item_selected(index):
+func _on_ImportModeSelector_item_selected(index: int):
 	var mode : int = _import_mode_selector.get_item_id(index)
 	#_set_import_property("mode", mode)
 	_import_mode = mode
 
 
-func _on_CompressionSelector_item_selected(index):
+func _on_CompressionSelector_item_selected(index: int):
 	var compression : int = _compression_selector.get_item_id(index)
 	_set_import_property("compression", compression)
 
@@ -651,11 +652,9 @@ func _on_ImportButton_pressed():
 			ur.add_do_method(_texture_set, "clear")
 			ur.add_do_method(_texture_set, "set_mode", _import_mode)
 			
+			for i in len(_slots_data):
+				ur.add_do_method(_texture_set, "insert_slot", -1)
 			for fd in files_data:
-				var missing_count = fd.slot_index - _texture_set.get_slots_count() + 1
-				if missing_count > 0:
-					for i in missing_count:
-						ur.add_do_method(_texture_set, "insert_slot", -1)
 				ur.add_do_method(_texture_set, "set_texture", fd.slot_index, fd.type, fd.texture)
 
 		else:

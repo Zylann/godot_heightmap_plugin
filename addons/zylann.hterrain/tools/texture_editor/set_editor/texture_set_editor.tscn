@@ -67,15 +67,15 @@ text = "+"
 
 [node name="Control" type="Control" parent="VB/HS/VB/HB"]
 margin_left = 24.0
-margin_right = 77.0
+margin_right = 79.0
 margin_bottom = 20.0
 size_flags_horizontal = 3
 
 [node name="RemoveSlot" type="Button" parent="VB/HS/VB/HB"]
-margin_left = 81.0
+margin_left = 83.0
 margin_right = 100.0
 margin_bottom = 20.0
-text = "x"
+text = "-"
 
 [node name="VB2" type="VBoxContainer" parent="VB/HS"]
 margin_left = 112.0
