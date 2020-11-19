@@ -13,6 +13,14 @@ const COMPRESS_LOSSY = 1
 const COMPRESS_VIDEO_RAM = 2
 const COMPRESS_UNCOMPRESSED = 3
 
+const COMPRESS_HINT_STRING = "Lossless,Lossy,VRAM,Uncompressed"
+
+const REPEAT_NONE = 0
+const REPEAT_ENABLED = 1
+const REPEAT_MIRRORED = 2
+
+const REPEAT_HINT_STRING = "None,Enabled,Mirrored"
+
 # StreamTexture.FormatBits, not exposed to GDScript
 const StreamTexture_FORMAT_MASK_IMAGE_FORMAT = (1 << 20) - 1
 const StreamTexture_FORMAT_BIT_LOSSLESS = 1 << 20
@@ -24,15 +32,24 @@ const StreamTexture_FORMAT_BIT_DETECT_SRGB = 1 << 25
 const StreamTexture_FORMAT_BIT_DETECT_NORMAL = 1 << 26
 
 
-static func import(p_source_path: String, image: Image, p_save_path: String,
-	r_platform_variants: Array, r_gen_files: Array, p_contains_albedo: bool,
-	importer_name: String) -> Result:
+static func import(
+	p_source_path: String, 
+	image: Image, 
+	p_save_path: String,
+	r_platform_variants: Array, 
+	r_gen_files: Array, 
+	p_contains_albedo: bool,
+	importer_name: String,
+	p_compress_mode: int,
+	p_repeat: int,
+	p_filter: bool,
+	p_mipmaps: bool) -> Result:
 
-	var compress_mode := COMPRESS_VIDEO_RAM
+	var compress_mode := p_compress_mode
 	var lossy := 0.7
-	var repeat := 1
-	var filter := true
-	var mipmaps := true
+	var repeat := p_repeat
+	var filter := p_filter
+	var mipmaps := p_mipmaps
 	var anisotropic := false
 	var srgb := 1 if p_contains_albedo else 2
 	var fix_alpha_border := false

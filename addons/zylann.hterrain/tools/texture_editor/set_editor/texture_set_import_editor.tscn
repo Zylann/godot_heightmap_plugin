@@ -28,12 +28,12 @@ __meta__ = {
 
 [node name="HS" type="HSplitContainer" parent="Import"]
 margin_right = 636.0
-margin_bottom = 284.0
+margin_bottom = 316.0
 size_flags_vertical = 3
 
 [node name="VB" type="VBoxContainer" parent="Import/HS"]
 margin_right = 100.0
-margin_bottom = 284.0
+margin_bottom = 316.0
 size_flags_vertical = 3
 
 [node name="Label" type="Label" parent="Import/HS/VB"]
@@ -44,15 +44,15 @@ text = "Slots"
 
 [node name="SlotsList" type="ItemList" parent="Import/HS/VB"]
 margin_right = 100.0
-margin_bottom = 260.0
+margin_bottom = 292.0
 rect_min_size = Vector2( 100, 0 )
 size_flags_vertical = 3
 items = [ "Item 0", null, false, "Item 1", null, false, "Item 2", null, false, "Item 3", null, false, "Item 4", null, false, "Item 5", null, false, "Item 6", null, false ]
 
 [node name="HB" type="HBoxContainer" parent="Import/HS/VB"]
-margin_top = 264.0
+margin_top = 296.0
 margin_right = 100.0
-margin_bottom = 284.0
+margin_bottom = 316.0
 
 [node name="AddSlotButton" type="Button" parent="Import/HS/VB/HB"]
 margin_right = 20.0
@@ -74,7 +74,7 @@ text = "-"
 [node name="VB2" type="VBoxContainer" parent="Import/HS"]
 margin_left = 112.0
 margin_right = 636.0
-margin_bottom = 284.0
+margin_bottom = 316.0
 
 [node name="Label" type="Label" parent="Import/HS/VB2"]
 visible = false
@@ -121,84 +121,87 @@ margin_bottom = 262.0
 rect_min_size = Vector2( 0, 4 )
 
 [node name="Spacer3" type="Control" parent="Import"]
-margin_top = 288.0
+margin_top = 320.0
 margin_right = 636.0
-margin_bottom = 296.0
+margin_bottom = 328.0
 rect_min_size = Vector2( 0, 8 )
 
 [node name="HSeparator" type="HSeparator" parent="Import"]
-margin_top = 300.0
+margin_top = 332.0
 margin_right = 636.0
-margin_bottom = 304.0
+margin_bottom = 336.0
 
 [node name="GC" type="GridContainer" parent="Import"]
-margin_top = 308.0
+margin_top = 340.0
 margin_right = 636.0
 margin_bottom = 388.0
 custom_constants/hseparation = 8
 columns = 4
 
 [node name="Label2" type="Label" parent="Import/GC"]
-margin_top = 5.0
+margin_top = 3.0
 margin_right = 93.0
-margin_bottom = 19.0
+margin_bottom = 17.0
 text = "Import mode: "
 
 [node name="ImportModeSelector" type="OptionButton" parent="Import/GC"]
 margin_left = 101.0
-margin_right = 317.0
-margin_bottom = 24.0
+margin_right = 360.0
+margin_bottom = 20.0
 size_flags_horizontal = 3
 
 [node name="MipmapsCheckbox" type="CheckBox" parent="Import/GC"]
+visible = false
 margin_left = 325.0
 margin_right = 412.0
 margin_bottom = 24.0
 text = "Mipmaps"
 
 [node name="Spacer2" type="Control" parent="Import/GC"]
-margin_left = 420.0
-margin_right = 636.0
-margin_bottom = 24.0
+margin_left = 368.0
+margin_right = 627.0
+margin_bottom = 20.0
 size_flags_horizontal = 3
 
 [node name="Label" type="Label" parent="Import/GC"]
-margin_top = 33.0
-margin_right = 93.0
-margin_bottom = 47.0
+visible = false
+margin_left = 547.0
+margin_top = 3.0
+margin_right = 635.0
+margin_bottom = 17.0
 text = "Compression:"
 
 [node name="CompressionSelector" type="OptionButton" parent="Import/GC"]
-margin_left = 101.0
-margin_top = 28.0
-margin_right = 317.0
-margin_bottom = 52.0
+visible = false
+margin_top = 24.0
+margin_right = 174.0
+margin_bottom = 48.0
 size_flags_horizontal = 3
 
 [node name="FilterCheckBox" type="CheckBox" parent="Import/GC"]
-margin_left = 325.0
-margin_top = 28.0
-margin_right = 412.0
-margin_bottom = 52.0
+visible = false
+margin_left = 182.0
+margin_top = 24.0
+margin_right = 356.0
+margin_bottom = 48.0
 text = "Filter"
 
 [node name="Spacer" type="Control" parent="Import/GC"]
-margin_left = 420.0
-margin_top = 28.0
-margin_right = 636.0
-margin_bottom = 52.0
+margin_left = 635.0
+margin_right = 635.0
+margin_bottom = 20.0
 
 [node name="Label3" type="Label" parent="Import/GC"]
-margin_top = 61.0
+margin_top = 29.0
 margin_right = 93.0
-margin_bottom = 75.0
+margin_bottom = 43.0
 text = "Resolution:"
 
 [node name="ResolutionSpinBox" type="SpinBox" parent="Import/GC"]
 margin_left = 101.0
-margin_top = 56.0
-margin_right = 317.0
-margin_bottom = 80.0
+margin_top = 24.0
+margin_right = 360.0
+margin_bottom = 48.0
 min_value = 1.0
 max_value = 4096.0
 value = 1.0
@@ -241,16 +244,16 @@ custom_constants/separation = 16
 alignment = 1
 
 [node name="ImportButton" type="Button" parent="Import/HB"]
-margin_left = 210.0
-margin_right = 355.0
+margin_left = 214.0
+margin_right = 359.0
 margin_bottom = 20.0
 text = "Import to TextureSet"
 
 [node name="CancelButton" type="Button" parent="Import/HB"]
-margin_left = 371.0
-margin_right = 425.0
+margin_left = 375.0
+margin_right = 422.0
 margin_bottom = 20.0
-text = "Cancel"
+text = "Close"
 
 [node name="Spacer2" type="Control" parent="Import"]
 margin_top = 456.0

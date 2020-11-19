@@ -13,20 +13,37 @@ const COMPRESS_VIDEO_RAM = 1
 const COMPRESS_UNCOMPRESSED = 2
 # For some reason lossy TextureArrays are not implemented in Godot -_-
 
+const COMPRESS_HINT_STRING = "Lossless,VRAM,Uncompressed"
+
+const REPEAT_NONE = 0
+const REPEAT_ENABLED = 1
+const REPEAT_MIRRORED = 2
+
+const REPEAT_HINT_STRING = "None,Enabled,Mirrored"
+
 # TODO COMPRESS_SOURCE_LAYERED is not exposed 
 # https://github.com/godotengine/godot/issues/43387
 const Image_COMPRESS_SOURCE_LAYERED = 3
 
 
-static func import(p_source_path: String, p_images: Array, p_save_path: String,
-	r_platform_variants: Array, r_gen_files: Array, p_contains_albedo: bool,
-	importer_name: String) -> Result:
+static func import(
+	p_source_path: String,
+	p_images: Array,
+	p_save_path: String,
+	r_platform_variants: Array,
+	r_gen_files: Array,
+	p_contains_albedo: bool,
+	importer_name: String,
+	p_compress_mode: int,
+	p_repeat: int,
+	p_filter: bool,
+	p_mipmaps: bool) -> Result:
 	
-	var compress_mode := COMPRESS_VIDEO_RAM
+	var compress_mode := p_compress_mode
 	var no_bptc_if_rgb := false#p_options["compress/no_bptc_if_rgb"];
-	var repeat := 1#p_options["flags/repeat"];
-	var filter := true#p_options["flags/filter"];
-	var mipmaps := true#p_options["flags/mipmaps"];
+	var repeat := p_repeat
+	var filter := p_filter
+	var mipmaps := p_mipmaps
 	var srgb := 1 if p_contains_albedo else 2#p_options["flags/srgb"];
 #	int hslices = p_options["slices/horizontal"];
 #	int vslices = p_options["slices/vertical"];

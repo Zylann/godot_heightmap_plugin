@@ -77,5 +77,3 @@ static func create_open_texture_dialog() -> ConfirmationDialog:
 static func add_image_filters(file_dialog):
 	file_dialog.add_filter("*.png ; PNG files")
 	file_dialog.add_filter("*.jpg ; JPG files")
-
-

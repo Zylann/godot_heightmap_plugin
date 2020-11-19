@@ -8,18 +8,24 @@ const Errors = preload("../../../util/errors.gd")
 const TextureSetEditor = preload("./texture_set_editor.gd")
 const Result = preload("../../util/result.gd")
 const Util = preload("../../../util/util.gd")
+const StreamTextureImporter = preload("../../packed_textures/stream_texture_importer.gd")
+const TextureLayeredImporter = preload("../../packed_textures/texture_layered_importer.gd")
+const PackedTextureImporter = preload("../../packed_textures/packed_texture_importer.gd")
+const PackedTextureArrayImporter = preload("../../packed_textures/packed_texture_array_importer.gd")
 
 const COMPRESS_RAW = 0
 const COMPRESS_LOSSLESS = 1
-const COMPRESS_LOSSY = 2
-const COMPRESS_VRAM = 3
-const COMPRESS_COUNT = 4
+# Lossy is not available because the required functions are not exposed to GDScript,
+# and is not implemented on TextureArrays
+#const COMPRESS_LOSSY = 1
+const COMPRESS_VRAM = 2
+const COMPRESS_COUNT = 3
 
-const _compress_names = ["Raw", "Lossless", "Lossy", "VRAM"]
+const _compress_names = ["Raw", "Lossless", "VRAM"]
 
 # Indexed by HTerrainTextureSet.SRC_TYPE_* constants
 const _smart_pick_file_keywords = [
-	["albedo", "color", "col"],
+	["albedo", "color", "col", "diffuse"],
 	["bump", "height", "depth", "displacement", "disp"],
 	["normal", "norm", "nrm"],
 	["roughness", "rough", "rgh"]
@@ -35,6 +41,19 @@ onready var _texture_editors = [
 ]
 
 onready var _slots_list = $Import/HS/VB/SlotsList
+
+# TODO Some shortcuts to import options were disabled in the GUI because of Godot issues.
+# If users want to customize that, they need to do it on the files directly.
+#
+# There is no script API in Godot to choose the import settings of a generated file.
+# They always start with the defaults, and the only implemented case is for the import dock.
+# It appeared possible to reverse-engineer and write a .import file as done in HTerrainData,
+# however when I tried this with custom importers, Godot stopped importing after scan(),
+# and the resources could not load. However, selecting them each and clicking "Reimport"
+# did import them fine. Unfortunately, this short-circuits the workflow.
+# Since I have no idea what's going on with this reverse-engineering, I had to drop those options.
+# Godot needs an API to import specific files and choose settings before the first import.
+const _WRITE_IMPORT_FILES = false
 
 onready var _import_mode_selector = $Import/GC/ImportModeSelector
 onready var _compression_selector = $Import/GC/CompressionSelector
@@ -449,8 +468,10 @@ func _on_SlotsList_item_selected(index: int):
 
 func _on_ImportModeSelector_item_selected(index: int):
 	var mode : int = _import_mode_selector.get_item_id(index)
-	#_set_import_property("mode", mode)
-	_import_mode = mode
+	if mode != _import_mode:
+		#_set_import_property("mode", mode)
+		_import_mode = mode
+		_update_ui_from_data()
 
 
 func _on_CompressionSelector_item_selected(index: int):
@@ -576,6 +597,12 @@ func _on_ImportButton_pressed():
 		
 		f.store_string(json)
 		f.close()
+		
+		if _WRITE_IMPORT_FILES:
+			var import_fpath = fd.path + ".import"
+			if not Util.write_import_file(fd.import_data, import_fpath, _logger):
+				_show_error("Failed to write file {0}: {1}".format([import_fpath]))
+				return			
 	
 	if _editor_file_system == null:
 		_show_error("EditorFileSystem is not setup, can't trigger import system.")
@@ -680,7 +707,19 @@ func _on_ImportButton_pressed():
 
 func _generate_packed_textures_files_data(import_dir: String, prefix: String) -> Result:
 	var files := []
-	
+
+	var importer_compress_mode := 0
+	match _import_settings.compression:
+		COMPRESS_VRAM:
+			importer_compress_mode = StreamTextureImporter.COMPRESS_VIDEO_RAM
+		COMPRESS_LOSSLESS:
+			importer_compress_mode = StreamTextureImporter.COMPRESS_LOSSLESS
+		COMPRESS_RAW:
+			importer_compress_mode = StreamTextureImporter.COMPRESS_RAW
+		_:
+			return Result.new(false, "Unknown compress mode {0}, might be a bug" \
+				.format([_import_settings.compression]))
+
 	for type in HTerrainTextureSet.TYPE_COUNT:
 		var src_types := HTerrainTextureSet.get_src_types_from_type(type)
 		
@@ -705,11 +744,28 @@ func _generate_packed_textures_files_data(import_dir: String, prefix: String) ->
 			var type_name := HTerrainTextureSet.get_texture_type_name(type)
 			var fpath = import_dir.plus_file(
 				str(prefix, "slot", slot_index, "_", type_name, ".packed_tex"))
+
 			files.append({
 				"slot_index": slot_index,
 				"type": type,
 				"path": fpath,
-				"data": json_data
+				"data": json_data,
+
+				"import_data": {
+					"remap": {
+						"importer": PackedTextureImporter.IMPORTER_NAME,
+						"type": PackedTextureImporter.RESOURCE_TYPE
+					},
+					"deps": {
+						"source_file": fpath
+					},
+					"params": {
+						"compress/mode": importer_compress_mode,
+						"flags/mipmaps": _import_settings.mipmaps,
+						"flags/filter": _import_settings.filter,
+						"flags/repeat": StreamTextureImporter.REPEAT_ENABLED
+					}
+				}
 			})
 	
 	return Result.new(true).with_value(files)
@@ -718,6 +774,18 @@ func _generate_packed_textures_files_data(import_dir: String, prefix: String) ->
 func _generate_save_packed_texture_arrays_files_data(import_dir: String, prefix: String) -> Result:
 	var files := []
 	
+	var importer_compress_mode := 0
+	match _import_settings.compression:
+		COMPRESS_VRAM:
+			importer_compress_mode = TextureLayeredImporter.COMPRESS_VIDEO_RAM
+		COMPRESS_LOSSLESS:
+			importer_compress_mode = TextureLayeredImporter.COMPRESS_LOSSLESS
+		COMPRESS_RAW:
+			importer_compress_mode = TextureLayeredImporter.COMPRESS_RAW
+		_:
+			return Result.new(false, "Unknown compress mode {0}, might be a bug" \
+				.format([_import_settings.compression]))
+
 	for type in HTerrainTextureSet.TYPE_COUNT:
 		var src_types := HTerrainTextureSet.get_src_types_from_type(type)
 		
@@ -749,7 +817,23 @@ func _generate_save_packed_texture_arrays_files_data(import_dir: String, prefix:
 		files.append({
 			"type": type,
 			"path": fpath,
-			"data": json_data
+			"data": json_data,
+
+			"import_data": {
+				"remap": {
+					"importer": PackedTextureArrayImporter.IMPORTER_NAME,
+					"type": PackedTextureArrayImporter.RESOURCE_TYPE
+				},
+				"deps": {
+					"source_file": fpath
+				},
+				"params": {
+					"compress/mode": importer_compress_mode,
+					"flags/mipmaps": _import_settings.mipmaps,
+					"flags/filter": _import_settings.filter,
+					"flags/repeat": TextureLayeredImporter.REPEAT_ENABLED
+				}
+			}
 		})
 	
 	return Result.new(true).with_value(files)

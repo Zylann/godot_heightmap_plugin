@@ -7,11 +7,14 @@ const Errors = preload("../../util/errors.gd")
 const Result = preload("../util/result.gd")
 const Logger = preload("../../util/logger.gd")
 
+const IMPORTER_NAME = "hterrain_packed_texture_array_importer"
+const RESOURCE_TYPE = "TextureArray"
+
 var _logger = Logger.get_for(self)
 
 
 func get_importer_name() -> String:
-	return "hterrain_packed_texture_array_importer"
+	return IMPORTER_NAME
 
 
 func get_visible_name() -> String:
@@ -28,7 +31,7 @@ func get_save_extension() -> String:
 
 
 func get_resource_type() -> String:
-	return "TextureArray"
+	return RESOURCE_TYPE
 
 
 func get_preset_count() -> int:
@@ -40,7 +43,28 @@ func get_preset_name(preset_index: int) -> String:
 
 
 func get_import_options(preset_index: int) -> Array:
-	return []
+	return [
+		{
+			"name": "compress/mode",
+			"default_value": TextureLayeredImporter.COMPRESS_VIDEO_RAM,
+			"property_hint": PROPERTY_HINT_ENUM,
+			"hint_string": TextureLayeredImporter.COMPRESS_HINT_STRING
+		},
+		{
+			"name": "flags/repeat",
+			"default_value": TextureLayeredImporter.REPEAT_ENABLED,
+			"property_hint": PROPERTY_HINT_ENUM,
+			"hint_string": TextureLayeredImporter.REPEAT_HINT_STRING
+		},
+		{
+			"name": "flags/filter",
+			"default_value": true
+		},
+		{
+			"name": "flags/mipmaps",
+			"default_value": true
+		}
+	]
 
 
 func get_option_visibility(option: String, options: Dictionary) -> bool:
@@ -104,8 +128,12 @@ func _import(p_source_path: String, p_save_path: String, options: Dictionary,
 		r_platform_variants, 
 		r_gen_files, 
 		contains_albedo,
-		get_visible_name())
-		
+		get_visible_name(),
+		options["compress/mode"],
+		options["flags/repeat"],
+		options["flags/filter"],
+		options["flags/mipmaps"])
+	
 	if not result.success:
 		return Result.new(false, 
 			"While importing {0}".format([p_source_path]), result) \
