@@ -13,6 +13,8 @@ const TextureLayeredImporter = preload("../../packed_textures/texture_layered_im
 const PackedTextureImporter = preload("../../packed_textures/packed_texture_importer.gd")
 const PackedTextureArrayImporter = preload("../../packed_textures/packed_texture_array_importer.gd")
 
+const NormalMapPreviewShader = preload("../display_normal.shader")
+
 const COMPRESS_RAW = 0
 const COMPRESS_LOSSLESS = 1
 # Lossy is not available because the required functions are not exposed to GDScript,
@@ -63,6 +65,7 @@ onready var _filter_checkbox = $Import/GC/FilterCheckBox
 onready var _add_slot_button = $Import/HS/VB/HB/AddSlotButton
 onready var _remove_slot_button = $Import/HS/VB/HB/RemoveSlotButton
 onready var _import_directory_line_edit : LineEdit = $Import/HB2/ImportDirectoryLineEdit
+onready var _normalmap_flip_checkbox = $Import/HS/VB2/HB/Normal/NormalMapFlipY
 
 var _texture_set : HTerrainTextureSet
 var _undo_redo : UndoRedo
@@ -77,13 +80,19 @@ var _info_popup : AcceptDialog
 var _delete_confirmation_popup : ConfirmationDialog
 var _open_dir_dialog : ConfirmationDialog
 var _editor_file_system : EditorFileSystem
+var _normalmap_material : ShaderMaterial
 
 var _import_mode = HTerrainTextureSet.MODE_TEXTURES
 
-var _slots_data = [
-	["", "", "", ""],
-	#...
-]
+class Slot:
+	var texture_paths = []
+	var flip_normalmap_y := false
+	
+	func _init():
+		for i in HTerrainTextureSet.SRC_TYPE_COUNT:
+			texture_paths.append("")
+
+var _slots_data = []
 
 var _import_settings = {
 	"mipmaps": true,
@@ -97,11 +106,7 @@ func _init():
 	# Default data
 	_slots_data.clear()
 	for i in 4:
-		var src = []
-		src.resize(HTerrainTextureSet.SRC_TYPE_COUNT)
-		for j in len(src):
-			src[j] = ""
-		_slots_data.append(src)
+		_slots_data.append(Slot.new())
 
 
 func _ready():
@@ -122,6 +127,10 @@ func _ready():
 	for compress_mode in COMPRESS_COUNT:
 		var n = _compress_names[compress_mode]
 		_compression_selector.add_item(n, compress_mode)
+	
+	_normalmap_material = ShaderMaterial.new()
+	_normalmap_material.shader = NormalMapPreviewShader
+	_texture_editors[HTerrainTextureSet.SRC_TYPE_NORMAL].set_material(_normalmap_material)
 
 
 func setup_dialogs(parent: Node):
@@ -191,9 +200,7 @@ func set_texture_set(texture_set: HTerrainTextureSet):
 		var slots_count = _texture_set.get_slots_count()
 		
 		for slot_index in slots_count:
-			var source_textures = []
-			for i in HTerrainTextureSet.SRC_TYPE_COUNT:
-				source_textures.append("")
+			var slot := Slot.new()
 			
 			for type in HTerrainTextureSet.TYPE_COUNT:
 				var texture = _texture_set.get_texture(slot_index, type)
@@ -212,11 +219,11 @@ func set_texture_set(texture_set: HTerrainTextureSet):
 				
 				var src_data = import_data["src"]
 				if src_data.has("rgb"):
-					source_textures[src_types[0]] = src_data["rgb"]
+					slot.texture_paths[src_types[0]] = src_data["rgb"]
 				if src_data.has("a"):
-					source_textures[src_types[1]] = src_data["a"]
+					slot.texture_paths[src_types[1]] = src_data["a"]
 			
-			_slots_data.append(source_textures)
+			_slots_data.append(slot)
 	
 	else:
 		var slots_count := _texture_set.get_slots_count()
@@ -242,17 +249,15 @@ func set_texture_set(texture_set: HTerrainTextureSet):
 				var src_types = HTerrainTextureSet.get_src_types_from_type(type)
 				
 				while slot_index >= len(_slots_data):
-					var slot_data = []
-					for i in HTerrainTextureSet.SRC_TYPE_COUNT:
-						slot_data.append("")
-					_slots_data[slot_index] = slot_data
+					var slot = Slot.new()
+					_slots_data[slot_index] = slot
 				
-				var slot_data = _slots_data[slot_index]
+				var slot = _slots_data[slot_index]
 				
 				if src_data.has("rgb"):
-					slot_data[src_types[0]] = src_data["rgb"]
+					slot.texture_paths[src_types[0]] = src_data["rgb"]
 				if src_data.has("a"):
-					slot_data[src_types[1]] = src_data["a"]
+					slot.texture_paths[src_types[1]] = src_data["a"]
 
 	# TODO If the set doesnt have a file, use terrain path by default?
 	if texture_set.resource_path != "":
@@ -296,6 +301,7 @@ func _update_ui_from_data():
 	
 	for ed in _texture_editors:
 		ed.set_enabled(has_slots)
+	_normalmap_flip_checkbox.disabled = not has_slots
 	
 	if has_slots:
 		if len(prev_selected_items) > 0:
@@ -327,10 +333,13 @@ func _select_slot(slot_index: int):
 	var slot = _slots_data[slot_index]
 	
 	for type in HTerrainTextureSet.SRC_TYPE_COUNT:
-		var im_path : String = slot[type]
+		var im_path : String = slot.texture_paths[type]
 		_set_ui_slot_texture_from_path(im_path, type)
 
 	_slots_list.select(slot_index)
+	
+	_normalmap_flip_checkbox.pressed = slot.flip_normalmap_y
+	_normalmap_material.set_shader_param("u_flip_y", slot.flip_normalmap_y)
 
 
 func _set_ui_slot_texture_from_path(im_path: String, type: int):
@@ -362,8 +371,8 @@ func _set_source_image(fpath: String, type: int):
 	var slot_index : int = _slots_list.get_selected_items()[0]
 	#var prev_path = _texture_set.get_source_image_path(slot_index, type)
 	
-	var slot : Array = _slots_data[slot_index]
-	slot[type] = fpath
+	var slot : Slot = _slots_data[slot_index]
+	slot.texture_paths[type] = fpath
 
 
 func _set_import_property(key: String, value):
@@ -417,7 +426,7 @@ func _smart_pick_files(albedo_fpath: String):
 	
 	for type in types:
 		var slot = _slots_data[slot_index]
-		if slot[type] != "":
+		if slot.texture_paths[type] != "":
 			# Already set, don't overwrite unwantedly
 			continue
 		
@@ -501,7 +510,7 @@ func _on_TextureArrayPrefixLineEdit_text_changed(new_text: String):
 
 func _on_AddSlotButton_pressed():
 	var i := len(_slots_data)
-	_slots_data.append(["", "", "", ""])
+	_slots_data.append(Slot.new())
 	_update_ui_from_data()
 	_select_slot(i)
 
@@ -544,6 +553,13 @@ func _on_OpenDirDialog_dir_selected(dir_path: String):
 func _show_error(message: String):
 	_error_popup.dialog_text = message
 	_error_popup.popup_centered()
+
+
+func _on_NormalMapFlipY_toggled(button_pressed: bool):
+	var slot_index : int = _slots_list.get_selected_items()[0]
+	var slot : Slot = _slots_data[slot_index]
+	slot.flip_normalmap_y = button_pressed
+	_normalmap_material.set_shader_param("u_flip_y", slot.flip_normalmap_y)
 
 
 # class ButtonDisabler:
@@ -732,9 +748,9 @@ func _generate_packed_textures_files_data(import_dir: String, prefix: String) ->
 		var src_types := HTerrainTextureSet.get_src_types_from_type(type)
 		
 		for slot_index in len(_slots_data):
-			var sources : Array = _slots_data[slot_index]
+			var slot : Slot = _slots_data[slot_index]
 			
-			if sources[src_types[0]] == "":
+			if slot.texture_paths[src_types[0]] == "":
 				if src_types[0] == HTerrainTextureSet.SRC_TYPE_ALBEDO:
 					return Result.new(false, 
 						"Albedo texture is missing in slot {0}".format([slot_index]))
@@ -744,10 +760,13 @@ func _generate_packed_textures_files_data(import_dir: String, prefix: String) ->
 				"contains_albedo": type == HTerrainTextureSet.TYPE_ALBEDO_BUMP,
 				"resolution": _import_settings.resolution,
 				"src": {
-					"rgb": sources[src_types[0]],
-					"a": sources[src_types[1]]
+					"rgb": slot.texture_paths[src_types[0]],
+					"a": slot.texture_paths[src_types[1]]
 				}
 			}
+			
+			if HTerrainTextureSet.SRC_TYPE_NORMAL in src_types and slot.flip_normalmap_y:
+				json_data.src["normalmap_flip_y"] = true
 			
 			var type_name := HTerrainTextureSet.get_texture_type_name(type)
 			var fpath = import_dir.plus_file(
@@ -804,18 +823,23 @@ func _generate_save_packed_texture_arrays_files_data(import_dir: String, prefix:
 		var layers_data := []
 		
 		for slot_index in len(_slots_data):
-			var sources : Array = _slots_data[slot_index]
+			var slot : Slot = _slots_data[slot_index]
 			
-			if sources[src_types[0]] == "":
+			if slot.texture_paths[src_types[0]] == "":
 				if src_types[0] == HTerrainTextureSet.SRC_TYPE_ALBEDO:
 					return Result.new(false, 
 						"Albedo texture is missing in slot {0}".format([slot_index]))
 				continue
+				
+			var layer = {
+				"rgb": slot.texture_paths[src_types[0]],
+				"a": slot.texture_paths[src_types[1]]
+			}
 			
-			layers_data.append({
-				"rgb": sources[src_types[0]],
-				"a": sources[src_types[1]]
-			})
+			if HTerrainTextureSet.SRC_TYPE_NORMAL in src_types and slot.flip_normalmap_y:
+				layer["normalmap_flip_y"] = slot.flip_normalmap_y
+			
+			layers_data.append(layer)
 		
 		json_data["layers"] = layers_data
 		

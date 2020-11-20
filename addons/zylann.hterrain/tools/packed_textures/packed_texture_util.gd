@@ -4,15 +4,24 @@ const Logger = preload("../../util/logger.gd")
 const Errors = preload("../../util/errors.gd")
 const Result = preload("../util/result.gd")
 
+const _transform_params = [
+	"normalmap_flip_y"
+]
+
 
 static func generate_image(sources: Dictionary, resolution: int, logger) -> Result:
 	var image := Image.new()
 	image.create(resolution, resolution, true, Image.FORMAT_RGBA8)
 	
 	image.lock()
+
+	var flip_normalmap_y := false
 	
 	# TODO Accelerate with GDNative
 	for key in sources:
+		if key in _transform_params:
+			continue
+		
 		var src_path : String = sources[key]
 		
 		logger.debug(str("Processing source ", src_path))
@@ -60,7 +69,21 @@ static func generate_image(sources: Dictionary, resolution: int, logger) -> Resu
 				Rect2(0, 0, image.get_width(), image.get_height()), Vector2())
 
 		src_image.unlock()
-	
+
 	image.unlock()
+	
+	if sources.has("normalmap_flip_y") and sources.normalmap_flip_y:
+		_flip_normalmap_y(image)
+	
 	return Result.new(true).with_value(image)
+
+
+static func _flip_normalmap_y(image: Image):
+	image.lock()
+	for y in image.get_height():
+		for x in image.get_width():
+			var col := image.get_pixel(x, y)
+			col.g = 1.0 - col.g
+			image.set_pixel(x, y, col)
+	image.unlock()
 

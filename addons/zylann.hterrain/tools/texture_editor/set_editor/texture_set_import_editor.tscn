@@ -83,42 +83,53 @@ margin_bottom = 14.0
 
 [node name="HB" type="HBoxContainer" parent="Import/HS/VB2"]
 margin_right = 524.0
-margin_bottom = 194.0
+margin_bottom = 222.0
 
 [node name="Albedo" parent="Import/HS/VB2/HB" instance=ExtResource( 3 )]
+margin_bottom = 222.0
 
 [node name="Bump" parent="Import/HS/VB2/HB" instance=ExtResource( 3 )]
 margin_left = 132.0
 margin_right = 260.0
+margin_bottom = 222.0
 
 [node name="Normal" parent="Import/HS/VB2/HB" instance=ExtResource( 3 )]
 margin_left = 264.0
 margin_right = 392.0
+margin_bottom = 222.0
+
+[node name="NormalMapFlipY" type="CheckBox" parent="Import/HS/VB2/HB/Normal"]
+margin_top = 198.0
+margin_right = 128.0
+margin_bottom = 222.0
+text = "Flip Y"
 
 [node name="Roughness" parent="Import/HS/VB2/HB" instance=ExtResource( 3 )]
 margin_left = 396.0
 margin_right = 524.0
+margin_bottom = 222.0
 
 [node name="Control" type="Control" parent="Import/HS/VB2"]
-margin_top = 198.0
+margin_top = 226.0
 margin_right = 524.0
-margin_bottom = 202.0
+margin_bottom = 230.0
 rect_min_size = Vector2( 0, 4 )
+
+[node name="Control2" type="Control" parent="Import/HS/VB2"]
+margin_top = 234.0
+margin_right = 524.0
+margin_bottom = 264.0
+rect_min_size = Vector2( 0, 4 )
+size_flags_vertical = 3
 
 [node name="Label3" type="Label" parent="Import/HS/VB2"]
 modulate = Color( 0.564706, 0.564706, 0.564706, 1 )
-margin_top = 206.0
+margin_top = 268.0
 margin_right = 524.0
-margin_bottom = 254.0
+margin_bottom = 316.0
 text = "These images should remain accessible for import to work.
 Tip: you can place them in a folder with a `.gdignore` file, so they won't take space in your exported game."
 autowrap = true
-
-[node name="Control2" type="Control" parent="Import/HS/VB2"]
-margin_top = 258.0
-margin_right = 524.0
-margin_bottom = 262.0
-rect_min_size = Vector2( 0, 4 )
 
 [node name="Spacer3" type="Control" parent="Import"]
 margin_top = 320.0
@@ -265,6 +276,7 @@ rect_min_size = Vector2( 0, 8 )
 [connection signal="item_selected" from="Import/HS/VB/SlotsList" to="." method="_on_SlotsList_item_selected"]
 [connection signal="pressed" from="Import/HS/VB/HB/AddSlotButton" to="." method="_on_AddSlotButton_pressed"]
 [connection signal="pressed" from="Import/HS/VB/HB/RemoveSlotButton" to="." method="_on_RemoveSlotButton_pressed"]
+[connection signal="toggled" from="Import/HS/VB2/HB/Normal/NormalMapFlipY" to="." method="_on_NormalMapFlipY_toggled"]
 [connection signal="item_selected" from="Import/GC/ImportModeSelector" to="." method="_on_ImportModeSelector_item_selected"]
 [connection signal="toggled" from="Import/GC/MipmapsCheckbox" to="." method="_on_MipmapsCheckbox_toggled"]
 [connection signal="item_selected" from="Import/GC/CompressionSelector" to="." method="_on_CompressionSelector_item_selected"]
@@ -274,3 +286,5 @@ rect_min_size = Vector2( 0, 8 )
 [connection signal="pressed" from="Import/HB2/BrowseImportDirectory" to="." method="_on_BrowseImportDirectory_pressed"]
 [connection signal="pressed" from="Import/HB/ImportButton" to="." method="_on_ImportButton_pressed"]
 [connection signal="pressed" from="Import/HB/CancelButton" to="." method="_on_CancelButton_pressed"]
+
+[editable path="Import/HS/VB2/HB/Normal"]
