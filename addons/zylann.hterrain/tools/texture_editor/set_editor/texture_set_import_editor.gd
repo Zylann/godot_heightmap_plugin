@@ -292,7 +292,12 @@ func _update_ui_from_data():
 	_set_selected_id(_compression_selector, _import_settings.compression)
 	_set_selected_id(_import_mode_selector, _import_mode)
 	
-	if _slots_list.get_item_count() > 0:
+	var has_slots : bool = _slots_list.get_item_count() > 0
+	
+	for ed in _texture_editors:
+		ed.set_enabled(has_slots)
+	
+	if has_slots:
 		if len(prev_selected_items) > 0:
 			var i : int = prev_selected_items[0]
 			if i >= _slots_list.get_item_count():
@@ -300,6 +305,9 @@ func _update_ui_from_data():
 			_select_slot(i)
 		else:
 			_select_slot(0)
+	else:
+		for type in HTerrainTextureSet.SRC_TYPE_COUNT:
+			_set_ui_slot_texture_from_path("", type)
 	
 	var max_slots := HTerrainTextureSet.get_max_slots_for_mode(_import_mode)
 	_add_slot_button.disabled = len(_slots_data) >= max_slots

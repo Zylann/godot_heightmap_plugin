@@ -10,6 +10,11 @@ signal clear_pressed
 onready var _label = $Label
 onready var _texture_rect = $TextureRect
 
+onready var _buttons = [
+	$LoadButton,
+	$ClearButton
+]
+
 
 func set_label(text: String):
 	_label.text = text
@@ -32,3 +37,8 @@ func _on_LoadButton_pressed():
 
 func _on_ClearButton_pressed():
 	emit_signal("clear_pressed")
+
+func set_enabled(enabled: bool):
+	for b in _buttons:
+		b.disabled = not enabled
+
