@@ -253,7 +253,7 @@ This choice also depends on the shader you will use for the terrain. Some shader
 
 #### Smart file pick
 
-If your use PBR textures, there might be a lot of files to assign. If you use a naming convention, you can start loading an albedo texture, and the tool will attempt to find all the other maps automatically by recognizing other image file names. For example, using this convention may allow this shortcut to work:
+If you use PBR textures, there might be a lot of files to assign. If you use a naming convention, you can start loading an albedo texture, and the tool will attempt to find all the other maps automatically by recognizing other image file names. For example, using this convention may allow this shortcut to work:
 
 - `grass_albedo.png`
 - `grass_bump.png`
