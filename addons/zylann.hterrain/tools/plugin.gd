@@ -24,6 +24,7 @@ const ImportDialog = preload("./importer/importer_dialog.tscn")
 const GenerateMeshDialog = preload("./generate_mesh_dialog.tscn")
 const ResizeDialog = preload("./resize_dialog/resize_dialog.tscn")
 const ExportImageDialog = preload("./exporter/export_image_dialog.tscn")
+const AboutDialogScene = preload("./about/about_dialog.tscn")
 
 const MENU_IMPORT_MAPS = 0
 const MENU_GENERATE = 1
@@ -33,6 +34,7 @@ const MENU_UPDATE_EDITOR_COLLIDER = 4
 const MENU_GENERATE_MESH = 5
 const MENU_EXPORT_HEIGHTMAP = 6
 const MENU_LOOKDEV = 7
+const MENU_ABOUT = 8
 
 
 # TODO Rename _terrain
@@ -49,6 +51,7 @@ var _load_texture_dialog = null
 var _generate_mesh_dialog = null
 var _preview_generator = null
 var _resize_dialog = null
+var _about_dialog = null
 var _globalmap_baker = null
 var _menu_button : MenuButton
 var _lookdev_menu : PopupMenu
@@ -134,6 +137,8 @@ func _enter_tree():
 	menu.get_popup().add_child(_lookdev_menu)
 	menu.get_popup().add_submenu_item("Lookdev", _lookdev_menu.name, MENU_LOOKDEV)
 	menu.get_popup().connect("id_pressed", self, "_menu_item_selected")
+	menu.get_popup().add_separator()
+	menu.get_popup().add_item("About HTerrain...", MENU_ABOUT)
 	_toolbar.add_child(menu)
 	_menu_button = menu
 	
@@ -228,6 +233,10 @@ func _enter_tree():
 	# Need to call deferred because in the specific case where you start the editor
 	# with the plugin enabled, _ready won't be called at this point
 	_export_image_dialog.call_deferred("setup_dialogs", base_control)
+	
+	_about_dialog = AboutDialogScene.instance()
+	Util.apply_dpi_scale(_about_dialog, dpi_scale)
+	base_control.add_child(_about_dialog)
 
 
 func _exit_tree():
@@ -262,6 +271,9 @@ func _exit_tree():
 	
 	_export_image_dialog.queue_free()
 	_export_image_dialog = null
+	
+	_about_dialog.queue_free()
+	_about_dialog = null
 
 	get_editor_interface().get_resource_previewer().remove_preview_generator(_preview_generator)
 	_preview_generator = null
@@ -576,6 +588,9 @@ func _menu_item_selected(id):
 		MENU_LOOKDEV:
 			# No actions here, it's a submenu
 			pass
+		
+		MENU_ABOUT:
+			_about_dialog.popup_centered()
 
 
 func _on_lookdev_menu_about_to_show():
