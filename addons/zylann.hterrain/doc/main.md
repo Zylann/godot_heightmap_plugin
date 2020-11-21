@@ -14,11 +14,24 @@ HTerrain plugin documentation
             - [Known issues](#known-issues)
     - [Texturing](#texturing)
         - [Overview](#overview)
-        - [Classic4 workflow](#classic4-workflow)
-        - [Array workflow](#array-workflow)
-            - [Creating a `TextureArray`](#creating-a-`texturearray`)
+        - [Getting PBR textures](#getting-pbr-textures)
+        - [Using the import tool](#using-the-import-tool)
+            - [Import mode](#import-mode)
+            - [Smart file pick](#smart-file-pick)
+            - [Normal maps](#normal-maps)
+            - [Importing](#importing)
+        - [Texture Sets](#texture-sets)
+            - [Re-using a texture set](#re-using-a-texture-set)
+        - [Shader types](#shader-types)
+            - [Classic4](#classic4)
+        - [Array](#array)
+            - [Creating a `TextureArray` manually](#creating-a-`texturearray`-manually)
             - [Painting with a `TextureArray`](#painting-with-a-`texturearray`)
-        - [Setting up bump, normals and roughness](#setting-up-bump-normals-and-roughness)
+        - [Packing textures manually](#packing-textures-manually)
+        - [Packed texture importers](#packed-texture-importers)
+            - [Packed textures](#packed-textures)
+            - [Packed texture arrays](#packed-texture-arrays)
+            - [Limitations](#limitations)
         - [Depth blending](#depth-blending)
         - [Triplanar mapping](#triplanar-mapping)
         - [Tiling reduction](#tiling-reduction)
@@ -160,20 +173,170 @@ Texturing
 
 Applying textures to terrains is a bit different than single models, because they are very large and a more optimal approach needs to be taken to keep memory and performance to an acceptable level. One very common way of doing it is by using a splatmap. A splatmap is another texture covering the whole terrain, whose role is to store which detail textures should be blended, and these textures may repeat seamlessly.
 
-There are sereval techniques applicable. This plugin offers a few workflows to deal with ground textures:
+![Screenshot showing splatmap and textured result](images/splatmap_and_textured_result.png)
 
-- `CLASSIC4`: simple but limited to 4 textures.
-- `ARRAY`: allows up to 256 different textures, but comes with a few constraints.
-- `LOW_POLY`: does not use any textures and relies only on colors.
+This magic is done with a single shader, i.e a single `ShaderMaterial` in Godot's terminology. This material is handled internally by the plugin, but you can customize it in several ways.
 
-On the `HTerrain` node, there is a property called `shader_type`, which lets you choose among built-in ground shaders, and their names will reflect that. The one you choose will define which workflow to follow.
+There are mainly 3 families of shaders this plugin supports:
 
-Before you can paint, you have to set up ground textures. It is recommended to pick textures which can tile infinitely, and preferably use "organic" ones, because terrains are best-suited for exterior natural environments. You can find some of these textures for free at http://cc0textures.com.
+- `CLASSIC4`: simple shaders where each texture may be a separate resource. They are limited to 4 textures.
+- `ARRAY`: more modern shader using texture arrays, which comes with a few constraints, but allows to paint a lot more different textures.
+- Other shaders don't need textures, like `LOW_POLY`, which only uses colors.
 
-The following sections will explain the specifics of each workflow. Although different, they still have things in common which are detailed in further sections.
+On the `HTerrain` node, there is a property called `shader_type`, which lets you choose among built-in shaders. The one you choose will define which workflow to follow: textures, or texture arrays.
+
+At time of writing, `CLASSIC4` shaders are better supported, and are the default choice.
+Texture array shaders may be used more in the future.
 
 
-### Classic4 workflow
+### Getting PBR textures
+
+*If you only plan to use simple color textures, you can skip to [Texture Sets](#texture-sets).*
+
+Before you can paint textures, you have to set them up. It is recommended to pick textures which can tile infinitely, and preferably use "organic" ones, because terrains are best-suited for exterior natural environments.
+For each texture, you may find the following types of images, common in PBR shading:
+
+- Albedo, color, or diffuse (required)
+- Bump, height, or displacement (optional)
+- Normal, or normalmap (optional)
+- Roughness (optional)
+
+![Screenshot of PBR textures](images/pbr_textures.png)
+
+You can find some of these textures for free at http://cc0textures.com.
+
+Note: while bump might not be used often, this plugin actually uses it to achieve [better blending effects](#depth-blending).
+
+It is preferable to place those source images under a specific directory. Also, since the images will only serve as an input to generate the actual game resources, it is better to place a `.gdignore` file inside that directory. This way, Godot will not include those source files in the exported game:
+
+```
+terrain_test/
+    terrain_data/
+        height.res
+        data.hterrain
+        ...
+    textures_src/
+        .gdignore
+        grass_albedo.png
+        grass_bump.png
+        grass_normal.png
+        grass_roughness.png
+        rocks_albedo.png
+        rocks_bump.png
+        rocks_normal.png
+        rocks_roughness.png
+        ...
+    terrain_scene.tscn
+    ...
+```
+
+### Using the import tool
+
+Ground textures are stored in a `HTerrainTextureSet` resource. All terrains come with a default one. However, it can be tedious to setup every texture and pack them, especially if you need PBR.
+
+This plugin comes with an optional import tool. Select your `HTerrain` node, and in the bottom panel, click the `Import...` button:
+
+![Screenshot of bottom panel import button](images/panel_import_button.png)
+
+This brings up the import tool dialog:
+
+![Screenshot of the texture set import tool](images/texture_set_import_tool.png)
+
+#### Import mode
+
+One of the first important things is to decide which import mode you want to use:
+
+- `Textures`: For simple terrains with up to 4 textures
+- `TextureArrays`: For more complex terrains with up to 16 textures
+
+This choice also depends on the shader you will use for the terrain. Some shaders expect individual textures (`CLASSIC4`) and others expect texture arrays.
+
+#### Smart file pick
+
+If your use PBR textures, there might be a lot of files to assign. If you use a naming convention, you can start loading an albedo texture, and the tool will attempt to find all the other maps automatically by recognizing other image file names. For example, using this convention may allow this shortcut to work:
+
+- `grass_albedo.png`
+- `grass_bump.png`
+- `grass_normal.png`
+- `grass_roughness.png`
+
+![Screenshot of texture types in import tool](images/texture_set_import_tool_texture_types.png)
+
+
+#### Normal maps
+
+As indicated in the [Godot documentation](https://docs.godotengine.org/en/stable/tutorials/3d/spatial_material.html#normal-map), normal maps are expected to use OpenGL convention (X+, Y-, Z+). So it is possible that normalmaps you find online use a different convention.
+
+To help with this, the import tool allows you to flip Y, in case the normalmap uses DirectX convention.
+
+![Examples of normalmap conventions](images/normalmap_conventions.png)
+
+
+#### Importing
+
+When importing, this tool will need to generate a few files representing intermediate Godot resources. You may have to choose the directory where those resources will be created, otherwise they will be placed at the root of your project.
+
+![Screenshot of directory option in import tool](images/texture_set_import_tool_directory.png)
+
+Once everything is ready, you can click `Import`. This can take a little while.
+If all goes well, a popup will tell you when it's done, and your terrain's texture set will be filled up with the imported textures.
+
+![Screenshot of import success](images/texture_set_import_tool_success.png)
+
+If importing goes wrong, most of the time an error will show up and the `HTerrainTextureSet` will not be modified.
+If it succeeded but you are unhappy with the result, it is possible to undo the changes done to the terrain using `Ctrl+Z`.
+
+Notes:
+- If you need to change something after the first import, you can go back to the importing tool and change settings, then click `Import` again.
+- Importing with this tool will overwrite the whole set each time.
+- The tool does not store the settings anywhere, but it should fill them up as much as it can from existing sets so you shouldn't need to fill everything up again.
+- Custom importers are used as backend in order to support these features automatically, instead of default Godot importers. If you need more tinkering, you can take a look at [packed texture importers](#packed-texture-importers).
+
+
+### Texture Sets
+
+`HTerrainTextureSet` is a custom resource which contains all textures a terrain can blend on the ground (grass, dirt, rocks, leaves, snow, sand...). All terrains come with an empty one assigned by default.
+
+The import tool seen earlier is the quickest way to fill one up from base textures, but it is not mandatory if you prefer to do things manually.
+
+You can inspect and edit the current set by selecting your `HTerrain` node, and in the bottom panel "Textures" section, click `Edit...`:
+
+![Screenshot of the bottom panel edit button](images/panel_textures_edit_button.png)
+
+This opens the following dialog:
+
+![Screenshot of the texture set editor](images/texture_set_editor.png)
+
+Unlike the import tool, this dialog shows you the actual resources used by the terrain. They may be either pairs of two packed textures for each slot, or two `TextureArray` resources.
+
+If you are using a `CLASSIC4` shader, you should be able to add and remove slots using the `+` and `-` buttons, and directly load color textures in the `Albedo` channel.
+For using texture arrays or PBR textures, it might be better to use the [import tool](#getting-pbr-textures).
+
+Actions done in this dialog behave like an extension of the inspector, and can be undone with `Ctrl+Z`.
+
+
+#### Re-using a texture set
+
+Texture sets are embedded in terrains by default, but it is possible to use the same set on another terrain. To do this, the `HTerrainTextureSet` must be saved as a `.tres` file.
+
+![Screenshot of texture set in the inspector](images/inspector_texture_set.png)
+
+- Select your `HTerrain` node
+- In the inspector, right-click on the value of the `texture_set` property
+- A HUGE menu will open (this is a Godot issue). Scroll all the way down with mouse wheel.
+- Click the `Edit...` menu item to edit the resource
+- On top of the inspector, a floppy disk icon should appear. You can click on it and choose `Save As...`
+
+![Screenshot of saving a texture set from inspector](images/inspector_texture_set_save.png)
+
+- A file dialog will prompt you for the location you want to put the resource file. Once you're done, click `Save`.
+
+Once you have a `.tres` file, you will be able to pick it up in your other terrain, by clicking on the `texture_set` property, but choosing `Load` this time.
+
+
+### Shader types
+
+#### Classic4
 
 The `CLASSIC4` shader is a simple splatmap technique, where R, G, B, A match the weight of 4 respective textures. Then are all blended together in every pixel of the ground. Here is how it looks when applied:
 
@@ -184,23 +347,10 @@ It comes in two variants:
 - `CLASSIC4`: full-featured shader, however it requires your textures to have normal maps.
 - `CLASSIC4_LITE`: simpler shader with less features. It only requires albedo textures.
 
-With this shader selected, you can setup textures in the bottom panel:
 
-![Screenshot of the texture slots](images/texture_slots.png)
+### Array
 
-You will notice 4 slots for these, next to the brush settings, named `ground0`, `ground1`, `ground2` and `cliff`. We'll see later about why the last one is named this way, for now just consider it's a regular slot like the others. Click on the first slot, and `Edit`, or double-click.
-
-![Screenshot of the texture dialog](images/texture_dialog.png)
-
-This opens a window that lets you choose two main textures: albedo and normals. Note: if you use the `CLASSIC4_LITE` shader, you don't have to setup normals. For now, you can assign the albedo texture, and the normalmap if you have one, then click `Ok`.
-
-The default slot covers the whole terrain by default, because the splatmap is initialized with a red color `(1, 0, 0, 0)`. You can setup other textures in the other slots, so they will layer on top of the others.
-Painting is very similar to scultping, because it's still editing an image in the end. You can also choose the opacity, size and shape of the brush.
-
-
-### Array workflow
-
-**WARNING: this workflow is still experimental. It's not ideal and has known flaws, so it may change in the future.**
+**WARNING: this shader is still experimental. It's not ideal and has known flaws, so it may change in the future.**
 
 The `ARRAY` shader uses a more advanced technique to render ground textures. Instead of one splatmap and many individual textures, it uses two splatmaps and a `TextureArray`.
 
@@ -211,9 +361,11 @@ The splatmaps are different from the classic one:
 This allows to paint up to 256 different textures, however it introduces an important constraint: you cannot blend more than 3 textures at a given pixel.
 
 
-#### Creating a `TextureArray`
+#### Creating a `TextureArray` manually
 
-Contrary to `CLASSIC4`, you cannot use the legacy dialog to setup each texture. Instead, you will have to use Godot directly to make it.
+**Note: it is now possible to use the [import tool](#using-the-import-tool) to set this up automatically. The following description explains how to do it manually.**
+
+Contrary to `CLASSIC4` shaders, you cannot directly assign individual textures with a shader that requires `TextureArray`. Instead, you'll have to import one.
 
 1) With an image editor, create an image, which you subdivide in square tiles, like an atlas. I each of them, place one ground texture, like so:
 
@@ -227,9 +379,11 @@ Contrary to `CLASSIC4`, you cannot use the legacy dialog to setup each texture. 
 
 4) Make sure the `Repeat` mode is enabled. Then, change the tile counts below to match your grid. Once you're done, click `Re-import`. Godot will ask you to restart the editor, do that (I have no idea why).
 
-5) Once the editor has restarted, click on your terrain node, and make sure it uses the `ARRAY` shader type (or a similar custom shader). Under `Shader Params`, assign the `u_ground_albedo_bump_array` property to the texture array you created.
+5) Once the editor has restarted, select your terrain node, and make sure it uses the `ARRAY` shader type (or a similar custom shader). In the bottom panel, click on the `Edit...` button to edit the `HTerrainTextureSet` used by the terrain.
 
-6) The bottom panel should now update to show much more texture slots. They will appear in the same order they are in the atlas, from left-to-right. If the panel doesn't update, select another node and click the terrain again. You should now be able to paint.
+6) In the dialog, click on the `Load Array...` button under `Albedo` to load your texture array. You can do the same process with normal maps if needed.
+
+7) The bottom panel should now update to show much more texture slots. They will appear in the same order they are in the atlas, from left-to-right. If the panel doesn't update, select another node and click the terrain again. You should now be able to paint.
 
 ![Lots of textures blending](images/lots_of_textures_blending.png)
 
@@ -250,7 +404,9 @@ You may see this pop up quite often when using this shader, but it can often be 
 The brush for this isn't perfect. This limitation can be smoothed out in the future, if a better algorithm is found which can work in real-time.
 
 
-### Setting up bump, normals and roughness
+### Packing textures manually
+
+**Note: it is now possible to use the [import tool](#using-the-import-tool) to set this up automatically. The following description explains how to do it manually.**
 
 The main ground shaders provided by the plugin should work fine with only regular albedo, but it supports a few features to make the ground look more realistic, such as normal maps, bump and roughness. To achieve this, shaders expects packed textures. The main reason is that more than one texture has to be sampled at a time, to allow them to blend. With a classic splatmap, it's 4 at once. If we want normalmaps, it becomes 8, and if we want roughness it becomes 12 etc, which is already a lot, in addition to internal textures Godot uses in the background. Not all GPUs allow that many textures in the shader, so a better approach is to combine them as much as possible into single images. This reduces the number of texture units, and reduces the number of fetches to do in the pixel shader.
 
@@ -262,6 +418,7 @@ For this reason, the plugin uses the following convention in ground textures:
 - `Normal` in RGB, `Roughness` in A
 
 This operation can be done in an image editing program such as Gimp, or with a Godot plugin such as Channel Packer (available on the asset library: https://godotengine.org/asset-library/asset/230).
+It can also be done using [packed texture importers](packed-texture-importers), which are now included in the plugin.
 
 Note 1: normal maps must follow the OpenGL convention, where Y goes up. They are recognizable by being "brighter" on the top of bumpy features (because Y is green, which is the most energetic color to the human eye):
 
@@ -270,6 +427,71 @@ Note 1: normal maps must follow the OpenGL convention, where Y goes up. They are
 See also https://docs.godotengine.org/en/latest/getting_started/workflow/assets/importing_images.html#normal-map
 
 Note 2: because Godot would strip out the alpha channel if a packed texture was imported as a normal map, you should not make your texture import as "Normal Map" in the importer dock.
+
+
+### Packed texture importers
+
+In order to support the [import tool](#using-the-import-tool), this plugin defines two special texture importers, which allow to pack multiple input textures into one. They otherwise behave the same as Godot's default importers.
+
+The type of file they import are JSON files, which refer to the source image files you wish to pack together, along with a few other options.
+
+#### Packed textures
+
+File extension: `.packed_tex`
+
+Example for an albedo+bump texture:
+```json
+{
+    "contains_albedo": true,
+    "src": {
+        "rgb": "res://textures/src/grass_albedo.png",
+        "a": "res://textures/src/grass_bump.png",
+    }
+}
+```
+
+Example for a normal+roughness texture, with conversion from DirectX to OpenGL (optional):
+```json
+{
+    "src": {
+        "rgb": "res://textures/src/grass_albedo.png",
+        "a": "res://textures/src/grass_bump.png",
+        "normalmap_flip_y": true
+    }
+}
+```
+
+#### Packed texture arrays
+
+File extension: `.packed_texarr`
+
+This one requires you to specify a `resolution`, because each layer of the texture array must have the same size and be square. The resolution is a single integer number.
+What you can put in each layer is the same as for [packed textures](#packed-textures).
+
+```json
+{
+    "contains_albedo": true,
+    "resolution": 1024,
+    "layers": [
+        {
+            "rgb": "res://textures/src/grass_albedo.png",
+            "a": "res://textures/src/grass_bump.png"
+        },
+        {
+            "rgb": "res://textures/src/rocks_albedo.png",
+            "a": "res://textures/src/rocks_bump.png"
+        },
+        {
+            "rgb": "res://textures/src/sand_albedo.png",
+            "a": "res://textures/src/sand_bump.png"
+        }
+    ]
+}
+```
+
+#### Limitations
+
+Such importers support most of the features needed for terrain textures, however they have a few limitations. This is because Godot does not have any API to extend the existing importers, so they had to be re-implemented from scratch in GDScript. Some features of the built-in importers had to be skipped because Godot does not expose some of the required functions either.
 
 
 ### Depth blending
@@ -335,6 +557,8 @@ It is possible to cut holes in the terrain by using the `Holes` brush. Use it wi
 At the moment, this brush uses the alpha channel of the color map.
 
 Note: this brush only produces holes visually. In order to have holes in the collider too, you have to do some tricks with collision layers because the collision shape this plugin uses (Bullet heightfield) cannot have holes. It might be added in the future, because it can be done by editing the C++ code and drop collision triangles in the main heightmap collision routine.
+
+See https://github.com/Zylann/godot_heightmap_plugin/issues/125
 
 
 Terrain generator
@@ -659,82 +883,90 @@ extends Node
 # Import classes
 const HTerrain = preload("res://addons/zylann.hterrain/hterrain.gd")
 const HTerrainData = preload("res://addons/zylann.hterrain/hterrain_data.gd")
+const HTerrainTextureSet = preload("res://addons/zylann.hterrain/hterrain_texture_set.gd")
 
 # You may want to change paths to your own textures
 var grass_texture = load("res://addons/zylann.hterrain_demo/textures/ground/grass_albedo_bump.png")
 var sand_texture = load("res://addons/zylann.hterrain_demo/textures/ground/sand_albedo_bump.png")
 var leaves_texture = load("res://addons/zylann.hterrain_demo/textures/ground/leaves_albedo_bump.png")
 
+
 func _ready():
+    # Create terrain resource and give it a size.
+    # It must be either 513, 1025, 2049 or 4097.
+    var terrain_data = HTerrainData.new()
+    terrain_data.resize(513)
+    
+    var noise = OpenSimplexNoise.new()
+    var noise_multiplier = 50.0
 
-	# Create terrain resource and give it a size.
-	# It must be either 513, 1025, 2049 or 4097.
-	var terrain_data = HTerrainData.new()
-	terrain_data.resize(513)
-	
-	var noise = OpenSimplexNoise.new()
-	var noise_multiplier = 50.0
+    # Get access to terrain maps
+    var heightmap: Image = terrain_data.get_image(HTerrainData.CHANNEL_HEIGHT)
+    var normalmap: Image = terrain_data.get_image(HTerrainData.CHANNEL_NORMAL)
+    var splatmap: Image = terrain_data.get_image(HTerrainData.CHANNEL_SPLAT)
+    
+    heightmap.lock()
+    normalmap.lock()
+    splatmap.lock()
+    
+    # Generate terrain maps
+    # Note: this is an example with some arbitrary formulas,
+    # you may want to come up with your owns
+    for z in heightmap.get_height():
+        for x in heightmap.get_width():
+            # Generate height
+            var h = noise_multiplier * noise.get_noise_2d(x, z)
+            
+            # Getting normal by generating extra heights directly from noise,
+            # so map borders won't have seams in case you stitch them
+            var h_right = noise_multiplier * noise.get_noise_2d(x + 0.1, z)
+            var h_forward = noise_multiplier * noise.get_noise_2d(x, z + 0.1)
+            var normal = Vector3(h - h_right, 0.1, h_forward - h).normalized()
+            
+            # Generate texture amounts
+            var splat = splatmap.get_pixel(x, z)
+            var slope = 4.0 * normal.dot(Vector3.UP) - 2.0
+            # Sand on the slopes
+            var sand_amount = clamp(1.0 - slope, 0.0, 1.0)
+            # Leaves below sea level
+            var leaves_amount = clamp(0.0 - h, 0.0, 1.0)
+            splat = splat.linear_interpolate(Color(0,1,0,0), sand_amount)
+            splat = splat.linear_interpolate(Color(0,0,1,0), leaves_amount)
+            
+            heightmap.set_pixel(x, z, Color(h, 0, 0))
+            normalmap.set_pixel(x, z, HTerrainData.encode_normal(normal))
+            splatmap.set_pixel(x, z, splat)
+    
+    heightmap.unlock()
+    normalmap.unlock()
+    splatmap.unlock()
+    
+    # Commit modifications so they get uploaded to the graphics card
+    var modified_region = Rect2(Vector2(), heightmap.get_size())
+    terrain_data.notify_region_change(modified_region, HTerrainData.CHANNEL_HEIGHT)
+    terrain_data.notify_region_change(modified_region, HTerrainData.CHANNEL_NORMAL)
+    terrain_data.notify_region_change(modified_region, HTerrainData.CHANNEL_SPLAT)
 
-	# Get access to terrain maps you want to modify
-	var heightmap: Image = terrain_data.get_image(HTerrainData.CHANNEL_HEIGHT)
-	var normalmap: Image = terrain_data.get_image(HTerrainData.CHANNEL_NORMAL)
-	var splatmap: Image = terrain_data.get_image(HTerrainData.CHANNEL_SPLAT)
-	
-	heightmap.lock()
-	normalmap.lock()
-	splatmap.lock()
-	
-	# Generate terrain maps
-	# Note: this is an example with some arbitrary formulas,
-	# you may want to come up with your own
-	for z in heightmap.get_height():
-		for x in heightmap.get_width():
-			
-			# Generate height
-			var h = noise_multiplier * noise.get_noise_2d(x, z)
-			
-			# Getting normal by generating extra heights directly from noise,
-			# so map borders won't have seams in case you stitch them
-			var h_right = noise_multiplier * noise.get_noise_2d(x + 0.1, z)
-			var h_forward = noise_multiplier * noise.get_noise_2d(x, z + 0.1)
-			var normal = Vector3(h - h_right, 0.1, h_forward - h).normalized()
-			
-			# Generate texture amounts
-			# Note: the red channel is 1 by default
-			var splat = splatmap.get_pixel(x, z)
-			var slope = 4.0 * normal.dot(Vector3.UP) - 2.0
-			# Sand on the slopes
-			var sand_amount = clamp(1.0 - slope, 0.0, 1.0)
-			# Leaves below sea level
-			var leaves_amount = clamp(0.0 - h, 0.0, 1.0)
-			splat = splat.linear_interpolate(Color(0,1,0,0), sand_amount)
-			splat = splat.linear_interpolate(Color(0,0,1,0), leaves_amount)
+    # Create texture set
+    # NOTE: usually this is not made from script, it can be built with editor tools
+    var texture_set = HTerrainTextureSet.new()
+    texture_set.set_mode(HTerrainTextureSet.MODE_TEXTURES)
+    texture_set.insert_slot(-1)
+    texture_set.set_texture(0, HTerrainTextureSet.TYPE_ALBEDO_BUMP, grass_texture)
+    texture_set.insert_slot(-1)
+    texture_set.set_texture(1, HTerrainTextureSet.TYPE_ALBEDO_BUMP, sand_texture)
+    texture_set.insert_slot(-1)
+    texture_set.set_texture(2, HTerrainTextureSet.TYPE_ALBEDO_BUMP, leaves_texture)
 
-			heightmap.set_pixel(x, z, Color(h, 0, 0))
-			normalmap.set_pixel(x, z, HTerrainData.encode_normal(normal))
-			splatmap.set_pixel(x, z, splat)
-	
-	heightmap.unlock()
-	normalmap.unlock()
-	splatmap.unlock()
-	
-	# Commit modifications so they get uploaded to the graphics card
-	var modified_region = Rect2(Vector2(), heightmap.get_size())
-	terrain_data.notify_region_change(modified_region, HTerrainData.CHANNEL_HEIGHT)
-	terrain_data.notify_region_change(modified_region, HTerrainData.CHANNEL_NORMAL)
-	terrain_data.notify_region_change(modified_region, HTerrainData.CHANNEL_SPLAT)
-
-	# Create terrain node
-	var terrain = HTerrain.new()
-	terrain.set_shader_type(HTerrain.SHADER_CLASSIC4_LITE)
-	terrain.set_data(terrain_data)
-	terrain.set_ground_texture(0, HTerrain.GROUND_ALBEDO_BUMP, grass_texture)
-	terrain.set_ground_texture(1, HTerrain.GROUND_ALBEDO_BUMP, sand_texture)
-	terrain.set_ground_texture(2, HTerrain.GROUND_ALBEDO_BUMP, leaves_texture)
-	add_child(terrain)
-	
-	# No need to call this, but you may need to if you edit the terrain later on
-	#terrain.update_collider()
+    # Create terrain node
+    var terrain = HTerrain.new()
+    terrain.set_shader_type(HTerrain.SHADER_CLASSIC4_LITE)
+    terrain.set_data(terrain_data)
+    terrain.set_texture_set(texture_set)
+    add_child(terrain)
+    
+    # No need to call this, but you may need to if you edit the terrain later on
+    #terrain.update_collider()
 ```
 
 
