@@ -3,7 +3,6 @@
 [ext_resource path="res://addons/zylann.hterrain/native/hterrain.gdnlib" type="GDNativeLibrary" id=1]
 
 [resource]
-
 resource_name = "image_utils"
 class_name = "ImageUtils"
 library = ExtResource( 1 )
