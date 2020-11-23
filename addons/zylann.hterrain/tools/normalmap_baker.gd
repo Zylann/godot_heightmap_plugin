@@ -1,4 +1,6 @@
+
 # Bakes normals asynchronously in the editor as the heightmap gets modified.
+# It uses the heightmap texture to change the normalmap image, which is then uploaded like an edit.
 # This is probably not a nice method GPU-wise, but it's way faster than GDScript.
 
 tool

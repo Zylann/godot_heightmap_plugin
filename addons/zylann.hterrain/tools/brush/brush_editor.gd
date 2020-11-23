@@ -1,7 +1,7 @@
 tool
 extends Control
 
-const Brush = preload("../../hterrain_brush.gd")
+const Brush = preload("./terrain_painter.gd")
 const Errors = preload("../../util/errors.gd")
 const NativeFactory = preload("../../native/factory.gd")
 const Logger = preload("../../util/logger.gd")
@@ -96,10 +96,15 @@ func set_brush(brush: Brush):
 		_brush.disconnect("changed", self, "_on_brush_changed")
 	
 	_brush = brush
+
+	if brush != null:
+		# TODO Had an issue in Godot 3.2.3 where mismatching type would silently cast to null...
+		# It happens if the argument went through a Variant (for example if call_deferred is used)
+		assert(_brush != null)
 	
 	if _brush != null:
 		# Initial params
-		_size_slider.value = brush.get_radius()
+		_size_slider.value = brush.get_brush_size()
 		_opacity_slider.ratio = brush.get_opacity()
 		_flatten_height_box.value = brush.get_flatten_height()
 		_color_picker.get_picker().color = brush.get_color()
@@ -159,7 +164,7 @@ func set_display_mode(mode: int):
 
 func _on_size_slider_value_changed(v: float):
 	if _brush != null:
-		_brush.set_radius(int(v))
+		_brush.set_brush_size(int(v))
 	_size_value_label.text = str(v)
 
 
@@ -215,7 +220,9 @@ func _set_brush_shape_from_file(path: String):
 			if path.find(SHAPES_DIR.plus_file(DEFAULT_BRUSH)) != -1:
 				im2 = null
 
-		_brush.set_shape(im2)
+		# TODO Implement image brushes in Painter
+		_logger.error("_set_brush_shape_from_file: Not implemented")
+		#_brush.set_shape(im2)
 
 	var tex := ImageTexture.new()
 	tex.create_from_image(im, Texture.FLAG_FILTER)

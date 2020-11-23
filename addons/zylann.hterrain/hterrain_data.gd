@@ -128,7 +128,6 @@ const META_EXTENSION = "hterrain"
 const META_FILENAME = "data.hterrain"
 const META_VERSION = "0.11"
 
-
 signal resolution_changed
 signal region_changed(x, y, w, h, channel)
 signal map_added(type, index)
@@ -404,29 +403,46 @@ func get_all_heights() -> PoolRealArray:
 # Finally, it will emit `region_changed`, 
 # which allows other systems to catch up (like physics or grass)
 #
-# p_rect: modified area.
-# channel: which kind of map changed
-# index: index of the map that changed
-func notify_region_change(p_rect: Rect2, channel: int, index := 0):
-	assert(channel >= 0 and channel < CHANNEL_COUNT)
+# p_rect:
+#     modified area.
+#
+# map_type:
+#    which kind of map changed
+#
+# index:
+#    index of the map that changed
+#
+# p_upload_to_texture:
+#     the modified region will be copied from the map image to the texture.
+#     If the change already occurred on GPU, you may set this to false.
+#
+# p_update_vertical_bounds:
+#     if the modified map is the heightmap, vertical bounds will be updated.
+#
+func notify_region_change(
+	p_rect: Rect2,
+	p_map_type: int,
+	p_index := 0,
+	p_upload_to_texture := true,
+	p_update_vertical_bounds := true):
+	
+	assert(p_map_type >= 0 and p_map_type < CHANNEL_COUNT)
 	
 	var min_x := int(p_rect.position.x)
 	var min_y := int(p_rect.position.y)
 	var size_x := int(p_rect.size.x)
 	var size_y := int(p_rect.size.y)
 	
-	if channel == CHANNEL_HEIGHT:
-		assert(index == 0)
-		# TODO when drawing very large patches,
-		# this might get called too often and would slow down.
-		# for better user experience, we could set chunks AABBs to a very large
-		# height just while drawing, and set correct AABBs as a background task once done
+	if p_map_type == CHANNEL_HEIGHT and p_update_vertical_bounds:
+		assert(p_index == 0)
 		_update_vertical_bounds(min_x, min_y, size_x, size_y)
+	
+	if p_upload_to_texture:
+		_upload_region(p_map_type, p_index, min_x, min_y, size_x, size_y)
+	
+	_maps[p_map_type][p_index].modified = true
 
-	_upload_region(channel, index, min_x, min_y, size_x, size_y)
-	_maps[channel][index].modified = true
-
-	emit_signal("region_changed", min_x, min_y, size_x, size_y, channel)
+	emit_signal("region_changed", min_x, min_y, size_x, size_y, p_map_type)
 	emit_signal("changed")
 
 
@@ -449,8 +465,10 @@ func _edit_apply_undo(undo_data: Dictionary, image_cache: ImageFileCache):
 		return
 
 	var chunk_positions: Array = undo_data["chunk_positions"]
-	var map_infos: Array = undo_data["data"]
+	var map_infos: Array = undo_data["maps"]
 	var chunk_size: int = undo_data["chunk_size"]
+
+	_logger.debug(str("Applying ", len(chunk_positions), " undo/redo chunks"))
 
 	# Validate input
 
@@ -481,15 +499,16 @@ func _edit_apply_undo(undo_data: Dictionary, image_cache: ImageFileCache):
 			var data := image_cache.load_image(data_id)
 			assert(data != null)
 	
-			var data_rect := Rect2(0, 0, data.get_width(), data.get_height())
-	
 			var dst_image := get_image(map_type, map_index)
 			assert(dst_image != null)
 	
 			if _map_types[map_type].authored:
-				dst_image.blit_rect(data, data_rect, Vector2(min_x, min_y))
+				#_logger.debug(str("Apply undo chunk ", cpos, " to ", Vector2(min_x, min_y)))
+				var src_rect := Rect2(0, 0, data.get_width(), data.get_height())
+				dst_image.blit_rect(data, src_rect, Vector2(min_x, min_y))
 			else:
-				_logger.error("This is a calculated channel!, no undo on this one\n")
+				_logger.error(
+					str("Channel ", map_type, " is a calculated channel!, no undo on this one"))
 	
 			# Defer this to a second pass,
 			# otherwise it causes order-dependent artifacts on the normal map
@@ -498,6 +517,21 @@ func _edit_apply_undo(undo_data: Dictionary, image_cache: ImageFileCache):
 
 		for args in regions_changed:
 			notify_region_change(args[0], args[1], args[2])
+
+
+#static func _debug_dump_heightmap(src: Image, fpath: String):
+#	var im = Image.new()
+#	im.create(src.get_width(), src.get_height(), false, Image.FORMAT_RGB8)
+#	im.lock()
+#	src.lock()
+#	for y in im.get_height():
+#		for x in im.get_width():
+#			var col = src.get_pixel(x, y)
+#			var c = col.r - floor(col.r)
+#			im.set_pixel(x, y, Color(c, 0.0, 0.0, 1.0))
+#	im.unlock()
+#	src.unlock()
+#	im.save_png(fpath)
 
 
 # TODO Support map indexes
@@ -525,9 +559,9 @@ func _upload_region(channel: int, index: int, min_x: int, min_y: int, size_x: in
 	#_logger.debug("Upload ", min_x, ", ", min_y, ", ", size_x, "x", size_y)
 	#var time_before = OS.get_ticks_msec()
 
-	var map = _maps[channel][index]
+	var map : Map = _maps[channel][index]
 
-	var image = map.image
+	var image := map.image
 	assert(image != null)
 	assert(size_x > 0 and size_y > 0)
 
@@ -686,16 +720,21 @@ func get_image(map_type: int, index := 0) -> Image:
 	return maps[index].image
 
 
-func _get_texture(map_type: int, index: int) -> Texture:
-	var maps = _maps[map_type]
-	return maps[index].texture
+func get_texture(map_type: int, index := 0, writable := false) -> Texture:
+	var maps : Array = _maps[map_type]
+	var map : Map = maps[index]
 
+	if map.image != null:
+		if map.texture == null:
+			_upload_channel(map_type, index)
+		elif writable and not (map.texture is ImageTexture):
+			_upload_channel(map_type, index)
+	else:
+		if writable:
+			_logger.warn(
+				"Requested writable terrain texture, but it's not available in this context")
 
-func get_texture(channel: int, index := 0) -> Texture:
-	# TODO Perhaps it's not a good idea to auto-upload like that
-	if _get_texture(channel, index) == null and get_image(channel) != null:
-		_upload_channel(channel, index)
-	return _get_texture(channel, index)
+	return map.texture
 
 
 func has_texture(map_type: int, index: int) -> bool:
@@ -782,6 +821,15 @@ func _update_all_vertical_bounds():
 	_logger.debug(str("Updating all vertical bounds... (", csize_x , "x", csize_y, " chunks)"))
 	_chunked_vertical_bounds.create(csize_x, csize_y, false, Image.FORMAT_RGF)
 	_update_vertical_bounds(0, 0, _resolution - 1, _resolution - 1)
+
+
+func update_vertical_bounds(p_rect: Rect2):
+	var min_x := int(p_rect.position.x)
+	var min_y := int(p_rect.position.y)
+	var size_x := int(p_rect.size.x)
+	var size_y := int(p_rect.size.y)
+
+	_update_vertical_bounds(min_x, min_y, size_x, size_y)
 
 
 func _update_vertical_bounds(origin_in_cells_x: int, origin_in_cells_y: int, \

@@ -31,6 +31,7 @@ func set_size(size):
 	# Must line up to terrain vertex policy, so must apply an off-by-one.
 	# If I don't do that, the brush will appear to wobble above the ground
 	var ss = size - 1
+	# Don't subdivide too much
 	if ss > 50:
 		ss /= 2
 	if ss > 50:
@@ -39,12 +40,11 @@ func set_size(size):
 	_mesh.subdivide_depth = ss
 
 
-func set_shape(shape_image):
-	set_size(shape_image.get_width())
+#func set_shape(shape_image):
+#	set_size(shape_image.get_width())
 
 
 func _on_terrain_transform_changed(terrain_global_trans):
-
 	var inv = terrain_global_trans.affine_inverse()
 	_material.set_shader_param("u_terrain_inverse_transform", inv)
 

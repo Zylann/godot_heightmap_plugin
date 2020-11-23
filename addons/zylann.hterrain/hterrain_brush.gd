@@ -1,3 +1,5 @@
+# TODO Get rid of this, obsoleted by terrain_painter
+
 tool
 
 const HTerrain = preload("./hterrain.gd")
@@ -229,7 +231,6 @@ func paint(terrain: HTerrain, cell_pos_x: int, cell_pos_y: int, override_mode: i
 	var origin_y := cell_pos_y - _shape_size / 2
 
 	terrain.set_area_dirty(origin_x, origin_y, _shape_size, _shape_size)
-	var map_index := 0
 
 	# When using sculpting tools, make it dependent on brush size
 	var raise_strength := 10.0 + 2.0 * float(_shape_size)
@@ -264,12 +265,11 @@ func paint(terrain: HTerrain, cell_pos_x: int, cell_pos_y: int, override_mode: i
 
 		MODE_DETAIL:
 			_paint_detail(data, origin_x, origin_y)
-			map_index = _detail_index
 
 	for map in _last_painted_maps:
 		data.notify_region_change(Rect2(origin_x, origin_y, _shape_size, _shape_size), \
 			map[0], map[1])
-
+	
 	#var time_elapsed = OS.get_ticks_msec() - time_before
 	#_logger.debug("Time elapsed painting: ", time_elapsed, "ms")
 

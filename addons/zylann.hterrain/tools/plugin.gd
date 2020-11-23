@@ -7,7 +7,7 @@ const HTerrainDetailLayer = preload("../hterrain_detail_layer.gd")
 const HTerrainData = preload("../hterrain_data.gd")
 const HTerrainMesher = preload("../hterrain_mesher.gd")
 const PreviewGenerator = preload("./preview_generator.gd")
-const Brush = preload("../hterrain_brush.gd")
+const Brush = preload("./brush/terrain_painter.gd")
 const BrushDecal = preload("./brush/decal.gd")
 const Util = preload("../util/util.gd")
 const EditorUtil = preload("./util/editor_util.gd")
@@ -61,8 +61,8 @@ var _image_cache : ImageFileCache
 var _brush : Brush = null
 var _brush_decal : BrushDecal = null
 var _mouse_pressed := false
-var _pending_paint_action = null
-var _pending_paint_completed := false
+#var _pending_paint_action = null
+var _pending_paint_commit := false
 
 var _logger = Logger.get_for(self)
 
@@ -86,11 +86,12 @@ func _enter_tree():
 	get_editor_interface().get_resource_previewer().add_preview_generator(_preview_generator)
 	
 	_brush = Brush.new()
-	_brush.set_radius(5)
+	_brush.set_brush_size(5)
+	_brush.connect("changed", self, "_on_brush_changed")
+	add_child(_brush)
 
 	_brush_decal = BrushDecal.new()
-	_brush_decal.set_shape(_brush.get_shape())
-	_brush.connect("shape_changed", _brush_decal, "set_shape")
+	_brush_decal.set_size(_brush.get_brush_size())
 	
 	_image_cache = ImageFileCache.new("user://temp_hterrain_image_cache")
 	
@@ -143,8 +144,8 @@ func _enter_tree():
 	_menu_button = menu
 	
 	var mode_icons := {}
-	mode_icons[Brush.MODE_ADD] = get_icon("heightmap_raise")
-	mode_icons[Brush.MODE_SUBTRACT] = get_icon("heightmap_lower")
+	mode_icons[Brush.MODE_RAISE] = get_icon("heightmap_raise")
+	mode_icons[Brush.MODE_LOWER] = get_icon("heightmap_lower")
 	mode_icons[Brush.MODE_SMOOTH] = get_icon("heightmap_smooth")
 	mode_icons[Brush.MODE_FLATTEN] = get_icon("heightmap_flatten")
 	# TODO Have different icons
@@ -155,8 +156,8 @@ func _enter_tree():
 	mode_icons[Brush.MODE_LEVEL] = get_icon("heightmap_level")
 	
 	var mode_tooltips := {}
-	mode_tooltips[Brush.MODE_ADD] = "Raise height"
-	mode_tooltips[Brush.MODE_SUBTRACT] = "Lower height"
+	mode_tooltips[Brush.MODE_RAISE] = "Raise height"
+	mode_tooltips[Brush.MODE_LOWER] = "Lower height"
 	mode_tooltips[Brush.MODE_SMOOTH] = "Smooth height"
 	mode_tooltips[Brush.MODE_FLATTEN] = "Flatten (flatten to a specific height)"
 	mode_tooltips[Brush.MODE_SPLAT] = "Texture paint"
@@ -169,8 +170,8 @@ func _enter_tree():
 	
 	# I want modes to be in that order in the GUI
 	var ordered_brush_modes := [
-		Brush.MODE_ADD,
-		Brush.MODE_SUBTRACT,
+		Brush.MODE_RAISE,
+		Brush.MODE_LOWER,
 		Brush.MODE_SMOOTH,
 		Brush.MODE_LEVEL,
 		Brush.MODE_FLATTEN,
@@ -213,7 +214,8 @@ func _enter_tree():
 	base_control.add_child(_progress_window)
 	
 	_generate_mesh_dialog = GenerateMeshDialog.instance()
-	_generate_mesh_dialog.connect("generate_selected", self, "_on_GenerateMeshDialog_generate_selected")
+	_generate_mesh_dialog.connect(
+		"generate_selected", self, "_on_GenerateMeshDialog_generate_selected")
 	Util.apply_dpi_scale(_generate_mesh_dialog, dpi_scale)
 	base_control.add_child(_generate_mesh_dialog)
 	
@@ -310,6 +312,7 @@ func edit(object):
 	_panel.set_terrain(_node)
 	_generator_dialog.set_terrain(_node)
 	_import_dialog.set_terrain(_node)
+	_brush.set_terrain(_node)
 	_brush_decal.set_terrain(_node)
 	_generate_mesh_dialog.set_terrain(_node)
 	_resize_dialog.set_terrain(_node)
@@ -348,12 +351,12 @@ func _update_brush_buttons_availability():
 		else:
 			var button = _toolbar_brush_buttons[Brush.MODE_DETAIL]
 			if button.pressed:
-				_select_brush_mode(Brush.MODE_ADD)
+				_select_brush_mode(Brush.MODE_RAISE)
 			button.disabled = true
 
 
 func _update_toolbar_menu_availability():
-	var data_available = false
+	var data_available := false
 	if _node != null and _node.get_data() != null:
 		data_available = true
 	var popup : PopupMenu = _menu_button.get_popup()
@@ -368,7 +371,7 @@ func _update_toolbar_menu_availability():
 			popup.set_item_tooltip(i, "Terrain has no data")
 
 
-func make_visible(visible):
+func make_visible(visible: bool):
 	_panel.set_visible(visible)
 	_toolbar.set_visible(visible)
 	_brush_decal.update_visibility()
@@ -376,6 +379,9 @@ func make_visible(visible):
 	# TODO Workaround https://github.com/godotengine/godot/issues/6459
 	# When the user selects another node,
 	# I want the plugin to release its references to the terrain.
+	# This is important because if we don't do that, some modified resources will still be
+	# loaded in memory, so if the user closes the scene and reopens it later, the changes will
+	# still be partially present, and this is not expected.
 	if not visible:
 		edit(null)
 
@@ -420,7 +426,7 @@ func forward_spatial_gui_input(p_camera: Camera, p_event: InputEvent) -> bool:
 				
 				if not _mouse_pressed:
 					# Just finished painting
-					_pending_paint_completed = true
+					_pending_paint_commit = true
 		
 			if _brush.get_mode() == Brush.MODE_FLATTEN and _brush.has_meta("pick_height") \
 			and _brush.get_meta("pick_height"):
@@ -441,15 +447,7 @@ func forward_spatial_gui_input(p_camera: Camera, p_event: InputEvent) -> bool:
 			
 			if _mouse_pressed:
 				if Input.is_mouse_button_pressed(BUTTON_LEFT):
-					
-					# Deferring this to be done once per frame,
-					# because mouse events may happen more often than frames,
-					# which can result in unpleasant stuttering/freezes when painting large areas
-					_pending_paint_action = [
-						int(hit_pos_in_cells.x),
-						int(hit_pos_in_cells.y)
-					]
-					
+					_brush.paint_input(hit_pos_in_cells)
 					captured_event = true
 
 		# This is in case the data or textures change as the user edits the terrain,
@@ -459,69 +457,98 @@ func forward_spatial_gui_input(p_camera: Camera, p_event: InputEvent) -> bool:
 	return captured_event
 
 
-func _process(delta):
-	var has_data = false
-	
-	if _node != null:
-		if _pending_paint_action != null:
-			var override_mode = -1
-			_brush.paint(_node, _pending_paint_action[0], _pending_paint_action[1], override_mode)
+func _process(delta: float):
+	if _node == null:
+		return
 
-		if _pending_paint_completed:
-			_paint_completed()
-		
-		has_data = (_node.get_data() != null)
+	var has_data = (_node.get_data() != null)
+	
+	if _pending_paint_commit:
+		if has_data:
+			if _brush.has_modified_chunks() and not _brush.is_operation_pending():
+				_pending_paint_commit = false
+				_logger.debug("Paint completed")
+				var changes : Dictionary = _brush.commit()
+				_paint_completed(changes)
+		else:
+			_pending_paint_commit = false
 	
 	# Poll presence of data resource
 	if has_data != _terrain_had_data_previous_frame:
 		_terrain_had_data_previous_frame = has_data
 		_update_toolbar_menu_availability()
 
-	_pending_paint_completed = false
-	_pending_paint_action = null
 
+func _paint_completed(changes: Dictionary):
+	var time_before = OS.get_ticks_msec()
 
-func _paint_completed():
 	var heightmap_data = _node.get_data()
 	assert(heightmap_data != null)
 	
-	if not _brush._edit_has_undo_data():
-		# Painted nothing
-		return
+	var chunk_positions : Array = changes.chunk_positions
+	var changed_maps : Array = changes.maps
 	
-	var ur_data = _brush._edit_pop_undo_redo_data(heightmap_data)
-	var ur = get_undo_redo()
-	
-	var action_name := "Modify HeightMapData "
-	for i in len(ur_data.undo):
-		var map_info = ur_data.undo[i]
-		var map_debug_name = HTerrainData.get_map_debug_name(map_info.map_type, map_info.map_index)
+	var action_name := "Modify HTerrainData "
+	for i in len(changed_maps):
+		var mm = changed_maps[i]
+		var map_debug_name := HTerrainData.get_map_debug_name(mm.map_type, mm.map_index)
 		if i > 0:
 			action_name += " and "
 		action_name += map_debug_name
+
+	var redo_maps := []
+	var undo_maps := []
+	var chunk_size := _brush.get_undo_chunk_size()
 	
-	# Cache images to disk so RAM does not continuously go up (or at least much slower)
-	for maps_info in [ur_data.undo, ur_data.redo]:
-		for map_info in maps_info:
-			var chunk_list : Array = map_info.chunks
-			for i in len(chunk_list):
-				var im: Image = chunk_list[i]
-				chunk_list[i] = _image_cache.save_image(im)
+	for map in changed_maps:
+		# Cache images to disk so RAM does not continuously go up (or at least much slower)
+		for chunks in [map.chunk_initial_datas, map.chunk_final_datas]:
+			for i in len(chunks):
+				var im : Image = chunks[i]
+				chunks[i] = _image_cache.save_image(im)
+		
+		redo_maps.append({
+			"map_type": map.map_type,
+			"map_index": map.map_index,
+			"chunks": map.chunk_final_datas
+		})
+		undo_maps.append({
+			"map_type": map.map_type,
+			"map_index": map.map_index,
+			"chunks": map.chunk_initial_datas
+		})
 	
 	var undo_data := {
-		"chunk_positions": ur_data.chunk_positions,
-		"data": ur_data.redo,
-		"chunk_size": ur_data.chunk_size
+		"chunk_positions": chunk_positions,
+		"chunk_size": chunk_size,
+		"maps": undo_maps
 	}
 	var redo_data := {
-		"chunk_positions": ur_data.chunk_positions,
-		"data": ur_data.undo,
-		"chunk_size": ur_data.chunk_size
+		"chunk_positions": chunk_positions,
+		"chunk_size": chunk_size,
+		"maps": redo_maps
 	}
+	
+#	{
+#		chunk_positions: [Vector2, Vector2, ...]
+#		chunk_size: int
+#		maps: [
+#			{
+#				map_type: int
+#				map_index: int
+#				chunks: [
+#					int, int, ...
+#				]
+#			},
+#			...
+#		]
+#	}
+
+	var ur := get_undo_redo()
 
 	ur.create_action(action_name)
-	ur.add_do_method(heightmap_data, "_edit_apply_undo", undo_data, _image_cache)
-	ur.add_undo_method(heightmap_data, "_edit_apply_undo", redo_data, _image_cache)
+	ur.add_do_method(heightmap_data, "_edit_apply_undo", redo_data, _image_cache)
+	ur.add_undo_method(heightmap_data, "_edit_apply_undo", undo_data, _image_cache)
 
 	# Small hack here:
 	# commit_actions executes the do method, however terrain modifications are heavy ones,
@@ -532,7 +559,10 @@ func _paint_completed():
 	ur.commit_action()
 	heightmap_data._edit_set_disable_apply_undo(false)
 	
-	_logger.debug(action_name)
+	var time_spent = OS.get_ticks_msec() - time_before
+	print("Spent ", time_spent, "ms to complete painting")
+
+	_logger.debug(str(action_name, " | ", len(chunk_positions), " chunks"))
 
 
 func _terrain_exited_scene():
@@ -655,7 +685,7 @@ static func get_size_from_raw_length(flen: int):
 	return int(side_len)
 
 
-func _terrain_progress_notified(info):
+func _terrain_progress_notified(info: Dictionary):
 	if info.has("finished") and info.finished:
 		_progress_window.hide()
 	
@@ -699,6 +729,10 @@ func _on_permanent_change_performed(message: String):
 	ur.add_do_method(data, "_dummy_function")
 	#ur.add_undo_method(data, "_dummy_function")
 	ur.commit_action()
+
+
+func _on_brush_changed():
+	_brush_decal.set_size(_brush.get_brush_size())
 
 
 ################
