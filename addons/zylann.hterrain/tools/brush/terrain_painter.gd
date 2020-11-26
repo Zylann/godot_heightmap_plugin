@@ -6,6 +6,13 @@ const HTerrainData = preload("../../hterrain_data.gd")
 const Logger = preload("../../util/logger.gd")
 
 const RaiseShader = preload("./shaders/raise.shader")
+const SmoothShader = preload("./shaders/smooth.shader")
+const LevelShader = preload("./shaders/level.shader")
+const FlattenShader = preload("./shaders/flatten.shader")
+const Splat4Shader = preload("./shaders/splat4.shader")
+const SplatIndexedShader = preload("./shaders/splat_indexed.shader")
+const ColorShader = preload("./shaders/color.shader")
+const AlphaShader = preload("./shaders/alpha.shader")
 
 const MODE_RAISE = 0
 const MODE_LOWER = 1
@@ -26,16 +33,17 @@ class ModifiedMap:
 signal changed
 
 var _painters := []
+
 var _brush_size := 32
 var _opacity := 1.0
 var _color := Color(1, 0, 0, 1)
-# When true, we draw holes. When unchecked, we clear holes
 var _mask_flag := false
 var _mode := MODE_RAISE
 var _flatten_height := 0.0
 var _detail_index := 0
 var _detail_density := 1.0
 var _texture_index := 0
+
 var _modified_maps := []
 var _terrain : HTerrain
 var _logger = Logger.get_for(self)
@@ -44,6 +52,8 @@ var _logger = Logger.get_for(self)
 func _init():
 	for i in 4:
 		var p = Painter.new()
+		# The name is just for debugging
+		p.set_name(str("Painter", i))
 		p.set_brush_size(_brush_size)
 		p.connect("texture_region_changed", self, "_on_painter_texture_region_changed", [i])
 		add_child(p)
@@ -61,6 +71,11 @@ func set_brush_size(s: int):
 	for p in _painters:
 		p.set_brush_size(_brush_size)
 	emit_signal("changed")
+
+
+func set_brush_texture(texture: Texture):
+	for p in _painters:
+		p.set_brush_texture(texture)
 
 
 func get_opacity() -> float:
@@ -104,6 +119,14 @@ func set_detail_density(d: float):
 
 func get_detail_density() -> float:
 	return _detail_density
+
+
+func set_texture_index(i: int):
+	_texture_index = i
+
+
+func get_texture_index() -> int:
+	return _texture_index
 
 
 func is_operation_pending() -> bool:
@@ -179,6 +202,7 @@ func set_terrain(terrain: HTerrain):
 	# next time we reopen the scene, even if we didn't save it
 	for p in _painters:
 		p.set_image(null, null)
+		p.clear_brush_shader_params()
 
 
 # This may be called from an `_input` callback
@@ -261,45 +285,207 @@ func _paint_height(data: HTerrainData, position: Vector2, factor: float):
 
 
 func _paint_smooth(data: HTerrainData, position: Vector2):
-	var delta := _opacity * 1.0 / 60.0
-	_modified_maps = [[HTerrainData.CHANNEL_HEIGHT, 0]]
-	# TODO
-	pass
+	var image = data.get_image(HTerrainData.CHANNEL_HEIGHT)
+	var texture = data.get_texture(HTerrainData.CHANNEL_HEIGHT, 0, true)
+	
+	var mm = ModifiedMap.new()
+	mm.map_type = HTerrainData.CHANNEL_HEIGHT
+	mm.map_index = 0
+	mm.painter_index = 0
+	_modified_maps = [mm]
+
+	var p : Painter = _painters[0]
+	
+	p.set_brush_shader(SmoothShader)
+	p.set_brush_shader_param("u_factor", _opacity * (10.0 / 60.0))
+	p.set_image(image, texture)
+	p.paint_input(position)
 
 
 func _paint_flatten(data: HTerrainData, position: Vector2):
-	_modified_maps = [[HTerrainData.CHANNEL_HEIGHT, 0]]
+	var image = data.get_image(HTerrainData.CHANNEL_HEIGHT)
+	var texture = data.get_texture(HTerrainData.CHANNEL_HEIGHT, 0, true)
 	
-	# TODO
-	pass
+	var mm = ModifiedMap.new()
+	mm.map_type = HTerrainData.CHANNEL_HEIGHT
+	mm.map_index = 0
+	mm.painter_index = 0
+	_modified_maps = [mm]
+
+	var p : Painter = _painters[0]
+	
+	p.set_brush_shader(FlattenShader)
+	p.set_brush_shader_param("u_factor", _opacity)
+	p.set_brush_shader_param("u_flatten_value", _flatten_height)
+	p.set_image(image, texture)
+	p.paint_input(position)
 
 
 func _paint_level(data: HTerrainData, position: Vector2):
-	_modified_maps = [[HTerrainData.CHANNEL_HEIGHT, 0]]
-	# TODO
-	pass
+	var image = data.get_image(HTerrainData.CHANNEL_HEIGHT)
+	var texture = data.get_texture(HTerrainData.CHANNEL_HEIGHT, 0, true)
+	
+	var mm = ModifiedMap.new()
+	mm.map_type = HTerrainData.CHANNEL_HEIGHT
+	mm.map_index = 0
+	mm.painter_index = 0
+	_modified_maps = [mm]
+
+	var p : Painter = _painters[0]
+	
+	p.set_brush_shader(LevelShader)
+	p.set_brush_shader_param("u_factor", _opacity * (10.0 / 60.0))
+	p.set_image(image, texture)
+	p.paint_input(position)
 
 
 func _paint_splat_classic4(data: HTerrainData, position: Vector2):
-	# TODO
-	pass
+	var image = data.get_image(HTerrainData.CHANNEL_SPLAT)
+	var texture = data.get_texture(HTerrainData.CHANNEL_SPLAT, 0, true)
+	
+	var mm = ModifiedMap.new()
+	mm.map_type = HTerrainData.CHANNEL_SPLAT
+	mm.map_index = 0
+	mm.painter_index = 0
+	_modified_maps = [mm]
+
+	var p : Painter = _painters[0]
+	var splat = Color(0.0, 0.0, 0.0, 0.0)
+	splat[_texture_index] = 1.0;
+	
+	p.set_brush_shader(Splat4Shader)
+	p.set_brush_shader_param("u_factor", _opacity)
+	p.set_brush_shader_param("u_splat", splat)
+	p.set_image(image, texture)
+	p.paint_input(position)
 
 
 func _paint_splat_indexed(data: HTerrainData, position: Vector2):
-	# TODO
-	pass
+	var map_types = [
+		HTerrainData.CHANNEL_SPLAT_INDEX, 
+		HTerrainData.CHANNEL_SPLAT_WEIGHT
+	]
+	_modified_maps = []
+
+	var textures = []
+	for mode in 2:
+		textures.append(data.get_texture(map_types[mode], 0, true))
+
+	for mode in 2:
+		var image = data.get_image(map_types[mode])
+		
+		var mm = ModifiedMap.new()
+		mm.map_type = map_types[mode]
+		mm.map_index = 0
+		mm.painter_index = mode
+		_modified_maps.append(mm)
+
+		var p : Painter = _painters[mode]
+
+		p.set_brush_shader(SplatIndexedShader)
+		p.set_brush_shader_param("u_mode", mode)
+		p.set_brush_shader_param("u_factor", _opacity)
+		p.set_brush_shader_param("u_index_map", textures[0])
+		p.set_brush_shader_param("u_weight_map", textures[1])
+		p.set_brush_shader_param("u_texture_index", _texture_index)
+		p.set_image(image, textures[mode])
+		p.paint_input(position)
+
+
+#func _paint_splat16(data: HTerrainData, position: Vector2):
+#	var splats := []
+#	for i in 4:
+#		splats.append(Color(0.0, 0.0, 0.0, 0.0))
+#	splats[_texture_index / 4][_texture_index % 4] = 1.0
+#
+#	var textures := []
+#	for i in 4:
+#		textures.append(data.get_texture(HTerrainData.CHANNEL_SPLAT, i, true))
+#
+#	for i in 4:
+#		var image : Image = data.get_image(HTerrainData.CHANNEL_SPLAT)
+#		var texture : Texture = textures[i]
+#		
+#		var mm := ModifiedMap.new()
+#		mm.map_type = HTerrainData.CHANNEL_SPLAT
+#		mm.map_index = i
+#		mm.painter_index = i
+#		_modified_maps = [mm]
+#
+#		var p : Painter = _painters[0]
+#
+#		var other_splatmaps = []
+#		for tex in textures:
+#			if tex != texture:
+#				other_splatmaps.append(tex)
+#		
+#		p.set_brush_shader(Splat16Shader)
+#		p.set_brush_shader_param("u_factor", _opacity)
+#		p.set_brush_shader_param("u_splat", splats[i])
+#		p.set_brush_shader_param("u_other_splatmap_1", other_splatmaps[0])
+#		p.set_brush_shader_param("u_other_splatmap_2", other_splatmaps[1])
+#		p.set_brush_shader_param("u_other_splatmap_3", other_splatmaps[2])
+#		p.set_image(image, texture)
+#		p.paint_input(position)
 
 
 func _paint_color(data: HTerrainData, position: Vector2):
-	# TODO
-	pass
+	var image = data.get_image(HTerrainData.CHANNEL_COLOR)
+	var texture = data.get_texture(HTerrainData.CHANNEL_COLOR, 0, true)
+	
+	var mm = ModifiedMap.new()
+	mm.map_type = HTerrainData.CHANNEL_COLOR
+	mm.map_index = 0
+	mm.painter_index = 0
+	_modified_maps = [mm]
+
+	var p : Painter = _painters[0]
+	
+	# There was a problem with painting colors because of sRGB
+	# https://github.com/Zylann/godot_heightmap_plugin/issues/17#issuecomment-734001879
+
+	p.set_brush_shader(ColorShader)
+	p.set_brush_shader_param("u_factor", _opacity)
+	p.set_brush_shader_param("u_color", _color)
+	p.set_image(image, texture)
+	p.paint_input(position)
 
 
 func _paint_mask(data: HTerrainData, position: Vector2):
-	# TODO
-	pass
+	var image = data.get_image(HTerrainData.CHANNEL_COLOR)
+	var texture = data.get_texture(HTerrainData.CHANNEL_COLOR, 0, true)
+	
+	var mm = ModifiedMap.new()
+	mm.map_type = HTerrainData.CHANNEL_COLOR
+	mm.map_index = 0
+	mm.painter_index = 0
+	_modified_maps = [mm]
+
+	var p : Painter = _painters[0]
+	
+	p.set_brush_shader(AlphaShader)
+	p.set_brush_shader_param("u_factor", _opacity)
+	p.set_brush_shader_param("u_value", 1.0 if _mask_flag else 0.0)
+	p.set_image(image, texture)
+	p.paint_input(position)
 
 
 func _paint_detail(data: HTerrainData, position: Vector2):
-	# TODO
-	pass
+	var image = data.get_image(HTerrainData.CHANNEL_DETAIL)
+	var texture = data.get_texture(HTerrainData.CHANNEL_DETAIL, _detail_index, true)
+	
+	var mm = ModifiedMap.new()
+	mm.map_type = HTerrainData.CHANNEL_DETAIL
+	mm.map_index = _detail_index
+	mm.painter_index = 0
+	_modified_maps = [mm]
+
+	var p : Painter = _painters[0]
+	var c := Color(_detail_density, _detail_density, _detail_density, 1.0)
+	
+	# TODO Don't use this shader
+	p.set_brush_shader(ColorShader)
+	p.set_brush_shader_param("u_factor", _opacity)
+	p.set_brush_shader_param("u_color", c)
+	p.set_image(image, texture)
+	p.paint_input(position)

@@ -5,7 +5,9 @@ shader_type spatial;
 
 uniform sampler2D u_terrain_heightmap;
 uniform sampler2D u_terrain_normalmap;
-uniform sampler2D u_terrain_colormap : hint_albedo;
+// I had to remove `hint_albedo` from colormap because it makes sRGB conversion kick in,
+// which snowballs to black when doing GPU painting on that texture...
+uniform sampler2D u_terrain_colormap;// : hint_albedo;
 uniform sampler2D u_terrain_splatmap;
 uniform mat4 u_terrain_inverse_transform;
 uniform mat3 u_terrain_normal_basis;

@@ -15,6 +15,7 @@ const Logger = preload("../../util/logger.gd")
 const Util = preload("../../util/util.gd")
 
 const UNDO_CHUNK_SIZE = 64
+const BRUSH_TEXTURE_SHADER_PARAM = "u_brush_texture"
 
 # Emitted when a region of the painted texture actually changed.
 # Note 1: the image might not have changed yet at this point.
@@ -45,6 +46,7 @@ var _viewport : Viewport
 var _viewport_sprite : Sprite
 var _brush_size := 32
 var _brush_position := Vector2()
+var _brush_texture : Texture
 var _last_brush_position := Vector2()
 var _brush_material := ShaderMaterial.new()
 var _image : Image
@@ -52,6 +54,7 @@ var _texture : ImageTexture
 var _cmd_paint := false
 var _pending_paint_render := false
 var _modified_chunks := {}
+var _modified_shader_params := {}
 
 var _debug_display : TextureRect
 var _logger = Logger.get_for(self)
@@ -102,13 +105,24 @@ func get_brush_size() -> int:
 	return _brush_size
 
 
+func set_brush_texture(texture: Texture):
+	_brush_material.set_shader_param(BRUSH_TEXTURE_SHADER_PARAM, texture)
+
+
 func set_brush_shader(shader: Shader):
 	if _brush_material.shader != shader:
 		_brush_material.shader = shader
 
 
 func set_brush_shader_param(p: String, v):
+	_modified_shader_params[p] = true
 	_brush_material.set_shader_param(p, v)
+
+
+func clear_brush_shader_params():
+	for key in _modified_shader_params:
+		_brush_material.set_shader_param(key, null)
+	_modified_shader_params.clear()
 
 
 # You must call this from an `_input` function or similar.
@@ -125,6 +139,14 @@ func paint_input(center_pos: Vector2):
 	_viewport_sprite.position = -brush_pos
 	_brush_position = brush_pos
 	_cmd_paint = true
+
+	# Using a Color because Godot doesn't understand vec4
+	var rect := Color()
+	rect.r = brush_pos.x / _texture.get_width()
+	rect.g = brush_pos.y / _texture.get_height()
+	rect.b = _brush_size / _texture.get_width()
+	rect.a = _brush_size / _texture.get_height()
+	_brush_material.set_shader_param("u_texture_rect", rect)
 
 
 # Don't commit until this is false
@@ -232,6 +254,17 @@ func _commit_modified_chunks() -> Dictionary:
 		"chunk_initial_datas": chunks_initial_data,
 		"chunk_final_datas": chunks_final_data
 	}
+
+
+# DEBUG
+#func _input(event):
+#	if event is InputEventKey:
+#		if event.pressed:
+#			if event.control and event.scancode == KEY_SPACE:
+#				print("Saving painter viewport ", name)
+#				var im = _viewport.get_texture().get_data()
+#				im.convert(Image.FORMAT_RGBA8)
+#				im.save_png(str("test_painter_viewport_", name, ".png"))
 
 
 #static func _image_equals(im_a: Image, im_b: Image) -> bool:

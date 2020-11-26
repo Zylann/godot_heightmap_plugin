@@ -3,7 +3,9 @@ shader_type spatial;
 // This shader is used to bake the global albedo map.
 // It exposes a subset of the main shader API, so uniform names were not modified.
 
-uniform sampler2D u_terrain_colormap : hint_albedo;
+// I had to remove `hint_albedo` from colormap because it makes sRGB conversion kick in,
+// which snowballs to black when doing GPU painting on that texture...
+uniform sampler2D u_terrain_colormap;// : hint_albedo;
 uniform sampler2D u_terrain_splatmap;
 
 uniform sampler2D u_ground_albedo_bump_0 : hint_albedo;

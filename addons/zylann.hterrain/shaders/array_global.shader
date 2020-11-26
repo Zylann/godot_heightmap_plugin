@@ -3,7 +3,9 @@
 
 shader_type spatial;
 
-uniform sampler2D u_terrain_colormap : hint_albedo;
+// I had to remove `hint_albedo` from colormap because it makes sRGB conversion kick in,
+// which snowballs to black when doing GPU painting on that texture...
+uniform sampler2D u_terrain_colormap;
 uniform sampler2D u_terrain_splat_index_map;
 uniform sampler2D u_terrain_splat_weight_map;
 

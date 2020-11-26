@@ -211,6 +211,9 @@ func _set_brush_shape_from_file(path: String):
 			.format([path, Errors.get_message(err)]))
 		return
 
+	var tex := ImageTexture.new()
+	tex.create_from_image(im, Texture.FLAG_FILTER)
+
 	if _brush != null:
 		var im2 := im
 		var v := Engine.get_version_info()
@@ -219,13 +222,9 @@ func _set_brush_shape_from_file(path: String):
 			# due to https://github.com/godotengine/godot/issues/24244
 			if path.find(SHAPES_DIR.plus_file(DEFAULT_BRUSH)) != -1:
 				im2 = null
+		
+		_brush.set_brush_texture(tex)
 
-		# TODO Implement image brushes in Painter
-		_logger.error("_set_brush_shape_from_file: Not implemented")
-		#_brush.set_shape(im2)
-
-	var tex := ImageTexture.new()
-	tex.create_from_image(im, Texture.FLAG_FILTER)
 	_shape_texture_rect.texture = tex
 
 
