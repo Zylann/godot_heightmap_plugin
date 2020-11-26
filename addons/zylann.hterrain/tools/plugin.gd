@@ -154,6 +154,7 @@ func _enter_tree():
 	mode_icons[Brush.MODE_DETAIL] = get_icon("grass")
 	mode_icons[Brush.MODE_MASK] = get_icon("heightmap_mask")
 	mode_icons[Brush.MODE_LEVEL] = get_icon("heightmap_level")
+	mode_icons[Brush.MODE_ERODE] = get_icon("heightmap_erode")
 	
 	var mode_tooltips := {}
 	mode_tooltips[Brush.MODE_RAISE] = "Raise height"
@@ -165,6 +166,7 @@ func _enter_tree():
 	mode_tooltips[Brush.MODE_DETAIL] = "Grass paint"
 	mode_tooltips[Brush.MODE_MASK] = "Cut holes"
 	mode_tooltips[Brush.MODE_LEVEL] = "Level (smoothly flattens to average)"
+	mode_tooltips[Brush.MODE_ERODE] = "Erode"
 	
 	_toolbar.add_child(VSeparator.new())
 	
@@ -175,6 +177,7 @@ func _enter_tree():
 		Brush.MODE_SMOOTH,
 		Brush.MODE_LEVEL,
 		Brush.MODE_FLATTEN,
+		Brush.MODE_ERODE,
 		Brush.MODE_SPLAT,
 		Brush.MODE_COLOR,
 		Brush.MODE_DETAIL,

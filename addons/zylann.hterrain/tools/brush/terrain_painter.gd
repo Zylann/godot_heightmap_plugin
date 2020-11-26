@@ -9,6 +9,7 @@ const RaiseShader = preload("./shaders/raise.shader")
 const SmoothShader = preload("./shaders/smooth.shader")
 const LevelShader = preload("./shaders/level.shader")
 const FlattenShader = preload("./shaders/flatten.shader")
+const ErodeShader = preload("./shaders/erode.shader")
 const Splat4Shader = preload("./shaders/splat4.shader")
 const SplatIndexedShader = preload("./shaders/splat_indexed.shader")
 const ColorShader = preload("./shaders/color.shader")
@@ -23,7 +24,8 @@ const MODE_COLOR = 5
 const MODE_MASK = 6
 const MODE_DETAIL = 7
 const MODE_LEVEL = 8
-const MODE_COUNT = 9
+const MODE_ERODE = 9
+const MODE_COUNT = 10
 
 class ModifiedMap:
 	var map_type := 0
@@ -228,6 +230,9 @@ func paint_input(position: Vector2):
 
 		MODE_LEVEL:
 			_paint_level(data, position)
+			
+		MODE_ERODE:
+			_paint_erode(data, position)
 
 		MODE_SPLAT:
 			var use_indexed_splat := _terrain.is_using_texture_array()
@@ -244,7 +249,7 @@ func paint_input(position: Vector2):
 
 		MODE_DETAIL:
 			_paint_mask(data, position)
-			
+					
 		_:
 			_logger.error("Unknown mode {0}".format([_mode]))
 
@@ -335,6 +340,24 @@ func _paint_level(data: HTerrainData, position: Vector2):
 	
 	p.set_brush_shader(LevelShader)
 	p.set_brush_shader_param("u_factor", _opacity * (10.0 / 60.0))
+	p.set_image(image, texture)
+	p.paint_input(position)
+
+
+func _paint_erode(data: HTerrainData, position: Vector2):
+	var image = data.get_image(HTerrainData.CHANNEL_HEIGHT)
+	var texture = data.get_texture(HTerrainData.CHANNEL_HEIGHT, 0, true)
+	
+	var mm = ModifiedMap.new()
+	mm.map_type = HTerrainData.CHANNEL_HEIGHT
+	mm.map_index = 0
+	mm.painter_index = 0
+	_modified_maps = [mm]
+
+	var p : Painter = _painters[0]
+	
+	p.set_brush_shader(ErodeShader)
+	p.set_brush_shader_param("u_factor", _opacity)
 	p.set_image(image, texture)
 	p.paint_input(position)
 
