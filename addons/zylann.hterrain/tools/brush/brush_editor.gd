@@ -3,7 +3,7 @@ extends Control
 
 const Brush = preload("./terrain_painter.gd")
 const Errors = preload("../../util/errors.gd")
-const NativeFactory = preload("../../native/factory.gd")
+#const NativeFactory = preload("../../native/factory.gd")
 const Logger = preload("../../util/logger.gd")
 
 const SHAPES_DIR = "addons/zylann.hterrain/tools/brush/shapes"
@@ -58,10 +58,11 @@ func _ready():
 	_density_slider.connect("value_changed", self, "_on_density_slider_changed")
 	_holes_checkbox.connect("toggled", self, "_on_holes_checkbox_toggled")
 	
-	if NativeFactory.is_native_available():
-		_size_slider.max_value = 200
-	else:
-		_size_slider.max_value = 50
+	_size_slider.max_value = 200
+	#if NativeFactory.is_native_available():
+	#	_size_slider.max_value = 200
+	#else:
+	#	_size_slider.max_value = 50
 
 
 func setup_dialogs(base_control: Control):
