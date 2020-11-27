@@ -16,7 +16,7 @@ const ImageFileCache = preload("./util/image_file_cache.gd")
 # TODO Rename "CHANNEL" to "MAP", makes more sense and less confusing with RGBA channels
 const CHANNEL_HEIGHT = 0
 const CHANNEL_NORMAL = 1
-const CHANNEL_SPLAT = 2 # Legacy type for Classic4 RGBA blending
+const CHANNEL_SPLAT = 2
 const CHANNEL_COLOR = 3
 const CHANNEL_DETAIL = 4
 const CHANNEL_GLOBAL_ALBEDO = 5
@@ -1465,11 +1465,12 @@ static func _get_xz(v: Vector3) -> Vector2:
 
 class _CellRaycastContext:
 	var begin_pos := Vector3()
-	var _cell_begin_pos := Vector3()
+	var _cell_begin_pos_y := 0.0
+	var _cell_begin_pos_2d := Vector2()
 	var dir := Vector3()
 	var dir_2d := Vector2()
 	var vertical_bounds : Image
-	var hit = null
+	var hit = null # Vector3
 	var heightmap : Image
 	var cell_cb_funcref : FuncRef
 	var broad_param_2d_to_3d := 1.0
@@ -1493,18 +1494,42 @@ class _CellRaycastContext:
 		# through terrain cells
 		var distance_in_chunk_2d := (exit_param - enter_param) * VERTICAL_BOUNDS_CHUNK_SIZE
 		var cell_ray_origin_2d := Vector2(begin.x, begin.z)
-		_cell_begin_pos = begin
-		hit = Util.grid_raytrace_2d(
+		_cell_begin_pos_y = begin.y
+		_cell_begin_pos_2d = cell_ray_origin_2d
+		var rhit = Util.grid_raytrace_2d(
 			cell_ray_origin_2d, dir_2d, cell_cb_funcref, distance_in_chunk_2d)
-		return hit != null
+		return rhit != null
 	
 	func cell_cb(cx: int, cz: int, enter_param: float, exit_param: float) -> bool:
-		var enter_y := _cell_begin_pos.y + dir.y * enter_param * cell_param_2d_to_3d
-		var exit_y := _cell_begin_pos.y + dir.y * exit_param * cell_param_2d_to_3d
-		var h := Util.get_pixel_clamped(heightmap, cx, cz).r
-		#_spawn_box(Vector3(cx, enter_y, cz), 0.2)
-		# Note: we only consider rays going down the terrain, not up
-		return enter_y <= h
+		var enter_pos := _cell_begin_pos_2d + dir_2d * enter_param
+		#var exit_pos := _cell_begin_pos_2d + dir_2d * exit_param
+
+		var enter_y := _cell_begin_pos_y + dir.y * enter_param * cell_param_2d_to_3d
+		var exit_y := _cell_begin_pos_y + dir.y * exit_param * cell_param_2d_to_3d
+
+		hit = _intersect_cell(heightmap, cx, cz, Vector3(enter_pos.x, enter_y, enter_pos.y), dir)
+
+		return hit != null
+
+	static func _intersect_cell(heightmap: Image, cx: int, cz: int,
+		begin_pos: Vector3, dir: Vector3):
+
+		var h00 := Util.get_pixel_clamped(heightmap, cx,     cz).r
+		var h10 := Util.get_pixel_clamped(heightmap, cx + 1, cz).r
+		var h01 := Util.get_pixel_clamped(heightmap, cx,     cz + 1).r
+		var h11 := Util.get_pixel_clamped(heightmap, cx + 1, cz + 1).r
+
+		var p00 := Vector3(cx,     h00, cz)
+		var p10 := Vector3(cx + 1, h10, cz)
+		var p01 := Vector3(cx,     h01, cz + 1)
+		var p11 := Vector3(cx + 1, h11, cz + 1)
+
+		var th0 = Geometry.ray_intersects_triangle(begin_pos, dir, p00, p10, p11)
+		var th1 = Geometry.ray_intersects_triangle(begin_pos, dir, p00, p11, p01)
+
+		if th0 != null:
+			return th0
+		return th1
 
 #	func _spawn_box(pos: Vector3, r: float):
 #		if not Input.is_key_pressed(KEY_CONTROL):
@@ -1517,6 +1542,10 @@ class _CellRaycastContext:
 #		mi.owner = dbg.get_tree().edited_scene_root
 
 
+# Raycasts heightmap image directly without using a collider.
+# The coordinate system is such that Y is up, terrain minimum corner is at (0, 0),
+# and one heightmap pixel is one space unit.
+# TODO Cannot hint as `-> Vector2` because it can be null if there is no hit
 func cell_raycast(ray_origin: Vector3, ray_direction: Vector3, max_distance: float):
 	var heightmap := get_image(CHANNEL_HEIGHT)
 	if heightmap == null:
@@ -1573,8 +1602,8 @@ func cell_raycast(ray_origin: Vector3, ray_direction: Vector3, max_distance: flo
 	if hit_bp == null:
 		# No hit
 		return null
-	
-	return ctx.hit.hit_cell_pos
+
+	return Vector2(ctx.hit.x, ctx.hit.z)
 
 
 static func encode_normal(n: Vector3) -> Color:
