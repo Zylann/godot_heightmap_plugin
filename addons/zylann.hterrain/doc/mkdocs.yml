@@ -1,0 +1,10 @@
+site_name: HTerrain plugin documentation
+theme: readthedocs
+markdown_extensions:
+    # Makes permalinks appear on headings
+    - toc:
+        permalink: True
+    # Makes boxes for notes and warnings
+    - admonition
+    # Better highlighter which supports GDScript
+    - codehilite
