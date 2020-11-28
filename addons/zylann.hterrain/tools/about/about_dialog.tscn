@@ -1,0 +1,102 @@
+[gd_scene load_steps=4 format=2]
+
+[ext_resource path="res://addons/zylann.hterrain/tools/about/about_dialog.gd" type="Script" id=1]
+[ext_resource path="res://addons/zylann.hterrain/tools/icons/icon_heightmap_node_large.svg" type="Texture" id=2]
+[ext_resource path="res://addons/zylann.hterrain/tools/util/rich_text_label_hyperlinks.gd" type="Script" id=3]
+
+[node name="AboutDialog" type="WindowDialog"]
+margin_right = 630.0
+margin_bottom = 250.0
+rect_min_size = Vector2( 630, 250 )
+window_title = "About the HTerrain plugin"
+resizable = true
+script = ExtResource( 1 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="VB" type="VBoxContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 8.0
+margin_top = 8.0
+margin_right = -8.0
+margin_bottom = -8.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="HB2" type="HBoxContainer" parent="VB"]
+margin_right = 614.0
+margin_bottom = 210.0
+size_flags_vertical = 3
+
+[node name="TextureRect" type="TextureRect" parent="VB/HB2"]
+margin_right = 128.0
+margin_bottom = 210.0
+texture = ExtResource( 2 )
+
+[node name="TC" type="TabContainer" parent="VB/HB2"]
+margin_left = 132.0
+margin_right = 614.0
+margin_bottom = 210.0
+size_flags_horizontal = 3
+tab_align = 0
+
+[node name="About" type="RichTextLabel" parent="VB/HB2/TC"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 4.0
+margin_top = 32.0
+margin_right = -4.0
+margin_bottom = -4.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+bbcode_enabled = true
+bbcode_text = "[b]Version:[/b] {version}
+[b]Author:[/b] Marc Gilleron
+[b]Repository:[/b] [url]https://github.com/Zylann/godot_heightmap_plugin[/url]
+[b]Issue tracker:[/b] [url]https://github.com/Zylann/godot_heightmap_plugin/issues[/url]
+
+[b]Donors:[/b]
+wacyym
+Sergey Lapin (slapin)
+"
+text = "Version: --.--.--
+Author: Marc Gilleron
+Repository: https://github.com/Zylann/godot_heightmap_plugin
+Issue tracker: https://github.com/Zylann/godot_heightmap_plugin/issues
+
+Donors:
+wacyym
+"
+script = ExtResource( 3 )
+
+[node name="License" type="RichTextLabel" parent="VB/HB2/TC"]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 4.0
+margin_top = 32.0
+margin_right = -4.0
+margin_bottom = -4.0
+text = "Copyright (c) 2016-2020 Marc Gilleron
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+"
+
+[node name="HB" type="HBoxContainer" parent="VB"]
+margin_top = 214.0
+margin_right = 614.0
+margin_bottom = 234.0
+alignment = 1
+
+[node name="Ok" type="Button" parent="VB/HB"]
+margin_left = 292.0
+margin_right = 322.0
+margin_bottom = 20.0
+text = "Ok"

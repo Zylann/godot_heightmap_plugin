@@ -688,6 +688,8 @@ Several meshes are bundled with the plugin, which you can find in `res://addons/
 
 They are all thought for grass rendering. You can make your own for things that aren't grass, however there is no built-in shader for conventional objects at the moment (rocks, bits and bobs). So if you want normal shading you need to write a custom shader. That may be bundled too in the future.
 
+Note: detail meshes must be `Mesh` resources, so the easiest way is to use the `OBJ` format. If you use `GLTF` or `FBX`, Godot will import it as a scene by default, so you may have to configure it to import as single mesh if possible.
+
 
 Global map
 -------------

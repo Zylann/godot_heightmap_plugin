@@ -60,3 +60,17 @@ Here are some of the causes:
 - The procedural generator doesn't work, and likely never will in GLES2 because it relies on HDR framebuffers.
 
 - For more info, see https://github.com/Zylann/godot_heightmap_plugin/issues/96
+
+
+Supporters
+-----------
+
+This plugin is a non-profit project developped by voluntary contributors. The following is the list of the current donors.
+Thanks for your support :)
+
+### Supporters
+
+```
+- wacyym
+- Sergey Lapin (slapin)
+```

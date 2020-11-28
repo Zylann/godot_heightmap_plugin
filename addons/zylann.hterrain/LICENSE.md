@@ -1,5 +1,5 @@
 HeightMap terrain for Godot Engine
---------------------------------
+------------------------------------
 
 Copyright (c) 2016-2020 Marc Gilleron
 
