@@ -134,7 +134,7 @@ func paint_input(center_pos: Vector2):
 		_viewport.size = vp_size
 
 	# Need to floor the position in case the brush has an odd size
-	var brush_pos := (center_pos - Vector2(_brush_size, _brush_size) * 0.5).floor()
+	var brush_pos := (center_pos - Vector2(_brush_size, _brush_size) * 0.5).round()
 	_viewport.render_target_update_mode = Viewport.UPDATE_ONCE
 	_viewport_sprite.position = -brush_pos
 	_brush_position = brush_pos
