@@ -58,7 +58,6 @@ var _generate_mesh_dialog = null
 var _preview_generator = null
 var _resize_dialog = null
 var _about_dialog = null
-var _globalmap_baker = null
 var _menu_button : MenuButton
 var _lookdev_menu : PopupMenu
 var _texture_set_editor = null
