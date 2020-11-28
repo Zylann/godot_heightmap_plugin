@@ -6,6 +6,7 @@
 /.gitignore         export-ignore
 /.gitmodules        export-ignore
 /.github            export-ignore
+/.readthedocs       export-ignore
 /CHANGELOG.md       export-ignore
 /README.md          export-ignore
 /icon.png           export-ignore
