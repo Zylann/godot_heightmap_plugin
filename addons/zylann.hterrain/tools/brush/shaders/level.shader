@@ -5,6 +5,8 @@ uniform sampler2D u_brush_texture;
 uniform float u_factor = 1.0;
 uniform vec4 u_texture_rect;
 
+// TODO Could actually level to whatever height the brush was at the beginning of the stroke?
+
 void fragment() {
 	float brush_value = texture(u_brush_texture, SCREEN_UV).r;
 
