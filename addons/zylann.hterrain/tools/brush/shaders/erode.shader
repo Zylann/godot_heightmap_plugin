@@ -4,6 +4,10 @@ uniform sampler2D u_brush_texture;
 uniform float u_factor = 1.0;
 uniform vec4 u_color = vec4(1.0);
 
+// float get_noise(vec2 pos) {
+// 	return fract(sin(dot(pos.xy ,vec2(12.9898,78.233))) * 43758.5453);
+// }
+
 float erode(sampler2D heightmap, vec2 uv, vec2 pixel_size, float weight) {
 	float r = 3.0;
 	
@@ -39,7 +43,8 @@ float erode(sampler2D heightmap, vec2 uv, vec2 pixel_size, float weight) {
 }
 
 void fragment() {
-	float brush_value = texture(u_brush_texture, SCREEN_UV).r;
-	float ph = erode(TEXTURE, UV, TEXTURE_PIXEL_SIZE, u_factor * brush_value);
+	float brush_value = texture(u_brush_texture, SCREEN_UV).r * u_factor;
+	float ph = erode(TEXTURE, UV, TEXTURE_PIXEL_SIZE, brush_value);
+	//ph += brush_value * 0.35;
 	COLOR = vec4(ph, ph, ph, 1.0);
 }

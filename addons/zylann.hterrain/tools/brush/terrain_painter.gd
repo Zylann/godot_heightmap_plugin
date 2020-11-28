@@ -45,6 +45,8 @@ var _flatten_height := 0.0
 var _detail_index := 0
 var _detail_density := 1.0
 var _texture_index := 0
+var _slope_limit_low_angle := 0.0
+var _slope_limit_high_angle := PI / 2.0
 
 var _modified_maps := []
 var _terrain : HTerrain
@@ -129,6 +131,19 @@ func set_texture_index(i: int):
 
 func get_texture_index() -> int:
 	return _texture_index
+
+
+func get_slope_limit_low_angle() -> float:
+	return _slope_limit_low_angle
+
+
+func get_slope_limit_high_angle() -> float:
+	return _slope_limit_high_angle
+
+
+func set_slope_limit_angles(low: float, high: float):
+	_slope_limit_low_angle = low
+	_slope_limit_high_angle = high
 
 
 func is_operation_pending() -> bool:
@@ -239,7 +254,7 @@ func paint_input(position: Vector2):
 			if use_indexed_splat:
 				_paint_splat_indexed(data, position)
 			else:
-				_paint_splat_classic4(data, position)
+				_paint_splat4(data, position)
 
 		MODE_COLOR:
 			_paint_color(data, position)
@@ -362,9 +377,10 @@ func _paint_erode(data: HTerrainData, position: Vector2):
 	p.paint_input(position)
 
 
-func _paint_splat_classic4(data: HTerrainData, position: Vector2):
+func _paint_splat4(data: HTerrainData, position: Vector2):
 	var image = data.get_image(HTerrainData.CHANNEL_SPLAT)
 	var texture = data.get_texture(HTerrainData.CHANNEL_SPLAT, 0, true)
+	var heightmap_texture = data.get_texture(HTerrainData.CHANNEL_HEIGHT, 0)
 	
 	var mm = ModifiedMap.new()
 	mm.map_type = HTerrainData.CHANNEL_SPLAT
@@ -375,10 +391,13 @@ func _paint_splat_classic4(data: HTerrainData, position: Vector2):
 	var p : Painter = _painters[0]
 	var splat = Color(0.0, 0.0, 0.0, 0.0)
 	splat[_texture_index] = 1.0;
-	
+	print(_slope_limit_low_angle, ", ", _slope_limit_high_angle)
 	p.set_brush_shader(Splat4Shader)
 	p.set_brush_shader_param("u_factor", _opacity)
 	p.set_brush_shader_param("u_splat", splat)
+	p.set_brush_shader_param("u_normal_min_y", cos(_slope_limit_high_angle))
+	p.set_brush_shader_param("u_normal_max_y", cos(_slope_limit_low_angle) + 0.001)
+	p.set_brush_shader_param("u_heightmap", heightmap_texture)
 	p.set_image(image, texture)
 	p.paint_input(position)
 

@@ -32,6 +32,9 @@ onready var _density_label = $GridContainer/DensityLabel
 onready var _holes_label = $GridContainer/HoleLabel
 onready var _holes_checkbox = $GridContainer/HoleCheckbox
 
+onready var _slope_limit_label = $GridContainer/SlopeLimitLabel
+onready var _slope_limit_control = $GridContainer/SlopeLimit
+
 onready var _shape_texture_rect = get_node("BrushShapeButton/TextureRect")
 
 var _brush : Brush
@@ -41,7 +44,7 @@ var _logger = Logger.get_for(self)
 # TODO This is an ugly workaround for https://github.com/godotengine/godot/issues/19479
 onready var _temp_node = get_node("Temp")
 onready var _grid_container = get_node("GridContainer")
-func _set_visibility_of(node, v):
+func _set_visibility_of(node: Control, v: bool):
 	node.get_parent().remove_child(node)
 	if v:
 		_grid_container.add_child(node)
@@ -57,6 +60,7 @@ func _ready():
 	_color_picker.connect("color_changed", self, "_on_color_picker_color_changed")
 	_density_slider.connect("value_changed", self, "_on_density_slider_changed")
 	_holes_checkbox.connect("toggled", self, "_on_holes_checkbox_toggled")
+	_slope_limit_control.connect("changed", self, "_on_slope_limit_changed")
 	
 	_size_slider.max_value = 200
 	#if NativeFactory.is_native_available():
@@ -111,6 +115,10 @@ func set_brush(brush: Brush):
 		_color_picker.get_picker().color = brush.get_color()
 		_density_slider.value = brush.get_detail_density()
 		_holes_checkbox.pressed = not brush.get_mask_flag()
+		
+		var low = rad2deg(brush.get_slope_limit_low_angle())
+		var high = rad2deg(brush.get_slope_limit_high_angle())
+		_slope_limit_control.set_values(low, high)
 
 		set_display_mode(brush.get_mode())
 		_set_brush_shape_from_file(SHAPES_DIR.plus_file(DEFAULT_BRUSH))
@@ -124,11 +132,12 @@ func _on_brush_properties_changed():
 
 
 func set_display_mode(mode: int):
-	var show_flatten = mode == Brush.MODE_FLATTEN
-	var show_color = mode == Brush.MODE_COLOR
-	var show_density = mode == Brush.MODE_DETAIL
-	var show_opacity = mode != Brush.MODE_MASK
-	var show_holes = mode == Brush.MODE_MASK
+	var show_flatten := mode == Brush.MODE_FLATTEN
+	var show_color := mode == Brush.MODE_COLOR
+	var show_density := mode == Brush.MODE_DETAIL
+	var show_opacity := mode != Brush.MODE_MASK
+	var show_holes := mode == Brush.MODE_MASK
+	var show_slope_limit := mode == Brush.MODE_SPLAT
 
 	_set_visibility_of(_opacity_label, show_opacity)
 	_set_visibility_of(_opacity_control, show_opacity)
@@ -145,22 +154,10 @@ func set_display_mode(mode: int):
 	_set_visibility_of(_holes_label, show_holes)
 	_set_visibility_of(_holes_checkbox, show_holes)
 
-	_flatten_height_pick_button.pressed = false
+	_set_visibility_of(_slope_limit_label, show_slope_limit)
+	_set_visibility_of(_slope_limit_control, show_slope_limit)
 
-#	_opacity_label.visible = show_opacity
-#	_opacity_control.visible = show_opacity
-#
-#	_color_picker.visible = show_color
-#	_color_label.visible = show_color
-#
-#	_flatten_height_box.visible = show_flatten
-#	_flatten_height_label.visible = show_flatten
-#
-#	_density_label.visible = show_density
-#	_density_slider.visible = show_density
-#
-#	_holes_label.visible = show_holes
-#	_holes_checkbox.visible = show_holes
+	_flatten_height_pick_button.pressed = false
 
 
 func _on_size_slider_value_changed(v: float):
@@ -231,3 +228,9 @@ func _set_brush_shape_from_file(path: String):
 
 func _on_FlattenHeightPickButton_pressed():
 	_brush.set_meta("pick_height", true)
+
+
+func _on_slope_limit_changed():
+	var low = deg2rad(_slope_limit_control.get_low_value())
+	var high = deg2rad(_slope_limit_control.get_high_value())
+	_brush.set_slope_limit_angles(low, high)

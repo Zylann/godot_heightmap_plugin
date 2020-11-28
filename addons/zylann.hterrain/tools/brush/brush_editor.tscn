@@ -1,7 +1,8 @@
-[gd_scene load_steps=4 format=2]
+[gd_scene load_steps=5 format=2]
 
 [ext_resource path="res://addons/zylann.hterrain/tools/brush/brush_editor.gd" type="Script" id=1]
 [ext_resource path="res://addons/zylann.hterrain/tools/icons/empty.png" type="Texture" id=2]
+[ext_resource path="res://addons/zylann.hterrain/tools/util/interval_slider.gd" type="Script" id=3]
 
 [sub_resource type="CanvasItemMaterial" id=1]
 blend_mode = 1
@@ -60,8 +61,8 @@ size_flags_horizontal = 3
 size_flags_vertical = 1
 min_value = 2.0
 max_value = 200.0
-exp_edit = true
 value = 2.0
+exp_edit = true
 rounded = true
 
 [node name="Label" type="Label" parent="GridContainer/BrushSizeControl"]
@@ -167,6 +168,21 @@ margin_left = 93.0
 margin_top = 120.0
 margin_right = 246.0
 margin_bottom = 144.0
+
+[node name="SlopeLimitLabel" type="Label" parent="GridContainer"]
+margin_top = 149.0
+margin_right = 89.0
+margin_bottom = 163.0
+text = "Slope limit"
+
+[node name="SlopeLimit" type="Control" parent="GridContainer"]
+margin_left = 93.0
+margin_top = 148.0
+margin_right = 246.0
+margin_bottom = 164.0
+rect_min_size = Vector2( 0, 16 )
+script = ExtResource( 3 )
+range = Vector2( 0, 90 )
 
 [node name="Temp" type="Node" parent="."]
 [connection signal="pressed" from="BrushShapeButton" to="." method="_on_BrushShapeButton_pressed"]
