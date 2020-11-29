@@ -1,5 +1,6 @@
 site_name: HTerrain plugin documentation
 theme: readthedocs
+docs_dir: docs
 markdown_extensions:
     # Makes permalinks appear on headings
     - toc:
