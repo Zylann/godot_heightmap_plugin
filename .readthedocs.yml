@@ -1,4 +1,4 @@
 version: 2
 
 mkdocs:
-  configuration: addons/hterrain/doc/mkdocs.yml
+  configuration: addons/zylann.hterrain/doc/mkdocs.yml
