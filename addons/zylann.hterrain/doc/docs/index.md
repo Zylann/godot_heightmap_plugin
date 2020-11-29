@@ -11,6 +11,46 @@ It is entirely built on top of the `VisualServer` scripting API, which means it 
 ![Screenshot of the editor with the plugin enabled and arrows showing where UIs are](images/overview.png)
 
 
+### How to install
+
+You will need to use Godot 3.1 or later. It is best to use latest stable 3.x version (Godot 4 is not supported yet).
+
+#### Automatically
+
+In Godot, go to the Asset Library tab, search for the terrain plugin, download it and then install it. 
+Then you need to activate the plugin in your `ProjectSettings`.
+
+#### Manually
+
+The plugin can be found on the [Asset Library website](https://godotengine.org/asset-library/asset/231). The download will give you a `.zip` file. Decompress it at the root of your project. This should make it so the following hierarchy is respected:
+
+```
+addons/
+    zylann.hterrain/
+        <plugin files>
+```
+
+Then you need to activate the plugin in your `ProjectSettings`.
+
+
+### How to update
+
+When a new version of the plugin comes up, you may want to update. If you re-run the same installation steps, it should work most of the time. However this is not a clean way to update, because files might have been renamed, moved or deleted, and they won't be cleaned up. This is an issue with Godot's plugin management in general (TODO: [make a proposal](https://github.com/godotengine/godot-proposals/issues)).
+
+So a cleaner way would be:
+
+- Turn off the plugin
+- Close all your scenes (or close Godot entirely)
+- Delete the `addons/zylann.hterrain` folder
+- Then install the new version and enable it
+
+
+### Development versions
+
+The latest development version of the plugin can be found on [Github](https://github.com/Zylann/godot_heightmap_plugin).
+It is the most recently developped version, but might also have some bugs.
+
+
 Creating a terrain
 --------------------
 
@@ -27,7 +67,8 @@ Once the folder is set, a default terrain should show up, ready to be edited.
 
 ![Screenshot of the default terrain](images/default_terrain.png)
 
-Note: if you don't have a default environment, it's possible that you won't see anything, so make sure you either have one, or add a light to the scene to see it. Also, because terrains are pretty large (513 units by default), it is handy to change the view distance of the editor camera so that you can see further: go to `View`, `Options`, and then increase `far distance`.
+!!! note
+    If you don't have a default environment, it's possible that you won't see anything, so make sure you either have one, or add a light to the scene to see it. Also, because terrains are pretty large (513 units by default), it is handy to change the view distance of the editor camera so that you can see further: go to `View`, `Options`, and then increase `far distance`.
 
 ### Terrain dimensions
 
@@ -38,17 +79,16 @@ By default, the terrain is a bit small, so if you want to make it bigger, there 
 
 ![Screenshot of the resize tool](images/resize_tool.png)
 
-If you use the `resize` tool, you can also choose to either stretch the existing terrain, or crop it by selecting an anchor point. Note that currently, this operation is permanent and cannot be undone, so if you want to go back, you should make a backup.
+If you use the `resize` tool, you can also choose to either stretch the existing terrain, or crop it by selecting an anchor point. Currently, this operation is permanent and cannot be undone, so if you want to go back, you should make a backup.
 
-Note: the resolution of the terrain is limited to powers of two + 1, mainly because of the way LOD was implemented. The reason why there is an extra 1 is down to the fact that to make 1 quad, you need 2x2 vertices. If you need LOD, you must have an even number of quads that you can divide by 2, and so on. However there is a possibility to tweak that in the future because this might not play well with the way older graphics cards store textures.
+!!! note
+    The resolution of the terrain is limited to powers of two + 1, mainly because of the way LOD was implemented. The reason why there is an extra 1 is down to the fact that to make 1 quad, you need 2x2 vertices. If you need LOD, you must have an even number of quads that you can divide by 2, and so on. However there is a possibility to tweak that in the future because this might not play well with the way older graphics cards store textures.
 
-Note 2: it is also possible to create a terrain by script, see [Scripting](#scripting).
 
+Sculpting
+-----------
 
-Basic sculpting
-------------------
-
-### Using the brush
+### Brush types
 
 The default terrain is flat, but you may want to create hills and mountains. Because it uses a heightmap, editing this terrain is equivalent to editing an image. Because of this, the main tool is a brush with a configurable size and shape. You can see which area will be affected inside a 3D red circle appearing under your mouse, and you can choose how strong painting is by changing the `strength` slider.
 
@@ -63,7 +103,8 @@ To modify the heightmap, you can use the following brush modes, available at the
 - **Smooth**: averages the heights within the radius of the brush
 - **Flatten**: directly sets the height to a given value, which can be useful as an eraser or to make plateaux.
 
-Note: heightmaps work best for hills and large mountains, but making sharp cliffs or walls are not recommended because it stretches geometry too much, and might cause edge cases with collisions. To make cliffs it's a better idea to place actual meshes on top.
+!!! note
+    Heightmaps work best for hills and large mountains, but making sharp cliffs or walls are not recommended because it stretches geometry too much, and might cause edge cases with collisions. To make cliffs it's a better idea to place actual meshes on top.
 
 ### Normals
 
@@ -83,11 +124,26 @@ Some editor tools rely on colliders to work, such as snapping to ground or plugi
 
 ![Screenshot of the menu to update the collider](images/update_editor_collider.png)
 
+
 #### Known issues
 
 - **Updating the collider**: In theory, Bullet allows us to specify a direct reference to the image data. This would allow the collider to automatically update for free. However, we still had to duplicate the heightmap for safety, to avoid potential crashes if it gets mis-used. Even if we didn't copy it, the link could be broken anytime because of internal Copy-on-Write behavior in Godot. This is why the collider update is manual, because copying the heightmap results in an expensive operation. It can't be threaded as well because in Godot physics engines are not thread-safe yet. It might be improved in the future, hopefully.
 
-- **Misaligned collider in editor**: At time of writing, the Bullet integration has an issue about colliders in the editor if the terrain is translated, which does not happen in game: https://github.com/godotengine/godot/issues/37337
+- **Misaligned collider in editor**: At time of writing, the Bullet integration has an issue about colliders in the editor if the terrain is translated, which does not happen in game: [Godot issue #37337](https://github.com/godotengine/godot/issues/37337)
+
+
+### Holes
+
+It is possible to cut holes in the terrain by using the `Holes` brush. Use it with `draw holes` checked to cut them, and uncheck it to erase them. This can be useful if you want to embed a cave mesh or a well on the ground. You can still use the brush because holes are also a texture covering the whole terrain, and the ground shader will basically discard pixels that are over an area where pixels have a value of zero.
+
+![Screenshot with holes](images/hole_painting.png)
+
+At the moment, this brush uses the alpha channel of the color map to store where the holes are.
+
+!!! note
+    This brush only produces holes visually. In order to have holes in the collider too, you have to do some tricks with collision layers because the collision shape this plugin uses (Bullet heightfield) cannot have holes. It might be added in the future, because it can be done by editing the C++ code and drop collision triangles in the main heightmap collision routine.
+
+    See [issue 125](https://github.com/Zylann/godot_heightmap_plugin/issues/125)
 
 
 Texturing
@@ -127,9 +183,7 @@ For each texture, you may find the following types of images, common in PBR shad
 
 ![Screenshot of PBR textures](images/pbr_textures.png)
 
-You can find some of these textures for free at http://cc0textures.com.
-
-Note: while bump might not be used often, this plugin actually uses it to achieve [better blending effects](#depth-blending).
+You can find some of these textures for free at [cc0textures.com](http://cc0textures.com).
 
 It is preferable to place those source images under a specific directory. Also, since the images will only serve as an input to generate the actual game resources, it is better to place a `.gdignore` file inside that directory. This way, Godot will not include those source files in the exported game:
 
@@ -153,6 +207,10 @@ terrain_test/
     terrain_scene.tscn
     ...
 ```
+
+!!! note
+    While bump might not be used often, this plugin actually uses it to achieve [better blending effects](#depth-blending).
+
 
 ### Using the import tool
 
@@ -210,11 +268,11 @@ If all goes well, a popup will tell you when it's done, and your terrain's textu
 If importing goes wrong, most of the time an error will show up and the `HTerrainTextureSet` will not be modified.
 If it succeeded but you are unhappy with the result, it is possible to undo the changes done to the terrain using `Ctrl+Z`.
 
-Notes:
-- If you need to change something after the first import, you can go back to the importing tool and change settings, then click `Import` again.
-- Importing with this tool will overwrite the whole set each time.
-- The tool does not store the settings anywhere, but it should fill them up as much as it can from existing sets so you shouldn't need to fill everything up again.
-- Custom importers are used as backend in order to support these features automatically, instead of default Godot importers. If you need more tinkering, you can take a look at [packed texture importers](#packed-texture-importers).
+!!! note
+    - If you need to change something after the first import, you can go back to the importing tool and change settings, then click `Import` again.
+    - Importing with this tool will overwrite the whole set each time.
+    - The tool does not store the settings anywhere, but it should fill them up as much as it can from existing sets so you shouldn't need to fill everything up again.
+    - Custom importers are used as backend in order to support these features automatically, instead of default Godot importers. If you need more tinkering, you can take a look at [packed texture importers](#packed-texture-importers).
 
 
 ### Texture Sets
@@ -282,6 +340,7 @@ It comes in two variants:
 The `ARRAY` shader uses a more advanced technique to render ground textures. Instead of one splatmap and many individual textures, it uses two splatmaps and a `TextureArray`.
 
 The splatmaps are different from the classic one:
+
 - `SPLAT_INDEX`: this one stores the indexes of the textures to blend in every pixel of the ground. Indexes are stored respectively in R, G and B, and correspond to layers of the `TextureArray`.
 - `SPLAT_WEIGHT`: this one stores the weight of the 3 textures to blend on each pixel. It only has R and G channels, because the third one can be inferred (their sum must be 1).
 
@@ -290,7 +349,8 @@ This allows to paint up to 256 different textures, however it introduces an impo
 
 ### Creating a `TextureArray` manually
 
-**Note: it is now possible to use the [import tool](#using-the-import-tool) to set this up automatically. The following description explains how to do it manually.**
+!!! note
+    It is now possible to use the [import tool](#using-the-import-tool) to set this up automatically. The following description explains how to do it manually.
 
 Contrary to `CLASSIC4` shaders, you cannot directly assign individual textures with a shader that requires `TextureArray`. Instead, you'll have to import one.
 
@@ -333,7 +393,8 @@ The brush for this isn't perfect. This limitation can be smoothed out in the fut
 
 ### Packing textures manually
 
-**Note: it is now possible to use the [import tool](#using-the-import-tool) to set this up automatically. The following description explains how to do it manually.**
+!!! note
+    It is now possible to use the [import tool](#using-the-import-tool) to set this up automatically. The following description explains how to do it manually.
 
 The main ground shaders provided by the plugin should work fine with only regular albedo, but it supports a few features to make the ground look more realistic, such as normal maps, bump and roughness. To achieve this, shaders expects packed textures. The main reason is that more than one texture has to be sampled at a time, to allow them to blend. With a classic splatmap, it's 4 at once. If we want normalmaps, it becomes 8, and if we want roughness it becomes 12 etc, which is already a lot, in addition to internal textures Godot uses in the background. Not all GPUs allow that many textures in the shader, so a better approach is to combine them as much as possible into single images. This reduces the number of texture units, and reduces the number of fetches to do in the pixel shader.
 
@@ -344,7 +405,7 @@ For this reason, the plugin uses the following convention in ground textures:
 - `Albedo` in RGB, `Bump` in A
 - `Normal` in RGB, `Roughness` in A
 
-This operation can be done in an image editing program such as Gimp, or with a Godot plugin such as Channel Packer (available on the asset library: https://godotengine.org/asset-library/asset/230).
+This operation can be done in an image editing program such as Gimp, or with a Godot plugin such as [Channel Packer](https://godotengine.org/asset-library/asset/230).
 It can also be done using [packed texture importers](packed-texture-importers), which are now included in the plugin.
 
 !!! note
@@ -430,7 +491,7 @@ You may have noticed that when you paint multiple textures, the terrain blends t
 
 ![Screenshot of depth blending VS alpha blending](images/alpha_blending_and_depth_blending.png)
 
-This feature changes the way blending operates by taking the bump of the ground textures into account. For example, if you have sand blending with pebbles, at the transition you will see sand infiltrate between the pebbles because the pixels between pebbles have lower bump than the pebbles. You can see this technique illustrated in this article: https://www.gamasutra.com/blogs/AndreyMishkinis/20130716/196339/Advanced_Terrain_Texture_Splatting.php
+This feature changes the way blending operates by taking the bump of the ground textures into account. For example, if you have sand blending with pebbles, at the transition you will see sand infiltrate between the pebbles because the pixels between pebbles have lower bump than the pebbles. You can see this technique illustrated in a [Gamasutra article](https://www.gamasutra.com/blogs/AndreyMishkinis/20130716/196339/Advanced_Terrain_Texture_Splatting.php).
 It was tweaked a bit to work with 3 or 4 textures, and works best with fairly low brush opacity, around 10%.
 
 
@@ -474,20 +535,6 @@ You can color the terrain using the `Color` brush. This is pretty much modulatin
 ![Screenshot with color painting](images/color_painting.png)
 
 Depending on the shader, you may be able to choose which textures are affected by the colormap.
-
-
-Holes
--------
-
-It is possible to cut holes in the terrain by using the `Holes` brush. Use it with `draw holes` checked to cut them, and uncheck it to erase them. This can be useful if you want to embed a cave mesh or a well on the ground. You can still use the brush because holes are also a texture covering the whole terrain, and the ground shader will basically discard pixels that are over an area where pixels have a value of zero.
-
-![Screenshot with holes](images/hole_painting.png)
-
-At the moment, this brush uses the alpha channel of the color map.
-
-Note: this brush only produces holes visually. In order to have holes in the collider too, you have to do some tricks with collision layers because the collision shape this plugin uses (Bullet heightfield) cannot have holes. It might be added in the future, because it can be done by editing the C++ code and drop collision triangles in the main heightmap collision routine.
-
-See https://github.com/Zylann/godot_heightmap_plugin/issues/125
 
 
 Terrain generator
@@ -534,11 +581,12 @@ There is also a slope direction parameter, this one is experimental but it has a
 
 ![Screenshot of slope erosion](images/erosion_slope.png)
 
-Note: contrary to previous options, erosion is calculated over a bunch of shader passes. In Godot 3, it is only possible to wait for one frame to be rendered every 16 milliseconds, so the more erosion steps you have, the slower the preview will be. In the future it would be nice if Godot allowed multiple frames to be rendered on demand so the full power of the GPU could be used.
+!!! note
+    Contrary to previous options, erosion is calculated over a bunch of shader passes. In Godot 3, it is only possible to wait for one frame to be rendered every 16 milliseconds, so the more erosion steps you have, the slower the preview will be. In the future it would be nice if Godot allowed multiple frames to be rendered on demand so the full power of the GPU could be used.
 
 ### Applying
 
-Once you are happy with the result, you can click "Apply", which will calculate the generated terrain at full scale on your scene. Note that this operation currently can't be undone, so if you want to go back you should make a backup.
+Once you are happy with the result, you can click "Apply", which will calculate the generated terrain at full scale on your scene. This operation currently can't be undone, so if you want to go back you should make a backup.
 
 
 Import an existing terrain
@@ -587,13 +635,15 @@ Once you have textured ground, you may want to add small detail objects to it, s
 Grass is supported throught `HTerrainDetailLayer` node. They can be created as children of the `HTerrain` node. Each layer represents one kind of detail, so you may have one layer for grass, and another for flowers, for example.
 
 Detail layers come in two parts:
+
 - A 8-bit density texture covering the whole terrain, also called a "detail map" at the moment. You can see how many maps the terrain has in the bottom panel after selecting the terrain.
 - A `HTerrainDetailLayer` node, which uses one of the detail maps to render instanced models based on the density.
 
 You can paint detail maps just like you paint anything else, using the same brush system. It uses opacity to either add more density, or act as an eraser with an opacity of zero.
 `HTerrainDetailLayer` nodes will then update in realtime, rendering more or less instances in places you painted.
 
-Note: a detail map can be used by more than one node (by setting the same index in their `layer_index` property), so you can have one for grass, another for flowers, and paint on the shared map to see both nodes update at the same time.
+!!! note
+    A detail map can be used by more than one node (by setting the same index in their `layer_index` property), so you can have one for grass, another for flowers, and paint on the shared map to see both nodes update at the same time.
 
 
 ### Shading options
@@ -617,7 +667,8 @@ Several meshes are bundled with the plugin, which you can find in `res://addons/
 
 They are all thought for grass rendering. You can make your own for things that aren't grass, however there is no built-in shader for conventional objects at the moment (rocks, bits and bobs). So if you want normal shading you need to write a custom shader. That may be bundled too in the future.
 
-Note: detail meshes must be `Mesh` resources, so the easiest way is to use the `OBJ` format. If you use `GLTF` or `FBX`, Godot will import it as a scene by default, so you may have to configure it to import as single mesh if possible.
+!!! note
+    Detail meshes must be `Mesh` resources, so the easiest way is to use the `OBJ` format. If you use `GLTF` or `FBX`, Godot will import it as a scene by default, so you may have to configure it to import as single mesh if possible.
 
 
 Global map
@@ -645,13 +696,14 @@ LOD can be mainly tweaked in two ways:
 
 In the future, this technique could be improved by using GPU tessellation, once the Godot rendering engine supports it.
 
-Note: due to limitations of the Godot renderer's scripting API, LOD only works around one main camera, so it's not possible to have two cameras with split-screen for example. Also, in the editor, LOD only works while the `HTerrain` node is selected, because it's the only time the EditorPlugin is able to obtain camera information (but it should work regardless when you launch the game).
+!!! note
+    Due to limitations of the Godot renderer's scripting API, LOD only works around one main camera, so it's not possible to have two cameras with split-screen for example. Also, in the editor, LOD only works while the `HTerrain` node is selected, because it's the only time the EditorPlugin is able to obtain camera information (but it should work regardless when you launch the game).
 
 
 Custom shaders
 -----------------
 
-This plugin comes with default shaders, but you are allowed to modify them and change things to match your needs. The plugin does not expose materials directly because it needs to set built-in parameters that are always necessary, and some of them cannot be properly saved as material properties, if at all. It's a bit like Godot shaders being themselves sub-sets of GLSL compiled internally, but here we had to use the same shading language. In addition, the plugin might possibly need to use multiple material instances in the future instead of just one, for LOD purposes.
+This plugin comes with default shaders, but you are allowed to modify them and change things to match your needs. The plugin does not expose materials directly because it needs to set built-in parameters that are always necessary, and some of them cannot be properly saved as material properties, if at all. 
 
 ### Ground shaders
 
@@ -709,11 +761,13 @@ The plugin features an experimental debugging feature in the `Terrain` menu call
 ![Screenshot of detail map seen with lookdev shader](images/lookdev_grass.png)
 
 It is very simple at the moment but it can also be used to display data maps which are not necessarily used for rendering. So you could also use it to paint them, even if they don't translate into a visual element in the game.
-Note: the heightmap cannot be seen with this feature because its values extend beyond usual color ranges.
 
 To turn it off, select `Disabled` in the menu.
 
 ![Screenshot of detail map seen with lookdev shader](images/lookdev_menu.png)
+
+!!! note
+    The heightmap cannot be seen with this feature because its values extend beyond usual color ranges.
 
 
 Scripting
@@ -797,6 +851,7 @@ func test():
 ```
 
 The same goes for the heightmap and grass maps, however at time of writing, there are several issues with editing it in game:
+
 - Normals of the terrain don't automatically update, you have to calculate them yourself by also modifying the normalmap. This is a bit tedious and expensive, however it may be improved in the future. Alternatively you could compute them in shader, but it makes rendering a bit more expensive.
 - The collider won't update either, for the same reason mentionned in the [section about collisions in the editor](#Collisions). You can force it to update by calling `update_collider()` but it can cause a hiccup.
 
@@ -919,11 +974,12 @@ GDNative
 This plugin contains an optional native component, which speeds up some operations such as sculpting the terrain. However, at time of writing, a prebuilt binary is built-in only on `Windows` and `Linux`, I'm not yet able to build for other platforms so you may need to do it yourself, until I can provide an official one.
 
 Before doing this, it's preferable to close the Godot editor so it won't lock the library files.
-Note that these steps are very similar to GDNative C++ development, which repeats parts of this tutorial: https://docs.godotengine.org/en/3.2/tutorials/plugins/gdnative/gdnative-cpp-example.html
+Note that these steps are very similar to GDNative C++ development, which repeats parts of [Godot's documentation](https://docs.godotengine.org/en/3.2/tutorials/plugins/gdnative/gdnative-cpp-example.html).
 
 ### Building instructions
 
 To build the library, you will need to install the following:
+
 - Python 3.6 or later
 - The SCons build system
 - A C++ compiler
@@ -956,6 +1012,7 @@ scons platform=<yourplatform> generate_bindings=yes target=release
 ```
 
 `yourplatform` must match the platform you want to build for. It should be one of the following:
+
 - `windows`
 - `linux`
 - `osx`
@@ -1005,7 +1062,7 @@ If you get a crash or misbehavior, check logs first to make sure Godot was able 
 Troubleshooting
 -----------------
 
-We do the best we can on our free time to make this plugin usable, but it's possible bugs appear. Some of them are known issues. If you have a problem, please refer to the issue tracker: https://github.com/Zylann/godot_heightmap_plugin/issues
+We do the best we can on our free time to make this plugin usable, but it's possible bugs appear. Some of them are known issues. If you have a problem, please refer to the [issue tracker](https://github.com/Zylann/godot_heightmap_plugin/issues).
 
 
 ### Before reporting any bug
@@ -1023,7 +1080,7 @@ If none of the initial checks help and you want to post a new issue, do the foll
 
 - Check the console for messages, warnings and errors. These are helpful to diagnose the issue.
 - Try to reproduce the bug with precise reproduction steps, and indicate them
-- Provide a test project with those steps (unless it's reproducible from an empty project), so that we can reproduce the bug and fix it more easily. Github allows you to drag-and-drop zip files. If the project is too big, use a host like https://send.firefox.com/
+- Provide a test project with those steps (unless it's reproducible from an empty project), so that we can reproduce the bug and fix it more easily. Github allows you to drag-and-drop zip files.
 - Indicate your OS, Godot version and graphics card model. Those are present in logs as well.
 
 
@@ -1033,9 +1090,9 @@ This issue happened a few times and had various causes so if the checks mentionn
 
 - Check the contents of your terrain's data folder. It must contain a `.hterrain` file and a few textures.
 - If they are present, make sure Godot has imported those textures. If it didn't, unfocus the editor, and focus it back (you should see a short progress bar as it does it)
-- Check if you used Ctrl+Z (undo) after a non-undoable action: https://github.com/Zylann/godot_heightmap_plugin/issues/101
+- Check if you used Ctrl+Z (undo) after a non-undoable action, like described in [issue #101](https://github.com/Zylann/godot_heightmap_plugin/issues/101)
 - If your problem relates to collisions in editor, update the collider using `Terrain -> Update Editor Collider`, because this one does not update automatically yet
-- Godot seems to randomly forget where the terrain saver is, but I need help to find out why because I could never reproduce it: https://github.com/Zylann/godot_heightmap_plugin/issues/120
+- Godot seems to randomly forget where the terrain saver is, but I need help to find out why because I could never reproduce it. See [issue #120](https://github.com/Zylann/godot_heightmap_plugin/issues/120)
 
 
 ### Temporary files
@@ -1044,4 +1101,4 @@ The plugin creates temporary files to avoid cluttering memory. They are necessar
 
 On Windows, that directory corresponds to `C:\Users\Username\AppData\Roaming\Godot\app_userdata\ProjectName\hterrain_image_cache`.
 
-For other platforms: https://docs.godotengine.org/en/stable/tutorials/io/data_paths.html#editor-data-paths
+See [Godot's documentation](https://docs.godotengine.org/en/stable/tutorials/io/data_paths.html#editor-data-paths) for other platforms.
