@@ -1124,30 +1124,7 @@ static func _try_write_default_import_options(fpath: String, channel: int, logge
 		}
 	}
 
-	var err = f.open(imp_fpath, File.WRITE)
-	if err != OK:
-		logger.error("Could not open '{0}' for write, error {1}" \
-			.format([imp_fpath, Errors.get_message(err)]))
-		return
-
-	for section in defaults:
-		f.store_line(str("[", section, "]"))
-		f.store_line("")
-		var params = defaults[section]
-		for key in params:
-			var v = params[key]
-			var sv
-			match typeof(v):
-				TYPE_STRING:
-					sv = str('"', v.replace('"', '\"'), '"')
-				TYPE_BOOL:
-					sv = "true" if v else "false"
-				_:
-					sv = str(v)
-			f.store_line(str(key, "=", sv))
-		f.store_line("")
-
-	f.close()
+	Util.write_import_file(defaults, imp_fpath, logger)
 
 
 func _load_map(dir: String, map_type: int, index: int) -> bool:

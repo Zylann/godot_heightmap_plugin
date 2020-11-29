@@ -1,11 +1,14 @@
-tool
-extends EditorPlugin
+tool # https://www.youtube.com/watch?v=Y7JG63IuaWs
 
+extends EditorPlugin
 
 const HTerrain = preload("../hterrain.gd")
 const HTerrainDetailLayer = preload("../hterrain_detail_layer.gd")
 const HTerrainData = preload("../hterrain_data.gd")
 const HTerrainMesher = preload("../hterrain_mesher.gd")
+const HTerrainTextureSet = preload("../hterrain_texture_set.gd")
+const PackedTextureImporter = preload("./packed_textures/packed_texture_importer.gd")
+const PackedTextureArrayImporter = preload("./packed_textures/packed_texture_array_importer.gd")
 const PreviewGenerator = preload("./preview_generator.gd")
 const Brush = preload("./brush/terrain_painter.gd")
 const BrushDecal = preload("./brush/decal.gd")
@@ -24,6 +27,8 @@ const ImportDialog = preload("./importer/importer_dialog.tscn")
 const GenerateMeshDialog = preload("./generate_mesh_dialog.tscn")
 const ResizeDialog = preload("./resize_dialog/resize_dialog.tscn")
 const ExportImageDialog = preload("./exporter/export_image_dialog.tscn")
+const TextureSetEditor = preload("./texture_editor/set_editor/texture_set_editor.tscn")
+const TextureSetImportEditor = preload("./texture_editor/set_editor/texture_set_import_editor.tscn")
 const AboutDialogScene = preload("./about/about_dialog.tscn")
 
 const MENU_IMPORT_MAPS = 0
@@ -40,23 +45,31 @@ const MENU_ABOUT = 8
 # TODO Rename _terrain
 var _node : HTerrain = null
 
+# GUI
 var _panel = null
 var _toolbar = null
 var _toolbar_brush_buttons = {}
 var _generator_dialog = null
+# TODO Rename _import_terrain_dialog
 var _import_dialog = null
 var _export_image_dialog = null
 var _progress_window = null
-var _load_texture_dialog = null
 var _generate_mesh_dialog = null
 var _preview_generator = null
 var _resize_dialog = null
 var _about_dialog = null
-var _globalmap_baker = null
 var _menu_button : MenuButton
 var _lookdev_menu : PopupMenu
+var _texture_set_editor = null
+var _texture_set_import_editor = null
+
+var _globalmap_baker = null
 var _terrain_had_data_previous_frame = false
 var _image_cache : ImageFileCache
+
+# Import
+var _packed_texture_importer := PackedTextureImporter.new()
+var _packed_texture_array_importer := PackedTextureArrayImporter.new()
 
 var _brush : Brush = null
 var _brush_decal : BrushDecal = null
@@ -81,6 +94,11 @@ func _enter_tree():
 	add_custom_type("HTerrainDetailLayer", "Spatial", HTerrainDetailLayer, 
 		get_icon("detail_layer_node"))
 	add_custom_type("HTerrainData", "Resource", HTerrainData, get_icon("heightmap_data"))
+	# TODO Proper texture
+	add_custom_type("HTerrainTextureSet", "Resource", HTerrainTextureSet, null)
+	
+	add_import_plugin(_packed_texture_importer)
+	add_import_plugin(_packed_texture_array_importer)
 	
 	_preview_generator = PreviewGenerator.new()
 	get_editor_interface().get_resource_previewer().add_preview_generator(_preview_generator)
@@ -97,8 +115,6 @@ func _enter_tree():
 	
 	var editor_interface := get_editor_interface()
 	var base_control := editor_interface.get_base_control()
-	_load_texture_dialog = LoadTextureDialog.new()
-	base_control.add_child(_load_texture_dialog)
 	
 	_panel = EditPanel.instance()
 	Util.apply_dpi_scale(_panel, dpi_scale)
@@ -106,13 +122,14 @@ func _enter_tree():
 	add_control_to_container(EditorPlugin.CONTAINER_SPATIAL_EDITOR_BOTTOM, _panel)
 	# Apparently _ready() still isn't called at this point...
 	_panel.call_deferred("set_brush", _brush)
-	_panel.call_deferred("set_load_texture_dialog", _load_texture_dialog)
 	_panel.call_deferred("setup_dialogs", base_control)
 	_panel.set_undo_redo(get_undo_redo())
 	_panel.set_image_cache(_image_cache)
 	_panel.connect("detail_selected", self, "_on_detail_selected")
 	_panel.connect("texture_selected", self, "_on_texture_selected")
 	_panel.connect("detail_list_changed", self, "_update_brush_buttons_availability")
+	_panel.connect("edit_texture_pressed", self, "_on_Panel_edit_texture_pressed")
+	_panel.connect("import_textures_pressed", self, "_on_Panel_import_textures_pressed")
 	
 	_toolbar = HBoxContainer.new()
 	add_control_to_container(EditorPlugin.CONTAINER_SPATIAL_EDITOR_MENU, _toolbar)
@@ -243,6 +260,22 @@ func _enter_tree():
 	Util.apply_dpi_scale(_about_dialog, dpi_scale)
 	base_control.add_child(_about_dialog)
 
+	_texture_set_editor = TextureSetEditor.instance()
+	_texture_set_editor.set_undo_redo(get_undo_redo())
+	Util.apply_dpi_scale(_texture_set_editor, dpi_scale)
+	base_control.add_child(_texture_set_editor)
+	_texture_set_editor.call_deferred("setup_dialogs", base_control)
+
+	_texture_set_import_editor = TextureSetImportEditor.instance()
+	_texture_set_import_editor.set_undo_redo(get_undo_redo())
+	_texture_set_import_editor.set_editor_file_system(
+		get_editor_interface().get_resource_filesystem())
+	Util.apply_dpi_scale(_texture_set_import_editor, dpi_scale)
+	base_control.add_child(_texture_set_import_editor)
+	_texture_set_import_editor.call_deferred("setup_dialogs", base_control)
+
+	_texture_set_editor.connect("import_selected", self, "_on_TextureSetEditor_import_selected")
+	
 
 func _exit_tree():
 	_logger.debug("HTerrain plugin Exit tree")
@@ -255,9 +288,6 @@ func _exit_tree():
 	
 	_toolbar.queue_free()
 	_toolbar = null
-	
-	_load_texture_dialog.queue_free()
-	_load_texture_dialog = null
 	
 	_generator_dialog.queue_free()
 	_generator_dialog = null
@@ -280,6 +310,12 @@ func _exit_tree():
 	_about_dialog.queue_free()
 	_about_dialog = null
 
+	_texture_set_editor.queue_free()
+	_texture_set_editor = null
+
+	_texture_set_import_editor.queue_free()
+	_texture_set_import_editor = null
+
 	get_editor_interface().get_resource_previewer().remove_preview_generator(_preview_generator)
 	_preview_generator = null
 	
@@ -291,6 +327,13 @@ func _exit_tree():
 	remove_custom_type("HTerrain")
 	remove_custom_type("HTerrainDetailLayer")
 	remove_custom_type("HTerrainData")
+	remove_custom_type("HTerrainTextureSet")
+	
+	remove_import_plugin(_packed_texture_importer)
+	_packed_texture_importer = null
+	
+	remove_import_plugin(_packed_texture_array_importer)
+	_packed_texture_array_importer = null
 
 
 func handles(object):
@@ -573,7 +616,7 @@ func _terrain_exited_scene():
 	edit(null)
 
 
-func _menu_item_selected(id):
+func _menu_item_selected(id: int):
 	_logger.debug(str("Menu item selected ", id))
 	
 	match id:
@@ -736,6 +779,27 @@ func _on_permanent_change_performed(message: String):
 
 func _on_brush_changed():
 	_brush_decal.set_size(_brush.get_brush_size())
+
+
+func _on_Panel_edit_texture_pressed(index: int):
+	var ts := _node.get_texture_set()
+	_texture_set_editor.set_texture_set(ts)
+	_texture_set_editor.select_slot(index)
+	_texture_set_editor.popup_centered()
+
+
+func _on_TextureSetEditor_import_selected():
+	_open_texture_set_import_editor()
+
+
+func _on_Panel_import_textures_pressed():
+	_open_texture_set_import_editor()
+
+
+func _open_texture_set_import_editor():
+	var ts := _node.get_texture_set()
+	_texture_set_import_editor.set_texture_set(ts)
+	_texture_set_import_editor.popup_centered()
 
 
 ################

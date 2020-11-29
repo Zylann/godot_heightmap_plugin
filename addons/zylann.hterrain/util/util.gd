@@ -1,5 +1,8 @@
 tool
 
+const Errors = preload("./errors.gd")
+
+
 # Godot has this internally but doesn't expose it
 static func next_power_of_two(x: int) -> int:
 	x -= 1
@@ -528,3 +531,31 @@ static func update_configuration_warning(node: Node, recursive: bool):
 				update_configuration_warning(child, true)
 
 
+static func write_import_file(settings: Dictionary, imp_fpath: String, logger) -> bool:
+	# TODO Should use ConfigFile instead
+	var f := File.new()
+	var err := f.open(imp_fpath, File.WRITE)
+	if err != OK:
+		logger.error("Could not open '{0}' for write, error {1}" \
+			.format([imp_fpath, Errors.get_message(err)]))
+		return false
+
+	for section in settings:
+		f.store_line(str("[", section, "]"))
+		f.store_line("")
+		var params = settings[section]
+		for key in params:
+			var v = params[key]
+			var sv
+			match typeof(v):
+				TYPE_STRING:
+					sv = str('"', v.replace('"', '\"'), '"')
+				TYPE_BOOL:
+					sv = "true" if v else "false"
+				_:
+					sv = str(v)
+			f.store_line(str(key, "=", sv))
+		f.store_line("")
+
+	f.close()
+	return true

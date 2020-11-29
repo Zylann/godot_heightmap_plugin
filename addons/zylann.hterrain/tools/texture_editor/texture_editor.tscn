@@ -1,11 +1,7 @@
-[gd_scene load_steps=7 format=2]
+[gd_scene load_steps=3 format=2]
 
 [ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/texture_editor.gd" type="Script" id=1]
 [ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/texture_list.tscn" type="PackedScene" id=2]
-[ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/texture_editor_dialog.gd" type="Script" id=3]
-[ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/display_color_material.tres" type="Material" id=4]
-[ext_resource path="res://icon.png" type="Texture" id=5]
-[ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/display_alpha_material.tres" type="Material" id=6]
 
 [node name="TextureEditor" type="Control"]
 margin_right = 352.0
@@ -29,169 +25,24 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="ClearButton" type="Button" parent="HBoxContainer"]
-margin_right = 44.0
-margin_bottom = 24.0
-text = "Clear"
-
-[node name="LoadButton" type="Button" parent="HBoxContainer"]
-margin_left = 48.0
-margin_right = 102.0
-margin_bottom = 24.0
-text = "Load..."
-
 [node name="EditButton" type="Button" parent="HBoxContainer"]
-margin_left = 106.0
-margin_right = 154.0
+margin_right = 48.0
 margin_bottom = 24.0
 text = "Edit..."
 
+[node name="ImportButton" type="Button" parent="HBoxContainer"]
+margin_left = 52.0
+margin_right = 120.0
+margin_bottom = 24.0
+text = "Import..."
+
 [node name="Label" type="Label" parent="HBoxContainer"]
-margin_left = 158.0
+margin_left = 124.0
 margin_top = 5.0
-margin_right = 213.0
+margin_right = 179.0
 margin_bottom = 19.0
 text = "Textures"
-
-[node name="EditDialog" type="AcceptDialog" parent="."]
-margin_left = -192.0
-margin_top = 183.0
-margin_right = 348.0
-margin_bottom = 432.0
-window_title = "Edit terrain texture"
-script = ExtResource( 3 )
-
-[node name="GridContainer" type="GridContainer" parent="EditDialog"]
-anchor_right = 1.0
-anchor_bottom = 1.0
-margin_left = 8.0
-margin_top = 8.0
-margin_right = -8.0
-margin_bottom = -36.0
-columns = 4
-
-[node name="AlbedoLabel" type="Label" parent="EditDialog/GridContainer"]
-margin_right = 128.0
-margin_bottom = 14.0
-text = "Albedo"
-
-[node name="AlbedoExtraLabel" type="Label" parent="EditDialog/GridContainer"]
-margin_left = 132.0
-margin_right = 260.0
-margin_bottom = 14.0
-text = "+ alpha bump"
-
-[node name="NormalLabel" type="Label" parent="EditDialog/GridContainer"]
-margin_left = 264.0
-margin_right = 392.0
-margin_bottom = 14.0
-text = "Normal"
-
-[node name="NormalExtraLabel" type="Label" parent="EditDialog/GridContainer"]
-margin_left = 396.0
-margin_right = 524.0
-margin_bottom = 14.0
-text = "+ alpha roughness"
-
-[node name="AlbedoPreview" type="TextureRect" parent="EditDialog/GridContainer"]
-material = ExtResource( 4 )
-margin_top = 18.0
-margin_right = 128.0
-margin_bottom = 146.0
-rect_min_size = Vector2( 128, 128 )
-texture = ExtResource( 5 )
-expand = true
-
-[node name="RoughnessPreview" type="TextureRect" parent="EditDialog/GridContainer"]
-material = ExtResource( 6 )
-margin_left = 132.0
-margin_top = 18.0
-margin_right = 260.0
-margin_bottom = 146.0
-rect_min_size = Vector2( 128, 128 )
-texture = ExtResource( 5 )
-expand = true
-
-[node name="NormalPreview" type="TextureRect" parent="EditDialog/GridContainer"]
-material = ExtResource( 4 )
-margin_left = 264.0
-margin_top = 18.0
-margin_right = 392.0
-margin_bottom = 146.0
-rect_min_size = Vector2( 128, 128 )
-texture = ExtResource( 5 )
-expand = true
-
-[node name="BumpPreview" type="TextureRect" parent="EditDialog/GridContainer"]
-material = ExtResource( 6 )
-margin_left = 396.0
-margin_top = 18.0
-margin_right = 524.0
-margin_bottom = 146.0
-rect_min_size = Vector2( 128, 128 )
-texture = ExtResource( 5 )
-expand = true
-
-[node name="LoadAlbedo" type="Button" parent="EditDialog/GridContainer"]
-margin_top = 150.0
-margin_right = 128.0
-margin_bottom = 170.0
-text = "Load..."
-
-[node name="Spacer" type="Control" parent="EditDialog/GridContainer"]
-margin_left = 132.0
-margin_top = 150.0
-margin_right = 260.0
-margin_bottom = 170.0
-focus_mode = 2
-
-[node name="LoadNormal" type="Button" parent="EditDialog/GridContainer"]
-margin_left = 264.0
-margin_top = 150.0
-margin_right = 392.0
-margin_bottom = 170.0
-text = "Load..."
-
-[node name="Spacer2" type="Control" parent="EditDialog/GridContainer"]
-margin_left = 396.0
-margin_top = 150.0
-margin_right = 524.0
-margin_bottom = 170.0
-focus_mode = 2
-
-[node name="ClearAlbedo" type="Button" parent="EditDialog/GridContainer"]
-margin_top = 174.0
-margin_right = 128.0
-margin_bottom = 194.0
-text = "Clear"
-
-[node name="Spacer3" type="Control" parent="EditDialog/GridContainer"]
-margin_left = 132.0
-margin_top = 174.0
-margin_right = 260.0
-margin_bottom = 194.0
-focus_mode = 2
-
-[node name="ClearNormal" type="Button" parent="EditDialog/GridContainer"]
-margin_left = 264.0
-margin_top = 174.0
-margin_right = 392.0
-margin_bottom = 194.0
-text = "Clear"
-
-[node name="Spacer4" type="Control" parent="EditDialog/GridContainer"]
-margin_left = 396.0
-margin_top = 174.0
-margin_right = 524.0
-margin_bottom = 194.0
-focus_mode = 2
 [connection signal="item_activated" from="TextureList" to="." method="_on_TextureList_item_activated"]
 [connection signal="item_selected" from="TextureList" to="." method="_on_TextureList_item_selected"]
-[connection signal="pressed" from="HBoxContainer/ClearButton" to="." method="_on_ClearButton_pressed"]
-[connection signal="pressed" from="HBoxContainer/LoadButton" to="." method="_on_LoadButton_pressed"]
 [connection signal="pressed" from="HBoxContainer/EditButton" to="." method="_on_EditButton_pressed"]
-[connection signal="albedo_changed" from="EditDialog" to="." method="_on_EditDialog_albedo_changed"]
-[connection signal="pressed" from="EditDialog/GridContainer/LoadAlbedo" to="EditDialog" method="_on_LoadAlbedo_pressed"]
-[connection signal="pressed" from="EditDialog/GridContainer/LoadNormal" to="EditDialog" method="_on_LoadNormal_pressed"]
-[connection signal="pressed" from="EditDialog/GridContainer/ClearAlbedo" to="EditDialog" method="_on_ClearAlbedo_pressed"]
-[connection signal="pressed" from="EditDialog/GridContainer/ClearNormal" to="EditDialog" method="_on_ClearNormal_pressed"]
+[connection signal="pressed" from="HBoxContainer/ImportButton" to="." method="_on_ImportButton_pressed"]

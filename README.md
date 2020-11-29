@@ -72,4 +72,5 @@ Thanks for your support :)
 
 ```
 - wacyym
+- Sergey Lapin (slapin)
 ```

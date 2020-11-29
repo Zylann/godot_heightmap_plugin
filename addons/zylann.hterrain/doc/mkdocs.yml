@@ -1,0 +1,15 @@
+site_name: HTerrain plugin documentation
+theme: readthedocs
+
+# I had to specify this even though it's supposed to be the default
+# See https://github.com/mkdocs/mkdocs/issues/2145#issuecomment-735342512
+docs_dir: docs
+
+markdown_extensions:
+    # Makes permalinks appear on headings
+    - toc:
+        permalink: True
+    # Makes boxes for notes and warnings
+    - admonition
+    # Better highlighter which supports GDScript
+    - codehilite

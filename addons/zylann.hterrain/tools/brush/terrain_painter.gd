@@ -250,6 +250,12 @@ func paint_input(position: Vector2):
 			_paint_erode(data, position)
 
 		MODE_SPLAT:
+			# TODO Properly support what happens when painting outside of supported index
+			# var supported_slots_count := terrain.get_cached_ground_texture_slot_count()
+			# if _texture_index >= supported_slots_count:
+			# 	_logger.debug("Painting out of range of supported texture slots: {0}/{1}" \
+			# 		.format([_texture_index, supported_slots_count]))
+			# 	return
 			var use_indexed_splat := _terrain.is_using_texture_array()
 			if use_indexed_splat:
 				_paint_splat_indexed(data, position)

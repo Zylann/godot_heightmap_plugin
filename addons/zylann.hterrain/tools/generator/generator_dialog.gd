@@ -138,7 +138,7 @@ func apply_dpi_scale(dpi_scale: float):
 #	if Engine.editor_hint:
 #		return
 #	if event is InputEventKey and event.pressed and not visible:
-#		call_deferred("popup_centered_minsize")
+#		call_deferred("popup_centered")
 
 
 func set_terrain(terrain):

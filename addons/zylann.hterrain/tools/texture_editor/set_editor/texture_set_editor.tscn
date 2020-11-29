@@ -1,0 +1,271 @@
+[gd_scene load_steps=10 format=2]
+
+[ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/set_editor/texture_set_editor.gd" type="Script" id=1]
+[ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/display_alpha.shader" type="Shader" id=2]
+[ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/display_color.shader" type="Shader" id=3]
+[ext_resource path="res://addons/zylann.hterrain/tools/icons/empty.png" type="Texture" id=4]
+[ext_resource path="res://addons/zylann.hterrain/tools/util/dialog_fitter.tscn" type="PackedScene" id=5]
+
+[sub_resource type="ShaderMaterial" id=1]
+shader = ExtResource( 3 )
+
+[sub_resource type="ShaderMaterial" id=2]
+shader = ExtResource( 2 )
+
+[sub_resource type="ShaderMaterial" id=3]
+shader = ExtResource( 3 )
+
+[sub_resource type="ShaderMaterial" id=4]
+shader = ExtResource( 2 )
+
+[node name="TextureSetEditor" type="WindowDialog"]
+visible = true
+margin_right = 652.0
+margin_bottom = 320.0
+rect_min_size = Vector2( 652, 320 )
+window_title = "TextureSet Editor"
+script = ExtResource( 1 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="VB" type="VBoxContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 8.0
+margin_top = 8.0
+margin_right = -8.0
+margin_bottom = -8.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="HS" type="HSplitContainer" parent="VB"]
+margin_right = 636.0
+margin_bottom = 266.0
+size_flags_vertical = 3
+
+[node name="VB" type="VBoxContainer" parent="VB/HS"]
+margin_right = 100.0
+margin_bottom = 266.0
+
+[node name="SlotsList" type="ItemList" parent="VB/HS/VB"]
+margin_right = 100.0
+margin_bottom = 242.0
+rect_min_size = Vector2( 100, 0 )
+size_flags_vertical = 3
+
+[node name="HB" type="HBoxContainer" parent="VB/HS/VB"]
+margin_top = 246.0
+margin_right = 100.0
+margin_bottom = 266.0
+
+[node name="AddSlot" type="Button" parent="VB/HS/VB/HB"]
+margin_right = 20.0
+margin_bottom = 20.0
+text = "+"
+
+[node name="Control" type="Control" parent="VB/HS/VB/HB"]
+margin_left = 24.0
+margin_right = 79.0
+margin_bottom = 20.0
+size_flags_horizontal = 3
+
+[node name="RemoveSlot" type="Button" parent="VB/HS/VB/HB"]
+margin_left = 83.0
+margin_right = 100.0
+margin_bottom = 20.0
+text = "-"
+
+[node name="VB2" type="VBoxContainer" parent="VB/HS"]
+margin_left = 112.0
+margin_right = 636.0
+margin_bottom = 266.0
+
+[node name="GC" type="GridContainer" parent="VB/HS/VB2"]
+margin_right = 524.0
+margin_bottom = 194.0
+columns = 4
+
+[node name="AlbedoLabel" type="Label" parent="VB/HS/VB2/GC"]
+margin_right = 128.0
+margin_bottom = 14.0
+text = "Albedo"
+
+[node name="AlbedoExtraLabel" type="Label" parent="VB/HS/VB2/GC"]
+margin_left = 132.0
+margin_right = 260.0
+margin_bottom = 14.0
+text = "+ alpha bump"
+
+[node name="NormalLabel" type="Label" parent="VB/HS/VB2/GC"]
+margin_left = 264.0
+margin_right = 392.0
+margin_bottom = 14.0
+text = "Normal"
+
+[node name="NormalExtraLabel" type="Label" parent="VB/HS/VB2/GC"]
+margin_left = 396.0
+margin_right = 524.0
+margin_bottom = 14.0
+text = "+ alpha roughness"
+
+[node name="AlbedoPreview" type="TextureRect" parent="VB/HS/VB2/GC"]
+material = SubResource( 1 )
+margin_top = 18.0
+margin_right = 128.0
+margin_bottom = 146.0
+rect_min_size = Vector2( 128, 128 )
+texture = ExtResource( 4 )
+expand = true
+stretch_mode = 1
+
+[node name="BumpPreview" type="TextureRect" parent="VB/HS/VB2/GC"]
+material = SubResource( 2 )
+margin_left = 132.0
+margin_top = 18.0
+margin_right = 260.0
+margin_bottom = 146.0
+rect_min_size = Vector2( 128, 128 )
+texture = ExtResource( 4 )
+expand = true
+stretch_mode = 1
+
+[node name="NormalPreview" type="TextureRect" parent="VB/HS/VB2/GC"]
+material = SubResource( 3 )
+margin_left = 264.0
+margin_top = 18.0
+margin_right = 392.0
+margin_bottom = 146.0
+rect_min_size = Vector2( 128, 128 )
+texture = ExtResource( 4 )
+expand = true
+stretch_mode = 1
+
+[node name="RoughnessPreview" type="TextureRect" parent="VB/HS/VB2/GC"]
+material = SubResource( 4 )
+margin_left = 396.0
+margin_top = 18.0
+margin_right = 524.0
+margin_bottom = 146.0
+rect_min_size = Vector2( 128, 128 )
+texture = ExtResource( 4 )
+expand = true
+stretch_mode = 1
+
+[node name="LoadAlbedo" type="Button" parent="VB/HS/VB2/GC"]
+margin_top = 150.0
+margin_right = 128.0
+margin_bottom = 170.0
+text = "Load..."
+
+[node name="Spacer" type="Control" parent="VB/HS/VB2/GC"]
+margin_left = 132.0
+margin_top = 150.0
+margin_right = 260.0
+margin_bottom = 170.0
+
+[node name="LoadNormal" type="Button" parent="VB/HS/VB2/GC"]
+margin_left = 264.0
+margin_top = 150.0
+margin_right = 392.0
+margin_bottom = 170.0
+text = "Load..."
+
+[node name="Spacer2" type="Control" parent="VB/HS/VB2/GC"]
+margin_left = 396.0
+margin_top = 150.0
+margin_right = 524.0
+margin_bottom = 170.0
+
+[node name="ClearAlbedo" type="Button" parent="VB/HS/VB2/GC"]
+margin_top = 174.0
+margin_right = 128.0
+margin_bottom = 194.0
+text = "Clear"
+
+[node name="Spacer3" type="Control" parent="VB/HS/VB2/GC"]
+margin_left = 132.0
+margin_top = 174.0
+margin_right = 260.0
+margin_bottom = 194.0
+
+[node name="ClearNormal" type="Button" parent="VB/HS/VB2/GC"]
+margin_left = 264.0
+margin_top = 174.0
+margin_right = 392.0
+margin_bottom = 194.0
+text = "Clear"
+
+[node name="HSeparator" type="Control" parent="VB/HS/VB2"]
+margin_top = 198.0
+margin_right = 524.0
+margin_bottom = 202.0
+rect_min_size = Vector2( 0, 4 )
+
+[node name="GC2" type="HBoxContainer" parent="VB/HS/VB2"]
+margin_top = 206.0
+margin_right = 524.0
+margin_bottom = 226.0
+
+[node name="Label" type="Label" parent="VB/HS/VB2/GC2"]
+margin_top = 3.0
+margin_right = 36.0
+margin_bottom = 17.0
+text = "Mode"
+
+[node name="ModeSelector" type="OptionButton" parent="VB/HS/VB2/GC2"]
+margin_left = 40.0
+margin_right = 280.0
+margin_bottom = 20.0
+size_flags_horizontal = 3
+text = "Textures"
+
+[node name="Spacer" type="Control" parent="VB/HS/VB2/GC2"]
+margin_left = 284.0
+margin_right = 524.0
+margin_bottom = 20.0
+size_flags_horizontal = 3
+
+[node name="Spacer" type="Control" parent="VB"]
+margin_top = 270.0
+margin_right = 636.0
+margin_bottom = 274.0
+rect_min_size = Vector2( 0, 4 )
+
+[node name="HB" type="HBoxContainer" parent="VB"]
+margin_top = 278.0
+margin_right = 636.0
+margin_bottom = 298.0
+custom_constants/separation = 16
+alignment = 1
+
+[node name="ImportButton" type="Button" parent="VB/HB"]
+margin_left = 252.0
+margin_right = 320.0
+margin_bottom = 20.0
+text = "Import..."
+
+[node name="CloseButton" type="Button" parent="VB/HB"]
+margin_left = 336.0
+margin_right = 383.0
+margin_bottom = 20.0
+text = "Close"
+
+[node name="Spacer2" type="Control" parent="VB"]
+margin_top = 302.0
+margin_right = 636.0
+margin_bottom = 304.0
+rect_min_size = Vector2( 0, 2 )
+
+[node name="DialogFitter" parent="." instance=ExtResource( 5 )]
+[connection signal="item_selected" from="VB/HS/VB/SlotsList" to="." method="_on_SlotsList_item_selected"]
+[connection signal="pressed" from="VB/HS/VB/HB/AddSlot" to="." method="_on_AddSlot_pressed"]
+[connection signal="pressed" from="VB/HS/VB/HB/RemoveSlot" to="." method="_on_RemoveSlot_pressed"]
+[connection signal="pressed" from="VB/HS/VB2/GC/LoadAlbedo" to="." method="_on_LoadAlbedo_pressed"]
+[connection signal="pressed" from="VB/HS/VB2/GC/LoadNormal" to="." method="_on_LoadNormal_pressed"]
+[connection signal="pressed" from="VB/HS/VB2/GC/ClearAlbedo" to="." method="_on_ClearAlbedo_pressed"]
+[connection signal="pressed" from="VB/HS/VB2/GC/ClearNormal" to="." method="_on_ClearNormal_pressed"]
+[connection signal="item_selected" from="VB/HS/VB2/GC2/ModeSelector" to="." method="_on_ModeSelector_item_selected"]
+[connection signal="pressed" from="VB/HB/ImportButton" to="." method="_on_ImportButton_pressed"]
+[connection signal="pressed" from="VB/HB/CloseButton" to="." method="_on_CloseButton_pressed"]

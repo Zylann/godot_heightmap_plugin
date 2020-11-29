@@ -35,3 +35,45 @@ static func get_dpi_scale(editor_settings: EditorSettings) -> float:
 
 	return edscale
 
+
+# This is normally an `EditorFileDialog`. I can't type-hint this one properly,
+# because when I test UI in isolation, I can't use `EditorFileDialog`.
+static func create_open_file_dialog() -> ConfirmationDialog:
+	var d
+	if Engine.editor_hint:
+		d = EditorFileDialog.new()
+		d.mode = EditorFileDialog.MODE_OPEN_FILE
+		d.access = EditorFileDialog.ACCESS_RESOURCES
+	else:
+		# Duh. I need to be able to test it.
+		d = FileDialog.new()
+		d.mode = FileDialog.MODE_OPEN_FILE
+		d.access = FileDialog.ACCESS_RESOURCES
+	d.resizable = true
+	return d
+
+
+static func create_open_dir_dialog() -> ConfirmationDialog:
+	var d
+	if Engine.editor_hint:
+		d = EditorFileDialog.new()
+		d.mode = EditorFileDialog.MODE_OPEN_DIR
+		d.access = EditorFileDialog.ACCESS_RESOURCES
+	else:
+		# Duh. I need to be able to test it.
+		d = FileDialog.new()
+		d.mode = FileDialog.MODE_OPEN_DIR
+		d.access = FileDialog.ACCESS_RESOURCES
+	d.resizable = true
+	return d
+
+
+static func create_open_texture_dialog() -> ConfirmationDialog:
+	var d = create_open_file_dialog()
+	add_image_filters(d)
+	return d
+
+
+static func add_image_filters(file_dialog):
+	file_dialog.add_filter("*.png ; PNG files")
+	file_dialog.add_filter("*.jpg ; JPG files")
