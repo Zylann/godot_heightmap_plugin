@@ -258,6 +258,7 @@ Texture sets are embedded in terrains by default, but it is possible to use the 
 - A file dialog will prompt you for the location you want to put the resource file. Once you're done, click `Save`.
 
 Once you have a `.tres` file, you will be able to pick it up in your other terrain, by clicking on the `texture_set` property, but choosing `Load` this time.
+You can also navigate to the `.tres` file in the `FileSystem` dock, then drag and drop to the property.
 
 
 ### Shader types
@@ -419,7 +420,7 @@ What you can put in each layer is the same as for [packed textures](#packed-text
 
 #### Limitations
 
-Such importers support most of the features needed for terrain textures, however they have a few limitations. This is because Godot does not have any API to extend the existing importers, so they had to be re-implemented from scratch in GDScript. Some features of the built-in importers had to be skipped because Godot does not expose some of the required functions either.
+Such importers support most of the features needed for terrain textures, however some features found in Godot's importers are not implemented. This is because Godot does not have any API to extend the existing importers, so they had to be re-implemented from scratch in GDScript. For example, lossy compression to save disk space is not supported, because it requires access to WebP compression API which is not exposed.
 
 
 ### Depth blending
