@@ -2,3 +2,7 @@ version: 2
 
 mkdocs:
   configuration: addons/zylann.hterrain/doc/mkdocs.yml
+
+# Added this to fix an MkDocs error about `site_dir`
+# https://github.com/readthedocs/readthedocs.org/issues/4974#issuecomment-735320443
+requirements_file: addons/zylann.hterrain/doc/requirements.txt
