@@ -444,8 +444,8 @@ Example for a normal+roughness texture, with conversion from DirectX to OpenGL (
 ```json
 {
     "src": {
-        "rgb": "res://textures/src/grass_albedo.png",
-        "a": "res://textures/src/grass_bump.png",
+        "rgb": "res://textures/src/rocks_normal.png",
+        "a": "res://textures/src/rocks_roughness.png",
         "normalmap_flip_y": true
     }
 }
