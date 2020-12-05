@@ -148,6 +148,24 @@ At the moment, this brush uses the alpha channel of the color map to store where
     See [issue 125](https://github.com/Zylann/godot_heightmap_plugin/issues/125)
 
 
+### Level of detail
+
+This terrain supports level of details on the geometry using a quad tree. It is divided in chunks of 32x32 (or 16x16 depending on your settings), which can be scaled by a power of two depending on the distance from the camera. If a group of 4 chunks are far enough, they will join into a single one. If a chunk is close enough, it will split in 4 smaller ones. Having chunks also improves culling because if you had a single big mesh for the whole terrain, that would be a lot of vertices for the GPU to go through.
+Care is also taken to make sure transitions between LODs are seamless, so if you toggle wireframe rendering in the editor you can see variants of the same meshes being used depending on which LOD their neighbors are using.
+
+![Screenshot of how LOD vertices decimate in the distance](images/lod_geometry.png)
+
+LOD can be mainly tweaked in two ways:
+
+- `lod scale`: this is a factor determining at which distance chunks will split or join. The higher it is, the more details there will be, but the slower the game will be. The lower it is, the faster quality will decrease over distance, but will increase speed.
+- `chunk size`: this is the base size of a chunk. There aren't many values that it can be, and it has a similar relation as `lod scale`. The difference is, it affects how many geometry instances will need to be culled and drawn, so higher values will actually reduce the number of draw calls. But if it's too big, it will take more memory due to all chunk variants that are precalculated.
+
+In the future, this technique could be improved by using GPU tessellation, once the Godot rendering engine supports it. GPU clipmaps are also a possibility, because at the moment the quad tree is updated on the CPU.
+
+!!! note
+    Due to limitations of the Godot renderer's scripting API, LOD only works around one main camera, so it's not possible to have two cameras with split-screen for example. Also, in the editor, LOD only works while the `HTerrain` node is selected, because it's the only time the EditorPlugin is able to obtain camera information (but it should work regardless when you launch the game).
+
+
 Texturing
 -----------
 
@@ -539,6 +557,15 @@ You can color the terrain using the `Color` brush. This is pretty much modulatin
 Depending on the shader, you may be able to choose which textures are affected by the colormap.
 
 
+### Global map
+
+For shading purposes, it can be useful to bake a global map of the terrain. A global map takes the average albedo of the ground all over the terrain, which allows other elements of the scene to use that without having to recompute the full blending process that the ground shader goes through. The current use cases for a global map is to tint grass, and use it as a distance fade in order to hide texture tiling in the very far distance. Together with the terrain's normal map it could also be used to make minimap previews.
+
+To bake a global map, select the `HTerrain` node, go to the `Terrain` menu and click `Bake global map`. This will produce a texture in the terrain data directory which will be used by the default shaders automatically, depending on your settings.
+
+If you use a custom shader, you can define a specific one to use for the global map, by assigning the `custom_globalmap_shader` property. This is usually a stripped-down version of the main ground shader.
+
+
 Terrain generator
 -------------------
 
@@ -673,35 +700,6 @@ They are all thought for grass rendering. You can make your own for things that 
     Detail meshes must be `Mesh` resources, so the easiest way is to use the `OBJ` format. If you use `GLTF` or `FBX`, Godot will import it as a scene by default, so you may have to configure it to import as single mesh if possible.
 
 
-Global map
--------------
-
-For shading purposes, it can be useful to bake a global map of the terrain. A global map basically takes the average albedo of the ground all over the terrain, which allows other elements of the scene to use that without having to recompute the full blending process that the ground shader goes through. The current use cases for a global map is to tint grass, and use it as a distance fade in order to hide texture tiling in the very far distance. Together with the terrain's normal map it could also be used to make minimap previews.
-
-To bake a global map, select the `HTerrain` node, go to the `Terrain` menu and click `Bake global map`. This will produce a texture in the terrain data directory which will be used by the default shaders automatically, depending on your settings.
-
-If you use a custom shader, you can define a specific one to use for the global map, by assigning the `custom_globalmap_shader` property. This is usually a stripped-down version of the main ground shader.
-
-
-Level of detail
------------------
-
-This terrain supports level of details on the geometry using a quad tree. It is divided in chunks of 32x32 (or 16x16 depending on your settings), which can be scaled by a power of two depending on the distance from the camera. If a group of 4 chunks are far enough, they will join into a single one. If a chunk is close enough, it will split in 4 smaller ones. Having chunks also improves culling because if you had a single big mesh for the whole terrain, that would be a lot of vertices for the GPU to go through.
-Care is also taken to make sure transitions between LODs are seamless, so if you toggle wireframe rendering in the editor you can see variants of the same meshes being used depending on which LOD their neighbors are using.
-
-![Screenshot of how LOD vertices decimate in the distance](images/lod_geometry.png)
-
-LOD can be mainly tweaked in two ways:
-
-- `lod scale`: this is a factor determining at which distance chunks will split or join. The higher it is, the more details there will be, but the slower the game will be. The lower it is, the faster quality will decrease over distance, but will increase speed.
-- `chunk size`: this is the base size of a chunk. There aren't many values that it can be, and it has a similar relation as `lod scale`. The difference is, it affects how many geometry instances will need to be culled and drawn, so higher values will actually reduce the number of draw calls. But if it's too big, it will take more memory due to all chunk variants that are precalculated.
-
-In the future, this technique could be improved by using GPU tessellation, once the Godot rendering engine supports it.
-
-!!! note
-    Due to limitations of the Godot renderer's scripting API, LOD only works around one main camera, so it's not possible to have two cameras with split-screen for example. Also, in the editor, LOD only works while the `HTerrain` node is selected, because it's the only time the EditorPlugin is able to obtain camera information (but it should work regardless when you launch the game).
-
-
 Custom shaders
 -----------------
 
@@ -755,8 +753,7 @@ Parameter name                      | Type             | Format  | Description
 `u_ambient_wind`                    | `vec2`           |         | Combined `vec2` parameter for ambient wind. `x` is the amplitude, and `y` is a time value. It is better to use it instead of directly `TIME` because it allows to animate speed without causing stutters.
 
 
-Lookdev 
----------
+### Lookdev 
 
 The plugin features an experimental debugging feature in the `Terrain` menu called "Lookdev". It temporarily replaces the ground shader with a simpler one which displays the raw value of a specific map. For example, you can see the actual values taken by a detail map by choosing one of them in the menu:
 
