@@ -100,11 +100,13 @@ To modify the heightmap, you can use the following brush modes, available at the
 
 - **Raise**: raises the height of the terrain to produce hills
 - **Lower**: digs down to create crevices
-- **Smooth**: averages the heights within the radius of the brush
-- **Flatten**: directly sets the height to a given value, which can be useful as an eraser or to make plateaux.
+- **Smooth**: smoothes heights locally
+- **Level**: averages the heights within the radius of the brush until ground eventually becomes flat
+- **Flatten**: directly sets the height to a given value, which can be useful as an eraser or to make plateaux. It is also possible to pick a height from the viewport using the picking button.
+- **Erode**: smoothes the landscape by simulating erosion. When used on noisy terrain, it often produces characteristic shapes found in nature.
 
 !!! note
-    Heightmaps work best for hills and large mountains, but making sharp cliffs or walls are not recommended because it stretches geometry too much, and might cause edge cases with collisions. To make cliffs it's a better idea to place actual meshes on top.
+    Heightmaps work best for hills and large mountains. Making sharp cliffs or walls are not recommended because it stretches geometry too much, and might cause issues with collisions. To make cliffs it's a better idea to place actual meshes on top.
 
 ### Normals
 
