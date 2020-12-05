@@ -397,7 +397,6 @@ func _paint_splat4(data: HTerrainData, position: Vector2):
 	var p : Painter = _painters[0]
 	var splat = Color(0.0, 0.0, 0.0, 0.0)
 	splat[_texture_index] = 1.0;
-	print(_slope_limit_low_angle, ", ", _slope_limit_high_angle)
 	p.set_brush_shader(Splat4Shader)
 	p.set_brush_shader_param("u_factor", _opacity)
 	p.set_brush_shader_param("u_splat", splat)

@@ -606,9 +606,7 @@ func _paint_completed(changes: Dictionary):
 	heightmap_data._edit_set_disable_apply_undo(false)
 	
 	var time_spent = OS.get_ticks_msec() - time_before
-	print("Spent ", time_spent, "ms to complete painting")
-
-	_logger.debug(str(action_name, " | ", len(chunk_positions), " chunks"))
+	_logger.debug(str(action_name, " | ", len(chunk_positions), " chunks | ", time_spent, " ms"))
 
 
 func _terrain_exited_scene():

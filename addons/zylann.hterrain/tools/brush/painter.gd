@@ -218,7 +218,7 @@ func _commit_modified_chunks() -> Dictionary:
 	var chunks_initial_data := []
 	var chunks_final_data := []
 
-	print("About to commit ", len(_modified_chunks), " chunks")
+	#_logger.debug("About to commit ", len(_modified_chunks), " chunks")
 	
 	# TODO get_data_partial() would be nice...
 	var final_image := _texture.get_data()
