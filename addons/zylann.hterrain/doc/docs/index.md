@@ -495,6 +495,12 @@ Example for a normal+roughness texture, with conversion from DirectX to OpenGL (
 }
 ```
 
+You can also specify a plain color instead of a path, if you don't need a texture. It will act as if the source texture was filled with this color. The expected format is ARGB.
+
+```
+    "rgb": "#ff888800"
+```
+
 #### Packed texture arrays
 
 File extension: `.packed_texarr`
@@ -526,6 +532,8 @@ What you can put in each layer is the same as for [packed textures](#packed-text
 #### Limitations
 
 Such importers support most of the features needed for terrain textures, however some features found in Godot's importers are not implemented. This is because Godot does not have any API to extend the existing importers, so they had to be re-implemented from scratch in GDScript. For example, lossy compression to save disk space is not supported, because it requires access to WebP compression API which is not exposed.
+
+See [Godot proposal](https://github.com/godotengine/godot-proposals/issues/1943)
 
 
 ### Depth blending
