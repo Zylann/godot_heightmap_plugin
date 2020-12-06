@@ -300,18 +300,6 @@ func resize(p_res: int, stretch := true, anchor := Vector2(-1, -1)):
 	emit_signal("resolution_changed")
 
 
-static func _get_clamped(im: Image, x: int, y: int) -> Color:
-	if x < 0:
-		x = 0
-	elif x >= im.get_width():
-		x = im.get_width() - 1
-
-	if y < 0:
-		y = 0
-	elif y >= im.get_height():
-		y = im.get_height() - 1
-
-	return im.get_pixel(x, y)
 
 
 # Gets the height at the given cell position.
@@ -323,7 +311,7 @@ func get_height_at(x: int, y: int) -> float:
 	assert(im != null)
 
 	im.lock();
-	var h = _get_clamped(im, x, y).r;
+	var h = Util.get_pixel_clamped(im, x, y).r;
 	im.unlock();
 	return h;
 
@@ -344,10 +332,10 @@ func get_interpolated_height_at(pos: Vector3) -> float:
 	var yf := pos.z - y0
 
 	im.lock()
-	var h00 = _get_clamped(im, x0, y0).r
-	var h10 = _get_clamped(im, x0 + 1, y0).r
-	var h01 = _get_clamped(im, x0, y0 + 1).r
-	var h11 = _get_clamped(im, x0 + 1, y0 + 1).r
+	var h00 = Util.get_pixel_clamped(im, x0, y0).r
+	var h10 = Util.get_pixel_clamped(im, x0 + 1, y0).r
+	var h01 = Util.get_pixel_clamped(im, x0, y0 + 1).r
+	var h11 = Util.get_pixel_clamped(im, x0 + 1, y0 + 1).r
 	im.unlock()
 
 	# Bilinear filter
