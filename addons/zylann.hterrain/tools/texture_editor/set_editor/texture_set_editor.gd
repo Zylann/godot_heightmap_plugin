@@ -232,8 +232,8 @@ func _select_slot(slot_index: int):
 		
 		_albedo_preview.material.shader = ColorSliceShader
 		_bump_preview.material.shader = AlphaSliceShader
-		_normal_preview.material.shader = ColorSliceShader
-		_roughness_preview.material.shader = AlphaSliceShader
+		_normal_preview.material.shader = ColorSliceShader if normal_tex != null else ColorShader
+		_roughness_preview.material.shader = AlphaSliceShader if normal_tex != null else AlphaShader
 		
 		_albedo_preview.material.set_shader_param("u_texture_array", albedo_tex)
 		_bump_preview.material.set_shader_param("u_texture_array", albedo_tex)
