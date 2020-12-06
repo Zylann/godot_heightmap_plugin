@@ -60,13 +60,11 @@ const _builtin_shaders = {
 	},
 	SHADER_MULTISPLAT16: {
 		path = "res://addons/zylann.hterrain/shaders/multisplat16.shader",
-		# TODO Proper globalmap shader for multisplat16
-		global_path = "res://addons/zylann.hterrain/shaders/multisplat16.shader"
+		global_path = "res://addons/zylann.hterrain/shaders/multisplat16_global.shader"
 	},
 	SHADER_MULTISPLAT16_LITE: {
 		path = "res://addons/zylann.hterrain/shaders/multisplat16_lite.shader",
-		# TODO Proper globalmap shader for multisplat16_lite
-		global_path = "res://addons/zylann.hterrain/shaders/multisplat16_lite.shader"
+		global_path = "res://addons/zylann.hterrain/shaders/multisplat16_global.shader"
 	}
 }
 
