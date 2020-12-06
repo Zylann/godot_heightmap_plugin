@@ -458,6 +458,8 @@ func _paint_splat16(data: HTerrainData, position: Vector2):
 	for i in 4:
 		textures.append(data.get_texture(HTerrainData.CHANNEL_SPLAT, i, true))
 
+	var heightmap_texture = data.get_texture(HTerrainData.CHANNEL_HEIGHT, 0)
+
 	for i in 4:
 		var image : Image = data.get_image(HTerrainData.CHANNEL_SPLAT)
 		var texture : Texture = textures[i]
@@ -481,6 +483,9 @@ func _paint_splat16(data: HTerrainData, position: Vector2):
 		p.set_brush_shader_param("u_other_splatmap_1", other_splatmaps[0])
 		p.set_brush_shader_param("u_other_splatmap_2", other_splatmaps[1])
 		p.set_brush_shader_param("u_other_splatmap_3", other_splatmaps[2])
+		p.set_brush_shader_param("u_normal_min_y", cos(_slope_limit_high_angle))
+		p.set_brush_shader_param("u_normal_max_y", cos(_slope_limit_low_angle) + 0.001)
+		p.set_brush_shader_param("u_heightmap", heightmap_texture)
 		p.set_image(image, texture)
 		p.paint_input(position)
 
