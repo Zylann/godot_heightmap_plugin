@@ -548,6 +548,15 @@ Although it's still possible to notice repetition over larger distances, this ca
 In addition, many games don't present a naked terrain to players: there are usually many props on top of it, such as grass, vegetation, trees, rocks, buildings, fog etc. so overall tiling textures should not really be a big deal.
 
 
+### Painting only on slopes
+
+The texture painting tool has a special option to limit the brush based on the slope of the terrain. This helps painting cliffs only or flat grounds only, without having to aim. It can even be used to paint a big area in one go, by increasing the brush size.
+
+![Screenshot of the slope limit tool](images/slope_limit_tool.png)
+
+The control consists in a two-ways slider. You can drag two handles. The left handle controls minimum slope, the right handle controls maximum slope. The range between the two handles determines which slopes the brush will paint on.
+
+
 ### Color tint
 
 You can color the terrain using the `Color` brush. This is pretty much modulating the albedo, which can help adding a touch of variety to the landscape. If you make custom shader tweaks, color can also be used for your own purpose if you need to.
