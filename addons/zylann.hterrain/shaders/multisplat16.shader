@@ -24,6 +24,7 @@ uniform float u_ground_uv_scale = 20.0;
 uniform bool u_depth_blending = true;
 uniform float u_globalmap_blend_start;
 uniform float u_globalmap_blend_distance;
+uniform bool u_tile_reduction = false;
 
 varying float v_hole;
 varying vec3 v_tint;
@@ -41,6 +42,11 @@ vec3 unpack_normal(vec4 rgba) {
 	// and OpenGL-style normal maps are Y-up.
 	n.z *= -1.0;
 	return n;
+}
+
+vec4 pack_normal(vec3 n, float a) {
+	n.z *= -1.0;
+	return vec4((n.xzy + vec3(1.0)) * 0.5, a);
 }
 
 // Blends weights according to the bump of detail textures,
@@ -153,6 +159,57 @@ void get_splat_weights(vec2 uv, out vec4 out_high_indices, out vec4 out_high_wei
 		out_high_weights.r + out_high_weights.g + out_high_weights.b + out_high_weights.a;
 }
 
+vec4 depth_blend2(vec4 a_value, float a_bump, vec4 b_value, float b_bump, float t) {
+	// https://www.gamasutra.com
+	// /blogs/AndreyMishkinis/20130716/196339/Advanced_Terrain_Texture_Splatting.php
+	float d = 0.1;
+	float ma = max(a_bump + (1.0 - t), b_bump + t) - d;
+	float ba = max(a_bump + (1.0 - t) - ma, 0.0);
+	float bb = max(b_bump + t - ma, 0.0);
+	return (a_value * ba + b_value * bb) / (ba + bb);
+}
+
+vec2 rotate(vec2 v, float cosa, float sina) {
+	return vec2(cosa * v.x - sina * v.y, sina * v.x + cosa * v.y);
+}
+
+vec4 texture_array_antitile(sampler2DArray albedo_tex, sampler2DArray normal_tex, vec3 uv,
+	out vec4 out_normal) {
+
+	float frequency = 2.0;
+	float scale = 1.3;
+	float sharpness = 0.7;
+	
+	// Rotate and scale UV
+	float rot = 3.14 * 0.6;
+	float cosa = cos(rot);
+	float sina = sin(rot);
+	vec3 uv2 = vec3(rotate(uv.xy, cosa, sina) * scale, uv.z);
+	
+	vec4 col0 = texture(albedo_tex, uv);
+	vec4 col1 = texture(albedo_tex, uv2);
+	vec4 nrm0 = texture(normal_tex, uv);
+	vec4 nrm1 = texture(normal_tex, uv2);
+	//col0 = vec4(0.0, 0.5, 0.5, 1.0); // Highlights variations
+
+	// Normals have to be rotated too since we are rotating the texture...
+	// TODO Probably not the most efficient but understandable for now
+	vec3 n = unpack_normal(nrm1);
+	// Had to negate the Y axis for some reason. I never remember the myriad of conventions around
+	n.xz = rotate(n.xz, cosa, -sina);
+	nrm1 = pack_normal(n, nrm1.a);
+	
+	// Periodically alternate between the two versions using a warped checker pattern
+	float t = 1.1 + 0.5
+		* sin(uv2.x * frequency + sin(uv.x) * 2.0) 
+		* cos(uv2.y * frequency + sin(uv.y) * 2.0); // Result in [0..2]
+	t = smoothstep(sharpness, 2.0 - sharpness, t);
+
+	// Using depth blend because classic alpha blending smoothes out details.
+	out_normal = depth_blend2(nrm0, col0.a, nrm1, col1.a, t);
+	return depth_blend2(col0, col0.a, col1, col1.a, t);
+}
+
 void vertex() {
 	vec4 wpos = WORLD_MATRIX * vec4(VERTEX, 1);
 	vec2 cell_coords = (u_terrain_inverse_transform * wpos).xz;
@@ -211,15 +268,34 @@ void fragment() {
 		vec4 high_weights;
 		get_splat_weights(UV, high_indices, high_weights);
 		
-		vec4 ab0 = texture(u_ground_albedo_bump_array, vec3(v_ground_uv.xz, high_indices.x));
-		vec4 ab1 = texture(u_ground_albedo_bump_array, vec3(v_ground_uv.xz, high_indices.y));
-		vec4 ab2 = texture(u_ground_albedo_bump_array, vec3(v_ground_uv.xz, high_indices.z));
-		vec4 ab3 = texture(u_ground_albedo_bump_array, vec3(v_ground_uv.xz, high_indices.w));
+		vec4 ab0, ab1, ab2, ab3;
+		vec4 nr0, nr1, nr2, nr3;
+				
+		if (u_tile_reduction) {
+			ab0 = texture_array_antitile(
+				u_ground_albedo_bump_array, u_ground_normal_roughness_array, 
+				vec3(v_ground_uv.xz, high_indices.x), nr0);
+			ab1 = texture_array_antitile(
+				u_ground_albedo_bump_array, u_ground_normal_roughness_array, 
+				vec3(v_ground_uv.xz, high_indices.y), nr1);
+			ab2 = texture_array_antitile(
+				u_ground_albedo_bump_array, u_ground_normal_roughness_array, 
+				vec3(v_ground_uv.xz, high_indices.z), nr2);
+			ab3 = texture_array_antitile(
+				u_ground_albedo_bump_array, u_ground_normal_roughness_array, 
+				vec3(v_ground_uv.xz, high_indices.w), nr3);
+			
+		} else {
+			ab0 = texture(u_ground_albedo_bump_array, vec3(v_ground_uv.xz, high_indices.x));
+			ab1 = texture(u_ground_albedo_bump_array, vec3(v_ground_uv.xz, high_indices.y));
+			ab2 = texture(u_ground_albedo_bump_array, vec3(v_ground_uv.xz, high_indices.z));
+			ab3 = texture(u_ground_albedo_bump_array, vec3(v_ground_uv.xz, high_indices.w));
 
-		vec4 nr0 = texture(u_ground_normal_roughness_array, vec3(v_ground_uv.xz, high_indices.x));
-		vec4 nr1 = texture(u_ground_normal_roughness_array, vec3(v_ground_uv.xz, high_indices.y));
-		vec4 nr2 = texture(u_ground_normal_roughness_array, vec3(v_ground_uv.xz, high_indices.z));
-		vec4 nr3 = texture(u_ground_normal_roughness_array, vec3(v_ground_uv.xz, high_indices.w));
+			nr0 = texture(u_ground_normal_roughness_array, vec3(v_ground_uv.xz, high_indices.x));
+			nr1 = texture(u_ground_normal_roughness_array, vec3(v_ground_uv.xz, high_indices.y));
+			nr2 = texture(u_ground_normal_roughness_array, vec3(v_ground_uv.xz, high_indices.z));
+			nr3 = texture(u_ground_normal_roughness_array, vec3(v_ground_uv.xz, high_indices.w));
+		}
 		
 		vec3 col0 = ab0.rgb * v_tint;
 		vec3 col1 = ab1.rgb * v_tint;
