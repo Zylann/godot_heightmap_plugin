@@ -709,7 +709,7 @@ func _on_ImportButton_pressed():
 				ur.add_do_method(_texture_set, "set_texture", fd.slot_index, fd.type, fd.texture)
 
 		else:
-			ur.create_action("HTerrainTextureSet: import textures")
+			ur.create_action("HTerrainTextureSet: import texture arrays")
 			
 			TextureSetEditor.backup_for_undo(_texture_set, ur)
 			
@@ -749,19 +749,26 @@ func _generate_packed_textures_files_data(import_dir: String, prefix: String) ->
 		
 		for slot_index in len(_slots_data):
 			var slot : Slot = _slots_data[slot_index]
+
+			var src0 : String = slot.texture_paths[src_types[0]]
+			var src1 : String = slot.texture_paths[src_types[1]]
 			
-			if slot.texture_paths[src_types[0]] == "":
+			if src0 == "":
 				if src_types[0] == HTerrainTextureSet.SRC_TYPE_ALBEDO:
 					return Result.new(false, 
 						"Albedo texture is missing in slot {0}".format([slot_index]))
-				continue
+
+			if src0 == "":
+				src0 = HTerrainTextureSet.get_source_texture_default_color_code(src_types[0])
+			if src1 == "":
+				src1 = HTerrainTextureSet.get_source_texture_default_color_code(src_types[1])
 
 			var json_data := {
 				"contains_albedo": type == HTerrainTextureSet.TYPE_ALBEDO_BUMP,
 				"resolution": _import_settings.resolution,
 				"src": {
-					"rgb": slot.texture_paths[src_types[0]],
-					"a": slot.texture_paths[src_types[1]]
+					"rgb": src0,
+					"a": src1
 				}
 			}
 			
@@ -778,6 +785,7 @@ func _generate_packed_textures_files_data(import_dir: String, prefix: String) ->
 				"path": fpath,
 				"data": json_data,
 
+				# This is for .import files
 				"import_data": {
 					"remap": {
 						"importer": PackedTextureImporter.IMPORTER_NAME,
@@ -821,25 +829,41 @@ func _generate_save_packed_texture_arrays_files_data(import_dir: String, prefix:
 			"resolution": _import_settings.resolution,
 		}
 		var layers_data := []
-		
+
+		var fully_defaulted_slots := 0
+
 		for slot_index in len(_slots_data):
 			var slot : Slot = _slots_data[slot_index]
+
+			var src0 : String = slot.texture_paths[src_types[0]]
+			var src1 : String = slot.texture_paths[src_types[1]]
 			
-			if slot.texture_paths[src_types[0]] == "":
+			if src0 == "":
 				if src_types[0] == HTerrainTextureSet.SRC_TYPE_ALBEDO:
 					return Result.new(false, 
 						"Albedo texture is missing in slot {0}".format([slot_index]))
-				continue
-				
+
+			if src0 == "" and src1 == "":
+				fully_defaulted_slots += 1
+
+			if src0 == "":
+				src0 = HTerrainTextureSet.get_source_texture_default_color_code(src_types[0])
+			if src1 == "":
+				src1 = HTerrainTextureSet.get_source_texture_default_color_code(src_types[1])
+
 			var layer = {
-				"rgb": slot.texture_paths[src_types[0]],
-				"a": slot.texture_paths[src_types[1]]
+				"rgb": src0,
+				"a": src1
 			}
-			
+
 			if HTerrainTextureSet.SRC_TYPE_NORMAL in src_types and slot.flip_normalmap_y:
 				layer["normalmap_flip_y"] = slot.flip_normalmap_y
 			
 			layers_data.append(layer)
+
+		if fully_defaulted_slots == len(_slots_data):
+			# No need to generate this file at all
+			continue
 		
 		json_data["layers"] = layers_data
 		
@@ -851,6 +875,7 @@ func _generate_save_packed_texture_arrays_files_data(import_dir: String, prefix:
 			"path": fpath,
 			"data": json_data,
 
+			# This is for .import files
 			"import_data": {
 				"remap": {
 					"importer": PackedTextureArrayImporter.IMPORTER_NAME,
@@ -867,5 +892,5 @@ func _generate_save_packed_texture_arrays_files_data(import_dir: String, prefix:
 				}
 			}
 		})
-	
+
 	return Result.new(true).with_value(files)

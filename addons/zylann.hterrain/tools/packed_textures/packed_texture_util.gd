@@ -24,7 +24,7 @@ static func generate_image(sources: Dictionary, resolution: int, logger) -> Resu
 		
 		var src_path : String = sources[key]
 		
-		logger.debug(str("Processing source ", src_path))
+		logger.debug(str("Processing source \"", src_path, "\""))
 		
 		var src_image := Image.new()
 		if src_path.begins_with("#"):
@@ -37,7 +37,7 @@ static func generate_image(sources: Dictionary, resolution: int, logger) -> Resu
 			# File
 			var err := src_image.load(src_path)
 			if err != OK:
-				return Result.new(false, "Could not open file {0}: {1}" \
+				return Result.new(false, "Could not open file \"{0}\": {1}" \
 					.format([src_path, Errors.get_message(err)])) \
 					.with_value(err)
 			src_image.decompress()
@@ -46,7 +46,6 @@ static func generate_image(sources: Dictionary, resolution: int, logger) -> Resu
 		src_image.lock()
 		
 		# TODO Support more channel configurations
-		# TODO Support normalmap strength +/-
 		if key == "rgb":
 			for y in image.get_height():
 				for x in image.get_width():

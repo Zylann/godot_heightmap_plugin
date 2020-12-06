@@ -27,6 +27,13 @@ const _type_to_src_types = [
 	[SRC_TYPE_NORMAL, SRC_TYPE_ROUGHNESS]
 ]
 
+const _src_default_color_codes = [
+	"#ff000000",
+	"#ff888888",
+	"#ff8888ff",
+	"#ffffffff"
+]
+
 # TODO We may get rid of modes in the future, and only use TextureArrays.
 # It exists for now for backward compatibility, but it makes the API a bit confusing
 var _mode = MODE_TEXTURES
@@ -40,6 +47,10 @@ static func get_texture_type_name(tt: int) -> String:
 
 static func get_source_texture_type_name(tt: int) -> String:
 	return _src_texture_type_names[tt]
+
+
+static func get_source_texture_default_color_code(tt: int) -> String:
+	return _src_default_color_codes[tt]
 
 
 static func get_import_mode_name(mode: int) -> String:
