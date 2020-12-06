@@ -761,7 +761,10 @@ Parameter name                      | Type             | Format  | Description
 `u_terrain_heightmap`               | `sampler2D`      | `RH`    | The heightmap, a half-precision float texture which can be sampled in the red channel. Like the other following maps, you have to access it using cell coordinates, which can be computed as seen in the built-in shader.
 `u_terrain_normalmap`               | `sampler2D`      | `RGB8`  | The precalculated normalmap of the terrain, which you can use instead of computing it from the heightmap
 `u_terrain_colormap`                | `sampler2D`      | `RGBA8` | The color map, which is the one modified by the color brush. The alpha channel is used for holes.
-`u_terrain_splatmap`                | `sampler2D`      | `RGBA8` | The classic 4-component splatmap, where each channel determines the weight of a given texture. The sum of each channel should be 1.0.
+`u_terrain_splatmap`                | `sampler2D`      | `RGBA8` | The classic 4-component splatmap, where each channel determines the weight of a given texture. The sum of each channel across all splatmaps must be 1.0.
+`u_terrain_splatmap_1`              | `sampler2D`      | `RGBA8` | Additional splatmap
+`u_terrain_splatmap_2`              | `sampler2D`      | `RGBA8` | Additional splatmap
+`u_terrain_splatmap_3`              | `sampler2D`      | `RGBA8` | Additional splatmap
 `u_terrain_globalmap`               | `sampler2D`      | `RGB8`  | The global albedo map.
 `u_terrain_splat_index_map`         | `sampler2D`      | `RGB8`  | An index map, used for texturing based on a `TextureArray`. the R, G and B components multiplied by 255.0 will provide the index of the texture.
 `u_terrain_splat_weight_map`        | `sampler2D`      | `RG8`   | A 2-component weight map where a 3rd component can be obtained with `1.0 - r - g`, used for texturing based on a `TextureArray`. The sum of R and G must be 1.0.
