@@ -422,6 +422,7 @@ func set_texture_set(new_set: HTerrainTextureSet):
 
 func _on_texture_set_changed():
 	_material_params_need_update = true
+	Util.update_configuration_warning(self, false)
 
 
 func get_shader_param(param_name: String):
@@ -908,6 +909,9 @@ func _update_material_params():
 
 
 # TODO Rename is_shader_using_texture_array()
+# Tells if the current shader is using a texture array.
+# This will only be valid once the material has been updated internally.
+# (for example it won't be valid before the terrain is added to the SceneTree)
 func is_using_texture_array() -> bool:
 	return _shader_uses_texture_array
 
@@ -1107,6 +1111,7 @@ func _process(delta: float):
 
 	if _material_params_need_update:
 		_update_material_params()
+		Util.update_configuration_warning(self, false)
 		_material_params_need_update = false
 
 	# DEBUG
@@ -1388,7 +1393,7 @@ func get_cached_ground_texture_slot_count() -> int:
 	return _ground_texture_count_cache
 
 
-func _edit_debug_draw(ci):
+func _edit_debug_draw(ci: CanvasItem):
 	_lodder.debug_draw_tree(ci)
 
 
@@ -1396,9 +1401,27 @@ func _get_configuration_warning():
 	if _data == null:
 		return "The terrain is missing data.\n" \
 			+ "Select the `Data Directory` property in the inspector to assign it."
+
 	if _texture_set == null:
 		return "The terrain does not have a HTerrainTextureSet assigned\n" \
 			+ "This is required if you want to paint textures on it."
+
+	else:
+		var mode := _texture_set.get_mode()
+
+		if mode == HTerrainTextureSet.MODE_TEXTURES and is_using_texture_array():
+			return "The current shader needs texture arrays,\n" \
+				+ "but the current HTerrainTextureSet is setup with individual textures.\n" \
+				+ "You may need to switch it to TEXTURE_ARRAYS mode,\n" \
+				+ "or re-import images in this mode with the import tool."
+
+		elif mode == HTerrainTextureSet.MODE_TEXTURE_ARRAYS and not is_using_texture_array():
+			return "The current shader needs individual textures,\n" \
+				+ "but the current HTerrainTextureSet is setup with texture arrays.\n" \
+				+ "You may need to switch it to TEXTURES mode,\n" \
+				+ "or re-import images in this mode with the import tool."
+
+	# TODO Warn about unused data maps, have a tool to clean them up
 	return ""
 
 
