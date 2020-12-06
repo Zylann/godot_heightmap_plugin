@@ -572,7 +572,10 @@ For shading purposes, it can be useful to bake a global map of the terrain. A gl
 
 To bake a global map, select the `HTerrain` node, go to the `Terrain` menu and click `Bake global map`. This will produce a texture in the terrain data directory which will be used by the default shaders automatically, depending on your settings.
 
-If you use a custom shader, you can define a specific one to use for the global map, by assigning the `custom_globalmap_shader` property. This is usually a stripped-down version of the main ground shader.
+If you use a custom shader, you can define a specific one to use for the global map, by assigning the `custom_globalmap_shader` property. This is usually a stripped-down version of the main ground shader, where only `ALBEDO` is important.
+
+!!! note
+    The globalmap is also used in the minimap to show the color of the terrain.
 
 
 Terrain generator
