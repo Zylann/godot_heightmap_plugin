@@ -17,6 +17,7 @@ const SHADER_CLASSIC4_LITE = "Classic4Lite"
 const SHADER_LOW_POLY = "LowPoly"
 const SHADER_ARRAY = "Array"
 const SHADER_MULTISPLAT16 = "MultiSplat16"
+const SHADER_MULTISPLAT16_LITE = "MultiSplat16Lite"
 const SHADER_CUSTOM = "Custom"
 
 const MIN_MAP_SCALE = 0.01
@@ -27,6 +28,7 @@ const _SHADER_TYPE_HINT_STRING = str(
 	"LowPoly", ",",
 	"Array", ",",
 	"MultiSplat16", ",",
+	"MultiSplat16Lite", ",",
 	"Custom"
 )
 # TODO Had to downgrade this to support Godot 3.1.
@@ -60,6 +62,11 @@ const _builtin_shaders = {
 		path = "res://addons/zylann.hterrain/shaders/multisplat16.shader",
 		# TODO Proper globalmap shader for multisplat16
 		global_path = "res://addons/zylann.hterrain/shaders/multisplat16.shader"
+	},
+	SHADER_MULTISPLAT16_LITE: {
+		path = "res://addons/zylann.hterrain/shaders/multisplat16_lite.shader",
+		# TODO Proper globalmap shader for multisplat16_lite
+		global_path = "res://addons/zylann.hterrain/shaders/multisplat16_lite.shader"
 	}
 }
 
