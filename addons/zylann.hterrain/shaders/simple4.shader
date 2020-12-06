@@ -186,8 +186,7 @@ void vertex() {
 	v_splat = texture(u_terrain_splatmap, UV);
 
 	// Need to use u_terrain_normal_basis to handle scaling.
-	NORMAL = u_terrain_normal_basis 
-		* unpack_normal(texture(u_terrain_normalmap, UV));
+	NORMAL = u_terrain_normal_basis * unpack_normal(texture(u_terrain_normalmap, UV));
 
 	v_distance_to_camera = distance(wpos.xyz, CAMERA_MATRIX[3].xyz);
 }

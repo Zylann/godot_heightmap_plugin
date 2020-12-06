@@ -17,14 +17,14 @@ void fragment() {
 
 	// It is assumed 3 other renders are done the same with the other 3
 	vec4 src0 = texture(TEXTURE, UV);
-	vec4 src1 = texture(u_other_splatmap_1);
-	vec4 src2 = texture(u_other_splatmap_2);
-	vec4 src3 = texture(u_other_splatmap_3);
+	vec4 src1 = texture(u_other_splatmap_1, UV);
+	vec4 src2 = texture(u_other_splatmap_2, UV);
+	vec4 src3 = texture(u_other_splatmap_3, UV);
 	float t = u_factor * brush_value;
-	vec4 s0 = mix(src, u_splat, t);
-	vec4 s1 = mix(src, vec4(0.0), t);
-	vec4 s2 = mix(src, vec4(0.0), t);
-	vec4 s3 = mix(src, vec4(0.0), t);
+	vec4 s0 = mix(src0, u_splat, t);
+	vec4 s1 = mix(src1, vec4(0.0), t);
+	vec4 s2 = mix(src2, vec4(0.0), t);
+	vec4 s3 = mix(src3, vec4(0.0), t);
 	float sum = sum(s0) + sum(s1) + sum(s2) + sum(s3);
 	s0 /= sum;
 	s1 /= sum;

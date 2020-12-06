@@ -11,6 +11,7 @@ const LevelShader = preload("./shaders/level.shader")
 const FlattenShader = preload("./shaders/flatten.shader")
 const ErodeShader = preload("./shaders/erode.shader")
 const Splat4Shader = preload("./shaders/splat4.shader")
+const Splat16Shader = preload("./shaders/splat16.shader")
 const SplatIndexedShader = preload("./shaders/splat_indexed.shader")
 const ColorShader = preload("./shaders/color.shader")
 const AlphaShader = preload("./shaders/alpha.shader")
@@ -256,11 +257,15 @@ func paint_input(position: Vector2):
 			# 	_logger.debug("Painting out of range of supported texture slots: {0}/{1}" \
 			# 		.format([_texture_index, supported_slots_count]))
 			# 	return
-			var use_indexed_splat := _terrain.is_using_texture_array()
-			if use_indexed_splat:
+			if _terrain.is_using_indexed_splatmap():
 				_paint_splat_indexed(data, position)
 			else:
-				_paint_splat4(data, position)
+				var splatmap_count := _terrain.get_used_splatmaps_count()
+				match splatmap_count:
+					1:
+						_paint_splat4(data, position)
+					4:
+						_paint_splat16(data, position)
 
 		MODE_COLOR:
 			_paint_color(data, position)
@@ -439,41 +444,45 @@ func _paint_splat_indexed(data: HTerrainData, position: Vector2):
 		p.paint_input(position)
 
 
-#func _paint_splat16(data: HTerrainData, position: Vector2):
-#	var splats := []
-#	for i in 4:
-#		splats.append(Color(0.0, 0.0, 0.0, 0.0))
-#	splats[_texture_index / 4][_texture_index % 4] = 1.0
-#
-#	var textures := []
-#	for i in 4:
-#		textures.append(data.get_texture(HTerrainData.CHANNEL_SPLAT, i, true))
-#
-#	for i in 4:
-#		var image : Image = data.get_image(HTerrainData.CHANNEL_SPLAT)
-#		var texture : Texture = textures[i]
-#		
-#		var mm := ModifiedMap.new()
-#		mm.map_type = HTerrainData.CHANNEL_SPLAT
-#		mm.map_index = i
-#		mm.painter_index = i
-#		_modified_maps = [mm]
-#
-#		var p : Painter = _painters[0]
-#
-#		var other_splatmaps = []
-#		for tex in textures:
-#			if tex != texture:
-#				other_splatmaps.append(tex)
-#		
-#		p.set_brush_shader(Splat16Shader)
-#		p.set_brush_shader_param("u_factor", _opacity)
-#		p.set_brush_shader_param("u_splat", splats[i])
-#		p.set_brush_shader_param("u_other_splatmap_1", other_splatmaps[0])
-#		p.set_brush_shader_param("u_other_splatmap_2", other_splatmaps[1])
-#		p.set_brush_shader_param("u_other_splatmap_3", other_splatmaps[2])
-#		p.set_image(image, texture)
-#		p.paint_input(position)
+func _paint_splat16(data: HTerrainData, position: Vector2):
+	# Make sure required maps are present
+	while data.get_map_count(HTerrainData.CHANNEL_SPLAT) < 4:
+		data._edit_add_map(HTerrainData.CHANNEL_SPLAT)
+
+	var splats := []
+	for i in 4:
+		splats.append(Color(0.0, 0.0, 0.0, 0.0))
+	splats[_texture_index / 4][_texture_index % 4] = 1.0
+
+	var textures := []
+	for i in 4:
+		textures.append(data.get_texture(HTerrainData.CHANNEL_SPLAT, i, true))
+
+	for i in 4:
+		var image : Image = data.get_image(HTerrainData.CHANNEL_SPLAT)
+		var texture : Texture = textures[i]
+		
+		var mm := ModifiedMap.new()
+		mm.map_type = HTerrainData.CHANNEL_SPLAT
+		mm.map_index = i
+		mm.painter_index = i
+		_modified_maps.append(mm)
+
+		var p : Painter = _painters[i]
+
+		var other_splatmaps = []
+		for tex in textures:
+			if tex != texture:
+				other_splatmaps.append(tex)
+		
+		p.set_brush_shader(Splat16Shader)
+		p.set_brush_shader_param("u_factor", _opacity)
+		p.set_brush_shader_param("u_splat", splats[i])
+		p.set_brush_shader_param("u_other_splatmap_1", other_splatmaps[0])
+		p.set_brush_shader_param("u_other_splatmap_2", other_splatmaps[1])
+		p.set_brush_shader_param("u_other_splatmap_3", other_splatmaps[2])
+		p.set_image(image, texture)
+		p.paint_input(position)
 
 
 func _paint_color(data: HTerrainData, position: Vector2):

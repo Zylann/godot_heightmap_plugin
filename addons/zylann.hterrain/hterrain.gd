@@ -16,6 +16,7 @@ const SHADER_CLASSIC4 = "Classic4"
 const SHADER_CLASSIC4_LITE = "Classic4Lite"
 const SHADER_LOW_POLY = "LowPoly"
 const SHADER_ARRAY = "Array"
+const SHADER_MULTISPLAT16 = "MultiSplat16"
 const SHADER_CUSTOM = "Custom"
 
 const MIN_MAP_SCALE = 0.01
@@ -25,6 +26,7 @@ const _SHADER_TYPE_HINT_STRING = str(
 	"Classic4Lite", ",",
 	"LowPoly", ",",
 	"Array", ",",
+	"MultiSplat16", ",",
 	"Custom"
 )
 # TODO Had to downgrade this to support Godot 3.1.
@@ -53,6 +55,11 @@ const _builtin_shaders = {
 	SHADER_ARRAY: {
 		path = "res://addons/zylann.hterrain/shaders/array.shader",
 		global_path = "res://addons/zylann.hterrain/shaders/array_global.shader"
+	},
+	SHADER_MULTISPLAT16: {
+		path = "res://addons/zylann.hterrain/shaders/multisplat16.shader",
+		# TODO Proper globalmap shader for multisplat16
+		global_path = "res://addons/zylann.hterrain/shaders/multisplat16.shader"
 	}
 }
 
@@ -71,6 +78,9 @@ const _api_shader_params = {
 	"u_terrain_normalmap": true,
 	"u_terrain_colormap": true,
 	"u_terrain_splatmap": true,
+	"u_terrain_splatmap_1": true,
+	"u_terrain_splatmap_2": true,
+	"u_terrain_splatmap_3": true,
 	"u_terrain_splat_index_map": true,
 	"u_terrain_splat_weight_map": true,
 	"u_terrain_globalmap": true,
@@ -102,6 +112,13 @@ const _api_shader_ground_albedo_params = {
 const _ground_texture_array_shader_params = [
 	"u_ground_albedo_bump_array",
 	"u_ground_normal_roughness_array"
+]
+
+const _splatmap_shader_params = [
+	"u_terrain_splatmap",
+	"u_terrain_splatmap_1",
+	"u_terrain_splatmap_2",
+	"u_terrain_splatmap_3"
 ]
 
 const MIN_CHUNK_SIZE = 16
@@ -136,6 +153,9 @@ var _material_params_need_update := false
 
 # Actual number of textures supported by the shader currently selected
 var _ground_texture_count_cache = 0
+
+var _used_splatmaps_count_cache := 0
+var _is_using_indexed_splatmap := false
 
 var _texture_set := HTerrainTextureSet.new()
 var _texture_set_migration_textures = null
@@ -852,9 +872,10 @@ func _update_material_params():
 
 	if has_data():
 		for map_type in HTerrainData.CHANNEL_COUNT:
-			var param_name: String = HTerrainData.get_map_type_shader_param_name(map_type)
-			if _data.has_texture(map_type, 0):
-				terrain_textures[param_name] = _data.get_texture(map_type, 0)
+			var count := _data.get_map_count(map_type)
+			for i in count:
+				var param_name: String = HTerrainData.get_map_shader_param_name(map_type, i)
+				terrain_textures[param_name] = _data.get_texture(map_type, i)
 		res.x = _data.get_resolution()
 		res.y = res.x
 
@@ -896,7 +917,9 @@ func _update_material_params():
 					_material.set_shader_param(shader_params, texture_array)
 
 	_shader_uses_texture_array = false
-	
+	_is_using_indexed_splatmap = false
+	_used_splatmaps_count_cache = 0
+
 	var shader := _material.shader
 	if shader != null:
 		var param_list := VisualServer.shader_get_param_list(shader.get_rid())
@@ -904,8 +927,12 @@ func _update_material_params():
 		for p in param_list:
 			if _api_shader_ground_albedo_params.has(p.name):
 				_ground_texture_count_cache += 1
-			if p.name == "u_ground_albedo_bump_array":
+			elif p.name == "u_ground_albedo_bump_array":
 				_shader_uses_texture_array = true
+			elif p.name == "u_terrain_splat_index_map":
+				_is_using_indexed_splatmap = true
+			elif p.name in _splatmap_shader_params:
+				_used_splatmaps_count_cache += 1
 
 
 # TODO Rename is_shader_using_texture_array()
@@ -914,6 +941,20 @@ func _update_material_params():
 # (for example it won't be valid before the terrain is added to the SceneTree)
 func is_using_texture_array() -> bool:
 	return _shader_uses_texture_array
+
+
+# Gets how many splatmaps the current shader is using.
+# This will only be valid once the material has been updated internally.
+# (for example it won't be valid before the terrain is added to the SceneTree)
+func get_used_splatmaps_count() -> int:
+	return _used_splatmaps_count_cache
+
+
+# Tells if the current shader is using a splatmap type based on indexes and weights.
+# This will only be valid once the material has been updated internally.
+# (for example it won't be valid before the terrain is added to the SceneTree)
+func is_using_indexed_splatmap() -> bool:
+	return _is_using_indexed_splatmap
 
 
 static func _get_common_shader_params(shader1: Shader, shader2: Shader) -> Array:
