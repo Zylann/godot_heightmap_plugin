@@ -132,6 +132,13 @@ func _update_ui_from_data():
 	var max_slots := HTerrainTextureSet.get_max_slots_for_mode(_texture_set.get_mode())
 	_add_slot_button.disabled = slots_count >= max_slots
 	_remove_slot_button.disabled = slots_count == 0
+
+	var buttons = [
+		_load_albedo_button, 
+		_load_normal_button, 
+		_clear_albedo_button, 
+		_clear_normal_button
+	]
 	
 	if _texture_set.get_mode() == HTerrainTextureSet.MODE_TEXTURES:
 		_add_slot_button.visible = true
@@ -139,12 +146,6 @@ func _update_ui_from_data():
 		_load_albedo_button.text = "Load..."
 		_load_normal_button.text = "Load..."
 		
-		var buttons = [
-			_load_albedo_button, 
-			_load_normal_button, 
-			_clear_albedo_button, 
-			_clear_normal_button
-		]
 		for b in buttons:
 			b.disabled = slots_count == 0
 		
@@ -153,6 +154,9 @@ func _update_ui_from_data():
 		_remove_slot_button.visible = false
 		_load_albedo_button.text = "Load Array..."
 		_load_normal_button.text = "Load Array..."
+
+		for b in buttons:
+			b.disabled = false
 
 
 static func _set_selected_id(ob: OptionButton, id: int):
