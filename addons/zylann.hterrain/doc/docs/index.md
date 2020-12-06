@@ -248,10 +248,10 @@ This brings up the import tool dialog:
 
 One of the first important things is to decide which import mode you want to use:
 
-- `Textures`: For simple terrains with up to 4 textures
-- `TextureArrays`: For more complex terrains with up to 16 textures
+- `Textures`: For simple terrains with up to 4 textures (in use with `CLASSIC4` shaders)
+- `TextureArrays`: For more complex terrains with up to 16 textures (in use with `MULTISPLAT16` and `ARRAY` shaders)
 
-This choice also depends on the shader you will use for the terrain. Some shaders expect individual textures (`CLASSIC4`) and others expect texture arrays.
+This choice depends on the shader you will use for the terrain. Some shaders expect individual textures and others expect texture arrays.
 
 #### Smart file pick
 
@@ -353,18 +353,57 @@ It comes in two variants:
 - `CLASSIC4_LITE`: simpler shader with less features. It only requires albedo textures.
 
 
+#### MultiSplat16
+
+the `MULTISPLAT16` shader is an extension of the splatmap technique, but uses 4 splatmaps instead of 1. It also uses `TextureArrays` instead of individual textures. It allows to support up to 16 textures at once, and can blend up to 4 in the same pixel. It dynamically chooses the 4 most-representative textures to blend them.
+
+It also comes in two variants:
+
+- `MULTISPLAT16`: full-featured shader, however it requires your texture arrays to have normal maps.
+- `MULTISPLAT16_LITE`: simpler shader with less features. It only requires albedo texture arrays.
+
+It is the recommended choice if you need more than 4 textures, because it is much easier to use than the `ARRAY` shader and has produces less artifacts.
+
+One downside is performance: it is about twice slower than `CLASSIC4` (on an nVidia 1060, a fullscreen `CLASSIC4` is 0.8 ms, while `MULTISPLAT16` is 1.8 ms).
+Although, considering objects placed on the terrain should usually occlude ground pixels, the cost might be lower in a real game scenario.
+
+
+#### LowPoly
+
+The `LOWPOLY` shader is the simplest shader. It produces a faceted look with only simple colors, and no textures. You will need to use the color brush to paint it.
+
+![Screenshot of the lowpoly shader](images/low_poly.png)
+
+!!! note
+    If you need faceted visuals with other shaders using textures, you can obtain the same result by [customizing the shader](#custom-shaders), and adding this line at the end of `fragment()`:
+    `NORMAL = normalize(cross(dFdx(VERTEX), dFdy(VERTEX)));`
+
+
 #### Array
 
 **WARNING: this shader is still experimental. It's not ideal and has known flaws, so it may change in the future.**
 
-The `ARRAY` shader uses a more advanced technique to render ground textures. Instead of one splatmap and many individual textures, it uses two splatmaps and a `TextureArray`.
+The `ARRAY` shader uses a more advanced technique to render ground textures. Instead of one splatmap and many individual textures, it uses a weightmap, an index map, and a `TextureArray`.
 
-The splatmaps are different from the classic one:
+The two maps are different from the classic one:
 
 - `SPLAT_INDEX`: this one stores the indexes of the textures to blend in every pixel of the ground. Indexes are stored respectively in R, G and B, and correspond to layers of the `TextureArray`.
 - `SPLAT_WEIGHT`: this one stores the weight of the 3 textures to blend on each pixel. It only has R and G channels, because the third one can be inferred (their sum must be 1).
 
 This allows to paint up to 256 different textures, however it introduces an important constraint: you cannot blend more than 3 textures at a given pixel.
+
+Painting the proper indexes and weights can be a challenge, so for now, the plugin comes with a compromise. Each texture is assigned a fixed color component, R, G or B. So for a given texture, all textures that have an index separated by a multiple of 3 from this texture will not always be able to blend with it. For example, texture `2` might not blend with texture `5`, `8`, `11`, `14` etc. So choosing where you place textures in the `TextureArray` can be important.
+
+Here is a close-up on an area where some textures are not totally blending, because they use the same color component:
+
+![Bad transition](images/bad_array_blending.png)
+
+In this situation, another workaround is to use a transition texture: if A and B cannot blend, use texture C which can blend with A and B:
+
+![Fixed transition](images/transition_array_blending.png)
+
+You may see this pop up quite often when using this shader, but it can often be worked around.
+The brush for this isn't perfect. This limitation can be smoothed out in the future, if a better algorithm is found which can work in real-time.
 
 
 ### Creating a `TextureArray` manually
@@ -394,21 +433,6 @@ Contrary to `CLASSIC4` shaders, you cannot directly assign individual textures w
 
 ![Lots of textures blending](images/lots_of_textures_blending.png)
 
-
-### Painting with a `TextureArray`
-
-Painting the proper indexes and weights can be a challenge, so for now, the plugin comes with a compromise. Each texture is assigned a fixed color component, R, G or B. So for a given texture, all textures that have an index separated by a multiple of 3 from this texture will not always be able to blend with it. For example, texture `2` might not blend with texture `5`, `8`, `11`, `14` etc. So choosing where you place textures in the `TextureArray` can be important.
-
-Here is a close-up on an area where some textures are not totally blending, because they use the same color component:
-
-![Bad transition](images/bad_array_blending.png)
-
-In this situation, another workaround is to use a transition texture: if A and B cannot blend, use texture C which can blend with A and B:
-
-![Fixed transition](images/transition_array_blending.png)
-
-You may see this pop up quite often when using this shader, but it can often be worked around.
-The brush for this isn't perfect. This limitation can be smoothed out in the future, if a better algorithm is found which can work in real-time.
 
 
 ### Packing textures manually
