@@ -31,6 +31,9 @@ varying vec2 v_terrain_uv;
 varying vec3 v_ground_uv;
 varying float v_distance_to_camera;
 
+// TODO Can't put this in a constant: https://github.com/godotengine/godot/issues/44145
+//const int TEXTURE_COUNT = 16;
+
 
 vec3 unpack_normal(vec4 rgba) {
 	vec3 n = rgba.xzy * 2.0 - vec3(1.0);
