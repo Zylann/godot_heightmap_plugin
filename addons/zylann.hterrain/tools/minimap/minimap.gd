@@ -5,6 +5,7 @@ const Util = preload("../../util/util.gd")
 const HTerrainData = preload("../../hterrain_data.gd")
 
 const MinimapShader = preload("./minimap_normal.shader")
+const WhiteTexture = preload("../icons/white.png")
 
 const MODE_QUADTREE = 0
 const MODE_NORMAL = 1
@@ -91,16 +92,25 @@ func _set_mode(mode: int):
 func _update_normal_material():
 	if _terrain == null:
 		return
-	var data = _terrain.get_data()
+	var data : HTerrainData = _terrain.get_data()
 	if data == null:
 		return
+
 	var normalmap = data.get_texture(HTerrainData.CHANNEL_NORMAL)
-	# Need to check if it has changed, otherwise Godot's update spinner
-	# indicates that the editor keeps redrawing every frame,
-	# which is not intented and consumes more power
-	var prev_normalmap = _color_rect.material.get_shader_param("u_normalmap")
-	if normalmap != prev_normalmap:
-		_color_rect.material.set_shader_param("u_normalmap", normalmap)
+	_set_if_changed(_color_rect.material, "u_normalmap", normalmap)
+
+	var globalmap = WhiteTexture
+	if data.has_texture(HTerrainData.CHANNEL_GLOBAL_ALBEDO, 0):
+		globalmap = data.get_texture(HTerrainData.CHANNEL_GLOBAL_ALBEDO)
+	_set_if_changed(_color_rect.material, "u_globalmap", globalmap)
+
+
+# Need to check if it has changed, otherwise Godot's update spinner
+# indicates that the editor keeps redrawing every frame,
+# which is not intented and consumes more power
+static func _set_if_changed(sm: ShaderMaterial, param: String, v):
+	if sm.get_shader_param(param) != v:
+		sm.set_shader_param(param, v)
 
 
 func _draw():
