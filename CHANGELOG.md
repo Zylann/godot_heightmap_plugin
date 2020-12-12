@@ -5,6 +5,22 @@ This is a high-level changelog for each released versions of the plugin.
 For a more detailed list of past and incoming changes, see the commit history.
 
 
+1.5
+-----
+
+- Added `multisplat16` shader, allowing to use 16 ground textures
+- Added `HTerrainTextureSet` resource to store and re-use sets of ground textures
+- Added an import tool for ground textures
+- Added generic importers for packed textures (as backend for the ground texture import tool)
+- Added About Dialog, including version, links and donors list
+- Added slope limiter to texture painter
+- The brush system was rewritten to use shaders, for better performance
+- Added erosion brush
+- Brush size slider allows to pick small sizes more precisely
+- The minimap now uses the globalmap to display color (uses white if there isn't a globalmap)
+- Fixed brush jitter at small sizes
+- New docs website: https://hterrain-plugin.readthedocs.io/en/latest
+
 
 1.4
 ----
