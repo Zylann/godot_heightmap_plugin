@@ -31,6 +31,8 @@ const TextureSetEditor = preload("./texture_editor/set_editor/texture_set_editor
 const TextureSetImportEditor = preload("./texture_editor/set_editor/texture_set_import_editor.tscn")
 const AboutDialogScene = preload("./about/about_dialog.tscn")
 
+const DOCUMENTATION_URL = "https://hterrain-plugin.readthedocs.io/en/latest"
+
 const MENU_IMPORT_MAPS = 0
 const MENU_GENERATE = 1
 const MENU_BAKE_GLOBALMAP = 2
@@ -39,7 +41,8 @@ const MENU_UPDATE_EDITOR_COLLIDER = 4
 const MENU_GENERATE_MESH = 5
 const MENU_EXPORT_HEIGHTMAP = 6
 const MENU_LOOKDEV = 7
-const MENU_ABOUT = 8
+const MENU_DOCUMENTATION = 8
+const MENU_ABOUT = 9
 
 
 # TODO Rename _terrain
@@ -156,6 +159,7 @@ func _enter_tree():
 	menu.get_popup().add_submenu_item("Lookdev", _lookdev_menu.name, MENU_LOOKDEV)
 	menu.get_popup().connect("id_pressed", self, "_menu_item_selected")
 	menu.get_popup().add_separator()
+	menu.get_popup().add_item("Documentation", MENU_DOCUMENTATION)
 	menu.get_popup().add_item("About HTerrain...", MENU_ABOUT)
 	_toolbar.add_child(menu)
 	_menu_button = menu
@@ -662,6 +666,9 @@ func _menu_item_selected(id: int):
 		MENU_LOOKDEV:
 			# No actions here, it's a submenu
 			pass
+
+		MENU_DOCUMENTATION:
+			OS.shell_open(DOCUMENTATION_URL)
 		
 		MENU_ABOUT:
 			_about_dialog.popup_centered()
