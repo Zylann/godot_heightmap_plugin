@@ -27,3 +27,7 @@ func _ready():
 	
 	_about_rich_text_label.bbcode_text = _about_rich_text_label.bbcode_text \
 		.format({"version": version})
+
+
+func _on_Ok_pressed():
+	hide()

@@ -103,3 +103,4 @@ margin_left = 292.0
 margin_right = 322.0
 margin_bottom = 20.0
 text = "Ok"
+[connection signal="pressed" from="VB/HB/Ok" to="." method="_on_Ok_pressed"]
