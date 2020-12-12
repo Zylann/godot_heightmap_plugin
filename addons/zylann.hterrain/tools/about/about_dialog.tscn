@@ -61,8 +61,10 @@ bbcode_text = "[b]Version:[/b] {version}
 [b]Donors:[/b]
 wacyym
 Sergey Lapin (slapin)
+Jonas (NoFr1ends)
+lenis0012
 "
-text = "Version: --.--.--
+text = "Version: {version}
 Author: Marc Gilleron
 Repository: https://github.com/Zylann/godot_heightmap_plugin
 Issue tracker: https://github.com/Zylann/godot_heightmap_plugin/issues
