@@ -461,7 +461,7 @@ func _paint_splat16(data: HTerrainData, position: Vector2):
 	var heightmap_texture = data.get_texture(HTerrainData.CHANNEL_HEIGHT, 0)
 
 	for i in 4:
-		var image : Image = data.get_image(HTerrainData.CHANNEL_SPLAT)
+		var image : Image = data.get_image(HTerrainData.CHANNEL_SPLAT, i)
 		var texture : Texture = textures[i]
 		
 		var mm := ModifiedMap.new()
