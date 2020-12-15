@@ -536,8 +536,8 @@ func _paint_mask(data: HTerrainData, position: Vector2):
 
 
 func _paint_detail(data: HTerrainData, position: Vector2):
-	var image = data.get_image(HTerrainData.CHANNEL_DETAIL)
-	var texture = data.get_texture(HTerrainData.CHANNEL_DETAIL, _detail_index, true)
+	var image := data.get_image(HTerrainData.CHANNEL_DETAIL, _detail_index)
+	var texture := data.get_texture(HTerrainData.CHANNEL_DETAIL, _detail_index, true)
 	
 	var mm = ModifiedMap.new()
 	mm.map_type = HTerrainData.CHANNEL_DETAIL
