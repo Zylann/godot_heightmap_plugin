@@ -495,10 +495,10 @@ func _paint_splat16(data: HTerrainData, position: Vector2):
 
 
 func _paint_color(data: HTerrainData, position: Vector2):
-	var image = data.get_image(HTerrainData.CHANNEL_COLOR)
-	var texture = data.get_texture(HTerrainData.CHANNEL_COLOR, 0, true)
+	var image := data.get_image(HTerrainData.CHANNEL_COLOR)
+	var texture := data.get_texture(HTerrainData.CHANNEL_COLOR, 0, true)
 	
-	var mm = ModifiedMap.new()
+	var mm := ModifiedMap.new()
 	mm.map_type = HTerrainData.CHANNEL_COLOR
 	mm.map_index = 0
 	mm.painter_index = 0
@@ -517,10 +517,10 @@ func _paint_color(data: HTerrainData, position: Vector2):
 
 
 func _paint_mask(data: HTerrainData, position: Vector2):
-	var image = data.get_image(HTerrainData.CHANNEL_COLOR)
-	var texture = data.get_texture(HTerrainData.CHANNEL_COLOR, 0, true)
+	var image := data.get_image(HTerrainData.CHANNEL_COLOR)
+	var texture := data.get_texture(HTerrainData.CHANNEL_COLOR, 0, true)
 	
-	var mm = ModifiedMap.new()
+	var mm := ModifiedMap.new()
 	mm.map_type = HTerrainData.CHANNEL_COLOR
 	mm.map_index = 0
 	mm.painter_index = 0
@@ -539,7 +539,7 @@ func _paint_detail(data: HTerrainData, position: Vector2):
 	var image := data.get_image(HTerrainData.CHANNEL_DETAIL, _detail_index)
 	var texture := data.get_texture(HTerrainData.CHANNEL_DETAIL, _detail_index, true)
 	
-	var mm = ModifiedMap.new()
+	var mm := ModifiedMap.new()
 	mm.map_type = HTerrainData.CHANNEL_DETAIL
 	mm.map_index = _detail_index
 	mm.painter_index = 0
