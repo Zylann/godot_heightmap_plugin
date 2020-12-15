@@ -126,6 +126,10 @@ func get_detail_density() -> float:
 	return _detail_density
 
 
+func set_detail_index(di: int):
+	_detail_index = di
+
+
 func set_texture_index(i: int):
 	_texture_index = i
 
