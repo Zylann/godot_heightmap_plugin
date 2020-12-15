@@ -278,7 +278,7 @@ func paint_input(position: Vector2):
 			_paint_mask(data, position)
 
 		MODE_DETAIL:
-			_paint_mask(data, position)
+			_paint_detail(data, position)
 					
 		_:
 			_logger.error("Unknown mode {0}".format([_mode]))
