@@ -5,6 +5,13 @@ This is a high-level changelog for each released versions of the plugin.
 For a more detailed list of past and incoming changes, see the commit history.
 
 
+1.5.1 
+-------
+
+- Fixed undo not working correctly when painting textures while using MultiSplat16
+- Fixed grass painting not working
+
+
 1.5
 -----
 
