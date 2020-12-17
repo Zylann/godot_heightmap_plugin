@@ -9,13 +9,15 @@ const HTerrain = preload("../hterrain.gd")
 const HTerrainData = preload("../hterrain_data.gd")
 const HTerrainMesher = preload("../hterrain_mesher.gd")
 
-const VIEWPORT_SIZE = 512
+# Must be power of two
+const DEFAULT_VIEWPORT_SIZE = 512
 
 signal progress_notified(info)
 signal permanent_change_performed(message)
 
 var _terrain : HTerrain = null
 var _viewport : Viewport = null
+var _viewport_size := DEFAULT_VIEWPORT_SIZE
 var _plane : MeshInstance = null
 var _camera : Camera = null
 var _sectors := []
@@ -34,13 +36,14 @@ func bake(terrain: HTerrain):
 
 	var splatmap := data.get_texture(HTerrainData.CHANNEL_SPLAT)
 	var colormap := data.get_texture(HTerrainData.CHANNEL_COLOR)
+
+	var terrain_size := data.get_resolution()
 	
 	if _viewport == null:
-		_setup_scene()
+		_setup_scene(terrain_size)
 	
-	var terrain_size := data.get_resolution()
-	var cw := terrain_size / VIEWPORT_SIZE
-	var ch := terrain_size / VIEWPORT_SIZE
+	var cw := terrain_size / _viewport_size
+	var ch := terrain_size / _viewport_size
 	for y in ch:
 		for x in cw:
 			_sectors.append(Vector2(x, y))
@@ -52,11 +55,15 @@ func bake(terrain: HTerrain):
 	set_process(true)
 
 
-func _setup_scene():
+func _setup_scene(terrain_size: int):
 	assert(_viewport == null)
+	
+	_viewport_size = DEFAULT_VIEWPORT_SIZE
+	while _viewport_size > terrain_size:
+		_viewport_size /= 2
 
 	_viewport = Viewport.new()
-	_viewport.size = Vector2(VIEWPORT_SIZE + 1, VIEWPORT_SIZE + 1)
+	_viewport.size = Vector2(_viewport_size + 1, _viewport_size + 1)
 	_viewport.render_target_update_mode = Viewport.UPDATE_ALWAYS
 	_viewport.render_target_clear_mode = Viewport.CLEAR_MODE_ALWAYS
 	_viewport.render_target_v_flip = true
@@ -64,12 +71,13 @@ func _setup_scene():
 	_viewport.own_world = true
 	_viewport.debug_draw = Viewport.DEBUG_DRAW_UNSHADED
 	
-	var mat = ShaderMaterial.new()
+	var mat := ShaderMaterial.new()
 	
 	_plane = MeshInstance.new()
 	# Make a very small mesh, vertex precision isn't required
-	var plane_res = 4
-	_plane.mesh = HTerrainMesher.make_flat_chunk(plane_res, plane_res, VIEWPORT_SIZE / plane_res, 0)
+	var plane_res := 4
+	_plane.mesh = \
+		HTerrainMesher.make_flat_chunk(plane_res, plane_res, _viewport_size / plane_res, 0)
 	_plane.material_override = mat
 	_viewport.add_child(_plane)
 	
@@ -119,7 +127,7 @@ func _report_progress():
 
 func _setup_pass(sector: Vector2):
 	# Note: we implicitely take off-by-one pixels into account
-	var origin = sector * VIEWPORT_SIZE
+	var origin = sector * _viewport_size
 	var center = origin + 0.5 * _viewport.size
 	# The heightmap is left empty, so will default to white, which is a height of 1.
 	# The camera must be placed above the terrain to see it.
@@ -141,7 +149,7 @@ func _grab_image(sector: Vector2):
 	var dst := data.get_image(HTerrainData.CHANNEL_GLOBAL_ALBEDO)
 	
 	src.convert(dst.get_format())
-	var origin = sector * VIEWPORT_SIZE
+	var origin = sector * _viewport_size
 	dst.blit_rect(src, Rect2(0, 0, src.get_width(), src.get_height()), origin)
 
 
