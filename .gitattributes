@@ -6,9 +6,10 @@
 /.gitignore         export-ignore
 /.gitmodules        export-ignore
 /.github            export-ignore
-/.readthedocs       export-ignore
+/.readthedocs.yml   export-ignore
 /CHANGELOG.md       export-ignore
 /README.md          export-ignore
+/LICENSE.md         export-ignore
 /icon.png           export-ignore
 /icon.png.import    export-ignore
 /project.godot      export-ignore
