@@ -8,6 +8,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 ------
 
 - Fixed globalmap baker not working with terrain sizes below 513
+- Fixed texture file dialog not including `.packed_tex` files
 
 
 1.5.1 

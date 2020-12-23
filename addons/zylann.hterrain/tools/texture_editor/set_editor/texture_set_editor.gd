@@ -50,9 +50,7 @@ func setup_dialogs(parent: Node):
 	_load_texture_dialog = d
 	parent.add_child(d)
 
-	d = EditorUtil.create_open_file_dialog()
-	d.add_filter("*.texarr ; TextureArray files")
-	d.add_filter("*.packed_texarr ; PackedTextureArray files")
+	d = EditorUtil.create_open_texture_array_dialog()
 	d.connect("file_selected", self, "_on_LoadTextureArrayDialog_file_selected")
 	_load_texture_array_dialog = d
 	parent.add_child(d)

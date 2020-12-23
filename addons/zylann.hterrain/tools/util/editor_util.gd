@@ -68,12 +68,41 @@ static func create_open_dir_dialog() -> ConfirmationDialog:
 	return d
 
 
-static func create_open_texture_dialog() -> ConfirmationDialog:
+# If you want to open using Image.load()
+static func create_open_image_dialog() -> ConfirmationDialog:
 	var d = create_open_file_dialog()
-	add_image_filters(d)
+	_add_image_filters(d)
 	return d
 
 
-static func add_image_filters(file_dialog):
+# If you want to open using load(),
+# although it might still fail if the file is imported as Image...
+static func create_open_texture_dialog() -> ConfirmationDialog:
+	var d = create_open_file_dialog()
+	_add_texture_filters(d)
+	return d
+
+
+static func create_open_texture_array_dialog() -> ConfirmationDialog:
+	var d = create_open_file_dialog()
+	_add_texture_array_filters(d)
+	return d
+
+# TODO Post a proposal, we need a file dialog filtering on resource types, not on file extensions!
+
+static func _add_image_filters(file_dialog):
 	file_dialog.add_filter("*.png ; PNG files")
 	file_dialog.add_filter("*.jpg ; JPG files")
+	#file_dialog.add_filter("*.exr ; EXR files")
+
+
+static func _add_texture_filters(file_dialog):
+	_add_image_filters(file_dialog)
+	file_dialog.add_filter("*.stex ; StreamTexture files")
+	file_dialog.add_filter("*.packed_tex ; HTerrainPackedTexture files")
+
+
+static func _add_texture_array_filters(file_dialog):
+	_add_image_filters(file_dialog)
+	file_dialog.add_filter("*.texarr ; TextureArray files")
+	file_dialog.add_filter("*.packed_texarr ; HTerrainPackedTextureArray files")

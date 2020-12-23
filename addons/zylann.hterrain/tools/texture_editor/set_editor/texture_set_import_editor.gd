@@ -134,7 +134,7 @@ func _ready():
 
 
 func setup_dialogs(parent: Node):
-	var d = EditorUtil.create_open_texture_dialog()
+	var d = EditorUtil.create_open_image_dialog()
 	d.connect("file_selected", self, "_on_LoadTextureDialog_file_selected")
 	_load_texture_dialog = d
 	parent.add_child(d)
