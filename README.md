@@ -31,7 +31,9 @@ Usage
 
 - [Documentation](https://hterrain-plugin.readthedocs.io/en/latest/)
 
-- I also made a video about the 0.8 version of the plugin: https://www.youtube.com/watch?v=eZuvfIHDeT4& Careful, it's a bit old and may not entirely reflect the last version. Use the text docs for most up to date information.
+- Video by GamesFromScratch, also featuring the [WaterWays](https://github.com/Arnklit/WaterGenGodot) plugin: https://www.youtube.com/watch?v=jYVO0-_sXZs
+
+- I also made an older video about the 0.8 version of the plugin: https://www.youtube.com/watch?v=eZuvfIHDeT4& Careful, it no longer reflects features of the last version. Use the text docs for most up to date information.
 
 
 Why this is a plugin
