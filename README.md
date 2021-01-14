@@ -29,11 +29,7 @@ https://github.com/Zylann/godot_hterrain_demo
 Usage
 ----------
 
-- [Documentation](https://hterrain-plugin.readthedocs.io/en/latest/)
-
-- Video by GamesFromScratch, also featuring the [WaterWays](https://github.com/Arnklit/WaterGenGodot) plugin: https://www.youtube.com/watch?v=jYVO0-_sXZs
-
-- I also made an older video about the 0.8 version of the plugin: https://www.youtube.com/watch?v=eZuvfIHDeT4& Careful, it no longer reflects features of the last version. Use the text docs for most up to date information.
+[Documentation](https://hterrain-plugin.readthedocs.io/en/latest/)
 
 
 Why this is a plugin
@@ -77,4 +73,5 @@ Thanks for your support :)
 - Sergey Lapin (slapin)
 - Jonas (NoFr1ends)
 - lenis0012
+- Phyronnaz
 ```
