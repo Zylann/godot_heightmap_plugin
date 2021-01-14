@@ -188,7 +188,8 @@ This magic is done with a single shader, i.e a single `ShaderMaterial` in Godot'
 There are mainly 3 families of shaders this plugin supports:
 
 - `CLASSIC4`: simple shaders where each texture may be a separate resource. They are limited to 4 textures.
-- `ARRAY`: more modern shader using texture arrays, which comes with a few constraints, but allows to paint a lot more different textures.
+- `MULTISPLAT16`: more advanced shader using more splatmaps and texture arrays. It's expensive but supports up to 16 textures.
+- `ARRAY`: experimental shader also using texture arrays, which comes with constraints, but allows to paint a lot more different textures.
 - Other shaders don't need textures, like `LOW_POLY`, which only uses colors.
 
 On the `HTerrain` node, there is a property called `shader_type`, which lets you choose among built-in shaders. The one you choose will define which workflow to follow: textures, or texture arrays.
