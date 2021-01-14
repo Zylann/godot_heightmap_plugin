@@ -11,6 +11,14 @@ It is entirely built on top of the `VisualServer` scripting API, which means it 
 ![Screenshot of the editor with the plugin enabled and arrows showing where UIs are](images/overview.png)
 
 
+### Video tutorials
+
+This written doc should be the most up to date and precise information, but video tutorials exist for a quick start.
+
+- [GamesFromScratch presentation](https://www.youtube.com/watch?v=jYVO0-_sXZs), also featuring the [WaterWays](https://github.com/Arnklit/WaterGenGodot) plugin (23 dec 2020)
+- [Tutorial](https://www.youtube.com/watch?v=k_ISq6JyVSs) by qubodupDev, about version 1.3.3 (27 aug 2020)
+- [Old tutorial](https://www.youtube.com/watch?v=eZuvfIHDeT4&) about version 0.8 (10 aug 2018! A lot is outdated in it but I keep it here for the record)
+
 ### How to install
 
 You will need to use Godot 3.1 or later. It is best to use latest stable 3.x version (Godot 4 is not supported yet).
