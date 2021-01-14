@@ -214,6 +214,8 @@ For each texture, you may find the following types of images, common in PBR shad
 
 You can find some of these textures for free at [cc0textures.com](http://cc0textures.com).
 
+!!! note: Some shaders have a `Lite` and non-lite versions. One main difference between them is that `Lite` versions don't require normal maps, but the others require them. If you use a non-lite shader and forget to assign normal maps, shading will look wrong.
+
 It is preferable to place those source images under a specific directory. Also, since the images will only serve as an input to generate the actual game resources, it is better to place a `.gdignore` file inside that directory. This way, Godot will not include those source files in the exported game:
 
 ```
@@ -358,7 +360,7 @@ The `CLASSIC4` shader is a simple splatmap technique, where R, G, B, A match the
 
 It comes in two variants:
 
-- `CLASSIC4`: full-featured shader, however it requires your textures to have normal maps.
+- `CLASSIC4`: full-featured shader, however it requires your textures to have normal maps. If you don't assign them, shading will look wrong.
 - `CLASSIC4_LITE`: simpler shader with less features. It only requires albedo textures.
 
 
