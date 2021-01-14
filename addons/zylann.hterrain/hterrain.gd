@@ -473,7 +473,7 @@ func _set_data_directory(dirpath: String):
 				# Create new
 				var d := HTerrainData.new()
 				d.resource_path = fpath
-				set_data(d)		
+				set_data(d)
 	else:
 		_logger.warn("Setting twice the same terrain directory??")
 
@@ -1087,7 +1087,6 @@ func _process(delta: float):
 	if not Engine.is_editor_hint():
 		# In editor, the camera is only accessible from an editor plugin
 		_update_viewer_position(null)
-	var viewer_pos := _viewer_pos_world
 
 	if has_data():
 		if _data.is_locked():
@@ -1096,9 +1095,10 @@ func _process(delta: float):
 
 		if _data.get_resolution() != 0:
 			var gt := get_internal_transform()
-			var local_viewer_pos := gt.affine_inverse() * viewer_pos
+			# Viewer position such that 1 unit == 1 pixel in the heightmap
+			var viewer_pos_heightmap_local := gt.affine_inverse() * _viewer_pos_world
 			#var time_before = OS.get_ticks_msec()
-			_lodder.update(local_viewer_pos)
+			_lodder.update(viewer_pos_heightmap_local)
 			#var time_elapsed = OS.get_ticks_msec() - time_before
 			#if Engine.get_frames_drawn() % 60 == 0:
 			#	_logger.debug(str("Lodder time: ", time_elapsed))
@@ -1107,7 +1107,7 @@ func _process(delta: float):
 			# Note: the detail system is not affected by map scale,
 			# so we have to send viewer position in world space
 			for layer in _detail_layers:
-				layer.process(delta, viewer_pos)
+				layer.process(delta, _viewer_pos_world)
 
 	_updated_chunks = 0
 
