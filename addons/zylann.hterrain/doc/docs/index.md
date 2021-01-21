@@ -373,7 +373,7 @@ It also comes in two variants:
 - `MULTISPLAT16`: full-featured shader, however it requires your texture arrays to have normal maps.
 - `MULTISPLAT16_LITE`: simpler shader with less features. It only requires albedo texture arrays.
 
-It is the recommended choice if you need more than 4 textures, because it is much easier to use than the `ARRAY` shader and has produces less artifacts.
+It is the recommended choice if you need more than 4 textures, because it is much easier to use than the `ARRAY` shader and produces less artifacts.
 
 One downside is performance: it is about twice slower than `CLASSIC4` (on an nVidia 1060, a fullscreen `CLASSIC4` is 0.8 ms, while `MULTISPLAT16` is 1.8 ms).
 Although, considering objects placed on the terrain should usually occlude ground pixels, the cost might be lower in a real game scenario.
