@@ -15,9 +15,10 @@ It is entirely built on top of the `VisualServer` scripting API, which means it 
 
 This written doc should be the most up to date and precise information, but video tutorials exist for a quick start.
 
+- [Kasper's tutorial](https://www.youtube.com/watch?v=Af1f2JPvSIs) about version 1.5.2 (16 Jan 2021)
 - [GamesFromScratch presentation](https://www.youtube.com/watch?v=jYVO0-_sXZs), also featuring the [WaterWays](https://github.com/Arnklit/WaterGenGodot) plugin (23 dec 2020)
-- [Tutorial](https://www.youtube.com/watch?v=k_ISq6JyVSs) by qubodupDev, about version 1.3.3 (27 aug 2020)
-- [Old tutorial](https://www.youtube.com/watch?v=eZuvfIHDeT4&) about version 0.8 (10 aug 2018! A lot is outdated in it but I keep it here for the record)
+- [qubodupDev's Tutorial](https://www.youtube.com/watch?v=k_ISq6JyVSs) about version 1.3.3 (27 aug 2020)
+- [Old tutorial](https://www.youtube.com/watch?v=eZuvfIHDeT4&) about version 0.8 (10 aug 2018! A lot is outdated in it but let's keep it here for the record)
 
 ### How to install
 
