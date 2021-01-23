@@ -1029,10 +1029,18 @@ The documentation in `res://addons/zylann.hterrain/doc/` can also be removed, bu
 GDNative
 -----------
 
-This plugin contains an optional native component, which speeds up some operations such as sculpting the terrain. However, at time of writing, a prebuilt binary is built-in only on `Windows` and `Linux`, I'm not yet able to build for other platforms so you may need to do it yourself, until I can provide an official one.
+This plugin contains two optional native components, one which speeds up some operations such as sculpting the terrain and another which adds a NativeScript for QuadTreeLod.
+
+However, at time of writing, a prebuilt binary is built-in only on `Windows` and `Linux`*, I'm not yet able to build for other platforms so you may need to do it yourself, until I can provide an official one.
 
 Before doing this, it's preferable to close the Godot editor so it won't lock the library files.
 Note that these steps are very similar to GDNative C++ development, which repeats parts of [Godot's documentation](https://docs.godotengine.org/en/3.2/tutorials/plugins/gdnative/gdnative-cpp-example.html).
+
+\* There is a built-in binary for OS X but only for the QuadTreeLod.
+
+## Building the C++ Library
+
+This library provides the native implementations for operations on the terrain.
 
 ### Building instructions
 
@@ -1115,6 +1123,66 @@ Finally, open the `factory.gd` script, and add an OS entry for your platform. Th
 ### Debugging
 
 If you get a crash or misbehavior, check logs first to make sure Godot was able to load the library. If you want to use a C++ debugger, you can repeat this setup, only  replacing `release` with `debug` when running SCons. This will then allow you to attach to Godot and place breakpoints (which works best if you also use a debug Godot version).
+
+
+## Building the Rust library
+
+This library provides the native implementation of QuadTreeLod. 
+
+### Building instructions
+
+You will need:
+
+- The latest version of Rust, installed with `rustup`
+
+Go to the `rust-src/` directory and execute:
+
+```
+cargo --release
+```
+
+Then, copy the binaries to the appropriate folder in `bin/`.
+
+```
+cp target/release/libhterrain.so    ../bin/linux/libhterrain_rust.so      # Linux
+cp target/release/libhterrain.dylib ../bin/win64/libhterrain_rust.dylib   # OS X
+cp target/release/hterrain.dll      ../bin/win64/hterrain_rust.dll        # Windows
+```
+
+If it is not present, add a `hterrain_rust.gdnlib` to the `native/` folder with the following contents:
+
+```
+[general]
+
+singleton=false
+load_once=true
+symbol_prefix="godot_"
+reloadable=false
+
+[entry]
+
+OSX.64 = "res://addons/zylann.hterrain/native/bin/osx/libhterrain_rust.dylib"
+Windows.64 = "res://addons/zylann.hterrain/native/bin/win64/libhterrain_rust.dll"
+X11.64 = "res://addons/zylann.hterrain/native/bin/linux/libhterrain_rust.so"
+```
+
+Finally, open `hterrain.gd`, comment out `const QuadTreeLod = preload("./util/quad_tree_lod.gd")` and uncomment `const QuadTreeLod = preload("./util/quad_tree_lod.gdns")`.
+
+You may also want to `strip` the binaries as it reduces the size by a significant amount.
+
+### Cross-compiling
+
+To cross-compile for other platforms, it is generally sufficient to add the necessary target with `rustup target add <target>` and compile the library with `cargo --release --target <target>`. The output will be located under `target/<target>/`. A full list of possible targets can be viewed with `rustc --print target-list`.
+
+#### OS X
+
+If you need to compile for OS X on a non-OS X (Linux) platform you will need install [OSXCross](https://github.com/tpoechtrager/osxcross). After installation it may be necessary to edit `.cargo/config` to point to the appropriate executables, e.g.
+
+```
+[target.x86_64-apple-darwin]
+linker = "x86_64-apple-darwin20.2-clang"
+ar = "x86_64-apple-darwin20.2-ar"
+```
 
 
 Troubleshooting

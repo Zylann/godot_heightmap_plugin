@@ -48,3 +48,6 @@ default_env.tres
 # Misc
 _draft/
 _old/
+
+# Rust
+target/

@@ -1,0 +1,4 @@
+[target.x86_64-apple-darwin]
+linker = "x86_64-apple-darwin20.2-clang"
+ar = "x86_64-apple-darwin20.2-ar"
+
