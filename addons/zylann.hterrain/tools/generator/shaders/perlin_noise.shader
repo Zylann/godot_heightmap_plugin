@@ -10,6 +10,8 @@ uniform float u_roughness = 0.5;
 uniform float u_curve = 1.0;
 uniform vec2 u_uv_offset;
 uniform vec2 u_uv_scale = vec2(1.0, 1.0);
+uniform float u_island_factor = 0.0;
+uniform float u_island_exponent = 1.0;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Perlin noise source:
@@ -103,15 +105,19 @@ float get_fractal_noise(vec2 uv) {
 	return gs;
 }
 
-float get_height(vec2 uv) {
+float get_height(vec2 uv, float hf) {
 	float h = 0.5 + 0.5 * get_fractal_noise(uv);
 	h = pow(h, u_curve);
-	h = u_base_height + h * u_height_range;
+	h = u_base_height + h * u_height_range * hf;
 	return h;
 }
 
+const float PI = 3.14159265358979323846;
 void fragment() {
 	vec2 uv = SCREEN_UV;
+
+    float hf = 1.0 - u_island_factor * (1.0 -
+        pow(sin(uv.x * PI) * sin(uv.y * PI), u_island_exponent));
 
 	// Handle screen padding: transform UV back into generation space
 	uv = (uv + u_uv_offset) * u_uv_scale;
@@ -119,6 +125,6 @@ void fragment() {
 	// Offset and scale for the noise itself
 	uv = (uv + u_offset) * u_scale;
 
-	float h = get_height(uv);
+	float h = get_height(uv, hf);
 	COLOR = vec4(h, h, h, 1.0);
 }

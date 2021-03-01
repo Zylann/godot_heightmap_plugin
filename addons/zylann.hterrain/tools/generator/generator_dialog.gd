@@ -113,6 +113,15 @@ func _ready():
 		"shadows": {
 			"type": TYPE_BOOL,
 			"default_value": true
+		},
+		"island_mode": {
+			"type": TYPE_BOOL,
+			"default_value": false
+		},
+		"island_exponent": {
+			"type": TYPE_REAL,
+			"range": { "min": 0.1, "max": 1 },
+			"default_value": 1.0
 		}
 	})
 
@@ -267,7 +276,9 @@ func _update_generator(preview: bool):
 			"u_base_height": _inspector.get_value("base_height") / preview_scale,
 			"u_height_range": _inspector.get_value("height_range") / preview_scale,
 			"u_roughness": _inspector.get_value("roughness"),
-			"u_curve": _inspector.get_value("curve")
+			"u_curve": _inspector.get_value("curve"),
+			"u_island_factor": 1.0 if _inspector.get_value("island_mode") else 0.0,
+			"u_island_exponent": _inspector.get_value("island_exponent"),
 		}
 		_generator.add_pass(p)
 
