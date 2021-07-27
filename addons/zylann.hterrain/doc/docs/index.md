@@ -279,7 +279,7 @@ If you use PBR textures, there might be a lot of files to assign. If you use a n
 
 #### Normal maps
 
-As indicated in the [Godot documentation](https://docs.godotengine.org/en/stable/tutorials/3d/spatial_material.html#normal-map), normal maps are expected to use OpenGL convention (X+, Y-, Z+). So it is possible that normalmaps you find online use a different convention.
+As indicated in the [Godot documentation](https://docs.godotengine.org/en/stable/tutorials/3d/spatial_material.html#normal-map), normal maps are expected to use OpenGL convention (X+, Y+, Z+). So it is possible that normalmaps you find online use a different convention.
 
 To help with this, the import tool allows you to flip Y, in case the normalmap uses DirectX convention.
 
