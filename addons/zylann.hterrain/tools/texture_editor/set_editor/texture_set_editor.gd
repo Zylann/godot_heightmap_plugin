@@ -347,17 +347,19 @@ func _set_texture_array_action(slot_index: int, texture_array: TextureArray, typ
 	# See https://github.com/godotengine/godot/issues/36895
 	if texture_array == null:
 		_undo_redo.add_do_method(_texture_set, "set_texture_array_null", type)
+		# Can't select a slot after this because there won't be any after the array is removed
 	else:
 		_undo_redo.add_do_method(_texture_set, "set_texture_array", type, texture_array)
-	_undo_redo.add_do_method(self, "_select_slot", slot_index)
+		_undo_redo.add_do_method(self, "_select_slot", slot_index)
 	
 	# TODO This branch only exists because of a flaw in UndoRedo
 	# See https://github.com/godotengine/godot/issues/36895
 	if prev_texture_array == null:
 		_undo_redo.add_undo_method(_texture_set, "set_texture_array_null", type)
+		# Can't select a slot after this because there won't be any after the array is removed
 	else:
 		_undo_redo.add_undo_method(_texture_set, "set_texture_array", type, prev_texture_array)
-	_undo_redo.add_undo_method(self, "_select_slot", slot_index)
+		_undo_redo.add_undo_method(self, "_select_slot", slot_index)
 	
 	_undo_redo.commit_action()
 
@@ -374,7 +376,11 @@ func _on_LoadTextureArrayDialog_file_selected(fpath: String):
 	assert(_texture_set.get_mode() == HTerrainTextureSet.MODE_TEXTURE_ARRAYS)
 	var texture_array = load(fpath)
 	assert(texture_array != null)
-	var slot_index : int = _slots_list.get_selected_items()[0]
+	# It's possible no slot exists at the moment,
+	# because there could be no texture array already set.
+	# The number of slots in the new array might also be different.
+	# So in this case we'll default to selecting the first slot.
+	var slot_index := 0
 	_set_texture_array_action(slot_index, texture_array, _load_texture_type)
 
 
