@@ -127,7 +127,7 @@ As you sculpt, the plugin automatically recomputes normals of the terrain, and s
 You can enable or disable collisions by checking the `Collisions enabled` property in the inspector.
 
 Heightmap-based terrains usually implement collisions directly using the heightmap, which saves a lot of computations compared to a classic mesh collider.
-This plugin depends on the **Bullet Physics** integration in Godot, which does have a height-field collider. **Godot Physics** does not support it, so you may want to make sure Bullet is enabled in your project settings:
+This plugin depends on the **Bullet Physics** integration in Godot, which does have a height-field collider. **Godot Physics** does not support it until version 3.4, so if you use an older version, you may want to make sure Bullet is enabled in your project settings:
 
 ![Screenshot of the option to choose physics engines in project settings](images/choose_bullet_physics.png)
 
