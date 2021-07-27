@@ -250,7 +250,7 @@ func set_texture_set(texture_set: HTerrainTextureSet):
 				
 				while slot_index >= len(_slots_data):
 					var slot = Slot.new()
-					_slots_data[slot_index] = slot
+					_slots_data.append(slot)
 				
 				var slot = _slots_data[slot_index]
 				
