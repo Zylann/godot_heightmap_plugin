@@ -75,4 +75,10 @@ Thanks for your support :)
 - lenis0012
 - Phyronnaz
 - RonanZe
+- furtherorbit
+- jp.owo.Manda (segfault-god)
+- hidemat
+- Jakub Buriánek (Buri)
+- Justin Swanhart (Greenlion)
+- Sebastian Clausen (sclausen)
 ```
