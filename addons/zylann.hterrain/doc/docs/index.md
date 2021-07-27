@@ -1149,6 +1149,7 @@ This issue happened a few times and had various causes so if the checks mentionn
 - Check the contents of your terrain's data folder. It must contain a `.hterrain` file and a few textures.
 - If they are present, make sure Godot has imported those textures. If it didn't, unfocus the editor, and focus it back (you should see a short progress bar as it does it)
 - Check if you used Ctrl+Z (undo) after a non-undoable action, like described in [issue #101](https://github.com/Zylann/godot_heightmap_plugin/issues/101)
+- Make sure your `res://addons` folder is named `addons` *exactly lowercase*. It should not be named `Addons`. Plugins can fail if this convention is not respected.
 - If your problem relates to collisions in editor, update the collider using `Terrain -> Update Editor Collider`, because this one does not update automatically yet
 - Godot seems to randomly forget where the terrain saver is, but I need help to find out why because I could never reproduce it. See [issue #120](https://github.com/Zylann/godot_heightmap_plugin/issues/120)
 
