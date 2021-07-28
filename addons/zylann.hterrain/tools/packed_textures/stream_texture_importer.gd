@@ -43,14 +43,15 @@ static func import(
 	p_compress_mode: int,
 	p_repeat: int,
 	p_filter: bool,
-	p_mipmaps: bool) -> Result:
+	p_mipmaps: bool,
+	p_anisotropic: bool) -> Result:
 
 	var compress_mode := p_compress_mode
 	var lossy := 0.7
 	var repeat := p_repeat
 	var filter := p_filter
 	var mipmaps := p_mipmaps
-	var anisotropic := false
+	var anisotropic := p_anisotropic
 	var srgb := 1 if p_contains_albedo else 2
 	var fix_alpha_border := false
 	var premult_alpha := false

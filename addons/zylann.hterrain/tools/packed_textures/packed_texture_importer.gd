@@ -63,6 +63,10 @@ func get_import_options(preset_index: int) -> Array:
 		{
 			"name": "flags/mipmaps",
 			"default_value": true
+		},
+		{
+			"name": "flags/anisotropic",
+			"default_value": false
 		}
 	]
 
@@ -115,6 +119,7 @@ func _import(p_source_path: String, p_save_path: String, options: Dictionary,
 			.with_value(result.value)
 
 	var image : Image = result.value
+
 	
 	result = StreamTextureImporter.import(
 		p_source_path, 
@@ -127,7 +132,8 @@ func _import(p_source_path: String, p_save_path: String, options: Dictionary,
 		options["compress/mode"],
 		options["flags/repeat"],
 		options["flags/filter"],
-		options["flags/mipmaps"])
+		options["flags/mipmaps"],
+		options["flags/anisotropic"])
 	
 	if not result.success:
 		return Result.new(false, 
