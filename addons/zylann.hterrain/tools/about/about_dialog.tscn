@@ -71,6 +71,7 @@ hidemat
 Jakub Buriánek (Buri)
 Justin Swanhart (Greenlion)
 Sebastian Clausen (sclausen)
+MrGreaterThan
 "
 text = "Version: {version}
 Author: Marc Gilleron
@@ -90,6 +91,7 @@ hidemat
 Jakub Buriánek (Buri)
 Justin Swanhart (Greenlion)
 Sebastian Clausen (sclausen)
+MrGreaterThan
 "
 script = ExtResource( 3 )
 
