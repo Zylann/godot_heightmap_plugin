@@ -113,3 +113,8 @@ func set_aabb(aabb: AABB):
 	assert(_mesh_instance != RID())
 	VisualServer.instance_set_custom_aabb(_mesh_instance, aabb)
 
+
+func set_render_layer_mask(mask: int):
+	assert(_mesh_instance != RID())
+	VisualServer.instance_set_layer_mask(_mesh_instance, mask)
+

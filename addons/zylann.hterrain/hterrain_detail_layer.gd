@@ -47,10 +47,12 @@ export(Texture) var texture : Texture setget set_texture, get_texture
 # How far detail meshes can be seen.
 # TODO Improve speed of _get_chunk_aabb() so we can increase the limit
 # See https://github.com/Zylann/godot_heightmap_plugin/issues/155
-export(float, 1.0, 500.0) var view_distance := 100.0 setget set_view_distance, get_view_distance
+export(float, 1.0, 500.0) \
+	var view_distance := 100.0 setget set_view_distance, get_view_distance
 
 # Custom shader to replace the default one.
-export(Shader) var custom_shader : Shader setget set_custom_shader, get_custom_shader
+export(Shader) \
+	var custom_shader : Shader setget set_custom_shader, get_custom_shader
 
 # Density modifier, to make more or less detail meshes appear overall.
 export(float, 0, 10) var density := 4.0 setget set_density, get_density
@@ -59,6 +61,10 @@ export(float, 0, 10) var density := 4.0 setget set_density, get_density
 # If not assigned, an internal quad mesh will be used.
 # I would have called it `mesh` but that's too broad and conflicts with local vars ._.
 export(Mesh) var instance_mesh : Mesh setget set_instance_mesh, get_instance_mesh
+
+# Exposes rendering layers, similar to `VisualInstance.layers`
+export(int, LAYERS_3D_RENDER) \
+	var render_layers := 1 setget set_render_layer_mask, get_render_layer_mask
 
 var _material: ShaderMaterial = null
 var _default_shader: Shader = null
@@ -246,6 +252,17 @@ func set_instance_mesh(p_mesh: Mesh):
 
 func get_instance_mesh() -> Mesh:
 	return instance_mesh
+
+
+func set_render_layer_mask(mask: int):
+	render_layers = mask
+	for k in _chunks:
+		var chunk = _chunks[k]
+		chunk.set_layer_mask(mask)
+
+
+func get_render_layer_mask() -> int:
+	return render_layers
 
 
 func _get_used_mesh() -> Mesh:
@@ -449,6 +466,7 @@ func _load_chunk(terrain_transform: Transform, cx: int, cz: int, aabb: AABB):
 	mmi.set_material_override(_material)
 	mmi.set_transform(trans)
 	mmi.set_aabb(aabb)
+	mmi.set_layer_mask(render_layers)
 	mmi.set_visible(visible)
 
 	_chunks[Vector2(cx, cz)] = mmi

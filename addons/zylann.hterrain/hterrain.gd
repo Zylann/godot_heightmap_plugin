@@ -156,6 +156,8 @@ var _shader_uses_texture_array := false
 var _material := ShaderMaterial.new()
 var _material_params_need_update := false
 
+var _render_layer_mask := 1
+
 # Actual number of textures supported by the shader currently selected
 var _ground_texture_count_cache = 0
 
@@ -277,7 +279,7 @@ func _get_property_list():
 			"hint": PROPERTY_HINT_LAYERS_3D_PHYSICS
 		},
 		{
-			"name": "Shader",
+			"name": "Rendering",
 			"type": TYPE_NIL,
 			"usage": PROPERTY_USAGE_GROUP
 		},
@@ -312,6 +314,12 @@ func _get_property_list():
 			# This triggers `ERROR: Cannot get class 'HTerrainTextureSet'`
 			# See https://github.com/godotengine/godot/pull/41264
 			#"hint_string": "HTerrainTextureSet"
+		},
+		{
+			"name": "render_layers",
+			"type": TYPE_INT,
+			"usage": PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_STORAGE,
+			"hint": PROPERTY_HINT_LAYERS_3D_RENDER
 		}
 	]
 
@@ -368,6 +376,9 @@ func _get(key: String):
 
 	elif key == "collision_mask":
 		return _collision_mask
+
+	elif key == "render_layers":
+		return get_render_layer_mask()
 	
 
 func _set(key: String, value):
@@ -424,6 +435,9 @@ func _set(key: String, value):
 		if _collider != null:
 			_collider.set_collision_mask(value)
 
+	elif key == "render_layers":
+		return set_render_layer_mask(value)
+
 
 func get_texture_set() -> HTerrainTextureSet:
 	return _texture_set
@@ -456,6 +470,15 @@ func get_shader_param(param_name: String):
 
 func set_shader_param(param_name: String, v):
 	_material.set_shader_param(param_name, v)
+
+
+func set_render_layer_mask(mask: int):
+	_render_layer_mask = mask
+	_for_all_chunks(SetRenderLayerMaskAction.new(mask))
+
+
+func get_render_layer_mask() -> int:
+	return _render_layer_mask
 
 
 func _set_data_directory(dirpath: String):
@@ -1276,6 +1299,8 @@ func _cb_make_chunk(cpos_x: int, cpos_y: int, lod: int):
 			chunk = HTerrainChunk.new(self, origin_in_cells_x, origin_in_cells_y, material)
 		chunk.parent_transform_changed(get_internal_transform())
 
+		chunk.set_render_layer_mask(_render_layer_mask)
+
 		var grid = _chunks[lod]
 		var row = grid[cpos_y]
 		row[cpos_x] = chunk
@@ -1545,4 +1570,11 @@ class SetMaterialAction:
 	func exec(chunk):
 		chunk.set_material(material)
 
+
+class SetRenderLayerMaskAction:
+	var mask: int = 0
+	func _init(m: int):
+		mask = m
+	func exec(chunk):
+		chunk.set_render_layer_mask(mask)
 
