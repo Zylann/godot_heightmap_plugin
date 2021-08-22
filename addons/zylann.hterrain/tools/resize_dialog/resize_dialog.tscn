@@ -6,619 +6,189 @@
 [ext_resource path="res://addons/zylann.hterrain/tools/icons/icon_long_arrow_down.svg" type="Texture" id=4]
 [ext_resource path="res://addons/zylann.hterrain/tools/icons/icon_small_circle.svg" type="Texture" id=5]
 
-[node name="ResizeDialog" type="WindowDialog" index="0"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="ResizeDialog" type="WindowDialog"]
 margin_left = 130.0
 margin_top = 126.0
 margin_right = 430.0
 margin_bottom = 326.0
 rect_min_size = Vector2( 300, 200 )
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 0
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
-popup_exclusive = false
 window_title = "Resize terrain"
-resizable = false
 script = ExtResource( 1 )
 
-[node name="VBoxContainer" type="VBoxContainer" parent="." index="1"]
-
-anchor_left = 0.0
-anchor_top = 0.0
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
 anchor_right = 1.0
 anchor_bottom = 1.0
 margin_left = 8.0
 margin_top = 8.0
 margin_right = -8.0
 margin_bottom = -8.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 1
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
 custom_constants/separation = 24
-alignment = 0
-_sections_unfolded = [ "Margin", "custom_constants" ]
 
-[node name="GridContainer" type="GridContainer" parent="VBoxContainer" index="0"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="GridContainer" type="GridContainer" parent="VBoxContainer"]
 margin_right = 284.0
 margin_bottom = 126.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 1
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
 columns = 2
 
-[node name="Label" type="Label" parent="VBoxContainer/GridContainer" index="0"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="Label" type="Label" parent="VBoxContainer/GridContainer"]
 margin_top = 3.0
 margin_right = 68.0
 margin_bottom = 17.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 2
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 4
 text = "Resolution"
-percent_visible = 1.0
-lines_skipped = 0
-max_lines_visible = -1
 
-[node name="ResolutionDropdown" type="OptionButton" parent="VBoxContainer/GridContainer" index="1"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="ResolutionDropdown" type="OptionButton" parent="VBoxContainer/GridContainer"]
 margin_left = 72.0
 margin_right = 284.0
 margin_bottom = 20.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-focus_mode = 2
-mouse_filter = 0
-mouse_default_cursor_shape = 0
 size_flags_horizontal = 3
-size_flags_vertical = 1
 toggle_mode = false
-action_mode = 0
-enabled_focus_mode = 2
-shortcut = null
-group = null
-flat = false
-align = 0
-items = [  ]
-selected = -1
-_sections_unfolded = [ "Size Flags" ]
 
-[node name="Label3" type="Label" parent="VBoxContainer/GridContainer" index="2"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="Label3" type="Label" parent="VBoxContainer/GridContainer"]
 margin_top = 29.0
 margin_right = 68.0
 margin_bottom = 43.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 2
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 4
 text = "Stretch"
-percent_visible = 1.0
-lines_skipped = 0
-max_lines_visible = -1
 
-[node name="StretchCheckBox" type="CheckBox" parent="VBoxContainer/GridContainer" index="3"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="StretchCheckBox" type="CheckBox" parent="VBoxContainer/GridContainer"]
 margin_left = 72.0
 margin_top = 24.0
 margin_right = 284.0
 margin_bottom = 48.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-focus_mode = 2
-mouse_filter = 0
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
-toggle_mode = true
-enabled_focus_mode = 2
-shortcut = null
-group = null
-flat = false
-align = 0
 
-[node name="Label2" type="Label" parent="VBoxContainer/GridContainer" index="4"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="Label2" type="Label" parent="VBoxContainer/GridContainer"]
 margin_top = 82.0
 margin_right = 68.0
 margin_bottom = 96.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 2
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 4
 text = "Direction"
-percent_visible = 1.0
-lines_skipped = 0
-max_lines_visible = -1
 
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/GridContainer" index="5"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/GridContainer"]
 margin_left = 72.0
 margin_top = 52.0
 margin_right = 284.0
 margin_bottom = 126.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 1
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
-alignment = 0
 
-[node name="AnchorControl" type="GridContainer" parent="VBoxContainer/GridContainer/HBoxContainer" index="0"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="AnchorControl" type="GridContainer" parent="VBoxContainer/GridContainer/HBoxContainer"]
 margin_right = 92.0
 margin_bottom = 74.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 1
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
 columns = 3
 
-[node name="TopLeftButton" type="Button" parent="VBoxContainer/GridContainer/HBoxContainer/AnchorControl" index="0"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="TopLeftButton" type="Button" parent="VBoxContainer/GridContainer/HBoxContainer/AnchorControl"]
 margin_right = 28.0
 margin_bottom = 22.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-focus_mode = 2
-mouse_filter = 0
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
-toggle_mode = false
-enabled_focus_mode = 2
-shortcut = null
-group = null
 icon = ExtResource( 2 )
-flat = false
-align = 1
 
-[node name="TopButton" type="Button" parent="VBoxContainer/GridContainer/HBoxContainer/AnchorControl" index="1"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="TopButton" type="Button" parent="VBoxContainer/GridContainer/HBoxContainer/AnchorControl"]
 margin_left = 32.0
 margin_right = 60.0
 margin_bottom = 22.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-focus_mode = 2
-mouse_filter = 0
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
-toggle_mode = false
-enabled_focus_mode = 2
-shortcut = null
-group = null
 icon = ExtResource( 2 )
-flat = false
-align = 1
 
-[node name="TopRightButton" type="Button" parent="VBoxContainer/GridContainer/HBoxContainer/AnchorControl" index="2"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="TopRightButton" type="Button" parent="VBoxContainer/GridContainer/HBoxContainer/AnchorControl"]
 margin_left = 64.0
 margin_right = 92.0
 margin_bottom = 22.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-focus_mode = 2
-mouse_filter = 0
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
-toggle_mode = false
-enabled_focus_mode = 2
-shortcut = null
-group = null
 icon = ExtResource( 2 )
-flat = false
-align = 1
 
-[node name="LeftButton" type="Button" parent="VBoxContainer/GridContainer/HBoxContainer/AnchorControl" index="3"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="LeftButton" type="Button" parent="VBoxContainer/GridContainer/HBoxContainer/AnchorControl"]
 margin_top = 26.0
 margin_right = 28.0
 margin_bottom = 48.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-focus_mode = 2
-mouse_filter = 0
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
-toggle_mode = false
-enabled_focus_mode = 2
-shortcut = null
-group = null
 icon = ExtResource( 2 )
-flat = false
-align = 1
 
-[node name="CenterButton" type="Button" parent="VBoxContainer/GridContainer/HBoxContainer/AnchorControl" index="4"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="CenterButton" type="Button" parent="VBoxContainer/GridContainer/HBoxContainer/AnchorControl"]
 margin_left = 32.0
 margin_top = 26.0
 margin_right = 60.0
 margin_bottom = 48.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-focus_mode = 2
-mouse_filter = 0
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
-toggle_mode = false
-enabled_focus_mode = 2
-shortcut = null
-group = null
 icon = ExtResource( 2 )
-flat = false
-align = 1
 
-[node name="RightButton" type="Button" parent="VBoxContainer/GridContainer/HBoxContainer/AnchorControl" index="5"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="RightButton" type="Button" parent="VBoxContainer/GridContainer/HBoxContainer/AnchorControl"]
 margin_left = 64.0
 margin_top = 26.0
 margin_right = 92.0
 margin_bottom = 48.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-focus_mode = 2
-mouse_filter = 0
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
-toggle_mode = false
-enabled_focus_mode = 2
-shortcut = null
-group = null
 icon = ExtResource( 2 )
-flat = false
-align = 1
 
-[node name="ButtomLeftButton" type="Button" parent="VBoxContainer/GridContainer/HBoxContainer/AnchorControl" index="6"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="ButtomLeftButton" type="Button" parent="VBoxContainer/GridContainer/HBoxContainer/AnchorControl"]
 margin_top = 52.0
 margin_right = 28.0
 margin_bottom = 74.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-focus_mode = 2
-mouse_filter = 0
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
-toggle_mode = false
-enabled_focus_mode = 2
-shortcut = null
-group = null
 icon = ExtResource( 2 )
-flat = false
-align = 1
 
-[node name="ButtomButton" type="Button" parent="VBoxContainer/GridContainer/HBoxContainer/AnchorControl" index="7"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="ButtomButton" type="Button" parent="VBoxContainer/GridContainer/HBoxContainer/AnchorControl"]
 margin_left = 32.0
 margin_top = 52.0
 margin_right = 60.0
 margin_bottom = 74.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-focus_mode = 2
-mouse_filter = 0
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
-toggle_mode = false
-enabled_focus_mode = 2
-shortcut = null
-group = null
 icon = ExtResource( 2 )
-flat = false
-align = 1
 
-[node name="BottomRightButton" type="Button" parent="VBoxContainer/GridContainer/HBoxContainer/AnchorControl" index="8"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="BottomRightButton" type="Button" parent="VBoxContainer/GridContainer/HBoxContainer/AnchorControl"]
 margin_left = 64.0
 margin_top = 52.0
 margin_right = 92.0
 margin_bottom = 74.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-focus_mode = 2
-mouse_filter = 0
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
-toggle_mode = false
-enabled_focus_mode = 2
-shortcut = null
-group = null
 icon = ExtResource( 2 )
-flat = false
-align = 1
 
-[node name="Reference" type="Control" parent="VBoxContainer/GridContainer/HBoxContainer" index="1"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="Reference" type="Control" parent="VBoxContainer/GridContainer/HBoxContainer"]
 margin_left = 96.0
 margin_right = 196.0
 margin_bottom = 74.0
 rect_min_size = Vector2( 100, 0 )
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 0
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
-_sections_unfolded = [ "Rect" ]
 
-[node name="XArrow" type="TextureRect" parent="VBoxContainer/GridContainer/HBoxContainer/Reference" index="0"]
-
+[node name="XArrow" type="TextureRect" parent="VBoxContainer/GridContainer/HBoxContainer/Reference"]
 modulate = Color( 1, 0.292969, 0.292969, 1 )
-anchor_left = 0.0
-anchor_top = 0.0
 anchor_right = 1.0
-anchor_bottom = 0.0
 margin_left = 9.0
 margin_bottom = 16.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 1
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
 texture = ExtResource( 3 )
-stretch_mode = 0
-_sections_unfolded = [ "Visibility" ]
 
-[node name="ZArrow" type="TextureRect" parent="VBoxContainer/GridContainer/HBoxContainer/Reference" index="1"]
-
+[node name="ZArrow" type="TextureRect" parent="VBoxContainer/GridContainer/HBoxContainer/Reference"]
 modulate = Color( 0.292969, 0.602295, 1, 1 )
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
 anchor_bottom = 1.0
 margin_top = 10.0
 margin_right = 16.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 1
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
 texture = ExtResource( 4 )
-stretch_mode = 0
-_sections_unfolded = [ "Visibility" ]
 
-[node name="ZLabel" type="Label" parent="VBoxContainer/GridContainer/HBoxContainer/Reference" index="2"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="ZLabel" type="Label" parent="VBoxContainer/GridContainer/HBoxContainer/Reference"]
 margin_left = 14.0
 margin_top = 54.0
 margin_right = 22.0
 margin_bottom = 68.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 2
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 4
 text = "Z"
-percent_visible = 1.0
-lines_skipped = 0
-max_lines_visible = -1
 
-[node name="XLabel" type="Label" parent="VBoxContainer/GridContainer/HBoxContainer/Reference" index="3"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="XLabel" type="Label" parent="VBoxContainer/GridContainer/HBoxContainer/Reference"]
 margin_left = 52.0
 margin_top = 14.0
 margin_right = 60.0
 margin_bottom = 28.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 2
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 4
 text = "X"
-percent_visible = 1.0
-lines_skipped = 0
-max_lines_visible = -1
 
-[node name="Origin" type="TextureRect" parent="VBoxContainer/GridContainer/HBoxContainer/Reference" index="4"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="Origin" type="TextureRect" parent="VBoxContainer/GridContainer/HBoxContainer/Reference"]
 margin_left = 3.0
 margin_top = 4.0
 margin_right = 11.0
 margin_bottom = 12.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 1
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
 texture = ExtResource( 5 )
-stretch_mode = 0
-_sections_unfolded = [ "Anchor", "Margin" ]
 
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer" index="1"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
 margin_top = 150.0
 margin_right = 284.0
 margin_bottom = 170.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 1
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
 custom_constants/separation = 16
 alignment = 1
-_sections_unfolded = [ "Rect", "custom_constants" ]
 
-[node name="ApplyButton" type="Button" parent="VBoxContainer/HBoxContainer" index="0"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="ApplyButton" type="Button" parent="VBoxContainer/HBoxContainer"]
 margin_left = 51.0
 margin_right = 163.0
 margin_bottom = 20.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-focus_mode = 2
-mouse_filter = 0
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
-toggle_mode = false
-enabled_focus_mode = 2
-shortcut = null
-group = null
 text = "Apply (no undo)"
-flat = false
-align = 1
 
-[node name="CancelButton" type="Button" parent="VBoxContainer/HBoxContainer" index="1"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="CancelButton" type="Button" parent="VBoxContainer/HBoxContainer"]
 margin_left = 179.0
 margin_right = 233.0
 margin_bottom = 20.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-focus_mode = 2
-mouse_filter = 0
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
-toggle_mode = false
-enabled_focus_mode = 2
-shortcut = null
-group = null
 text = "Cancel"
-flat = false
-align = 1
 
 [connection signal="item_selected" from="VBoxContainer/GridContainer/ResolutionDropdown" to="." method="_on_ResolutionDropdown_item_selected"]
-
 [connection signal="toggled" from="VBoxContainer/GridContainer/StretchCheckBox" to="." method="_on_StretchCheckBox_toggled"]
-
 [connection signal="pressed" from="VBoxContainer/HBoxContainer/ApplyButton" to="." method="_on_ApplyButton_pressed"]
-
 [connection signal="pressed" from="VBoxContainer/HBoxContainer/CancelButton" to="." method="_on_CancelButton_pressed"]
-
-
