@@ -10,6 +10,8 @@ uniform float u_roughness = 0.5;
 uniform float u_curve = 1.0;
 uniform float u_terrain_size = 513.0;
 uniform float u_tile_size = 513.0;
+uniform sampler2D u_additive_heightmap;
+uniform float u_additive_heightmap_factor = 0.0;
 uniform vec2 u_uv_offset;
 uniform vec2 u_uv_scale = vec2(1.0, 1.0);
 
@@ -163,6 +165,11 @@ float get_height(vec2 pos) {
 	// Height remapping
 	{
 		h = u_base_height + h * u_height_range;
+	}
+	
+	// Additive heightmap
+	{
+		h += u_additive_heightmap_factor * texture(u_additive_heightmap, pos / u_terrain_size).r;
 	}
 	
 	return h;
