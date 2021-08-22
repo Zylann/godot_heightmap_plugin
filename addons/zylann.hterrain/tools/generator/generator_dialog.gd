@@ -106,6 +106,26 @@ func _ready():
 			"range": { "min": 0.0, "max": 1.0 },
 			"default_value": 0.0
 		},
+		"island_weight": {
+			"type": TYPE_REAL,
+			"range": { "min": 0.0, "max": 1.0, "step": 0.01 },
+			"default_value": 0.0
+		},
+		"island_sharpness": {
+			"type": TYPE_REAL,
+			"range": { "min": 0.0, "max": 1.0, "step": 0.01 },
+			"default_value": 0.0
+		},
+		"island_height_ratio": {
+			"type": TYPE_REAL,
+			"range": { "min": -1.0, "max": 1.0, "step": 0.01 },
+			"default_value": -1.0
+		},
+		"island_shape": {
+			"type": TYPE_REAL,
+			"range": { "min": 0.0, "max": 1.0, "step": 0.01 },
+			"default_value": 0.0
+		},
 		"show_sea": {
 			"type": TYPE_BOOL,
 			"default_value": true
@@ -212,11 +232,12 @@ func _update_generator(preview: bool):
 
 	var preview_scale := 4.0 # As if 2049x2049
 	var sectors := []
+	var terrain_size = 513
 
 	# Get preview scale and sectors to generate.
 	# Allowing null terrain to make it testable.
 	if _terrain != null and _terrain.get_data() != null:
-		var terrain_size = _terrain.get_data().get_resolution()
+		terrain_size = _terrain.get_data().get_resolution()
 
 		if preview:
 			# When previewing the resolution does not span the entire terrain,
@@ -262,12 +283,18 @@ func _update_generator(preview: bool):
 		p.params = {
 			"u_octaves": _inspector.get_value("octaves"),
 			"u_seed": _inspector.get_value("seed"),
-			"u_scale": scale * preview_scale,
-			"u_offset": base_offset_ndc / preview_scale,
+			"u_scale": scale,
+			"u_offset": base_offset_ndc,
 			"u_base_height": _inspector.get_value("base_height") / preview_scale,
 			"u_height_range": _inspector.get_value("height_range") / preview_scale,
 			"u_roughness": _inspector.get_value("roughness"),
-			"u_curve": _inspector.get_value("curve")
+			"u_curve": _inspector.get_value("curve"),
+			"u_island_weight": _inspector.get_value("island_weight"),
+			"u_island_sharpness": _inspector.get_value("island_sharpness"),
+			"u_island_height_ratio": _inspector.get_value("island_height_ratio"),
+			"u_island_shape": _inspector.get_value("island_shape"),
+			"u_terrain_size": terrain_size / preview_scale,
+			"u_tile_size": _viewport_resolution
 		}
 		_generator.add_pass(p)
 

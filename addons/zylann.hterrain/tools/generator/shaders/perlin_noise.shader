@@ -8,8 +8,18 @@ uniform int u_seed;
 uniform int u_octaves = 5;
 uniform float u_roughness = 0.5;
 uniform float u_curve = 1.0;
+uniform float u_terrain_size = 513.0;
+uniform float u_tile_size = 513.0;
 uniform vec2 u_uv_offset;
 uniform vec2 u_uv_scale = vec2(1.0, 1.0);
+
+uniform float u_island_weight = 0.0;
+// 0: smooth transition, 1: sharp transition
+uniform float u_island_sharpness = 0.0;
+// 0: edge is min height (island), 1: edge is max height (canyon)
+uniform float u_island_height_ratio = 0.0;
+// 0: round, 1: square
+uniform float u_island_shape = 0.0;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Perlin noise source:
@@ -103,22 +113,69 @@ float get_fractal_noise(vec2 uv) {
 	return gs;
 }
 
-float get_height(vec2 uv) {
-	float h = 0.5 + 0.5 * get_fractal_noise(uv);
-	h = pow(h, u_curve);
-	h = u_base_height + h * u_height_range;
+// x is a ratio in 0..1
+float get_island_curve(float x) {
+	return smoothstep(min(0.999, u_island_sharpness), 1.0, x);
+//	float exponent = 1.0 + 10.0 * u_island_sharpness;
+//	return pow(abs(x), exponent);
+}
+
+float squareish_distance(vec2 a, vec2 b) {
+	vec2 v = b - a;
+	// Manhattan distance would produce a "diamond-shaped distance".
+	// This gives "square-shaped" distance.
+	return max(abs(v.x), abs(v.y));
+}
+
+float get_island_distance(vec2 pos, vec2 center) {
+	float rd = distance(pos, center);
+	float sd = squareish_distance(pos, center);
+	return mix(rd, sd, u_island_shape);
+}
+
+// pos is in terrain space
+float get_height(vec2 pos) {
+	float h = 0.0;
+	
+	{
+		// Noise (0..1)
+		// Offset and scale for the noise itself
+		vec2 uv_noise = (pos / u_terrain_size + u_offset) * u_scale;
+		h = 0.5 + 0.5 * get_fractal_noise(uv_noise);
+	}
+	
+	// Curve
+	{
+		h = pow(h, u_curve);
+	}
+	
+	// Island
+	{
+		float terrain_size = u_terrain_size;
+		vec2 island_center = vec2(0.5 * terrain_size);
+		float island_height_ratio = 0.5 + 0.5 * u_island_height_ratio;
+		float island_distance = get_island_distance(pos, island_center);
+		float distance_ratio = clamp(island_distance / (0.5 * terrain_size), 0.0, 1.0);
+		float island_ratio = u_island_weight * get_island_curve(distance_ratio);
+		h = mix(h, island_height_ratio, island_ratio);
+	}
+
+	// Height remapping
+	{
+		h = u_base_height + h * u_height_range;
+	}
+	
 	return h;
 }
 
 void fragment() {
-	vec2 uv = SCREEN_UV;
+	// Handle screen padding: transform UV back into generation space.
+	// This is in tile space actually...? it spans 1 unit across the viewport,
+	// and starts from 0 when tile (0,0) is generated.
+	// Maybe we could change this into world units instead?
+	vec2 uv_tile = (SCREEN_UV + u_uv_offset) * u_uv_scale;
 
-	// Handle screen padding: transform UV back into generation space
-	uv = (uv + u_uv_offset) * u_uv_scale;
-
-	// Offset and scale for the noise itself
-	uv = (uv + u_offset) * u_scale;
-
-	float h = get_height(uv);
+	float h = get_height(uv_tile * u_tile_size);
+	
 	COLOR = vec4(h, h, h, 1.0);
 }
