@@ -37,7 +37,8 @@ static func import(
 	p_compress_mode: int,
 	p_repeat: int,
 	p_filter: bool,
-	p_mipmaps: bool) -> Result:
+	p_mipmaps: bool,
+	p_anisotropic: bool) -> Result:
 	
 	var compress_mode := p_compress_mode
 	var no_bptc_if_rgb := false#p_options["compress/no_bptc_if_rgb"];
@@ -59,6 +60,8 @@ static func import(
 		tex_flags |= Texture.FLAG_MIPMAPS
 	if srgb == 1:
 		tex_flags |= Texture.FLAG_CONVERT_TO_LINEAR
+	if p_anisotropic:
+		tex_flags |= Texture.FLAG_ANISOTROPIC_FILTER
 
 #	Vector<Ref<Image> > slices;
 #
