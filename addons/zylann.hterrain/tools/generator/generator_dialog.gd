@@ -258,13 +258,14 @@ func _update_generator(preview: bool):
 			sectors.append(Vector2(0, 0))
 
 		else:
-			# We have to duplicate the heightmap because we are going to write
-			# into it during the generation process.
-			# It would be fine when we don't read outside of a generated tile,
-			# but we actually do that for erosion: neighboring pixels are read
-			# again, and if they were modified by a previous tile it will 
-			# disrupt generation, so we need to use a copy of the original.
-			additive_heightmap = additive_heightmap.duplicate()
+			if additive_heightmap != null:
+				# We have to duplicate the heightmap because we are going to write
+				# into it during the generation process.
+				# It would be fine when we don't read outside of a generated tile,
+				# but we actually do that for erosion: neighboring pixels are read
+				# again, and if they were modified by a previous tile it will 
+				# disrupt generation, so we need to use a copy of the original.
+				additive_heightmap = additive_heightmap.duplicate()
 			
 			# When we get to generate it fully, sectors are used,
 			# so the size or shape of the terrain doesn't matter
