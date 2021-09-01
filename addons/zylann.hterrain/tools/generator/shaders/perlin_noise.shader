@@ -8,8 +8,20 @@ uniform int u_seed;
 uniform int u_octaves = 5;
 uniform float u_roughness = 0.5;
 uniform float u_curve = 1.0;
+uniform float u_terrain_size = 513.0;
+uniform float u_tile_size = 513.0;
+uniform sampler2D u_additive_heightmap;
+uniform float u_additive_heightmap_factor = 0.0;
 uniform vec2 u_uv_offset;
 uniform vec2 u_uv_scale = vec2(1.0, 1.0);
+
+uniform float u_island_weight = 0.0;
+// 0: smooth transition, 1: sharp transition
+uniform float u_island_sharpness = 0.0;
+// 0: edge is min height (island), 1: edge is max height (canyon)
+uniform float u_island_height_ratio = 0.0;
+// 0: round, 1: square
+uniform float u_island_shape = 0.0;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Perlin noise source:
@@ -103,22 +115,91 @@ float get_fractal_noise(vec2 uv) {
 	return gs;
 }
 
-float get_height(vec2 uv) {
-	float h = 0.5 + 0.5 * get_fractal_noise(uv);
-	h = pow(h, u_curve);
-	h = u_base_height + h * u_height_range;
+// x is a ratio in 0..1
+float get_island_curve(float x) {
+	return smoothstep(min(0.999, u_island_sharpness), 1.0, x);
+//	float exponent = 1.0 + 10.0 * u_island_sharpness;
+//	return pow(abs(x), exponent);
+}
+
+float smooth_union(float a, float b, float k) {
+	float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+	return mix(b, a, h) - k * h * (1.0 - h);
+}
+
+float squareish_distance(vec2 a, vec2 b, float r, float s) {
+	vec2 v = b - a;
+	// TODO This is brute force but this is the first attempt that gave me a "rounded square" distance,
+	// where the "roundings" remained constant over distance (not the case with standard box SDF)
+	float da = -smooth_union(v.x+s, v.y+s, r)+s;
+	float db = -smooth_union(s-v.x, s-v.y, r)+s;
+	float dc = -smooth_union(s-v.x, v.y+s, r)+s;
+	float dd = -smooth_union(v.x+s, s-v.y, r)+s;
+	return max(max(da, db), max(dc, dd));
+}
+
+// This is too sharp
+//float squareish_distance(vec2 a, vec2 b) {
+//	vec2 v = b - a;
+//	// Manhattan distance would produce a "diamond-shaped distance".
+//	// This gives "square-shaped" distance.
+//	return max(abs(v.x), abs(v.y));
+//}
+
+float get_island_distance(vec2 pos, vec2 center, float terrain_size) {
+	float rd = distance(pos, center);
+	float sd = squareish_distance(pos, center, terrain_size * 0.1, terrain_size);
+	return mix(rd, sd, u_island_shape);
+}
+
+// pos is in terrain space
+float get_height(vec2 pos) {
+	float h = 0.0;
+	
+	{
+		// Noise (0..1)
+		// Offset and scale for the noise itself
+		vec2 uv_noise = (pos / u_terrain_size + u_offset) * u_scale;
+		h = 0.5 + 0.5 * get_fractal_noise(uv_noise);
+	}
+	
+	// Curve
+	{
+		h = pow(h, u_curve);
+	}
+	
+	// Island
+	{
+		float terrain_size = u_terrain_size;
+		vec2 island_center = vec2(0.5 * terrain_size);
+		float island_height_ratio = 0.5 + 0.5 * u_island_height_ratio;
+		float island_distance = get_island_distance(pos, island_center, terrain_size);
+		float distance_ratio = clamp(island_distance / (0.5 * terrain_size), 0.0, 1.0);
+		float island_ratio = u_island_weight * get_island_curve(distance_ratio);
+		h = mix(h, island_height_ratio, island_ratio);
+	}
+
+	// Height remapping
+	{
+		h = u_base_height + h * u_height_range;
+	}
+	
+	// Additive heightmap
+	{
+		h += u_additive_heightmap_factor * texture(u_additive_heightmap, pos / u_terrain_size).r;
+	}
+	
 	return h;
 }
 
 void fragment() {
-	vec2 uv = SCREEN_UV;
+	// Handle screen padding: transform UV back into generation space.
+	// This is in tile space actually...? it spans 1 unit across the viewport,
+	// and starts from 0 when tile (0,0) is generated.
+	// Maybe we could change this into world units instead?
+	vec2 uv_tile = (SCREEN_UV + u_uv_offset) * u_uv_scale;
 
-	// Handle screen padding: transform UV back into generation space
-	uv = (uv + u_uv_offset) * u_uv_scale;
-
-	// Offset and scale for the noise itself
-	uv = (uv + u_offset) * u_scale;
-
-	float h = get_height(uv);
+	float h = get_height(uv_tile * u_tile_size);
+	
 	COLOR = vec4(h, h, h, 1.0);
 }
