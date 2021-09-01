@@ -122,16 +122,33 @@ float get_island_curve(float x) {
 //	return pow(abs(x), exponent);
 }
 
-float squareish_distance(vec2 a, vec2 b) {
-	vec2 v = b - a;
-	// Manhattan distance would produce a "diamond-shaped distance".
-	// This gives "square-shaped" distance.
-	return max(abs(v.x), abs(v.y));
+float smooth_union(float a, float b, float k) {
+	float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+	return mix(b, a, h) - k * h * (1.0 - h);
 }
 
-float get_island_distance(vec2 pos, vec2 center) {
+float squareish_distance(vec2 a, vec2 b, float r, float s) {
+	vec2 v = b - a;
+	// TODO This is brute force but this is the first attempt that gave me a "rounded square" distance,
+	// where the "roundings" remained constant over distance (not the case with standard box SDF)
+	float da = -smooth_union(v.x+s, v.y+s, r)+s;
+	float db = -smooth_union(s-v.x, s-v.y, r)+s;
+	float dc = -smooth_union(s-v.x, v.y+s, r)+s;
+	float dd = -smooth_union(v.x+s, s-v.y, r)+s;
+	return max(max(da, db), max(dc, dd));
+}
+
+// This is too sharp
+//float squareish_distance(vec2 a, vec2 b) {
+//	vec2 v = b - a;
+//	// Manhattan distance would produce a "diamond-shaped distance".
+//	// This gives "square-shaped" distance.
+//	return max(abs(v.x), abs(v.y));
+//}
+
+float get_island_distance(vec2 pos, vec2 center, float terrain_size) {
 	float rd = distance(pos, center);
-	float sd = squareish_distance(pos, center);
+	float sd = squareish_distance(pos, center, terrain_size * 0.1, terrain_size);
 	return mix(rd, sd, u_island_shape);
 }
 
@@ -156,7 +173,7 @@ float get_height(vec2 pos) {
 		float terrain_size = u_terrain_size;
 		vec2 island_center = vec2(0.5 * terrain_size);
 		float island_height_ratio = 0.5 + 0.5 * u_island_height_ratio;
-		float island_distance = get_island_distance(pos, island_center);
+		float island_distance = get_island_distance(pos, island_center, terrain_size);
 		float distance_ratio = clamp(island_distance / (0.5 * terrain_size), 0.0, 1.0);
 		float island_ratio = u_island_weight * get_island_curve(distance_ratio);
 		h = mix(h, island_height_ratio, island_ratio);
