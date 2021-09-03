@@ -16,7 +16,7 @@ target_path = "bin/"
 TARGET_NAME = "hterrain_native"
 
 # Local dependency paths
-godot_headers_path = "godot-cpp/godot_headers/"
+godot_headers_path = "godot-cpp/godot-headers/"
 cpp_bindings_path = "godot-cpp/"
 cpp_bindings_library = "libgodot-cpp"
 

@@ -3,8 +3,8 @@ tool
 
 class Quad:
 	var children = null
-	var origin_x := 0
-	var origin_y := 0
+	var origin_x : int = 0
+	var origin_y : int = 0
 	var data = null
 
 	func _init():
@@ -22,9 +22,9 @@ class Quad:
 
 
 var _tree := Quad.new()
-var _max_depth := 0
-var _base_size := 16
-var _split_scale := 2.0
+var _max_depth : int = 0
+var _base_size : int = 16
+var _split_scale : float = 2.0
 
 var _make_func : FuncRef = null
 var _recycle_func : FuncRef = null
@@ -44,7 +44,7 @@ func clear():
 
 
 static func compute_lod_count(base_size: int, full_size: int) -> int:
-	var po = 0
+	var po : int = 0
 	while full_size > base_size:
 		full_size = full_size >> 1
 		po += 1
@@ -70,12 +70,7 @@ func set_split_scale(p_split_scale: float):
 
 	# Split scale must be greater than a threshold,
 	# otherwise lods will decimate too fast and it will look messy
-	if p_split_scale < MIN:
-		p_split_scale = MIN
-	if p_split_scale > MAX:
-		p_split_scale = MAX
-
-	_split_scale = float(p_split_scale)
+	_split_scale = clamp(p_split_scale, MIN, MAX)
 
 
 func get_split_scale() -> float:
@@ -91,16 +86,15 @@ func update(view_pos: Vector3):
 		_tree.data = _make_chunk(_max_depth, 0, 0)
 
 
-# TODO Should be renamed get_lod_factor
-func get_lod_size(lod: int) -> int:
+func get_lod_factor(lod: int) -> int:
 	return 1 << lod
 
 
 func _update(quad: Quad, lod: int, view_pos: Vector3):
 	# This function should be called regularly over frames.
 	
-	var lod_factor := get_lod_size(lod)
-	var chunk_size := _base_size * lod_factor
+	var lod_factor : int = get_lod_factor(lod)
+	var chunk_size : int = _base_size * lod_factor
 	var world_center := \
 		chunk_size * (Vector3(quad.origin_x, 0, quad.origin_y) + Vector3(0.5, 0, 0.5))
 	
@@ -137,25 +131,20 @@ func _update(quad: Quad, lod: int, view_pos: Vector3):
 		
 		if no_split_child and world_center.distance_to(view_pos) > split_distance:
 			# Join
-			if quad.has_children():
-				for i in 4:
-					var child = quad.children[i]
-					_recycle_chunk(child.data, child.origin_x, child.origin_y, lod - 1)
-					quad.data = null
-				quad.clear_children()
-
-				assert(quad.data == null)
-				quad.data = _make_chunk(lod, quad.origin_x, quad.origin_y)
+			for i in 4:
+				var child = quad.children[i]
+				_recycle_chunk(child.data, child.origin_x, child.origin_y, lod - 1)
+			quad.clear_children()
+			quad.data = _make_chunk(lod, quad.origin_x, quad.origin_y)
 
 
 func _join_all_recursively(quad: Quad, lod: int):
 	if quad.has_children():
-		for i in range(4):
-			var child = quad.children[i]
-			_join_all_recursively(child, lod - 1)
+		for i in 4:
+			_join_all_recursively(quad.children[i], lod - 1)
 
 		quad.clear_children()
-		
+
 	elif quad.data != null:
 		_recycle_chunk(quad.data, quad.origin_x, quad.origin_y, lod)
 		quad.data = null
@@ -180,15 +169,14 @@ func debug_draw_tree(ci: CanvasItem):
 
 func _debug_draw_tree_recursive(ci: CanvasItem, quad: Quad, lod_index: int, child_index: int):
 	if quad.has_children():
-		for i in range(0, quad.children.size()):
-			var child = quad.children[i]
-			_debug_draw_tree_recursive(ci, child, lod_index - 1, i)	
+		for i in 4:
+			_debug_draw_tree_recursive(ci, quad.children[i], lod_index - 1, i)
 	else:
-		var size := get_lod_size(lod_index)
-		var checker := 0
+		var size : int = get_lod_factor(lod_index)
+		var checker : int = 0
 		if child_index == 1 or child_index == 2:
 			checker = 1
-		var chunk_indicator := 0
+		var chunk_indicator : int = 0
 		if quad.data != null:
 			chunk_indicator = 1
 		var r := Rect2(Vector2(quad.origin_x, quad.origin_y) * size, Vector2(size, size))
