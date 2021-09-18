@@ -416,11 +416,11 @@ func process(delta: float, viewer_pos: Vector3):
 
 	# Update time manually, so we can accelerate the animation when strength is increased,
 	# without causing phase jumps (which would be the case if we just scaled TIME)
-	var ambient_wind_frequency = 1.0 + 3.0 * terrain.ambient_wind
-	_ambient_wind_time += delta * ambient_wind_frequency
-	var awp = _get_ambient_wind_params()
-	_material.set_shader_param("u_ambient_wind", awp)
-
+	if(terrain.ambient_wind > 0):
+		var ambient_wind_frequency = 1.0 + 3.0 * terrain.ambient_wind
+		_ambient_wind_time += delta * ambient_wind_frequency
+		var awp = _get_ambient_wind_params()
+		_material.set_shader_param("u_ambient_wind", awp)
 
 # Gets local-space AABB of a detail chunk.
 # This only apply map_scale in Y, because details are not affected by X and Z map scale.
