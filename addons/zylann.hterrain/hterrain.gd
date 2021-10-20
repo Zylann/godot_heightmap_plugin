@@ -143,6 +143,9 @@ signal transform_changed(global_transform)
 export(float, 0.0, 1.0) var ambient_wind := 0.0 setget set_ambient_wind
 export(int, 2, 5) var lod_scale := 2.0 setget set_lod_scale, get_lod_scale
 
+enum PROCESS_MODE {PROCESS, PHYSICS}
+export(PROCESS_MODE) var process_mode = PROCESS_MODE.PROCESS
+
 # TODO Replace with `size` in world units?
 # Prefer using this instead of scaling the node's transform.
 # Spatial.scale isn't used because it's not suitable for terrains,
@@ -657,8 +660,19 @@ func _enter_tree():
 		add_child(_normals_baker)
 		_normals_baker.set_terrain_data(_data)
 
-	set_process(true)
+	_set_process_mode()
 
+func _set_process_mode():
+	if process_mode == PROCESS_MODE.PROCESS:
+		set_process(true)
+		set_physics_process(false)
+	else:
+		set_process(false)
+		set_physics_process(true)
+		
+func _ready():
+	if not Engine.editor_hint:
+		_set_process_mode()
 
 func _clear_all_chunks():
 	# The lodder has to be cleared because otherwise it will reference dangling pointers
@@ -1105,8 +1119,14 @@ func _update_viewer_position(camera: Camera):
 	else:
 		_viewer_pos_world = camera.global_transform.origin
 
+func _physics_process(delta: float):
+	_process_terrain(delta)
 
 func _process(delta: float):
+	_process_terrain(delta)
+	
+	
+func _process_terrain(delta: float):
 	if not Engine.is_editor_hint():
 		# In editor, the camera is only accessible from an editor plugin
 		_update_viewer_position(null)
