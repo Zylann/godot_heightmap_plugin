@@ -70,7 +70,7 @@ var _material: ShaderMaterial = null
 var _default_shader: Shader = null
 
 # Vector2 => DirectMultiMeshInstance
-var _chunks := {}
+var _mmis := {}
 
 var _multimesh: MultiMesh
 var _multimesh_need_regen = true
@@ -95,8 +95,6 @@ func _init():
 func _enter_tree():
 	var terrain = _get_terrain()
 	if terrain != null:
-		terrain.connect("transform_changed", self, "_on_terrain_transform_changed")
-
 		#if _auto_pick_index_on_enter_tree:
 		#	_auto_pick_index_on_enter_tree = false
 		#	_auto_pick_index()
@@ -109,12 +107,11 @@ func _enter_tree():
 func _exit_tree():
 	var terrain = _get_terrain()
 	if terrain != null:
-		terrain.disconnect("transform_changed", self, "_on_terrain_transform_changed")
 		terrain._internal_remove_detail_layer(self)
 	_update_material()
-	for k in _chunks.keys():
-		_recycle_chunk(k)
-	_chunks.clear()
+	for k in _mmis.keys():
+		_recycle_mmi(k)
+	_mmis.clear()
 
 
 #func _auto_pick_index():
@@ -256,9 +253,9 @@ func get_instance_mesh() -> Mesh:
 
 func set_render_layer_mask(mask: int):
 	render_layers = mask
-	for k in _chunks:
-		var chunk = _chunks[k]
-		chunk.set_layer_mask(mask)
+	for k in _mmis:
+		var mmi = _mmis[k]
+		mmi.set_layer_mask(mask)
 
 
 func get_render_layer_mask() -> int:
@@ -304,116 +301,77 @@ func _notification(what: int):
 
 
 func _set_visible(v: bool):
-	for k in _chunks:
-		var chunk = _chunks[k]
-		chunk.set_visible(v)
+	for k in _mmis:
+		var mmi = _mmis[k]
+		mmi.set_visible(v)
+	if DEBUG and !v:
+		_debug_cubes.clear()
 
 
 func _set_world(w: World):
-	for k in _chunks:
-		var chunk = _chunks[k]
-		chunk.set_world(w)
+	for k in _mmis:
+		var mmi = _mmis[k]
+		mmi.set_world(w)
 
 
-func _on_terrain_transform_changed(gt: Transform):
-	_update_material()
-
-	var terrain = _get_terrain()
-	if terrain == null:
-		_logger.error("Detail layer is not child of a terrain!")
-		return
-	
+func set_terrain_transform(terrain, aabbs: Dictionary):
 	var terrain_transform : Transform = terrain.get_internal_transform()
-
+	var terrain_scale = terrain.map_scale
+	
 	# Update AABBs and transforms, because scale might have changed
-	for k in _chunks:
-		var mmi = _chunks[k]
-		var aabb = _get_chunk_aabb(terrain, Vector3(k.x * CHUNK_SIZE, 0, k.y * CHUNK_SIZE))
+	for k in _mmis:
+		var mmi = _mmis[k]
+		var aabb = aabbs[Vector2(k.x, k.y)]
 		# Nullify XZ translation because that's done by transform already
 		aabb.position.x = 0
 		aabb.position.z = 0
 		mmi.set_aabb(aabb)
-		mmi.set_transform(_get_chunk_transform(terrain_transform, k.x, k.y))
+		mmi.set_transform(_get_mmi_transform(terrain_transform, k.x, k.y))
 
-
-func process(delta: float, viewer_pos: Vector3):
-	var terrain = _get_terrain()
-	if terrain == null:
-		_logger.error("DetailLayer processing while terrain is null!")
-		return
-
+		
+func update(terrain, local_viewer_pos: Vector3, cmin: Vector2, cmax: Vector2, aabbs: Dictionary):
 	if _multimesh_need_regen:
 		_regen_multimesh()
 		_multimesh_need_regen = false
 		# Crash workaround for Godot 3.1
 		# See https://github.com/godotengine/godot/issues/32500
-		for k in _chunks:
-			var mmi = _chunks[k]
+		for k in _mmis:
+			var mmi = _mmis[k]
 			mmi.set_multimesh(_multimesh)
-
-	var local_viewer_pos = terrain.global_transform.affine_inverse() * viewer_pos
-
-	var viewer_cx = local_viewer_pos.x / CHUNK_SIZE
-	var viewer_cz = local_viewer_pos.z / CHUNK_SIZE
-
-	var cr = int(view_distance) / CHUNK_SIZE + 1
-
-	var cmin_x = viewer_cx - cr
-	var cmin_z = viewer_cz - cr
-	var cmax_x = viewer_cx + cr
-	var cmax_z = viewer_cz + cr
-
-	var map_res = terrain.get_data().get_resolution()
-	var map_scale = terrain.map_scale
-
-	var terrain_size_x = map_res * map_scale.x
-	var terrain_size_z = map_res * map_scale.z
-
-	var terrain_chunks_x = terrain_size_x / CHUNK_SIZE
-	var terrain_chunks_z = terrain_size_z / CHUNK_SIZE
-
-	if cmin_x < 0:
-		cmin_x = 0
-	if cmin_z < 0:
-		cmin_z = 0
-	if cmax_x > terrain_chunks_x:
-		cmax_x = terrain_chunks_x
-	if cmax_z > terrain_chunks_z:
-		cmax_z = terrain_chunks_z
-
-	if DEBUG and visible:
+			
+	if DEBUG:
 		_debug_cubes.clear()
-		for cz in range(cmin_z, cmax_z):
-			for cx in range(cmin_x, cmax_x):
-				_add_debug_cube(terrain, _get_chunk_aabb(terrain, Vector3(cx, 0, cz) * CHUNK_SIZE))
-
+	
 	var terrain_transform : Transform = terrain.get_internal_transform()
-
-	for cz in range(cmin_z, cmax_z):
-		for cx in range(cmin_x, cmax_x):
-
+	var terrain_scale = terrain.map_scale
+	
+	for cz in range(cmin.y, cmax.y):
+		for cx in range(cmin.x, cmax.x):			
+			if DEBUG:
+				_add_debug_cube(terrain, aabbs[Vector2(cx, cz)])
+				
 			var cpos2d = Vector2(cx, cz)
-			if _chunks.has(cpos2d):
+			if _mmis.has(cpos2d):
 				continue
 
-			var aabb = _get_chunk_aabb(terrain, Vector3(cx, 0, cz) * CHUNK_SIZE)
-			var d = (aabb.position + 0.5 * aabb.size).distance_to(local_viewer_pos)
-
-			if d < view_distance:
-				_load_chunk(terrain_transform, cx, cz, aabb)
+			var aabb = aabbs[Vector2(cx, cz)]
+			var sqr_dist = (aabb.position + 0.5 * aabb.size).distance_squared_to(local_viewer_pos)
+			if sqr_dist < view_distance * view_distance:
+				_load_mmi(terrain_transform, cx, cz, aabb)
 
 	var to_recycle = []
 
-	for k in _chunks:
-		var chunk = _chunks[k]
-		var aabb = _get_chunk_aabb(terrain, Vector3(k.x, 0, k.y) * CHUNK_SIZE)
-		var d = (aabb.position + 0.5 * aabb.size).distance_to(local_viewer_pos)
-		if d > view_distance:
+	for k in _mmis:
+		var mmi = _mmis[k]
+		var aabb = aabbs[Vector2(k.x, k.y)]
+		var sqr_dist = (aabb.position + 0.5 * aabb.size).distance_squared_to(local_viewer_pos)
+		if  sqr_dist > view_distance * view_distance:
 			to_recycle.append(k)
 
 	for k in to_recycle:
-		_recycle_chunk(k)
+		_recycle_mmi(k)
 
+func update_wind_time(terrain, delta: float):
 	# Update time manually, so we can accelerate the animation when strength is increased,
 	# without causing phase jumps (which would be the case if we just scaled TIME)
 	var ambient_wind_frequency = 1.0 + 3.0 * terrain.ambient_wind
@@ -422,32 +380,14 @@ func process(delta: float, viewer_pos: Vector3):
 	_material.set_shader_param("u_ambient_wind", awp)
 
 
-# Gets local-space AABB of a detail chunk.
-# This only apply map_scale in Y, because details are not affected by X and Z map scale.
-func _get_chunk_aabb(terrain, lpos: Vector3):
-	var terrain_scale = terrain.map_scale
-	var terrain_data = terrain.get_data()
-	var origin_cells_x := int(lpos.x / terrain_scale.x)
-	var origin_cells_z := int(lpos.z / terrain_scale.z)
-	var size_cells_x := int(CHUNK_SIZE / terrain_scale.x)
-	var size_cells_z := int(CHUNK_SIZE / terrain_scale.z)
-	
-	var aabb = terrain_data.get_region_aabb(
-		origin_cells_x, origin_cells_z, size_cells_x, size_cells_z)
-		
-	aabb.position = Vector3(lpos.x, lpos.y + aabb.position.y * terrain_scale.y, lpos.z)
-	aabb.size = Vector3(CHUNK_SIZE, aabb.size.y * terrain_scale.y, CHUNK_SIZE)
-	return aabb
-
-
-func _get_chunk_transform(terrain_transform: Transform, cx: int, cz: int) -> Transform:
+func _get_mmi_transform(terrain_transform: Transform, cx: int, cz: int) -> Transform:
 	var lpos := Vector3(cx, 0, cz) * CHUNK_SIZE
 	# Terrain scale is not used on purpose. Rotation is not supported.
 	var trans := Transform(Basis(), terrain_transform.origin + lpos)
 	return trans
 
 
-func _load_chunk(terrain_transform: Transform, cx: int, cz: int, aabb: AABB):
+func _load_mmi(terrain_transform: Transform, cx: int, cz: int, aabb: AABB):
 	# Nullify XZ translation because that's done by transform already
 	aabb.position.x = 0
 	aabb.position.z = 0
@@ -461,7 +401,7 @@ func _load_chunk(terrain_transform: Transform, cx: int, cz: int, aabb: AABB):
 		mmi.set_world(get_world())
 		mmi.set_multimesh(_multimesh)
 
-	var trans := _get_chunk_transform(terrain_transform, cx, cz)
+	var trans := _get_mmi_transform(terrain_transform, cx, cz)
 	
 	mmi.set_material_override(_material)
 	mmi.set_transform(trans)
@@ -469,12 +409,12 @@ func _load_chunk(terrain_transform: Transform, cx: int, cz: int, aabb: AABB):
 	mmi.set_layer_mask(render_layers)
 	mmi.set_visible(visible)
 
-	_chunks[Vector2(cx, cz)] = mmi
+	_mmis[Vector2(cx, cz)] = mmi
 
 
-func _recycle_chunk(cpos2d: Vector2):
-	var mmi = _chunks[cpos2d]
-	_chunks.erase(cpos2d)
+func _recycle_mmi(cpos2d: Vector2):
+	var mmi = _mmis[cpos2d]
+	_mmis.erase(cpos2d)
 	mmi.set_visible(false)
 	_multimesh_instance_pool.append(mmi)
 

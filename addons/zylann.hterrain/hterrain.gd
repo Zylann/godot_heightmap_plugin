@@ -3,6 +3,7 @@ extends Spatial
 
 const NativeFactory = preload("./native/factory.gd")
 const Mesher = preload("./hterrain_mesher.gd")
+const Detailer = preload("./hterrain_detailer.gd")
 const Grid = preload("./util/grid.gd")
 const HTerrainData = preload("./hterrain_data.gd")
 const HTerrainChunk = preload("./hterrain_chunk.gd")
@@ -171,6 +172,7 @@ var _data: HTerrainData = null
 
 var _mesher := Mesher.new()
 var _lodder = NativeFactory.get_quad_tree_lod()
+var _detailer := Detailer.new()
 var _viewer_pos_world := Vector3()
 
 # [lod][z][x] -> chunk
@@ -178,8 +180,6 @@ var _viewer_pos_world := Vector3()
 var _chunks := []
 var _chunk_size: int = 32
 var _pending_chunk_updates := []
-
-var _detail_layers := []
 
 var _collision_enabled := true
 var _collider: HTerrainCollider = null
@@ -205,6 +205,8 @@ func _init():
 		funcref(self, "_cb_make_chunk"), \
 		funcref(self,"_cb_recycle_chunk"), \
 		funcref(self, "_cb_get_vertical_bounds"))
+
+	_detailer.set_terrain(self)
 
 	set_notify_transform(true)
 
@@ -776,6 +778,7 @@ func _reset_ground_chunks():
 		csize_y /= 2
 
 	_mesher.configure(_chunk_size, _chunk_size, _lodder.get_lod_count())
+	_detailer.recalculate_aabbs()
 
 
 func _on_data_region_changed(min_x, min_y, size_x, size_y, channel):
@@ -786,6 +789,8 @@ func _on_data_region_changed(min_x, min_y, size_x, size_y, channel):
 		if _normals_baker != null:
 			_normals_baker.request_tiles_in_region(
 				Vector2(min_x, min_y), Vector2(size_x, size_y))
+				
+		_detailer.recalculate_region_aabbs(min_x, min_y, size_x, size_y)
 
 
 func _on_data_map_changed(type: int, index: int):
@@ -794,8 +799,7 @@ func _on_data_map_changed(type: int, index: int):
 	or type == HTerrainData.CHANNEL_NORMAL \
 	or type == HTerrainData.CHANNEL_GLOBAL_ALBEDO:
 
-		for layer in _detail_layers:
-			layer.update_material()
+		_detailer.update_materials()
 
 	if type != HTerrainData.CHANNEL_DETAIL:
 		_material_params_need_update = true
@@ -803,11 +807,7 @@ func _on_data_map_changed(type: int, index: int):
 
 func _on_data_map_added(type: int, index: int):
 	if type == HTerrainData.CHANNEL_DETAIL:
-		for layer in _detail_layers:
-			# Shift indexes up since one was inserted
-			if layer.layer_index >= index:
-				layer.layer_index += 1
-			layer.update_material()
+		_detailer.add_map(index)
 	else:
 		_material_params_need_update = true
 	Util.update_configuration_warning(self, true)
@@ -815,11 +815,7 @@ func _on_data_map_added(type: int, index: int):
 
 func _on_data_map_removed(type: int, index: int):
 	if type == HTerrainData.CHANNEL_DETAIL:
-		for layer in _detail_layers:
-			# Shift indexes down since one was removed
-			if layer.layer_index > index:
-				layer.layer_index -= 1
-			layer.update_material()
+		_detailer.remove_map(index)
 	else:
 		_material_params_need_update = true
 	Util.update_configuration_warning(self, true)
@@ -1129,8 +1125,7 @@ func _process(delta: float):
 		if _data.get_map_count(HTerrainData.CHANNEL_DETAIL) > 0:
 			# Note: the detail system is not affected by map scale,
 			# so we have to send viewer position in world space
-			for layer in _detail_layers:
-				layer.process(delta, _viewer_pos_world)
+			_detailer.process(delta, _viewer_pos_world)
 
 	_updated_chunks = 0
 
@@ -1404,19 +1399,17 @@ func set_ground_texture_array(type: int, texture_array: TextureArray):
 
 
 func _internal_add_detail_layer(layer):
-	assert(_detail_layers.find(layer) == -1)
-	_detail_layers.append(layer)
+	_detailer.add_layer(layer)
 
 
 func _internal_remove_detail_layer(layer):
-	assert(_detail_layers.find(layer) != -1)
-	_detail_layers.erase(layer)
+	_detailer.remove_layer(layer)
 
 
 # Returns a list copy of all child HTerrainDetailLayer nodes.
 # The order in that list has no relevance.
 func get_detail_layers() -> Array:
-	return _detail_layers.duplicate()
+	return _detailer.get_layers()
 
 
 # @obsolete
@@ -1435,8 +1428,7 @@ func set_ambient_wind(amplitude: float):
 	if ambient_wind == amplitude:
 		return
 	ambient_wind = amplitude
-	for layer in _detail_layers:
-		layer.update_material()
+	_detailer.update_materials()
 
 
 static func _check_ground_texture_type(ground_texture_type: int):
