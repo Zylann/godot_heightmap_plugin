@@ -422,7 +422,8 @@ func _dummy_setter(v):
 
 
 func _on_ask_load_texture(key):
-	_open_file_dialog(["*.png ; PNG files"], "_on_texture_selected", [key], FileDialog.ACCESS_RESOURCES)
+	_open_file_dialog(["*.png ; PNG files"], "_on_texture_selected", [key], 
+		FileDialog.ACCESS_RESOURCES)
 
 
 func _open_file_dialog(filters, callback, binds, access):
@@ -430,7 +431,8 @@ func _open_file_dialog(filters, callback, binds, access):
 	_file_dialog.clear_filters()
 	for filter in filters:
 		_file_dialog.add_filter(filter)
-	_file_dialog.connect("popup_hide", self, "call_deferred", ["_on_file_dialog_close"], CONNECT_ONESHOT)
+	_file_dialog.connect("popup_hide", self, "call_deferred", ["_on_file_dialog_close"], 
+		CONNECT_ONESHOT)
 	_file_dialog.connect("file_selected", self, callback, binds)
 	_file_dialog.popup_centered_ratio(0.7)
 
