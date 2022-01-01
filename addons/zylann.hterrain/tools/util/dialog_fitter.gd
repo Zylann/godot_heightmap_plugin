@@ -31,4 +31,23 @@ func _fit_to_contents():
 				var margin : Vector2 = child.get_rect().position
 				#print("Fitting ", dialog.get_path(), " from ", dialog.rect_size, 
 				#	" to ", child_rect.size + margin * 2.0)
-				dialog.rect_size = child_rect.size + margin * 2.0
+				dialog.rect_min_size = child_rect.size + margin * 2.0
+
+
+#func _process(delta):
+#	update()
+
+# DEBUG
+#func _draw():
+#	var self_global_pos = get_global_rect().position
+#
+#	var dialog : Control = get_parent()
+#	var dialog_rect := dialog.get_global_rect()
+#	dialog_rect.position -= self_global_pos
+#	draw_rect(dialog_rect, Color(1,1,0), false)
+#
+#	for child in dialog.get_children():
+#		if child is Container:
+#			var child_rect : Rect2 = child.get_global_rect()
+#			child_rect.position -= self_global_pos
+#			draw_rect(child_rect, Color(1,1,0,0.1))

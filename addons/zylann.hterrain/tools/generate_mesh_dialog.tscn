@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=2]
+[gd_scene load_steps=3 format=2]
 
 [ext_resource path="res://addons/zylann.hterrain/tools/generate_mesh_dialog.gd" type="Script" id=1]
+[ext_resource path="res://addons/zylann.hterrain/tools/util/dialog_fitter.tscn" type="PackedScene" id=2]
 
 [node name="GenerateMeshDialog" type="WindowDialog"]
 margin_left = 57.0
@@ -75,6 +76,8 @@ margin_left = 240.0
 margin_right = 294.0
 margin_bottom = 20.0
 text = "Cancel"
+
+[node name="DialogFitter" parent="." instance=ExtResource( 2 )]
 
 [connection signal="value_changed" from="VBoxContainer/HBoxContainer/LODSpinBox" to="." method="_on_LODSpinBox_value_changed"]
 [connection signal="pressed" from="VBoxContainer/Buttons/Generate" to="." method="_on_Generate_pressed"]

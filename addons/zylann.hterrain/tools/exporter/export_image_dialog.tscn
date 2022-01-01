@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=2]
+[gd_scene load_steps=3 format=2]
 
 [ext_resource path="res://addons/zylann.hterrain/tools/exporter/export_image_dialog.gd" type="Script" id=1]
+[ext_resource path="res://addons/zylann.hterrain/tools/util/dialog_fitter.tscn" type="PackedScene" id=2]
 
 [node name="ExportImageDialog" type="WindowDialog"]
 margin_left = 77.0
@@ -156,6 +157,9 @@ margin_left = 257.0
 margin_right = 311.0
 margin_bottom = 20.0
 text = "Cancel"
+
+[node name="DialogFitter" parent="." instance=ExtResource( 2 )]
+
 [connection signal="text_changed" from="VB/Grid/OutputPath/HeightmapPathLineEdit" to="." method="_on_HeightmapPathLineEdit_text_changed"]
 [connection signal="pressed" from="VB/Grid/OutputPath/HeightmapPathBrowseButton" to="." method="_on_HeightmapPathBrowseButton_pressed"]
 [connection signal="item_selected" from="VB/Grid/FormatSelector" to="." method="_on_FormatSelector_item_selected"]

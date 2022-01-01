@@ -1,14 +1,15 @@
-[gd_scene load_steps=4 format=2]
+[gd_scene load_steps=5 format=2]
 
 [ext_resource path="res://addons/zylann.hterrain/tools/generator/generator_dialog.gd" type="Script" id=1]
 [ext_resource path="res://addons/zylann.hterrain/tools/inspector/inspector.tscn" type="PackedScene" id=2]
 [ext_resource path="res://addons/zylann.hterrain/tools/terrain_preview.tscn" type="PackedScene" id=3]
+[ext_resource path="res://addons/zylann.hterrain/tools/util/dialog_fitter.tscn" type="PackedScene" id=4]
 
 [node name="GeneratorDialog" type="WindowDialog"]
 margin_left = 22.0
 margin_top = 32.0
 margin_right = 1122.0
-margin_bottom = 632.0
+margin_bottom = 666.0
 rect_min_size = Vector2( 1100, 600 )
 window_title = "Generate terrain"
 resizable = true
@@ -25,27 +26,28 @@ margin_top = 8.0
 margin_right = -8.0
 margin_bottom = -8.0
 custom_constants/separation = 16
+__meta__ = {
+"_edit_use_anchors_": false
+}
 
 [node name="Editor" type="HBoxContainer" parent="VBoxContainer"]
 margin_right = 1084.0
-margin_bottom = 548.0
+margin_bottom = 584.0
 size_flags_vertical = 3
 
-[node name="Settings" type="Control" parent="VBoxContainer/Editor"]
+[node name="Settings" type="VBoxContainer" parent="VBoxContainer/Editor"]
 margin_right = 420.0
-margin_bottom = 548.0
+margin_bottom = 584.0
 rect_min_size = Vector2( 420, 0 )
 
 [node name="Inspector" parent="VBoxContainer/Editor/Settings" instance=ExtResource( 2 )]
-anchor_right = 1.0
-anchor_bottom = 1.0
-margin_right = 0.0
-margin_bottom = 0.0
+margin_right = 420.0
+margin_bottom = 584.0
 
 [node name="Preview" type="Control" parent="VBoxContainer/Editor"]
 margin_left = 424.0
 margin_right = 1084.0
-margin_bottom = 548.0
+margin_bottom = 584.0
 size_flags_horizontal = 3
 
 [node name="TerrainPreview" parent="VBoxContainer/Editor/Preview" instance=ExtResource( 3 )]
@@ -66,9 +68,9 @@ margin_top = -16.0
 step = 1.0
 
 [node name="Choices" type="HBoxContainer" parent="VBoxContainer"]
-margin_top = 564.0
+margin_top = 600.0
 margin_right = 1084.0
-margin_bottom = 584.0
+margin_bottom = 620.0
 custom_constants/separation = 32
 alignment = 1
 
@@ -83,6 +85,9 @@ margin_left = 555.0
 margin_right = 609.0
 margin_bottom = 20.0
 text = "Cancel"
+
+[node name="DialogFitter" parent="." instance=ExtResource( 4 )]
+
 [connection signal="property_changed" from="VBoxContainer/Editor/Settings/Inspector" to="." method="_on_Inspector_property_changed"]
 [connection signal="dragged" from="VBoxContainer/Editor/Preview/TerrainPreview" to="." method="_on_TerrainPreview_dragged"]
 [connection signal="pressed" from="VBoxContainer/Choices/ApplyButton" to="." method="_on_ApplyButton_pressed"]
