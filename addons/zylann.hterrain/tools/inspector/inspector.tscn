@@ -2,70 +2,23 @@
 
 [ext_resource path="res://addons/zylann.hterrain/tools/inspector/inspector.gd" type="Script" id=1]
 
-[node name="Inspector" type="Control" index="0"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="Inspector" type="VBoxContainer"]
 margin_right = 348.0
 margin_bottom = 383.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 0
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
 script = ExtResource( 1 )
-_sections_unfolded = [ "custom_constants" ]
 
-[node name="GridContainer" type="GridContainer" parent="." index="0"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 1
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
+[node name="GridContainer" type="GridContainer" parent="."]
+margin_right = 348.0
 custom_constants/vseparation = 4
 custom_constants/hseparation = 8
 columns = 2
-_sections_unfolded = [ "Anchor", "Margin", "custom_constants" ]
 
-[node name="OpenFileDialog" type="FileDialog" parent="." index="1"]
-
-visible = false
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="OpenFileDialog" type="FileDialog" parent="."]
 margin_left = 261.0
 margin_top = 150.0
 margin_right = 710.0
 margin_bottom = 426.0
 rect_min_size = Vector2( 400, 300 )
-rect_pivot_offset = Vector2( 0, 0 )
-rect_clip_content = false
-mouse_filter = 0
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
-popup_exclusive = false
-window_title = "Ouvrir un fichier"
+window_title = "Open a File"
 resizable = true
-dialog_hide_on_ok = false
-mode_overrides_title = true
 mode = 0
-access = 0
-filters = PoolStringArray(  )
-show_hidden_files = false
-current_dir = "res://"
-current_file = ""
-current_path = "res://"
-_sections_unfolded = [ "Rect" ]
-
-
