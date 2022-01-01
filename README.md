@@ -82,4 +82,7 @@ Thanks for your support :)
 - Justin Swanhart (Greenlion)
 - Sebastian Clausen (sclausen)
 - MrGreaterThan
+- baals
+- Treer
+- stackdump.eth
 ```

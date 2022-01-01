@@ -72,6 +72,9 @@ Jakub Buriánek (Buri)
 Justin Swanhart (Greenlion)
 Sebastian Clausen (sclausen)
 MrGreaterThan
+baals
+Treer
+stackdump.eth
 "
 text = "Version: {version}
 Author: Marc Gilleron
@@ -92,6 +95,9 @@ Jakub Buriánek (Buri)
 Justin Swanhart (Greenlion)
 Sebastian Clausen (sclausen)
 MrGreaterThan
+baals
+Treer
+stackdump.eth
 "
 script = ExtResource( 3 )
 
