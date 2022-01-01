@@ -417,7 +417,7 @@ func get_all_heights() -> PoolRealArray:
 #     modified area.
 #
 # map_type:
-#    which kind of map changed
+#    which kind of map changed, see CHANNEL_* constants
 #
 # index:
 #    index of the map that changed
@@ -1159,18 +1159,36 @@ func _load_map(dir: String, map_type: int, index: int) -> bool:
 		# In this particular case, we can use Godot ResourceLoader directly,
 		# if the texture got imported.
 
-		if Engine.editor_hint:
-			# But in the editor we want textures to be editable,
-			# so we have to automatically load the data also in RAM
-			if map.image == null:
-				map.image = Image.new()
-			map.image.load(fpath)
-			_ensure_map_format(map.image, map_type, index)
-
 		var tex = load(fpath)
+
+		var must_load_image_in_editor := true
+
+		if tex != null and tex is Image:
+			# The texture is imported as Image,
+			# perhaps the user wants it to be accessible from RAM in game.
+			_logger.debug("Map {0} is imported as Image. An ImageTexture will be generated." \
+					.format([get_map_debug_name(map_type, index)]))
+			map.image = tex
+			tex = ImageTexture.new()
+			var map_type_info = _map_types[map_type]
+			tex.create_from_image(map.image, map_type_info.texture_flags)
+			must_load_image_in_editor = false
+
 		map.texture = tex
 
+		if Engine.editor_hint:
+			if must_load_image_in_editor:
+				# But in the editor we want textures to be editable,
+				# so we have to automatically load the data also in RAM
+				if map.image == null:
+					map.image = Image.new()
+				map.image.load(fpath)
+			_ensure_map_format(map.image, map_type, index)
+
 	else:
+		# The heightmap is different.
+		# It has often uses beyond graphics, so we always keep a RAM copy by default.
+
 		var im = _try_load_0_8_0_heightmap(fpath, map_type, map.image, _logger)
 		if typeof(im) == TYPE_BOOL:
 			return false
