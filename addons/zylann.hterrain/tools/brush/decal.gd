@@ -5,8 +5,8 @@ const DirectMeshInstance = preload("../../util/direct_mesh_instance.gd")
 const HTerrainData = preload("../../hterrain_data.gd")
 const Util = preload("../../util/util.gd")
 
-var _mesh_instance = null
-var _mesh = null
+var _mesh_instance : DirectMeshInstance
+var _mesh : PlaneMesh
 var _material = ShaderMaterial.new()
 #var _debug_mesh = CubeMesh.new()
 #var _debug_mesh_instance = null
@@ -18,7 +18,7 @@ func _init():
 	_material.shader = load("res://addons/zylann.hterrain/tools/brush/decal.shader")
 	_mesh_instance = DirectMeshInstance.new()
 	_mesh_instance.set_material(_material)
-		
+	
 	_mesh = PlaneMesh.new()
 	_mesh_instance.set_mesh(_mesh)
 	
@@ -26,7 +26,7 @@ func _init():
 	#_debug_mesh_instance.set_mesh(_debug_mesh)
 
 
-func set_size(size):
+func set_size(size: float):
 	_mesh.size = Vector2(size, size)
 	# Must line up to terrain vertex policy, so must apply an off-by-one.
 	# If I don't do that, the brush will appear to wobble above the ground
@@ -72,7 +72,7 @@ func set_terrain(terrain):
 	update_visibility()
 
 
-func set_position(p_local_pos):
+func set_position(p_local_pos: Vector3):
 	assert(_terrain != null)
 	assert(typeof(p_local_pos) == TYPE_VECTOR3)
 	
