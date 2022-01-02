@@ -10,7 +10,7 @@ const HTerrainTextureSet = preload("../hterrain_texture_set.gd")
 const PackedTextureImporter = preload("./packed_textures/packed_texture_importer.gd")
 const PackedTextureArrayImporter = preload("./packed_textures/packed_texture_array_importer.gd")
 const PreviewGenerator = preload("./preview_generator.gd")
-const Brush = preload("./brush/terrain_painter.gd")
+const TerrainPainter = preload("./brush/terrain_painter.gd")
 const BrushDecal = preload("./brush/decal.gd")
 const Util = preload("../util/util.gd")
 const EditorUtil = preload("./util/editor_util.gd")
@@ -74,7 +74,7 @@ var _image_cache : ImageFileCache
 var _packed_texture_importer := PackedTextureImporter.new()
 var _packed_texture_array_importer := PackedTextureArrayImporter.new()
 
-var _brush : Brush = null
+var _terrain_painter : TerrainPainter = null
 var _brush_decal : BrushDecal = null
 var _mouse_pressed := false
 #var _pending_paint_action = null
@@ -106,13 +106,13 @@ func _enter_tree():
 	_preview_generator = PreviewGenerator.new()
 	get_editor_interface().get_resource_previewer().add_preview_generator(_preview_generator)
 	
-	_brush = Brush.new()
-	_brush.set_brush_size(5)
-	_brush.connect("changed", self, "_on_brush_changed")
-	add_child(_brush)
+	_terrain_painter = TerrainPainter.new()
+	_terrain_painter.set_brush_size(5)
+	_terrain_painter.get_brush().connect("size_changed", self, "_on_brush_size_changed")
+	add_child(_terrain_painter)
 
 	_brush_decal = BrushDecal.new()
-	_brush_decal.set_size(_brush.get_brush_size())
+	_brush_decal.set_size(_terrain_painter.get_brush_size())
 	
 	_image_cache = ImageFileCache.new("user://temp_hterrain_image_cache")
 	
@@ -124,7 +124,7 @@ func _enter_tree():
 	_panel.hide()
 	add_control_to_container(EditorPlugin.CONTAINER_SPATIAL_EDITOR_BOTTOM, _panel)
 	# Apparently _ready() still isn't called at this point...
-	_panel.call_deferred("set_brush", _brush)
+	_panel.call_deferred("set_terrain_painter", _terrain_painter)
 	_panel.call_deferred("setup_dialogs", base_control)
 	_panel.set_undo_redo(get_undo_redo())
 	_panel.set_image_cache(_image_cache)
@@ -165,44 +165,43 @@ func _enter_tree():
 	_menu_button = menu
 	
 	var mode_icons := {}
-	mode_icons[Brush.MODE_RAISE] = get_icon("heightmap_raise")
-	mode_icons[Brush.MODE_LOWER] = get_icon("heightmap_lower")
-	mode_icons[Brush.MODE_SMOOTH] = get_icon("heightmap_smooth")
-	mode_icons[Brush.MODE_FLATTEN] = get_icon("heightmap_flatten")
-	# TODO Have different icons
-	mode_icons[Brush.MODE_SPLAT] = get_icon("heightmap_paint")
-	mode_icons[Brush.MODE_COLOR] = get_icon("heightmap_color")
-	mode_icons[Brush.MODE_DETAIL] = get_icon("grass")
-	mode_icons[Brush.MODE_MASK] = get_icon("heightmap_mask")
-	mode_icons[Brush.MODE_LEVEL] = get_icon("heightmap_level")
-	mode_icons[Brush.MODE_ERODE] = get_icon("heightmap_erode")
+	mode_icons[TerrainPainter.MODE_RAISE] = get_icon("heightmap_raise")
+	mode_icons[TerrainPainter.MODE_LOWER] = get_icon("heightmap_lower")
+	mode_icons[TerrainPainter.MODE_SMOOTH] = get_icon("heightmap_smooth")
+	mode_icons[TerrainPainter.MODE_FLATTEN] = get_icon("heightmap_flatten")
+	mode_icons[TerrainPainter.MODE_SPLAT] = get_icon("heightmap_paint")
+	mode_icons[TerrainPainter.MODE_COLOR] = get_icon("heightmap_color")
+	mode_icons[TerrainPainter.MODE_DETAIL] = get_icon("grass")
+	mode_icons[TerrainPainter.MODE_MASK] = get_icon("heightmap_mask")
+	mode_icons[TerrainPainter.MODE_LEVEL] = get_icon("heightmap_level")
+	mode_icons[TerrainPainter.MODE_ERODE] = get_icon("heightmap_erode")
 	
 	var mode_tooltips := {}
-	mode_tooltips[Brush.MODE_RAISE] = "Raise height"
-	mode_tooltips[Brush.MODE_LOWER] = "Lower height"
-	mode_tooltips[Brush.MODE_SMOOTH] = "Smooth height"
-	mode_tooltips[Brush.MODE_FLATTEN] = "Flatten (flatten to a specific height)"
-	mode_tooltips[Brush.MODE_SPLAT] = "Texture paint"
-	mode_tooltips[Brush.MODE_COLOR] = "Color paint"
-	mode_tooltips[Brush.MODE_DETAIL] = "Grass paint"
-	mode_tooltips[Brush.MODE_MASK] = "Cut holes"
-	mode_tooltips[Brush.MODE_LEVEL] = "Level (smoothly flattens to average)"
-	mode_tooltips[Brush.MODE_ERODE] = "Erode"
+	mode_tooltips[TerrainPainter.MODE_RAISE] = "Raise height"
+	mode_tooltips[TerrainPainter.MODE_LOWER] = "Lower height"
+	mode_tooltips[TerrainPainter.MODE_SMOOTH] = "Smooth height"
+	mode_tooltips[TerrainPainter.MODE_FLATTEN] = "Flatten (flatten to a specific height)"
+	mode_tooltips[TerrainPainter.MODE_SPLAT] = "Texture paint"
+	mode_tooltips[TerrainPainter.MODE_COLOR] = "Color paint"
+	mode_tooltips[TerrainPainter.MODE_DETAIL] = "Grass paint"
+	mode_tooltips[TerrainPainter.MODE_MASK] = "Cut holes"
+	mode_tooltips[TerrainPainter.MODE_LEVEL] = "Level (smoothly flattens to average)"
+	mode_tooltips[TerrainPainter.MODE_ERODE] = "Erode"
 	
 	_toolbar.add_child(VSeparator.new())
 	
 	# I want modes to be in that order in the GUI
 	var ordered_brush_modes := [
-		Brush.MODE_RAISE,
-		Brush.MODE_LOWER,
-		Brush.MODE_SMOOTH,
-		Brush.MODE_LEVEL,
-		Brush.MODE_FLATTEN,
-		Brush.MODE_ERODE,
-		Brush.MODE_SPLAT,
-		Brush.MODE_COLOR,
-		Brush.MODE_DETAIL,
-		Brush.MODE_MASK
+		TerrainPainter.MODE_RAISE,
+		TerrainPainter.MODE_LOWER,
+		TerrainPainter.MODE_SMOOTH,
+		TerrainPainter.MODE_LEVEL,
+		TerrainPainter.MODE_FLATTEN,
+		TerrainPainter.MODE_ERODE,
+		TerrainPainter.MODE_SPLAT,
+		TerrainPainter.MODE_COLOR,
+		TerrainPainter.MODE_DETAIL,
+		TerrainPainter.MODE_MASK
 	]
 	
 	var mode_group := ButtonGroup.new()
@@ -214,7 +213,7 @@ func _enter_tree():
 		button.set_toggle_mode(true)
 		button.set_button_group(mode_group)
 		
-		if mode == _brush.get_mode():
+		if mode == _terrain_painter.get_mode():
 			button.set_pressed(true)
 		
 		button.connect("pressed", self, "_on_mode_selected", [mode])
@@ -362,7 +361,7 @@ func edit(object):
 	_panel.set_terrain(_node)
 	_generator_dialog.set_terrain(_node)
 	_import_dialog.set_terrain(_node)
-	_brush.set_terrain(_node)
+	_terrain_painter.set_terrain(_node)
 	_brush_decal.set_terrain(_node)
 	_generate_mesh_dialog.set_terrain(_node)
 	_resize_dialog.set_terrain(_node)
@@ -396,12 +395,12 @@ func _update_brush_buttons_availability():
 		var has_details = (data.get_map_count(HTerrainData.CHANNEL_DETAIL) > 0)
 		
 		if has_details:
-			var button = _toolbar_brush_buttons[Brush.MODE_DETAIL]
+			var button = _toolbar_brush_buttons[TerrainPainter.MODE_DETAIL]
 			button.disabled = false
 		else:
-			var button = _toolbar_brush_buttons[Brush.MODE_DETAIL]
+			var button = _toolbar_brush_buttons[TerrainPainter.MODE_DETAIL]
 			if button.pressed:
-				_select_brush_mode(Brush.MODE_RAISE)
+				_select_brush_mode(TerrainPainter.MODE_RAISE)
 			button.disabled = true
 
 
@@ -470,6 +469,10 @@ func forward_spatial_gui_input(p_camera: Camera, p_event: InputEvent) -> bool:
 			# because they are used in navigation schemes
 			if (not mb.control) and (not mb.alt) and mb.button_index == BUTTON_LEFT:
 				if mb.pressed:
+					# TODO Allow to paint on click
+					# TODO `pressure` is not available in button press events
+					# So I have to assume zero to avoid discontinuities with move events
+					#_terrain_painter.paint_input(hit_pos_in_cells, 0.0)
 					_mouse_pressed = true
 				
 				captured_event = true
@@ -477,17 +480,19 @@ func forward_spatial_gui_input(p_camera: Camera, p_event: InputEvent) -> bool:
 				if not _mouse_pressed:
 					# Just finished painting
 					_pending_paint_commit = true
+					_terrain_painter.get_brush().on_paint_end()
 		
-			if _brush.get_mode() == Brush.MODE_FLATTEN and _brush.has_meta("pick_height") \
-			and _brush.get_meta("pick_height"):
-				_brush.set_meta("pick_height", false)
+			if _terrain_painter.get_mode() == TerrainPainter.MODE_FLATTEN \
+			and _terrain_painter.has_meta("pick_height") \
+			and _terrain_painter.get_meta("pick_height"):
+				_terrain_painter.set_meta("pick_height", false)
 				# Pick height
 				var hit_pos_in_cells = _get_pointed_cell_position(mb.position, p_camera)
 				if hit_pos_in_cells != null:
 					var h = _node.get_data().get_height_at(
 						int(hit_pos_in_cells.x), int(hit_pos_in_cells.y))
 					_logger.debug("Picking height {0}".format([h]))
-					_brush.set_flatten_height(h)
+					_terrain_painter.set_flatten_height(h)
 
 	elif p_event is InputEventMouseMotion:
 		var mm = p_event
@@ -497,7 +502,7 @@ func forward_spatial_gui_input(p_camera: Camera, p_event: InputEvent) -> bool:
 			
 			if _mouse_pressed:
 				if Input.is_mouse_button_pressed(BUTTON_LEFT):
-					_brush.paint_input(hit_pos_in_cells)
+					_terrain_painter.paint_input(hit_pos_in_cells, mm.pressure)
 					captured_event = true
 
 		# This is in case the data or textures change as the user edits the terrain,
@@ -515,11 +520,12 @@ func _process(delta: float):
 	
 	if _pending_paint_commit:
 		if has_data:
-			if _brush.has_modified_chunks() and not _brush.is_operation_pending():
+			if not _terrain_painter.is_operation_pending():
 				_pending_paint_commit = false
-				_logger.debug("Paint completed")
-				var changes : Dictionary = _brush.commit()
-				_paint_completed(changes)
+				if _terrain_painter.has_modified_chunks():
+					_logger.debug("Paint completed")
+					var changes : Dictionary = _terrain_painter.commit()
+					_paint_completed(changes)
 		else:
 			_pending_paint_commit = false
 	
@@ -536,6 +542,8 @@ func _paint_completed(changes: Dictionary):
 	assert(heightmap_data != null)
 	
 	var chunk_positions : Array = changes.chunk_positions
+	# Should not create an UndoRedo action if nothing changed
+	assert(len(chunk_positions) > 0)
 	var changed_maps : Array = changes.maps
 	
 	var action_name := "Modify HTerrainData "
@@ -548,7 +556,7 @@ func _paint_completed(changes: Dictionary):
 
 	var redo_maps := []
 	var undo_maps := []
-	var chunk_size := _brush.get_undo_chunk_size()
+	var chunk_size := _terrain_painter.get_undo_chunk_size()
 	
 	for map in changed_maps:
 		# Cache images to disk so RAM does not continuously go up (or at least much slower)
@@ -710,20 +718,20 @@ func _on_lookdev_menu_id_pressed(id: int):
 
 func _on_mode_selected(mode: int):
 	_logger.debug(str("On mode selected ", mode))
-	_brush.set_mode(mode)
+	_terrain_painter.set_mode(mode)
 	_panel.set_brush_editor_display_mode(mode)
 
 
 func _on_texture_selected(index: int):
 	# Switch to texture paint mode when a texture is selected
-	_select_brush_mode(Brush.MODE_SPLAT)
-	_brush.set_texture_index(index)
+	_select_brush_mode(TerrainPainter.MODE_SPLAT)
+	_terrain_painter.set_texture_index(index)
 
 
 func _on_detail_selected(index: int):
 	# Switch to detail paint mode when a detail item is selected
-	_select_brush_mode(Brush.MODE_DETAIL)
-	_brush.set_detail_index(index)
+	_select_brush_mode(TerrainPainter.MODE_DETAIL)
+	_terrain_painter.set_detail_index(index)
 
 
 func _select_brush_mode(mode: int):
@@ -782,8 +790,8 @@ func _on_permanent_change_performed(message: String):
 	ur.commit_action()
 
 
-func _on_brush_changed():
-	_brush_decal.set_size(_brush.get_brush_size())
+func _on_brush_size_changed(size):
+	_brush_decal.set_size(size)
 
 
 func _on_Panel_edit_texture_pressed(index: int):

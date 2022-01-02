@@ -40,8 +40,8 @@ func set_camera_transform(cam_transform: Transform):
 	_minimap.set_camera_transform(cam_transform)
 
 
-func set_brush(brush):
-	_brush_editor.set_brush(brush)
+func set_terrain_painter(terrain_painter):
+	_brush_editor.set_terrain_painter(terrain_painter)
 
 
 func _on_TextureEditor_texture_selected(index):

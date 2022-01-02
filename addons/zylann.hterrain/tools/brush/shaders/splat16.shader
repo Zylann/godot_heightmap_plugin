@@ -1,7 +1,9 @@
 shader_type canvas_item;
 render_mode blend_disabled;
 
-uniform sampler2D u_brush_texture;
+uniform sampler2D u_src_texture;
+uniform vec4 u_src_rect;
+uniform float u_opacity = 1.0;
 uniform float u_factor = 1.0;
 uniform vec4 u_splat = vec4(1.0, 0.0, 0.0, 0.0);
 uniform sampler2D u_other_splatmap_1;
@@ -10,6 +12,11 @@ uniform sampler2D u_other_splatmap_3;
 uniform sampler2D u_heightmap;
 uniform float u_normal_min_y = 0.0;
 uniform float u_normal_max_y = 1.0;
+
+vec2 get_src_uv(vec2 screen_uv) {
+	vec2 uv = u_src_rect.xy + screen_uv * u_src_rect.zw;
+	return uv;
+}
 
 float sum(vec4 v) {
 	return v.x + v.y + v.z + v.w;
@@ -44,16 +51,17 @@ float apply_slope_limit(float brush_value, vec3 normal, float normal_min_y, floa
 }
 
 void fragment() {
-	float brush_value = texture(u_brush_texture, SCREEN_UV).r * u_factor;
-
-	vec3 normal = get_normal(u_heightmap, UV);
+	float brush_value = u_opacity * texture(TEXTURE, UV).r * u_factor;
+	
+	vec2 src_uv = get_src_uv(SCREEN_UV);
+	vec3 normal = get_normal(u_heightmap, src_uv);
 	brush_value = apply_slope_limit(brush_value, normal, u_normal_min_y, u_normal_max_y);
 
 	// It is assumed 3 other renders are done the same with the other 3
-	vec4 src0 = texture(TEXTURE, UV);
-	vec4 src1 = texture(u_other_splatmap_1, UV);
-	vec4 src2 = texture(u_other_splatmap_2, UV);
-	vec4 src3 = texture(u_other_splatmap_3, UV);
+	vec4 src0 = texture(u_src_texture, src_uv);
+	vec4 src1 = texture(u_other_splatmap_1, src_uv);
+	vec4 src2 = texture(u_other_splatmap_2, src_uv);
+	vec4 src3 = texture(u_other_splatmap_3, src_uv);
 	float t = brush_value;
 	vec4 s0 = mix(src0, u_splat, t);
 	vec4 s1 = mix(src1, vec4(0.0), t);

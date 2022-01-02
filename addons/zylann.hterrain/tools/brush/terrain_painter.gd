@@ -4,6 +4,7 @@ const Painter = preload("./painter.gd")
 const HTerrain = preload("../../hterrain.gd")
 const HTerrainData = preload("../../hterrain_data.gd")
 const Logger = preload("../../util/logger.gd")
+const Brush = preload("./brush.gd")
 
 const RaiseShader = preload("./shaders/raise.shader")
 const SmoothShader = preload("./shaders/smooth.shader")
@@ -33,12 +34,12 @@ class ModifiedMap:
 	var map_index := 0
 	var painter_index := 0
 
-signal changed
+signal flatten_height_changed
 
 var _painters := []
 
-var _brush_size := 32
-var _opacity := 1.0
+var _brush := Brush.new()
+
 var _color := Color(1, 0, 0, 1)
 var _mask_flag := false
 var _mode := MODE_RAISE
@@ -59,43 +60,45 @@ func _init():
 		var p = Painter.new()
 		# The name is just for debugging
 		p.set_name(str("Painter", i))
-		p.set_brush_size(_brush_size)
+		#p.set_brush_size(_brush_size)
 		p.connect("texture_region_changed", self, "_on_painter_texture_region_changed", [i])
 		add_child(p)
 		_painters.append(p)
 
 
+func get_brush() -> Brush:
+	return _brush
+
+
 func get_brush_size() -> int:
-	return _brush_size
+	return _brush.get_size()
 
 
 func set_brush_size(s: int):
-	if _brush_size == s:
-		return
-	_brush_size = s
-	for p in _painters:
-		p.set_brush_size(_brush_size)
-	emit_signal("changed")
+	_brush.set_size(s)
+#	for p in _painters:
+#		p.set_brush_size(_brush_size)
 
 
 func set_brush_texture(texture: Texture):
-	for p in _painters:
-		p.set_brush_texture(texture)
+	_brush.set_shapes([texture])
+#	for p in _painters:
+#		p.set_brush_texture(texture)
 
 
 func get_opacity() -> float:
-	return _opacity
+	return _brush.get_opacity()
 
 
 func set_opacity(opacity: float):
-	_opacity = opacity
+	_brush.set_opacity(opacity)
 
 
 func set_flatten_height(h: float):
 	if h == _flatten_height:
 		return
 	_flatten_height = h
-	emit_signal("changed")
+	emit_signal("flatten_height_changed")
 
 
 func get_flatten_height() -> float:
@@ -177,7 +180,10 @@ func commit() -> Dictionary:
 	var changes := []
 	var chunk_positions : Array
 	
+	assert(len(_modified_maps) > 0)
+	
 	for mm in _modified_maps:
+		#print("Flushing painter ", mm.painter_index)
 		var painter : Painter = _painters[mm.painter_index]
 		var info := painter.commit()
 		
@@ -198,6 +204,12 @@ func commit() -> Dictionary:
 			# since the latter updates out of order for preview
 			terrain_data.notify_region_change(rect, mm.map_type, mm.map_index, false, true)
 	
+#	for i in len(_painters):
+#		var p = _painters[i]
+#		if p.has_modified_chunks():
+#			print("Painter ", i, " has modified chunks")
+	
+	# `commit()` is supposed to consume these chunks, there should be none left
 	assert(not has_modified_chunks())
 	
 	return {
@@ -227,14 +239,19 @@ func set_terrain(terrain: HTerrain):
 		p.clear_brush_shader_params()
 
 
-# This may be called from an `_input` callback
-func paint_input(position: Vector2):
+# This may be called from an `_input` callback.
+# Returns `true` if any change was performed.
+func paint_input(position: Vector2, pressure: float) -> bool:
 	assert(_terrain.get_data() != null)
 	var data = _terrain.get_data()
 	assert(not data.is_locked())
 	
-	_modified_maps.clear()
+	if not _brush.configure_paint_input(_painters, position, pressure):
+		# Sometimes painting may not happen due to frequency options
+		return false
 
+	_modified_maps.clear()
+	
 	match _mode:
 		MODE_RAISE:
 			_paint_height(data, position, 1.0)
@@ -279,11 +296,12 @@ func paint_input(position: Vector2):
 
 		MODE_DETAIL:
 			_paint_detail(data, position)
-					
+			
 		_:
 			_logger.error("Unknown mode {0}".format([_mode]))
 
 	assert(len(_modified_maps) > 0)
+	return true
 
 
 func _on_painter_texture_region_changed(rect: Rect2, painter_index: int):
@@ -308,8 +326,8 @@ func _paint_height(data: HTerrainData, position: Vector2, factor: float):
 	_modified_maps = [mm]
 
 	# When using sculpting tools, make it dependent on brush size
-	var raise_strength := 10.0 + float(_brush_size)
-	var delta := factor * _opacity * (2.0 / 60.0) * raise_strength
+	var raise_strength := 10.0 + float(_brush.get_size())
+	var delta := factor * (2.0 / 60.0) * raise_strength
 	
 	var p : Painter = _painters[0]
 	
@@ -332,7 +350,7 @@ func _paint_smooth(data: HTerrainData, position: Vector2):
 	var p : Painter = _painters[0]
 	
 	p.set_brush_shader(SmoothShader)
-	p.set_brush_shader_param("u_factor", _opacity * (10.0 / 60.0))
+	p.set_brush_shader_param("u_factor", (10.0 / 60.0))
 	p.set_image(image, texture)
 	p.paint_input(position)
 
@@ -350,7 +368,7 @@ func _paint_flatten(data: HTerrainData, position: Vector2):
 	var p : Painter = _painters[0]
 	
 	p.set_brush_shader(FlattenShader)
-	p.set_brush_shader_param("u_factor", _opacity)
+	#p.set_brush_shader_param("u_factor", _opacity)
 	p.set_brush_shader_param("u_flatten_value", _flatten_height)
 	p.set_image(image, texture)
 	p.paint_input(position)
@@ -369,7 +387,7 @@ func _paint_level(data: HTerrainData, position: Vector2):
 	var p : Painter = _painters[0]
 	
 	p.set_brush_shader(LevelShader)
-	p.set_brush_shader_param("u_factor", _opacity * (10.0 / 60.0))
+	p.set_brush_shader_param("u_factor", (10.0 / 60.0))
 	p.set_image(image, texture)
 	p.paint_input(position)
 
@@ -387,7 +405,7 @@ func _paint_erode(data: HTerrainData, position: Vector2):
 	var p : Painter = _painters[0]
 	
 	p.set_brush_shader(ErodeShader)
-	p.set_brush_shader_param("u_factor", _opacity)
+	#p.set_brush_shader_param("u_factor", _opacity)
 	p.set_image(image, texture)
 	p.paint_input(position)
 
@@ -407,7 +425,7 @@ func _paint_splat4(data: HTerrainData, position: Vector2):
 	var splat = Color(0.0, 0.0, 0.0, 0.0)
 	splat[_texture_index] = 1.0;
 	p.set_brush_shader(Splat4Shader)
-	p.set_brush_shader_param("u_factor", _opacity)
+	#p.set_brush_shader_param("u_factor", _opacity)
 	p.set_brush_shader_param("u_splat", splat)
 	p.set_brush_shader_param("u_normal_min_y", cos(_slope_limit_high_angle))
 	p.set_brush_shader_param("u_normal_max_y", cos(_slope_limit_low_angle) + 0.001)
@@ -440,7 +458,7 @@ func _paint_splat_indexed(data: HTerrainData, position: Vector2):
 
 		p.set_brush_shader(SplatIndexedShader)
 		p.set_brush_shader_param("u_mode", mode)
-		p.set_brush_shader_param("u_factor", _opacity)
+		#p.set_brush_shader_param("u_factor", _opacity)
 		p.set_brush_shader_param("u_index_map", textures[0])
 		p.set_brush_shader_param("u_weight_map", textures[1])
 		p.set_brush_shader_param("u_texture_index", _texture_index)
@@ -482,7 +500,7 @@ func _paint_splat16(data: HTerrainData, position: Vector2):
 				other_splatmaps.append(tex)
 		
 		p.set_brush_shader(Splat16Shader)
-		p.set_brush_shader_param("u_factor", _opacity)
+		#p.set_brush_shader_param("u_factor", _opacity)
 		p.set_brush_shader_param("u_splat", splats[i])
 		p.set_brush_shader_param("u_other_splatmap_1", other_splatmaps[0])
 		p.set_brush_shader_param("u_other_splatmap_2", other_splatmaps[1])
@@ -510,7 +528,7 @@ func _paint_color(data: HTerrainData, position: Vector2):
 	# https://github.com/Zylann/godot_heightmap_plugin/issues/17#issuecomment-734001879
 
 	p.set_brush_shader(ColorShader)
-	p.set_brush_shader_param("u_factor", _opacity)
+	#p.set_brush_shader_param("u_factor", _opacity)
 	p.set_brush_shader_param("u_color", _color)
 	p.set_image(image, texture)
 	p.paint_input(position)
@@ -529,7 +547,7 @@ func _paint_mask(data: HTerrainData, position: Vector2):
 	var p : Painter = _painters[0]
 	
 	p.set_brush_shader(AlphaShader)
-	p.set_brush_shader_param("u_factor", _opacity)
+	#p.set_brush_shader_param("u_factor", _opacity)
 	p.set_brush_shader_param("u_value", 1.0 if _mask_flag else 0.0)
 	p.set_image(image, texture)
 	p.paint_input(position)
@@ -550,7 +568,7 @@ func _paint_detail(data: HTerrainData, position: Vector2):
 	
 	# TODO Don't use this shader
 	p.set_brush_shader(ColorShader)
-	p.set_brush_shader_param("u_factor", _opacity)
+	#p.set_brush_shader_param("u_factor", _opacity)
 	p.set_brush_shader_param("u_color", c)
 	p.set_image(image, texture)
 	p.paint_input(position)

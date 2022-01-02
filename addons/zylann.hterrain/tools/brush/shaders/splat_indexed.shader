@@ -1,18 +1,26 @@
 shader_type canvas_item;
 render_mode blend_disabled;
 
-uniform sampler2D u_brush_texture;
+uniform sampler2D u_src_texture;
+uniform vec4 u_src_rect;
+uniform float u_opacity = 1.0;
 uniform float u_factor = 1.0;
 uniform int u_texture_index;
-uniform int u_mode; // 0: index, 1: weight
+uniform int u_mode; // 0: output index, 1: output weight
 uniform sampler2D u_index_map;
 uniform sampler2D u_weight_map;
 
-void fragment() {
-	float brush_value = texture(u_brush_texture, SCREEN_UV).r * clamp(u_factor, 0.0, 1.0);
+vec2 get_src_uv(vec2 screen_uv) {
+	vec2 uv = u_src_rect.xy + screen_uv * u_src_rect.zw;
+	return uv;
+}
 
-	vec4 iv = texture(u_index_map, UV);
-	vec4 wv = texture(u_weight_map, UV);
+void fragment() {
+	float brush_value = u_opacity * texture(TEXTURE, UV).r * clamp(u_factor, 0.0, 1.0);
+	
+	vec2 src_uv = get_src_uv(SCREEN_UV);
+	vec4 iv = texture(u_index_map, src_uv);
+	vec4 wv = texture(u_weight_map, src_uv);
 
 	float i[3] = {iv.r, iv.g, iv.b};
 	float w[3] = {wv.r, wv.g, wv.b};
@@ -74,7 +82,7 @@ void fragment() {
 		w[2] /= sum;
 	}
 
-	if(u_mode == 0) {
+	if (u_mode == 0) {
 		COLOR = vec4(i[0], i[1], i[2], 1.0);
 	} else {
 		COLOR = vec4(w[0], w[1], w[2], 1.0);
