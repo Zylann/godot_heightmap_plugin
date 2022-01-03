@@ -14,6 +14,10 @@ export var _suffix := "" setget set_suffix
 export var _rounded := false setget set_rounded
 export var _centered := true setget set_centered
 export var _allow_greater := false setget set_allow_greater
+# There is still a limit when typing a larger value, but this one is to prevent software
+# crashes or freezes. The regular min and max values are for slider UX. Exceeding it should be 
+# a corner case.
+export var _greater_max_value := 10000.0 setget set_greater_max_value
 
 var _label : Label
 var _label2 : Label
@@ -96,12 +100,12 @@ func is_centered() -> bool:
 
 
 func set_value_no_notify(v: float):
-	set_value(v, false)
+	set_value(v, false, false)
 
 
-func set_value(v: float, notify_change: bool):
-	if _allow_greater:
-		v = max(v, _min_value)
+func set_value(v: float, notify_change: bool, use_slider_maximum: bool = false):
+	if _allow_greater and not use_slider_maximum:
+		v = clamp(v, _min_value, _greater_max_value)
 	else:
 		v = clamp(v, _min_value, _max_value)
 
@@ -136,6 +140,14 @@ func set_max_value(maxv: float):
 
 func get_max_value() -> float:
 	return _max_value
+
+
+func set_greater_max_value(gmax: float):
+	_greater_max_value = gmax
+
+
+func get_greater_max_value() -> float:
+	return _greater_max_value
 
 
 func set_rounded(b: bool):
@@ -176,7 +188,7 @@ func is_allowing_greater() -> bool:
 func _set_from_pixel(px: float):
 	var r := (px - FG_MARGIN) / (rect_size.x - FG_MARGIN * 2.0)
 	var v := _ratio_to_value(r)
-	set_value(v, true)
+	set_value(v, true, true)
 
 
 func get_ratio() -> float:
@@ -219,7 +231,7 @@ func _enter_text():
 		var v = s.to_float()
 		if not _allow_greater:
 			v = min(v, _max_value)
-		set_value(v, true)
+		set_value(v, true, false)
 	_hide_line_edit()
 
 
@@ -281,7 +293,8 @@ func _draw():
 	draw_rect(bg_rect, background_color)
 	
 	var fg_rect := control_rect.grow(-foreground_margin)
-	var ratio := get_ratio()
+	# Clamping the ratio because the value can be allowed to exceed the slider's boundaries
+	var ratio := clamp(get_ratio(), 0.0, 1.0)
 	fg_rect.size.x *= ratio
 	draw_rect(fg_rect, interval_color)
 	

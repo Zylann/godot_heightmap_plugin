@@ -34,6 +34,10 @@ var _logger = Logger.get_for(self)
 func _ready():
 	if Util.is_in_edited_scene(self):
 		return
+	
+	_size_slider.set_max_value(Brush.MAX_SIZE_FOR_SLIDERS)
+	_size_slider.set_greater_max_value(Brush.MAX_SIZE)
+	
 	# TESTING
 	if not Engine.editor_hint:
 		setup_dialogs(self)

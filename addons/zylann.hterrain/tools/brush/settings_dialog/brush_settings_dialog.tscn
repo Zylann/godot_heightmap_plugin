@@ -1,6 +1,6 @@
 [gd_scene load_steps=5 format=2]
 
-[ext_resource path="res://addons/zylann.hterrain/tools/brush/shapes/round1.exr" type="Texture" id=1]
+[ext_resource path="res://addons/zylann.hterrain/tools/brush/shapes/round2.exr" type="Texture" id=1]
 [ext_resource path="res://addons/zylann.hterrain/tools/util/spin_slider.tscn" type="PackedScene" id=2]
 [ext_resource path="res://addons/zylann.hterrain/tools/brush/settings_dialog/brush_settings_dialog.gd" type="Script" id=3]
 [ext_resource path="res://addons/zylann.hterrain/tools/brush/settings_dialog/preview_scratchpad.tscn" type="PackedScene" id=4]
@@ -59,6 +59,7 @@ fixed_icon_size = Vector2( 100, 100 )
 margin_top = 312.0
 margin_right = 120.0
 margin_bottom = 332.0
+disabled = true
 text = "Change..."
 
 [node name="HBoxContainer" type="HBoxContainer" parent="VB/HB/VB"]
@@ -101,11 +102,14 @@ margin_right = 348.0
 margin_bottom = 28.0
 size_flags_horizontal = 3
 _value = 32.0
-_max_value = 200.0
+_min_value = 2.0
+_max_value = 500.0
 _prefix = "Size:"
 _suffix = "px"
 _rounded = true
 _centered = false
+_allow_greater = true
+_greater_max_value = 4000.0
 
 [node name="Opacity" parent="VB/HB/VB2/Settings" instance=ExtResource( 2 )]
 anchor_right = 0.0
@@ -167,10 +171,10 @@ anchor_bottom = 0.0
 margin_top = 188.0
 margin_right = 348.0
 margin_bottom = 216.0
-_max_value = 60.0
 _prefix = "Frequency distance:"
 _suffix = "px"
 _centered = false
+_greater_max_value = 4000.0
 
 [node name="RandomRotation" type="CheckBox" parent="VB/HB/VB2/Settings"]
 margin_top = 220.0

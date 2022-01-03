@@ -65,7 +65,7 @@ func _ready():
 	_holes_checkbox.connect("toggled", self, "_on_holes_checkbox_toggled")
 	_slope_limit_control.connect("changed", self, "_on_slope_limit_changed")
 	
-	_size_slider.max_value = 200
+	_size_slider.max_value = Brush.MAX_SIZE_FOR_SLIDERS
 	#if NativeFactory.is_native_available():
 	#	_size_slider.max_value = 200
 	#else:

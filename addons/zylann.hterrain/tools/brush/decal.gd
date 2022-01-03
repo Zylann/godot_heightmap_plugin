@@ -32,9 +32,7 @@ func set_size(size: float):
 	# If I don't do that, the brush will appear to wobble above the ground
 	var ss = size - 1
 	# Don't subdivide too much
-	if ss > 50:
-		ss /= 2
-	if ss > 50:
+	while ss > 50:
 		ss /= 2
 	_mesh.subdivide_width = ss
 	_mesh.subdivide_depth = ss
