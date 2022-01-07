@@ -110,6 +110,8 @@ func set_shapes(shapes: Array):
 		assert(s != null)
 		assert(s is Texture)
 	_shapes = shapes.duplicate(false)
+	if _shape_index >= len(_shapes):
+		_shape_index = len(_shapes) - 1
 	emit_signal("shapes_changed")
 
 
