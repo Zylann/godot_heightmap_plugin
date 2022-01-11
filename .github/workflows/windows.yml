@@ -1,0 +1,63 @@
+name: GDNative Windows
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  push:
+    branches: [ master, github_actions ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+    branches: [ master ]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: windows-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+        with:
+          # Get submodules and their sub-submodules
+          submodules: recursive
+
+      # Use python 3.x release (works cross platform; best to keep self contained in it's own step)
+      # Because at the time the container comes with Python 2.7 
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v2
+        with:
+          # Semantic version range syntax or exact version of a Python version
+          python-version: '3.x'
+          # Optional - x64 or x86 architecture, defaults to x64
+          architecture: 'x64'
+      
+      # Setup scons, print python version and scons version info,
+      # so if anything is broken it won't run the build.
+      - name: Configuring Python packages
+        run: |
+          python -c "import sys; print(sys.version)"
+          python -m pip install scons
+          python --version
+          scons --version
+      
+      - name: Build C++ bindings
+        run: |
+          cd addons/zylann.hterrain/native/godot-cpp
+          scons platform=windows target=release generate_bindings=yes
+      # TODO use cache to avoid generating bindings all the time? It's the longest step
+      
+      - name: Build library
+        run: |
+          cd addons/zylann.hterrain/native
+          scons platform=windows target=release
+      
+      # Make build available
+      - uses: actions/upload-artifact@v2
+        with:
+          name: hterrain_native.dll
+          path: addons/zylann.hterrain/native/bin/win64/hterrain_native.dll
+
