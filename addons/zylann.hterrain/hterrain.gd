@@ -1,7 +1,7 @@
 tool
 extends Spatial
 
-const QuadTreeLod = preload("./util/quad_tree_lod.gd")
+const NativeFactory = preload("./native/factory.gd")
 const Mesher = preload("./hterrain_mesher.gd")
 const Grid = preload("./util/grid.gd")
 const HTerrainData = preload("./hterrain_data.gd")
@@ -170,7 +170,7 @@ var _texture_set_migration_textures = null
 var _data: HTerrainData = null
 
 var _mesher := Mesher.new()
-var _lodder := QuadTreeLod.new()
+var _lodder = NativeFactory.get_quad_tree_lod()
 var _viewer_pos_world := Vector3()
 
 # [lod][z][x] -> chunk
@@ -1259,7 +1259,7 @@ func set_area_dirty(origin_in_cells_x: int, origin_in_cells_y: int, \
 	for lod in range(_lodder.get_lod_count()):
 		# Get grid and chunk size
 		var grid = _chunks[lod]
-		var s := _lodder.get_lod_size(lod)
+		var s : int = _lodder.get_lod_factor(lod)
 
 		# Convert rect into this lod's coordinates:
 		# Pick min and max (included), divide them, then add 1 to max so it's excluded again
@@ -1284,7 +1284,7 @@ func _cb_make_chunk(cpos_x: int, cpos_y: int, lod: int):
 	if chunk == null:
 		# This is the first time this chunk is required at this lod, generate it
 		
-		var lod_factor := _lodder.get_lod_size(lod)
+		var lod_factor : int = _lodder.get_lod_factor(lod)
 		var origin_in_cells_x := cpos_x * _chunk_size * lod_factor
 		var origin_in_cells_y := cpos_y * _chunk_size * lod_factor
 		
@@ -1319,7 +1319,7 @@ func _cb_recycle_chunk(chunk: HTerrainChunk, cx: int, cy: int, lod: int):
 
 
 func _cb_get_vertical_bounds(cpos_x: int, cpos_y: int, lod: int):
-	var chunk_size := _chunk_size * _lodder.get_lod_size(lod)
+	var chunk_size : int = _chunk_size * _lodder.get_lod_factor(lod)
 	var origin_in_cells_x := cpos_x * chunk_size
 	var origin_in_cells_y := cpos_y * chunk_size
 	# This is a hack for speed,

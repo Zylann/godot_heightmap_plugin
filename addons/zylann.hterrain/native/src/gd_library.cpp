@@ -1,4 +1,5 @@
 #include "image_utils.h"
+#include "quad_tree_lod.h"
 
 extern "C" {
 
@@ -23,6 +24,7 @@ void GDN_EXPORT godot_nativescript_init(void *handle) {
     godot::Godot::nativescript_init(handle);
 
     godot::register_tool_class<godot::ImageUtils>();
+    godot::register_tool_class<godot::QuadTreeLod>();
 }
 
 } // extern "C"
