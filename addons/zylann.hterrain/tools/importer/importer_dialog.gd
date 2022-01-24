@@ -24,7 +24,7 @@ func _ready():
 		"heightmap": {
 			"type": TYPE_STRING,
 			"usage": "file",
-			"exts": ["raw", "png", "exr"]
+			"exts": ["raw", "png", "exr", "xyz"]
 		},
 		"raw_endianess": {
 			"type": TYPE_INT,
@@ -192,8 +192,8 @@ func _validate_form():
 
 		if adjusted_size != size.width:
 			res.warnings.append(
-				"The square resolution deduced from heightmap file size is not power of two + 1.\n" + \
-				"The heightmap will be cropped.")
+				"The square resolution deduced from heightmap file size is not power of two + 1 (given: {0}).\n".format([size.width]) + \
+				"The heightmap will be cropped to: {0}.".format([adjusted_size]))
 
 		heightmap_size = adjusted_size
 
@@ -254,6 +254,27 @@ static func _load_image_size(path, logger):
 		
 		logger.debug("Deduced RAW heightmap resolution: {0}*{1}, for a length of {2}" \
 			.format([size, size, flen]))
+
+		return { "width": size, "height": size }
+
+	elif ext == "xyz":
+		var f = File.new()
+		var err = f.open(path, File.READ)
+		if err != OK:
+			logger.error("Error opening file {0}".format([path]))
+			return { "error": err }
+
+		# Assume the raw data is square in 16-bit format,
+		# so its size is function of file length
+		var flen = f.get_len()
+		var fllen = f.get_line().length() + 2 # \r\n
+		f.close()
+		var size = Util.integer_square_root(flen/fllen)
+		if size == -1:
+			return { "error": "xyz image is not square: {0}/{1} = {2}".format([flen, fllen, flen / fllen]) }
+		
+		logger.debug("Deduced xyz heightmap resolution: {0}*{1}, for a length of {2}" \
+			.format([size, size, flen / fllen]))
 
 		return { "width": size, "height": size }
 

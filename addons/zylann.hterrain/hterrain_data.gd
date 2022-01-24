@@ -1426,7 +1426,72 @@ func _import_heightmap(fpath: String, min_y: int, max_y: int, big_endian: bool) 
 				f.get_16()
 
 		im.unlock()
+	elif ext == "xyz":
+		_logger.debug("detected xyz file")
+		var f := File.new()
+		var err := f.open(fpath, File.READ)
+		if err != OK:
+			return false
 
+		var line = f.get_line()
+		# f.get_8() get byte to string if \r then win ending \r\n (2) else linux ending \n (1)
+		var file_len = f.get_len()
+		var file_res = Util.integer_square_root(file_len / (line.length() + 2)) # + 2 ist /r/n should be dynamic
+		var res := get_adjusted_map_size(file_res, file_res)
+
+		var width := res
+		var height := res
+		var act_min := 10000
+		var act_max := 0
+
+		_locked = true
+
+		_logger.debug(str("Resizing terrain to ", width, "x", height, "..."))
+		resize(res, false, Vector2())
+
+		var im := get_image(CHANNEL_HEIGHT)
+		assert(im != null)
+
+		var hrange := max_y - min_y
+
+		_logger.debug("Converting to internal format...")
+
+		im.lock()
+
+		var rw := Util.min_int(res, file_res)
+		var rh := Util.min_int(res, file_res)
+
+		_logger.debug("{0} {1}".format([rw, rh]))
+
+		var fline = line.split(" ")
+		var f_x := int(fline[0])
+		var f_y := int(fline[1])
+		var x := 0
+		var y := 0
+		var gs := float(fline[2])
+		# _logger.debug(
+		# 	"x: {0}, x: {1}, {2}, {3}, {4}".format([file_res - x, x, float(fline[0]), f_x, gs])
+		# )
+		im.set_pixel(file_res - x, y, Color(gs, 0, 0))
+		while !f.eof_reached():
+			fline = f.get_csv_line(" ")
+			if fline.size() < 2: # last line is empty
+				break
+			x = (float(fline[0]) - f_x)
+			y = (float(fline[1]) - f_y)
+			gs = float(fline[2])
+			act_min = min(act_min, gs)
+			act_max = max(act_max, gs)
+			# _logger.debug(
+			# 	"x: {0}, x: {1}, {2}, {3}, {4}".format([file_res - x, x, float(fline[0]), f_x, gs])
+			# )
+			im.set_pixel(file_res - x, y, Color(gs, 0, 0))
+
+		for xe in range(rw, file_res):
+			for ye in range(rh, file_res):
+				im.set_pixel(file_res - xe, ye, Color(0, 0, 0))
+		_logger.debug("min: {0}, max: {1}".format([act_min, act_max]))
+		im.unlock()
 	else:
 		# File extension not recognized
 		return false
