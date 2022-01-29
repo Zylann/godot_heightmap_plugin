@@ -11,6 +11,7 @@ const Errors = preload("./util/errors.gd")
 const NativeFactory = preload("./native/factory.gd")
 const Logger = preload("./util/logger.gd")
 const ImageFileCache = preload("./util/image_file_cache.gd")
+const XYZFormat = preload("./util/xyz_format.gd")
 
 # Note: indexes matters for saving, don't re-order
 # TODO Rename "CHANNEL" to "MAP", makes more sense and less confusing with RGBA channels
@@ -1426,6 +1427,40 @@ func _import_heightmap(fpath: String, min_y: int, max_y: int, big_endian: bool) 
 				f.get_16()
 
 		im.unlock()
+
+	elif ext == "xyz":
+		var f := File.new()
+		var err := f.open(fpath, File.READ)
+		if err != OK:
+			return false
+
+		var bounds := XYZFormat.load_bounds(f)
+		var res := get_adjusted_map_size(bounds.image_width, bounds.image_height)
+
+		var width := res
+		var height := res
+
+		_locked = true
+
+		_logger.debug(str("Resizing terrain to ", width, "x", height, "..."))
+		resize(res, false, Vector2())
+
+		var im := get_image(CHANNEL_HEIGHT)
+		assert(im != null)
+
+		im.fill(Color(0,0,0))
+
+		_logger.debug(str("Parsing XYZ file (this can take a while)..."))
+		f.seek(0)
+		XYZFormat.load_heightmap(f, im, bounds)
+
+		# Flipping because in Godot, for X to mean "east"/"right", Z must be backward,
+		# and we are using Z to map the Y axis of the heightmap image.
+		im.flip_y()
+
+		# Note: when importing maps with non-compliant sizes and flipping,
+		# the result might not be aligned to global coordinates.
+		# If this is a problem, we could just offset the terrain to compensate?
 
 	else:
 		# File extension not recognized
