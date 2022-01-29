@@ -2,6 +2,7 @@ tool
 extends WindowDialog
 
 const Util = preload("../../util/util.gd")
+const XYZMeta = preload("../../util/xyz_size_calc.gd")
 const HTerrainData = preload("../../hterrain_data.gd")
 const Errors = preload("../../util/errors.gd")
 const Logger = preload("../../util/logger.gd")
@@ -264,19 +265,16 @@ static func _load_image_size(path, logger):
 			logger.error("Error opening file {0}".format([path]))
 			return { "error": err }
 
-		# Assume the raw data is square in 16-bit format,
-		# so its size is function of file length
-		var flen = f.get_len()
-		var fllen = f.get_line().length() + 2 # \r\n
-		f.close()
-		var size = Util.integer_square_root(flen/fllen)
-		if size == -1:
-			return { "error": "xyz image is not square: {0}/{1} = {2}".format([flen, fllen, flen / fllen]) }
-		
-		logger.debug("Deduced xyz heightmap resolution: {0}*{1}, for a length of {2}" \
-			.format([size, size, flen / fllen]))
+		var size = XYZMeta.new().get_XYZ_Meta(f, logger)
 
-		return { "width": size, "height": size }
+		if size.width < 0:
+			return { "error": "width is not positive ({0} - {1}) = {2}".format([size.max_x, size.min_x, size.width])}
+		if size.height < 0:
+			return { "error": "height is not positive ({0} - {1}) = {2}".format([size.max_y, size.min_y, size.height])}
+		if size.width != size.height:
+			return { "error": "xyz image is not square: {0} != {1}".format([size.width, size.height])}
+				
+		return { "width": size.width, "height": size.height }
 
 	else:
 		return { "error": ERR_FILE_UNRECOGNIZED }
