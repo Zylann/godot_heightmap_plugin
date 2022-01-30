@@ -85,4 +85,6 @@ Thanks for your support :)
 - baals
 - Treer
 - stackdump.eth
+- Snowminx (Gamerfiend)
+- Skyquakers
 ```
