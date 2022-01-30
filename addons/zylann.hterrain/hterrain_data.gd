@@ -7,11 +7,11 @@ extends Resource
 
 const Grid = preload("./util/grid.gd")
 const Util = preload("./util/util.gd")
-const XYZMeta = preload("./util/xyz_size_calc.gd")
 const Errors = preload("./util/errors.gd")
 const NativeFactory = preload("./native/factory.gd")
 const Logger = preload("./util/logger.gd")
 const ImageFileCache = preload("./util/image_file_cache.gd")
+const XYZFormat = preload("./util/xyz_format.gd")
 
 # Note: indexes matters for saving, don't re-order
 # TODO Rename "CHANNEL" to "MAP", makes more sense and less confusing with RGBA channels
@@ -1427,42 +1427,41 @@ func _import_heightmap(fpath: String, min_y: int, max_y: int, big_endian: bool) 
 				f.get_16()
 
 		im.unlock()
+
 	elif ext == "xyz":
-		_logger.debug("detected xyz file")
 		var f := File.new()
 		var err := f.open(fpath, File.READ)
 		if err != OK:
 			return false
 
-		var size = XYZMeta.new().get_XYZ_Meta(f, _logger)
+		var bounds := XYZFormat.load_bounds(f)
+		var res := get_adjusted_map_size(bounds.image_width, bounds.image_height)
 
-		f.seek(0)
+		var width := res
+		var height := res
 
 		_locked = true
-		_logger.debug(str("Resizing terrain to ", size.width, "x", size.height, "..."))
 
-		var res := get_adjusted_map_size(size.width, size.height)
+		_logger.debug(str("Resizing terrain to ", width, "x", height, "..."))
 		resize(res, false, Vector2())
 
 		var im := get_image(CHANNEL_HEIGHT)
 		assert(im != null)
 
-		var hrange := max_y - min_y
-
-		_logger.debug("Converting to internal format...")
-
 		im.fill(Color(0,0,0))
-		im.lock()
-		var splitted_line: PoolRealArray;
 
-		while !f.eof_reached():
-			splitted_line = f.get_line().split_floats(" ")
-			if(splitted_line.size()>2):
-				im.set_pixel(splitted_line[0] - size.min_x, splitted_line[1] - size.min_y, Color(splitted_line[2], 0, 0))
+		_logger.debug(str("Parsing XYZ file (this can take a while)..."))
+		f.seek(0)
+		XYZFormat.load_heightmap(f, im, bounds)
 
-		im.flip_x()
-		im.unlock()
-		f.close()
+		# Flipping because in Godot, for X to mean "east"/"right", Z must be backward,
+		# and we are using Z to map the Y axis of the heightmap image.
+		im.flip_y()
+
+		# Note: when importing maps with non-compliant sizes and flipping,
+		# the result might not be aligned to global coordinates.
+		# If this is a problem, we could just offset the terrain to compensate?
+
 	else:
 		# File extension not recognized
 		return false

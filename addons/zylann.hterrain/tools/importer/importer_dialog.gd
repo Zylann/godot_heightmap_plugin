@@ -2,10 +2,11 @@ tool
 extends WindowDialog
 
 const Util = preload("../../util/util.gd")
-const XYZMeta = preload("../../util/xyz_size_calc.gd")
+const HTerrain = preload("../../hterrain.gd")
 const HTerrainData = preload("../../hterrain_data.gd")
 const Errors = preload("../../util/errors.gd")
 const Logger = preload("../../util/logger.gd")
+const XYZFormat = preload("../../util/xyz_format.gd")
 
 signal permanent_change_performed(message)
 
@@ -16,7 +17,7 @@ onready var _warnings_label = $VBoxContainer/ColorRect/ScrollContainer/VBoxConta
 const RAW_LITTLE_ENDIAN = 0
 const RAW_BIG_ENDIAN = 1
 
-var _terrain = null
+var _terrain : HTerrain = null
 var _logger = Logger.get_for(self)
 
 
@@ -60,7 +61,7 @@ func _ready():
 #	_warnings_label.text = "- Yolo Jesus!"
 
 
-func set_terrain(terrain):
+func set_terrain(terrain: HTerrain):
 	_terrain = terrain
 
 
@@ -157,14 +158,14 @@ func _on_Inspector_property_changed(key: String, value):
 
 
 func _validate_form():
-	var res = {
+	var res := {
 		"errors": [],
 		"warnings": []
 	}
 
-	var heightmap_path = _inspector.get_value("heightmap")
-	var splatmap_path = _inspector.get_value("splatmap")
-	var colormap_path = _inspector.get_value("colormap")
+	var heightmap_path : String = _inspector.get_value("heightmap")
+	var splatmap_path : String = _inspector.get_value("splatmap")
+	var colormap_path : String = _inspector.get_value("colormap")
 
 	if colormap_path == "" and heightmap_path == "" and splatmap_path == "":
 		res.errors.append("No maps specified.")
@@ -172,7 +173,7 @@ func _validate_form():
 
 	# If a heightmap is specified, it will override the size of the existing terrain.
 	# If not specified, maps will have to match the resolution of the existing terrain.
-	var heightmap_size = _terrain.get_data().get_resolution()
+	var heightmap_size := _terrain.get_data().get_resolution()
 
 	if heightmap_path != "":
 		var min_height = _inspector.get_value("min_height")
@@ -193,8 +194,8 @@ func _validate_form():
 
 		if adjusted_size != size.width:
 			res.warnings.append(
-				"The square resolution deduced from heightmap file size is not power of two + 1 (given: {0}).\n".format([size.width]) + \
-				"The heightmap will be cropped to: {0}.".format([adjusted_size]))
+				"The square resolution deduced from heightmap file size is not power of two + 1.\n" + \
+				"The heightmap will be cropped.")
 
 		heightmap_size = adjusted_size
 
@@ -207,7 +208,9 @@ func _validate_form():
 	return res
 
 
-static func _check_map_size(path, map_name, heightmap_size, res, logger):
+static func _check_map_size(path: String, map_name: String, heightmap_size: int, res: Dictionary, 
+	logger: Logger):
+	
 	var size = _load_image_size(path, logger)
 	if size.has("error"):
 		res.errors.append("Cannot open splatmap file: ", _error_to_string(size.error))
@@ -225,12 +228,13 @@ static func _check_map_size(path, map_name, heightmap_size, res, logger):
 				map_name, " will be cropped.")
 
 
-static func _load_image_size(path, logger):
-	var ext = path.get_extension().to_lower()
+static func _load_image_size(path: String, logger: Logger) -> Dictionary:
+	var ext := path.get_extension().to_lower()
 
 	if ext == "png" or ext == "exr":
-		var im = Image.new()
-		var err = im.load(path)
+		# Godot can load these formats natively
+		var im := Image.new()
+		var err := im.load(path)
 		if err != OK:
 			logger.error("An error occurred loading image '{0}', code {1}" \
 				.format([path, err]))
@@ -239,15 +243,15 @@ static func _load_image_size(path, logger):
 		return { "width": im.get_width(), "height": im.get_height() }
 
 	elif ext == "raw":
-		var f = File.new()
-		var err = f.open(path, File.READ)
+		var f := File.new()
+		var err := f.open(path, File.READ)
 		if err != OK:
 			logger.error("Error opening file {0}".format([path]))
 			return { "error": err }
 
 		# Assume the raw data is square in 16-bit format,
 		# so its size is function of file length
-		var flen = f.get_len()
+		var flen := f.get_len()
 		f.close()
 		var size = Util.integer_square_root(flen / 2)
 		if size == -1:
@@ -259,28 +263,21 @@ static func _load_image_size(path, logger):
 		return { "width": size, "height": size }
 
 	elif ext == "xyz":
-		var f = File.new()
-		var err = f.open(path, File.READ)
+		var f := File.new()
+		var err := f.open(path, File.READ)
 		if err != OK:
 			logger.error("Error opening file {0}".format([path]))
 			return { "error": err }
 
-		var size = XYZMeta.new().get_XYZ_Meta(f, logger)
+		var bounds := XYZFormat.load_bounds(f)
 
-		if size.width < 0:
-			return { "error": "width is not positive ({0} - {1}) = {2}".format([size.max_x, size.min_x, size.width])}
-		if size.height < 0:
-			return { "error": "height is not positive ({0} - {1}) = {2}".format([size.max_y, size.min_y, size.height])}
-		if size.width != size.height:
-			return { "error": "xyz image is not square: {0} != {1}".format([size.width, size.height])}
-				
-		return { "width": size.width, "height": size.height }
+		return { "width": bounds.image_width, "height": bounds.image_height }
 
 	else:
 		return { "error": ERR_FILE_UNRECOGNIZED }
 
 
-static func _error_to_string(err):
+static func _error_to_string(err) -> String:
 	if typeof(err) == TYPE_STRING:
 		return err
 	return str("code ", err, ": ", Errors.get_message(err))
