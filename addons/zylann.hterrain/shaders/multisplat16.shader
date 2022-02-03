@@ -25,6 +25,9 @@ uniform bool u_depth_blending = true;
 uniform float u_globalmap_blend_start;
 uniform float u_globalmap_blend_distance;
 uniform bool u_tile_reduction = false;
+uniform float low_edge = 0.1;
+uniform float smoothness = 0.2;
+uniform float height_boost = 0.1;
 
 varying float v_hole;
 varying vec3 v_tint;
@@ -52,13 +55,16 @@ vec4 pack_normal(vec3 n, float a) {
 // Blends weights according to the bump of detail textures,
 // so for example it allows to have sand fill the gaps between pebbles
 vec4 get_depth_blended_weights(vec4 splat, vec4 bumps) {
-	float dh = 0.2;
-
+	float dh = height_boost;
+	bumps.r = 1.0 - pow(1.0 - bumps.r, 0.5);
+	bumps.g = pow(bumps.g, 2.0);
+	bumps.b = pow(bumps.b, 3.0);
+	bumps.a = pow(bumps.a, 4.0);
 	vec4 h = bumps + splat;
 
 	// TODO Keep improving multilayer blending, there are still some edge cases...
 	// Mitigation: nullify layers with near-zero splat
-	h *= smoothstep(0, 0.05, splat);
+	h *= smoothstep(low_edge, smoothness, splat);
 
 	vec4 d = h + dh;
 	d.r -= max(h.g, max(h.b, h.a));
