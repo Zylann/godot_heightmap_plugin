@@ -3,13 +3,13 @@ extends Control
 
 const HTerrain = preload("../../hterrain.gd")
 const HTerrainTextureSet = preload("../../hterrain_texture_set.gd")
-const TextureList = preload("./texture_list.gd")
+const HT_TextureList = preload("./texture_list.gd")
 
 signal texture_selected(index)
 signal edit_pressed(index)
 signal import_pressed
 
-onready var _textures_list: TextureList = $TextureList
+onready var _textures_list: HT_TextureList = $TextureList
 onready var _buttons_container = $HBoxContainer
 
 var _terrain : HTerrain = null

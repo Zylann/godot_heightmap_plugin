@@ -1,7 +1,7 @@
 tool
 extends Control
 
-const EmptyTexture = preload("../../icons/empty.png")
+const HT_EmptyTexture = preload("../../icons/empty.png")
 
 signal load_pressed
 signal clear_pressed
@@ -24,7 +24,7 @@ func set_label(text: String):
 
 func set_texture(tex: Texture):
 	if tex == null:
-		_texture_rect.texture = EmptyTexture
+		_texture_rect.texture = HT_EmptyTexture
 		_texture_rect.material = null
 	else:
 		_texture_rect.texture = tex
@@ -45,7 +45,7 @@ func _on_ClearButton_pressed():
 
 func set_material(mat: Material):
 	_material = mat
-	if _texture_rect.texture != EmptyTexture:
+	if _texture_rect.texture != HT_EmptyTexture:
 		_texture_rect.material = _material
 
 

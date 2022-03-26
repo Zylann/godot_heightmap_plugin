@@ -5,8 +5,8 @@ extends "hterrain_chunk.gd"
 # https://github.com/godotengine/godot/issues/20722
 
 
-const DirectMeshInstance = preload("./util/direct_mesh_instance.gd")
-const Util = preload("./util/util.gd")
+const HT_DirectMeshInstance = preload("./util/direct_mesh_instance.gd")
+const HT_Util = preload("./util/util.gd")
 
 
 var _debug_cube = null
@@ -17,7 +17,7 @@ var _parent_transform = Transform()
 func _init(p_parent, p_cell_x, p_cell_y, p_material).(p_parent, p_cell_x, p_cell_y, p_material):
 	var wirecube
 	if not p_parent.has_meta("debug_wirecube_mesh"):
-		wirecube = Util.create_wirecube_mesh()
+		wirecube = HT_Util.create_wirecube_mesh()
 		var mat = SpatialMaterial.new()
 		mat.flags_unshaded = true
 		wirecube.surface_set_material(0, mat)
@@ -25,7 +25,7 @@ func _init(p_parent, p_cell_x, p_cell_y, p_material).(p_parent, p_cell_x, p_cell
 	else:
 		wirecube = p_parent.get_meta("debug_wirecube_mesh")
 
-	_debug_cube = DirectMeshInstance.new()
+	_debug_cube = HT_DirectMeshInstance.new()
 	_debug_cube.set_mesh(wirecube)
 	_debug_cube.set_world(p_parent.get_world())
 

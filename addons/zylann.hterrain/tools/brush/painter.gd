@@ -11,9 +11,9 @@
 tool
 extends Node
 
-const Logger = preload("../../util/logger.gd")
-const Util = preload("../../util/util.gd")
-const NoBlendShader = preload("./no_blend.gdshader")
+const HT_Logger = preload("../../util/logger.gd")
+const HT_Util = preload("../../util/util.gd")
+const HT_NoBlendShader = preload("./no_blend.gdshader")
 
 const UNDO_CHUNK_SIZE = 64
 
@@ -78,7 +78,7 @@ var _modified_chunks := {}
 var _modified_shader_params := {}
 
 var _debug_display : TextureRect
-var _logger = Logger.get_for(self)
+var _logger = HT_Logger.get_for(self)
 
 
 func _init():
@@ -95,7 +95,7 @@ func _init():
 	
 	# There is no "blend_disabled" option on standard CanvasItemMaterial...
 	var no_blend_material := ShaderMaterial.new()
-	no_blend_material.shader = NoBlendShader
+	no_blend_material.shader = HT_NoBlendShader
 	_viewport_bg_sprite = Sprite.new()
 	_viewport_bg_sprite.centered = false
 	_viewport_bg_sprite.material = no_blend_material

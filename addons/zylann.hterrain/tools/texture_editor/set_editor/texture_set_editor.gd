@@ -2,14 +2,14 @@ tool
 extends Control
 
 const HTerrainTextureSet = preload("../../../hterrain_texture_set.gd")
-const EditorUtil = preload("../../util/editor_util.gd")
-const Util = preload("../../../util/util.gd")
+const HT_EditorUtil = preload("../../util/editor_util.gd")
+const HT_Util = preload("../../../util/util.gd")
 
-const ColorShader = preload("../display_color.shader")
-const ColorSliceShader = preload("../display_color_slice.shader")
-const AlphaShader = preload("../display_alpha.shader")
-const AlphaSliceShader = preload("../display_alpha_slice.shader")
-const EmptyTexture = preload("../../icons/empty.png")
+const HT_ColorShader = preload("../display_color.shader")
+const HT_ColorSliceShader = preload("../display_color_slice.shader")
+const HT_AlphaShader = preload("../display_alpha.shader")
+const HT_AlphaSliceShader = preload("../display_alpha_slice.shader")
+const HT_EmptyTexture = preload("../../icons/empty.png")
 
 signal import_selected
 
@@ -37,7 +37,7 @@ var _load_texture_type := -1
 
 
 func _ready():
-	if Util.is_in_edited_scene(self):
+	if HT_Util.is_in_edited_scene(self):
 		return
 	for id in HTerrainTextureSet.MODE_COUNT:
 		var mode_name = HTerrainTextureSet.get_import_mode_name(id)
@@ -45,12 +45,12 @@ func _ready():
 
 
 func setup_dialogs(parent: Node):
-	var d = EditorUtil.create_open_texture_dialog()
+	var d = HT_EditorUtil.create_open_texture_dialog()
 	d.connect("file_selected", self, "_on_LoadTextureDialog_file_selected")
 	_load_texture_dialog = d
 	parent.add_child(d)
 
-	d = EditorUtil.create_open_texture_array_dialog()
+	d = HT_EditorUtil.create_open_texture_array_dialog()
 	d.connect("file_selected", self, "_on_LoadTextureArrayDialog_file_selected")
 	_load_texture_array_dialog = d
 	parent.add_child(d)
@@ -67,7 +67,7 @@ func setup_dialogs(parent: Node):
 
 
 func _notification(what: int):
-	if Util.is_in_edited_scene(self):
+	if HT_Util.is_in_edited_scene(self):
 		return
 	
 	if what == NOTIFICATION_EXIT_TREE:
@@ -173,10 +173,10 @@ func select_slot(slot_index: int):
 
 
 func _clear_previews():
-	_albedo_preview.texture = EmptyTexture
-	_bump_preview.texture = EmptyTexture
-	_normal_preview.texture = EmptyTexture
-	_roughness_preview.texture = EmptyTexture
+	_albedo_preview.texture = HT_EmptyTexture
+	_bump_preview.texture = HT_EmptyTexture
+	_normal_preview.texture = HT_EmptyTexture
+	_roughness_preview.texture = HT_EmptyTexture
 	
 	_albedo_preview.hint_tooltip = _get_resource_path_or_empty(null)
 	_bump_preview.hint_tooltip = _get_resource_path_or_empty(null)
@@ -194,20 +194,20 @@ func _select_slot(slot_index: int):
 		var normal_tex := \
 			_texture_set.get_texture(slot_index, HTerrainTextureSet.TYPE_NORMAL_ROUGHNESS)
 	
-		_albedo_preview.texture = albedo_tex if albedo_tex != null else EmptyTexture
-		_bump_preview.texture = albedo_tex if albedo_tex != null else EmptyTexture
-		_normal_preview.texture = normal_tex if normal_tex != null else EmptyTexture
-		_roughness_preview.texture = normal_tex if normal_tex != null else EmptyTexture
+		_albedo_preview.texture = albedo_tex if albedo_tex != null else HT_EmptyTexture
+		_bump_preview.texture = albedo_tex if albedo_tex != null else HT_EmptyTexture
+		_normal_preview.texture = normal_tex if normal_tex != null else HT_EmptyTexture
+		_roughness_preview.texture = normal_tex if normal_tex != null else HT_EmptyTexture
 		
 		_albedo_preview.hint_tooltip = _get_resource_path_or_empty(albedo_tex)
 		_bump_preview.hint_tooltip = _get_resource_path_or_empty(albedo_tex)
 		_normal_preview.hint_tooltip = _get_resource_path_or_empty(normal_tex)
 		_roughness_preview.hint_tooltip = _get_resource_path_or_empty(normal_tex)
 
-		_albedo_preview.material.shader = ColorShader
-		_bump_preview.material.shader = AlphaShader
-		_normal_preview.material.shader = ColorShader
-		_roughness_preview.material.shader = AlphaShader
+		_albedo_preview.material.shader = HT_ColorShader
+		_bump_preview.material.shader = HT_AlphaShader
+		_normal_preview.material.shader = HT_ColorShader
+		_roughness_preview.material.shader = HT_AlphaShader
 		
 		_albedo_preview.material.set_shader_param("u_texture_array", null)
 		_bump_preview.material.set_shader_param("u_texture_array", null)
@@ -218,20 +218,22 @@ func _select_slot(slot_index: int):
 		var albedo_tex := _texture_set.get_texture_array(HTerrainTextureSet.TYPE_ALBEDO_BUMP)
 		var normal_tex := _texture_set.get_texture_array(HTerrainTextureSet.TYPE_NORMAL_ROUGHNESS)
 	
-		_albedo_preview.texture = EmptyTexture
-		_bump_preview.texture = EmptyTexture
-		_normal_preview.texture = EmptyTexture
-		_roughness_preview.texture = EmptyTexture
+		_albedo_preview.texture = HT_EmptyTexture
+		_bump_preview.texture = HT_EmptyTexture
+		_normal_preview.texture = HT_EmptyTexture
+		_roughness_preview.texture = HT_EmptyTexture
 		
 		_albedo_preview.hint_tooltip = _get_resource_path_or_empty(albedo_tex)
 		_bump_preview.hint_tooltip = _get_resource_path_or_empty(albedo_tex)
 		_normal_preview.hint_tooltip = _get_resource_path_or_empty(normal_tex)
 		_roughness_preview.hint_tooltip = _get_resource_path_or_empty(normal_tex)
 		
-		_albedo_preview.material.shader = ColorSliceShader
-		_bump_preview.material.shader = AlphaSliceShader
-		_normal_preview.material.shader = ColorSliceShader if normal_tex != null else ColorShader
-		_roughness_preview.material.shader = AlphaSliceShader if normal_tex != null else AlphaShader
+		_albedo_preview.material.shader = HT_ColorSliceShader
+		_bump_preview.material.shader = HT_AlphaSliceShader
+		_normal_preview.material.shader = \
+			HT_ColorSliceShader if normal_tex != null else HT_ColorShader
+		_roughness_preview.material.shader = \
+			HT_AlphaSliceShader if normal_tex != null else HT_AlphaShader
 		
 		_albedo_preview.material.set_shader_param("u_texture_array", albedo_tex)
 		_bump_preview.material.set_shader_param("u_texture_array", albedo_tex)

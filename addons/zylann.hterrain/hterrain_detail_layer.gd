@@ -12,11 +12,11 @@ extends Spatial
 # doesn't mean we want to scale grass blades (which is not a use case I know of).
 
 const HTerrainData = preload("./hterrain_data.gd")
-const DirectMultiMeshInstance = preload("./util/direct_multimesh_instance.gd")
-const DirectMeshInstance = preload("./util/direct_mesh_instance.gd")
-const Util = preload("./util/util.gd")
-const Logger = preload("./util/logger.gd")
-const DefaultMesh = preload("./models/grass_quad.obj")
+const HT_DirectMultiMeshInstance = preload("./util/direct_multimesh_instance.gd")
+const HT_DirectMeshInstance = preload("./util/direct_mesh_instance.gd")
+const HT_Util = preload("./util/util.gd")
+const HT_Logger = preload("./util/logger.gd")
+const HT_DefaultMesh = preload("./models/grass_quad.obj")
 var HTerrain = load("res://addons/zylann.hterrain/hterrain.gd")
 
 const CHUNK_SIZE = 32
@@ -79,7 +79,7 @@ var _ambient_wind_time := 0.0
 #var _auto_pick_index_on_enter_tree := Engine.editor_hint
 var _debug_wirecube_mesh: Mesh = null
 var _debug_cubes := []
-var _logger := Logger.get_for(self)
+var _logger := HT_Logger.get_for(self)
 
 
 func _init():
@@ -205,7 +205,7 @@ func set_layer_index(v: int):
 	layer_index = v
 	if is_inside_tree():
 		_update_material()
-		Util.update_configuration_warning(self, false)
+		HT_Util.update_configuration_warning(self, false)
 
 
 func get_layer_index() -> int:
@@ -267,7 +267,7 @@ func get_render_layer_mask() -> int:
 
 func _get_used_mesh() -> Mesh:
 	if instance_mesh == null:
-		return DefaultMesh
+		return HT_DefaultMesh
 	return instance_mesh
 
 
@@ -457,7 +457,7 @@ func _load_chunk(terrain_transform: Transform, cx: int, cz: int, aabb: AABB):
 		mmi = _multimesh_instance_pool[-1]
 		_multimesh_instance_pool.pop_back()
 	else:
-		mmi = DirectMultiMeshInstance.new()
+		mmi = HT_DirectMultiMeshInstance.new()
 		mmi.set_world(get_world())
 		mmi.set_multimesh(_multimesh)
 
@@ -543,12 +543,12 @@ func _add_debug_cube(terrain, aabb: AABB):
 	var world = terrain.get_world()
 
 	if _debug_wirecube_mesh == null:
-		_debug_wirecube_mesh = Util.create_wirecube_mesh()
+		_debug_wirecube_mesh = HT_Util.create_wirecube_mesh()
 		var mat = SpatialMaterial.new()
 		mat.flags_unshaded = true
 		_debug_wirecube_mesh.surface_set_material(0, mat)
 
-	var debug_cube = DirectMeshInstance.new()
+	var debug_cube = HT_DirectMeshInstance.new()
 	debug_cube.set_mesh(_debug_wirecube_mesh)
 	debug_cube.set_world(world)
 	#aabb.position.y += 0.2*randf()

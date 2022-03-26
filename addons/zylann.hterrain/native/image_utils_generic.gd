@@ -2,7 +2,7 @@
 # These functions are the same as the ones found in the GDNative library.
 # They are used if the user's platform is not supported.
 
-const Util = preload("../util/util.gd")
+const HT_Util = preload("../util/util.gd")
 
 var _blur_buffer : Image
 
@@ -62,10 +62,10 @@ func get_red_sum_weighted(im: Image, brush: Image, pos: Vector2,
 	var min_noclamp_x = min_x
 	var min_noclamp_y = min_y
 
-	min_x = Util.clamp_int(min_x, 0, im.get_width())
-	min_y = Util.clamp_int(min_y, 0, im.get_height())
-	max_x = Util.clamp_int(max_x, 0, im.get_width())
-	max_y = Util.clamp_int(max_y, 0, im.get_height())
+	min_x = HT_Util.clamp_int(min_x, 0, im.get_width())
+	min_y = HT_Util.clamp_int(min_y, 0, im.get_height())
+	max_x = HT_Util.clamp_int(max_x, 0, im.get_width())
+	max_y = HT_Util.clamp_int(max_y, 0, im.get_height())
 
 	var sum = 0.0
 
@@ -95,10 +95,10 @@ func add_red_brush(im: Image, brush: Image, pos: Vector2, var factor: float):
 	var min_noclamp_x = min_x
 	var min_noclamp_y = min_y
 
-	min_x = Util.clamp_int(min_x, 0, im.get_width())
-	min_y = Util.clamp_int(min_y, 0, im.get_height())
-	max_x = Util.clamp_int(max_x, 0, im.get_width())
-	max_y = Util.clamp_int(max_y, 0, im.get_height())
+	min_x = HT_Util.clamp_int(min_x, 0, im.get_width())
+	min_y = HT_Util.clamp_int(min_y, 0, im.get_height())
+	max_x = HT_Util.clamp_int(max_x, 0, im.get_width())
+	max_y = HT_Util.clamp_int(max_y, 0, im.get_height())
 
 	im.lock()
 	brush.lock()
@@ -127,10 +127,10 @@ func lerp_channel_brush(im: Image, brush: Image, pos: Vector2,
 	var min_noclamp_x = min_x
 	var min_noclamp_y = min_y
 
-	min_x = Util.clamp_int(min_x, 0, im.get_width())
-	min_y = Util.clamp_int(min_y, 0, im.get_height())
-	max_x = Util.clamp_int(max_x, 0, im.get_width())
-	max_y = Util.clamp_int(max_y, 0, im.get_height())
+	min_x = HT_Util.clamp_int(min_x, 0, im.get_width())
+	min_y = HT_Util.clamp_int(min_y, 0, im.get_height())
+	max_x = HT_Util.clamp_int(max_x, 0, im.get_width())
+	max_y = HT_Util.clamp_int(max_y, 0, im.get_height())
 
 	im.lock()
 	brush.lock()
@@ -160,10 +160,10 @@ func lerp_color_brush(im: Image, brush: Image, pos: Vector2,
 	var min_noclamp_x = min_x
 	var min_noclamp_y = min_y
 
-	min_x = Util.clamp_int(min_x, 0, im.get_width())
-	min_y = Util.clamp_int(min_y, 0, im.get_height())
-	max_x = Util.clamp_int(max_x, 0, im.get_width())
-	max_y = Util.clamp_int(max_y, 0, im.get_height())
+	min_x = HT_Util.clamp_int(min_x, 0, im.get_width())
+	min_y = HT_Util.clamp_int(min_y, 0, im.get_height())
+	max_x = HT_Util.clamp_int(max_x, 0, im.get_width())
+	max_y = HT_Util.clamp_int(max_y, 0, im.get_height())
 
 	im.lock()
 	brush.lock()
@@ -239,10 +239,10 @@ func blur_red_brush(im: Image, brush: Image, pos: Vector2, factor: float):
 	var min_noclamp_x := min_x
 	var min_noclamp_y := min_y
 
-	min_x = Util.clamp_int(min_x, 0, im.get_width())
-	min_y = Util.clamp_int(min_y, 0, im.get_height())
-	max_x = Util.clamp_int(max_x, 0, im.get_width())
-	max_y = Util.clamp_int(max_y, 0, im.get_height())
+	min_x = HT_Util.clamp_int(min_x, 0, im.get_width())
+	min_y = HT_Util.clamp_int(min_y, 0, im.get_height())
+	max_x = HT_Util.clamp_int(max_x, 0, im.get_width())
+	max_y = HT_Util.clamp_int(max_y, 0, im.get_height())
 	
 	brush.lock()
 	
@@ -281,10 +281,10 @@ func paint_indexed_splat(index_map: Image, weight_map: Image, brush: Image, pos:
 	var min_noclamp_x := min_x
 	var min_noclamp_y := min_y
 
-	min_x = Util.clamp_int(min_x, 0, index_map.get_width())
-	min_y = Util.clamp_int(min_y, 0, index_map.get_height())
-	max_x = Util.clamp_int(max_x, 0, index_map.get_width())
-	max_y = Util.clamp_int(max_y, 0, index_map.get_height())
+	min_x = HT_Util.clamp_int(min_x, 0, index_map.get_width())
+	min_y = HT_Util.clamp_int(min_y, 0, index_map.get_height())
+	max_x = HT_Util.clamp_int(max_x, 0, index_map.get_width())
+	max_y = HT_Util.clamp_int(max_y, 0, index_map.get_height())
 	
 	var texture_index_f := float(texture_index) / 255.0
 	var all_texture_index_f := Color(texture_index_f, texture_index_f, texture_index_f)

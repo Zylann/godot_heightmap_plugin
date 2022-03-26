@@ -2,9 +2,9 @@ tool
 extends WindowDialog
 
 const HTerrainData = preload("../../hterrain_data.gd")
-const Errors = preload("../../util/errors.gd")
-const Util = preload("../../util/util.gd")
-const Logger = preload("../../util/logger.gd")
+const HT_Errors = preload("../../util/errors.gd")
+const HT_Util = preload("../../util/util.gd")
+const HT_Logger = preload("../../util/logger.gd")
 
 const FORMAT_RH = 0
 const FORMAT_R16 = 1
@@ -23,7 +23,7 @@ var _terrain = null
 var _file_dialog : EditorFileDialog = null
 var _format_names := []
 var _format_extensions := []
-var _logger = Logger.get_for(self)
+var _logger = HT_Logger.get_for(self)
 
 
 func _ready():
@@ -40,7 +40,7 @@ func _ready():
 	_format_extensions[FORMAT_PNG8] = "png"
 	_format_extensions[FORMAT_EXRH] = "exr"
 	
-	if not Util.is_in_edited_scene(self):
+	if not HT_Util.is_in_edited_scene(self):
 		for i in len(_format_names):
 			_format_selector.get_popup().add_item(_format_names[i], i)
 
@@ -179,7 +179,7 @@ func _update_file_extension():
 
 func _print_file_error(fpath, err):
 	_logger.error("Could not save path {0}, error: {1}" \
-		.format([fpath, Errors.get_message(err)]))
+		.format([fpath, HT_Errors.get_message(err)]))
 
 
 func _on_CancelButton_pressed():

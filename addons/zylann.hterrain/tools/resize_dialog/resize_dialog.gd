@@ -1,8 +1,8 @@
 tool
 extends WindowDialog
 
-const Util = preload("../../util/util.gd")
-const Logger = preload("../../util/logger.gd")
+const HT_Util = preload("../../util/util.gd")
+const HT_Logger = preload("../../util/logger.gd")
 const HTerrainData = preload("../../hterrain_data.gd")
 
 const ANCHOR_TOP_LEFT = 0
@@ -52,7 +52,7 @@ var _anchor_buttons = []
 var _anchor_buttons_grid = {}
 var _anchor_button_group = null
 var _selected_anchor = ANCHOR_TOP_LEFT
-var _logger = Logger.get_for(self)
+var _logger = HT_Logger.get_for(self)
 
 var _terrain = null
 
@@ -66,7 +66,7 @@ static func _get_icon(name):
 
 
 func _ready():
-	if Util.is_in_edited_scene(self):
+	if HT_Util.is_in_edited_scene(self):
 		return
 	# TEST
 	#show()

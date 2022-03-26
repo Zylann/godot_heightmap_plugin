@@ -4,7 +4,7 @@ extends ViewportContainer
 const PREVIEW_MESH_LOD = 2
 
 const HTerrainMesher = preload("../hterrain_mesher.gd")
-const Util = preload("../util/util.gd")
+const HT_Util = preload("../util/util.gd")
 
 signal dragged(relative, button_mask)
 
@@ -26,7 +26,7 @@ var _mesh_resolution := 0
 
 func _ready():
 	if _sea_outline == null:
-		var mesh = Util.create_wirecube_mesh()
+		var mesh = HT_Util.create_wirecube_mesh()
 		var mat2 = SpatialMaterial.new()
 		mat2.flags_unshaded = true
 		mat2.albedo_color = Color(0, 0.5, 1)
@@ -110,7 +110,7 @@ func cleanup():
 
 
 func _gui_input(event: InputEvent):
-	if Util.is_in_edited_scene(self):
+	if HT_Util.is_in_edited_scene(self):
 		return
 	
 	if event is InputEventMouseMotion:

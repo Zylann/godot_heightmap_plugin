@@ -4,9 +4,9 @@ tool
 # So we have to re-implement the entire logic of `ResourceImporterLayeredTexture`.
 # See https://github.com/godotengine/godot/issues/24381
 
-const Result = preload("../util/result.gd")
-const Errors = preload("../../util/errors.gd")
-const Util = preload("../../util/util.gd")
+const HT_Result = preload("../util/result.gd")
+const HT_Errors = preload("../../util/errors.gd")
+const HT_Util = preload("../../util/util.gd")
 
 const COMPRESS_LOSSLESS = 0
 const COMPRESS_VIDEO_RAM = 1
@@ -38,7 +38,7 @@ static func import(
 	p_repeat: int,
 	p_filter: bool,
 	p_mipmaps: bool,
-	p_anisotropic: bool) -> Result:
+	p_anisotropic: bool) -> HT_Result:
 	
 	var compress_mode := p_compress_mode
 	var no_bptc_if_rgb := false#p_options["compress/no_bptc_if_rgb"];
@@ -189,7 +189,7 @@ static func import(
 		if not ok_on_pc:
 			# TODO This warning is normally printed by `EditorNode::add_io_error`,
 			# which doesn't seem to be exposed to the script API
-			return Result.new(false, 
+			return HT_Result.new(false, 
 				"No suitable PC VRAM compression enabled in Project Settings. " +
 				"The texture {0} will not display correctly on PC.".format([p_source_path])) \
 				.with_value(ERR_INVALID_PARAMETER)
@@ -216,7 +216,7 @@ static func import(
 #		*r_metadata = metadata;
 #	}
 
-	return Result.new(true).with_value(OK)
+	return HT_Result.new(true).with_value(OK)
 
 
 # The input image can be modified
@@ -227,7 +227,7 @@ static func _save_tex(
 	p_vram_compression: int, # Image.CompressMode
 	p_mipmaps: bool,
 	p_texture_flags: int
-	) -> Result:
+	) -> HT_Result:
 		
 	# We only do TextureArrays for now
 	var is_3d = false
@@ -262,11 +262,11 @@ static func _save_tex(
 		var image : Image = p_images[i]
 		
 		if image.get_format() != image_format:
-			return Result.new(false, "Layer {0} has different format, got {1}, expected {2}" \
+			return HT_Result.new(false, "Layer {0} has different format, got {1}, expected {2}" \
 				.format([i, image.get_format(), image_format])).with_value(ERR_INVALID_DATA)
 		
 		if image.get_size() != image_size:
-			return Result.new(false, "Layer {0} has different size, got {1}, expected {2}" \
+			return HT_Result.new(false, "Layer {0} has different size, got {1}, expected {2}" \
 				.format([i, image.get_size(), image_size])).with_value(ERR_INVALID_DATA)
 
 		# We need to operate on a copy,
@@ -330,7 +330,7 @@ static func _save_tex(
 				var data := image.get_data()
 				f.store_buffer(data)
 	
-	return Result.new(true)
+	return HT_Result.new(true)
 
 
 # TODO Godot doesn't expose `Image.get_mipmap_count()`

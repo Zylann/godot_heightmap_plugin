@@ -2,18 +2,19 @@ tool
 extends Control
 
 const HTerrainTextureSet = preload("../../../hterrain_texture_set.gd")
-const Logger = preload("../../../util/logger.gd")
-const EditorUtil = preload("../../util/editor_util.gd")
-const Errors = preload("../../../util/errors.gd")
-const TextureSetEditor = preload("./texture_set_editor.gd")
-const Result = preload("../../util/result.gd")
-const Util = preload("../../../util/util.gd")
-const StreamTextureImporter = preload("../../packed_textures/stream_texture_importer.gd")
-const TextureLayeredImporter = preload("../../packed_textures/texture_layered_importer.gd")
-const PackedTextureImporter = preload("../../packed_textures/packed_texture_importer.gd")
-const PackedTextureArrayImporter = preload("../../packed_textures/packed_texture_array_importer.gd")
+const HT_Logger = preload("../../../util/logger.gd")
+const HT_EditorUtil = preload("../../util/editor_util.gd")
+const HT_Errors = preload("../../../util/errors.gd")
+const HT_TextureSetEditor = preload("./texture_set_editor.gd")
+const HT_Result = preload("../../util/result.gd")
+const HT_Util = preload("../../../util/util.gd")
+const HT_StreamTextureImporter = preload("../../packed_textures/stream_texture_importer.gd")
+const HT_TextureLayeredImporter = preload("../../packed_textures/texture_layered_importer.gd")
+const HT_PackedTextureImporter = preload("../../packed_textures/packed_texture_importer.gd")
+const HT_PackedTextureArrayImporter = \
+	preload("../../packed_textures/packed_texture_array_importer.gd")
 
-const NormalMapPreviewShader = preload("../display_normal.shader")
+const HT_NormalMapPreviewShader = preload("../display_normal.shader")
 
 const COMPRESS_RAW = 0
 const COMPRESS_LOSSLESS = 1
@@ -69,7 +70,7 @@ onready var _normalmap_flip_checkbox = $Import/HS/VB2/HB/Normal/NormalMapFlipY
 
 var _texture_set : HTerrainTextureSet
 var _undo_redo : UndoRedo
-var _logger = Logger.get_for(self)
+var _logger = HT_Logger.get_for(self)
 
 # This is normally an `EditorFileDialog`. I can't type-hint this one properly,
 # because when I test this UI in isolation, I can't use `EditorFileDialog`.
@@ -84,7 +85,7 @@ var _normalmap_material : ShaderMaterial
 
 var _import_mode = HTerrainTextureSet.MODE_TEXTURES
 
-class Slot:
+class HT_TextureSetImportEditorSlot:
 	var texture_paths = []
 	var flip_normalmap_y := false
 	
@@ -106,11 +107,11 @@ func _init():
 	# Default data
 	_slots_data.clear()
 	for i in 4:
-		_slots_data.append(Slot.new())
+		_slots_data.append(HT_TextureSetImportEditorSlot.new())
 
 
 func _ready():
-	if Util.is_in_edited_scene(self):
+	if HT_Util.is_in_edited_scene(self):
 		return
 
 	for src_type in len(_texture_editors):
@@ -129,12 +130,12 @@ func _ready():
 		_compression_selector.add_item(n, compress_mode)
 	
 	_normalmap_material = ShaderMaterial.new()
-	_normalmap_material.shader = NormalMapPreviewShader
+	_normalmap_material.shader = HT_NormalMapPreviewShader
 	_texture_editors[HTerrainTextureSet.SRC_TYPE_NORMAL].set_material(_normalmap_material)
 
 
 func setup_dialogs(parent: Node):
-	var d = EditorUtil.create_open_image_dialog()
+	var d = HT_EditorUtil.create_open_image_dialog()
 	d.connect("file_selected", self, "_on_LoadTextureDialog_file_selected")
 	_load_texture_dialog = d
 	parent.add_child(d)
@@ -154,7 +155,7 @@ func setup_dialogs(parent: Node):
 	_delete_confirmation_popup = d
 	parent.add_child(_delete_confirmation_popup)
 	
-	d = EditorUtil.create_open_dir_dialog()
+	d = HT_EditorUtil.create_open_dir_dialog()
 	d.window_title = "Choose import directory"
 	d.connect("dir_selected", self, "_on_OpenDirDialog_dir_selected")
 	_open_dir_dialog = d
@@ -200,7 +201,7 @@ func set_texture_set(texture_set: HTerrainTextureSet):
 		var slots_count = _texture_set.get_slots_count()
 		
 		for slot_index in slots_count:
-			var slot := Slot.new()
+			var slot := HT_TextureSetImportEditorSlot.new()
 			
 			for type in HTerrainTextureSet.TYPE_COUNT:
 				var texture = _texture_set.get_texture(slot_index, type)
@@ -249,7 +250,7 @@ func set_texture_set(texture_set: HTerrainTextureSet):
 				var src_types = HTerrainTextureSet.get_src_types_from_type(type)
 				
 				while slot_index >= len(_slots_data):
-					var slot = Slot.new()
+					var slot = HT_TextureSetImportEditorSlot.new()
 					_slots_data.append(slot)
 				
 				var slot = _slots_data[slot_index]
@@ -271,7 +272,7 @@ func _parse_json_file(fpath: String) -> Dictionary:
 	var f := File.new()
 	var err := f.open(fpath, File.READ)
 	if err != OK:
-		_logger.error("Could not load {0}: {1}".format([fpath, Errors.get_message(err)]))
+		_logger.error("Could not load {0}: {1}".format([fpath, HT_Errors.get_message(err)]))
 		return {}
 	
 	var json_text := f.get_as_text()
@@ -371,7 +372,7 @@ func _set_source_image(fpath: String, type: int):
 	var slot_index : int = _slots_list.get_selected_items()[0]
 	#var prev_path = _texture_set.get_source_image_path(slot_index, type)
 	
-	var slot : Slot = _slots_data[slot_index]
+	var slot : HT_TextureSetImportEditorSlot = _slots_data[slot_index]
 	slot.texture_paths[type] = fpath
 
 
@@ -456,13 +457,13 @@ static func _get_files_in_directory(dirpath: String, logger) -> Array:
 	var err := dir.open(dirpath)
 	if err != OK:
 		logger.error("Could not open directory {0}: {1}" \
-			.format([dirpath, Errors.get_message(err)]))
+			.format([dirpath, HT_Errors.get_message(err)]))
 		return []
 	
 	err = dir.list_dir_begin(true, true)
 	if err != OK:
 		logger.error("Could not probe directory {0}: {1}" \
-			.format([dirpath, Errors.get_message(err)]))
+			.format([dirpath, HT_Errors.get_message(err)]))
 		return []
 	
 	var files := []
@@ -510,7 +511,7 @@ func _on_TextureArrayPrefixLineEdit_text_changed(new_text: String):
 
 func _on_AddSlotButton_pressed():
 	var i := len(_slots_data)
-	_slots_data.append(Slot.new())
+	_slots_data.append(HT_TextureSetImportEditorSlot.new())
 	_update_ui_from_data()
 	_select_slot(i)
 
@@ -557,7 +558,7 @@ func _show_error(message: String):
 
 func _on_NormalMapFlipY_toggled(button_pressed: bool):
 	var slot_index : int = _slots_list.get_selected_items()[0]
-	var slot : Slot = _slots_data[slot_index]
+	var slot : HT_TextureSetImportEditorSlot = _slots_data[slot_index]
 	slot.flip_normalmap_y = button_pressed
 	_normalmap_material.set_shader_param("u_flip_y", slot.flip_normalmap_y)
 
@@ -624,7 +625,7 @@ func _on_ImportButton_pressed():
 		
 		if _WRITE_IMPORT_FILES:
 			var import_fpath = fd.path + ".import"
-			if not Util.write_import_file(fd.import_data, import_fpath, _logger):
+			if not HT_Util.write_import_file(fd.import_data, import_fpath, _logger):
 				_show_error("Failed to write file {0}: {1}".format([import_fpath]))
 				return			
 	
@@ -698,7 +699,7 @@ func _on_ImportButton_pressed():
 		if _import_mode == HTerrainTextureSet.MODE_TEXTURES:
 			ur.create_action("HTerrainTextureSet: import textures")
 			
-			TextureSetEditor.backup_for_undo(_texture_set, ur)
+			HT_TextureSetEditor.backup_for_undo(_texture_set, ur)
 			
 			ur.add_do_method(_texture_set, "clear")
 			ur.add_do_method(_texture_set, "set_mode", _import_mode)
@@ -711,7 +712,7 @@ func _on_ImportButton_pressed():
 		else:
 			ur.create_action("HTerrainTextureSet: import texture arrays")
 			
-			TextureSetEditor.backup_for_undo(_texture_set, ur)
+			HT_TextureSetEditor.backup_for_undo(_texture_set, ur)
 			
 			ur.add_do_method(_texture_set, "clear")
 			ur.add_do_method(_texture_set, "set_mode", _import_mode)
@@ -729,33 +730,33 @@ func _on_ImportButton_pressed():
 		emit_signal("import_finished")
 
 
-func _generate_packed_textures_files_data(import_dir: String, prefix: String) -> Result:
+func _generate_packed_textures_files_data(import_dir: String, prefix: String) -> HT_Result:
 	var files := []
 
 	var importer_compress_mode := 0
 	match _import_settings.compression:
 		COMPRESS_VRAM:
-			importer_compress_mode = StreamTextureImporter.COMPRESS_VIDEO_RAM
+			importer_compress_mode = HT_StreamTextureImporter.COMPRESS_VIDEO_RAM
 		COMPRESS_LOSSLESS:
-			importer_compress_mode = StreamTextureImporter.COMPRESS_LOSSLESS
+			importer_compress_mode = HT_StreamTextureImporter.COMPRESS_LOSSLESS
 		COMPRESS_RAW:
-			importer_compress_mode = StreamTextureImporter.COMPRESS_RAW
+			importer_compress_mode = HT_StreamTextureImporter.COMPRESS_RAW
 		_:
-			return Result.new(false, "Unknown compress mode {0}, might be a bug" \
+			return HT_Result.new(false, "Unknown compress mode {0}, might be a bug" \
 				.format([_import_settings.compression]))
 
 	for type in HTerrainTextureSet.TYPE_COUNT:
 		var src_types := HTerrainTextureSet.get_src_types_from_type(type)
 		
 		for slot_index in len(_slots_data):
-			var slot : Slot = _slots_data[slot_index]
+			var slot : HT_TextureSetImportEditorSlot = _slots_data[slot_index]
 
 			var src0 : String = slot.texture_paths[src_types[0]]
 			var src1 : String = slot.texture_paths[src_types[1]]
 			
 			if src0 == "":
 				if src_types[0] == HTerrainTextureSet.SRC_TYPE_ALBEDO:
-					return Result.new(false, 
+					return HT_Result.new(false, 
 						"Albedo texture is missing in slot {0}".format([slot_index]))
 
 			if src0 == "":
@@ -788,8 +789,8 @@ func _generate_packed_textures_files_data(import_dir: String, prefix: String) ->
 				# This is for .import files
 				"import_data": {
 					"remap": {
-						"importer": PackedTextureImporter.IMPORTER_NAME,
-						"type": PackedTextureImporter.RESOURCE_TYPE
+						"importer": HT_PackedTextureImporter.IMPORTER_NAME,
+						"type": HT_PackedTextureImporter.RESOURCE_TYPE
 					},
 					"deps": {
 						"source_file": fpath
@@ -798,27 +799,29 @@ func _generate_packed_textures_files_data(import_dir: String, prefix: String) ->
 						"compress/mode": importer_compress_mode,
 						"flags/mipmaps": _import_settings.mipmaps,
 						"flags/filter": _import_settings.filter,
-						"flags/repeat": StreamTextureImporter.REPEAT_ENABLED
+						"flags/repeat": HT_StreamTextureImporter.REPEAT_ENABLED
 					}
 				}
 			})
 	
-	return Result.new(true).with_value(files)
+	return HT_Result.new(true).with_value(files)
 
 
-func _generate_save_packed_texture_arrays_files_data(import_dir: String, prefix: String) -> Result:
+func _generate_save_packed_texture_arrays_files_data(
+	import_dir: String, prefix: String) -> HT_Result:
+	
 	var files := []
 	
 	var importer_compress_mode := 0
 	match _import_settings.compression:
 		COMPRESS_VRAM:
-			importer_compress_mode = TextureLayeredImporter.COMPRESS_VIDEO_RAM
+			importer_compress_mode = HT_TextureLayeredImporter.COMPRESS_VIDEO_RAM
 		COMPRESS_LOSSLESS:
-			importer_compress_mode = TextureLayeredImporter.COMPRESS_LOSSLESS
+			importer_compress_mode = HT_TextureLayeredImporter.COMPRESS_LOSSLESS
 		COMPRESS_RAW:
-			importer_compress_mode = TextureLayeredImporter.COMPRESS_RAW
+			importer_compress_mode = HT_TextureLayeredImporter.COMPRESS_RAW
 		_:
-			return Result.new(false, "Unknown compress mode {0}, might be a bug" \
+			return HT_Result.new(false, "Unknown compress mode {0}, might be a bug" \
 				.format([_import_settings.compression]))
 
 	for type in HTerrainTextureSet.TYPE_COUNT:
@@ -833,14 +836,14 @@ func _generate_save_packed_texture_arrays_files_data(import_dir: String, prefix:
 		var fully_defaulted_slots := 0
 
 		for slot_index in len(_slots_data):
-			var slot : Slot = _slots_data[slot_index]
+			var slot : HT_TextureSetImportEditorSlot = _slots_data[slot_index]
 
 			var src0 : String = slot.texture_paths[src_types[0]]
 			var src1 : String = slot.texture_paths[src_types[1]]
 			
 			if src0 == "":
 				if src_types[0] == HTerrainTextureSet.SRC_TYPE_ALBEDO:
-					return Result.new(false, 
+					return HT_Result.new(false, 
 						"Albedo texture is missing in slot {0}".format([slot_index]))
 
 			if src0 == "" and src1 == "":
@@ -878,8 +881,8 @@ func _generate_save_packed_texture_arrays_files_data(import_dir: String, prefix:
 			# This is for .import files
 			"import_data": {
 				"remap": {
-					"importer": PackedTextureArrayImporter.IMPORTER_NAME,
-					"type": PackedTextureArrayImporter.RESOURCE_TYPE
+					"importer": HT_PackedTextureArrayImporter.IMPORTER_NAME,
+					"type": HT_PackedTextureArrayImporter.RESOURCE_TYPE
 				},
 				"deps": {
 					"source_file": fpath
@@ -888,9 +891,9 @@ func _generate_save_packed_texture_arrays_files_data(import_dir: String, prefix:
 					"compress/mode": importer_compress_mode,
 					"flags/mipmaps": _import_settings.mipmaps,
 					"flags/filter": _import_settings.filter,
-					"flags/repeat": TextureLayeredImporter.REPEAT_ENABLED
+					"flags/repeat": HT_TextureLayeredImporter.REPEAT_ENABLED
 				}
 			}
 		})
 
-	return Result.new(true).with_value(files)
+	return HT_Result.new(true).with_value(files)

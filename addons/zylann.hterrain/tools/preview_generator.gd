@@ -2,10 +2,10 @@ tool
 extends EditorResourcePreviewGenerator
 
 const HTerrainData = preload("../hterrain_data.gd")
-const Errors = preload("../util/errors.gd")
-const Logger = preload("../util/logger.gd")
+const HT_Errors = preload("../util/errors.gd")
+const HT_Logger = preload("../util/logger.gd")
 
-var _logger = Logger.get_for(self)
+var _logger = HT_Logger.get_for(self)
 
 
 func generate(res: Resource, size: Vector2) -> Texture:
@@ -27,7 +27,7 @@ func generate_from_path(path: String, size: Vector2) -> Texture:
 	var err := normals.load(normals_path)
 	if err != OK:
 		_logger.error("Could not load '{0}', error {1}" \
-			.format([normals_path, Errors.get_message(err)]))
+			.format([normals_path, HT_Errors.get_message(err)]))
 		return null
 	return _generate(normals, size)
 

@@ -4,9 +4,10 @@ extends WindowDialog
 const HTerrain = preload("../../hterrain.gd")
 const HTerrainData = preload("../../hterrain_data.gd")
 const HTerrainMesher = preload("../../hterrain_mesher.gd")
-const Util = preload("../../util/util.gd")
-const TextureGenerator = preload("texture_generator.gd")
-const Logger = preload("../../util/logger.gd")
+const HT_Util = preload("../../util/util.gd")
+const HT_TextureGenerator = preload("./texture_generator.gd")
+const HT_TextureGeneratorPass = preload("./texture_generator_pass.gd")
+const HT_Logger = preload("../../util/logger.gd")
 
 # TODO Power of two is assumed here.
 # I wonder why it doesn't have the off by one terrain textures usually have
@@ -22,13 +23,13 @@ onready var _progress_bar = $VBoxContainer/Editor/Preview/ProgressBar
 var _dummy_texture = load("res://addons/zylann.hterrain/tools/icons/empty.png")
 var _terrain : HTerrain = null
 var _applying := false
-var _generator : TextureGenerator
+var _generator : HT_TextureGenerator
 var _generated_textures := [null, null]
 var _dialog_visible := false
 var _undo_map_ids := {}
 var _image_cache = null
 var _undo_redo : UndoRedo
-var _logger := Logger.get_for(self)
+var _logger := HT_Logger.get_for(self)
 var _viewport_resolution := MAX_VIEWPORT_RESOLUTION
 
 
@@ -141,7 +142,7 @@ func _ready():
 		}
 	})
 
-	_generator = TextureGenerator.new()
+	_generator = HT_TextureGenerator.new()
 	_generator.set_resolution(Vector2(_viewport_resolution, _viewport_resolution))
 	# Setup the extra pixels we want on max edges for terrain
 	# TODO I wonder if it's not better to let the generator shaders work in pixels
@@ -201,7 +202,7 @@ func _notification(what: int):
 	match what:
 		NOTIFICATION_VISIBILITY_CHANGED:
 			# We don't want any of this to run in an edited scene
-			if Util.is_in_edited_scene(self):
+			if HT_Util.is_in_edited_scene(self):
 				return
 
 			if visible:
@@ -296,7 +297,7 @@ func _update_generator(preview: bool):
 #		var offset_ndc = offset_px / padded_viewport_resolution
 
 		var progress := float(i) / len(sectors)
-		var p := TextureGenerator.Pass.new()
+		var p := HT_TextureGeneratorPass.new()
 		p.clear = true
 		p.shader = get_shader("perlin_noise")
 		# This pass generates the shapes of the terrain so will have to account for offset
@@ -323,7 +324,7 @@ func _update_generator(preview: bool):
 		_generator.add_pass(p)
 
 		if erosion_iterations > 0:
-			p = TextureGenerator.Pass.new()
+			p = HT_TextureGeneratorPass.new()
 			p.shader = get_shader("erode")
 			# TODO More erosion config
 			p.params = {
@@ -343,7 +344,7 @@ func _update_generator(preview: bool):
 			"progress": progress
 		})
 
-		p = TextureGenerator.Pass.new()
+		p = HT_TextureGeneratorPass.new()
 		p.shader = get_shader("bump2normal")
 		p.padding = 1
 		_generator.add_pass(p)

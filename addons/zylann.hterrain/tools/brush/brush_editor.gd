@@ -1,14 +1,14 @@
 tool
 extends Control
 
-const TerrainPainter = preload("./terrain_painter.gd")
-const Brush = preload("./brush.gd")
-const Errors = preload("../../util/errors.gd")
+const HT_TerrainPainter = preload("./terrain_painter.gd")
+const HT_Brush = preload("./brush.gd")
+const HT_Errors = preload("../../util/errors.gd")
 #const NativeFactory = preload("../../native/factory.gd")
-const Logger = preload("../../util/logger.gd")
+const HT_Logger = preload("../../util/logger.gd")
 
-const BrushSettingsDialogScene = preload("./settings_dialog/brush_settings_dialog.tscn")
-const BrushSettingsDialog = preload("./settings_dialog/brush_settings_dialog.gd")
+const HT_BrushSettingsDialogScene = preload("./settings_dialog/brush_settings_dialog.tscn")
+const HT_BrushSettingsDialog = preload("./settings_dialog/brush_settings_dialog.gd")
 
 
 onready var _size_slider := $GridContainer/BrushSizeControl/Slider as Slider
@@ -39,10 +39,10 @@ onready var _slope_limit_control = $GridContainer/SlopeLimit
 
 onready var _shape_texture_rect = get_node("BrushShapeButton/TextureRect")
 
-var _terrain_painter : TerrainPainter
+var _terrain_painter : HT_TerrainPainter
 var _load_image_dialog = null
 var _brush_settings_dialog = null
-var _logger = Logger.get_for(self)
+var _logger = HT_Logger.get_for(self)
 
 # TODO This is an ugly workaround for https://github.com/godotengine/godot/issues/19479
 onready var _temp_node = get_node("Temp")
@@ -65,7 +65,7 @@ func _ready():
 	_holes_checkbox.connect("toggled", self, "_on_holes_checkbox_toggled")
 	_slope_limit_control.connect("changed", self, "_on_slope_limit_changed")
 	
-	_size_slider.max_value = Brush.MAX_SIZE_FOR_SLIDERS
+	_size_slider.max_value = HT_Brush.MAX_SIZE_FOR_SLIDERS
 	#if NativeFactory.is_native_available():
 	#	_size_slider.max_value = 200
 	#else:
@@ -74,7 +74,7 @@ func _ready():
 
 func setup_dialogs(base_control: Control):
 	assert(_brush_settings_dialog == null)
-	_brush_settings_dialog = BrushSettingsDialogScene.instance()
+	_brush_settings_dialog = HT_BrushSettingsDialogScene.instance()
 	base_control.add_child(_brush_settings_dialog)
 	
 	# That dialog has sub-dialogs
@@ -97,7 +97,7 @@ func _exit_tree():
 #			if mode >= Brush.MODE_COUNT:
 #				mode = 0
 
-func set_terrain_painter(terrain_painter: TerrainPainter):
+func set_terrain_painter(terrain_painter: HT_TerrainPainter):
 	if _terrain_painter != null:
 		_terrain_painter.disconnect("flatten_height_changed", self, "_on_flatten_height_changed")
 		_terrain_painter.get_brush().disconnect("shapes_changed", self, "_on_brush_shapes_changed")
@@ -127,8 +127,8 @@ func set_terrain_painter(terrain_painter: TerrainPainter):
 		
 		# Load default brush
 		var brush := _terrain_painter.get_brush()
-		var default_shape_fpath := Brush.SHAPES_DIR.plus_file(Brush.DEFAULT_BRUSH)
-		var default_shape := Brush.load_shape_from_image_file(default_shape_fpath, _logger)
+		var default_shape_fpath := HT_Brush.SHAPES_DIR.plus_file(HT_Brush.DEFAULT_BRUSH)
+		var default_shape := HT_Brush.load_shape_from_image_file(default_shape_fpath, _logger)
 		brush.set_shapes([default_shape])
 		_shape_texture_rect.texture = brush.get_shape(0)
 		
@@ -146,12 +146,12 @@ func _on_brush_shapes_changed():
 
 
 func set_display_mode(mode: int):
-	var show_flatten := mode == TerrainPainter.MODE_FLATTEN
-	var show_color := mode == TerrainPainter.MODE_COLOR
-	var show_density := mode == TerrainPainter.MODE_DETAIL
-	var show_opacity := mode != TerrainPainter.MODE_MASK
-	var show_holes := mode == TerrainPainter.MODE_MASK
-	var show_slope_limit := mode == TerrainPainter.MODE_SPLAT
+	var show_flatten := mode == HT_TerrainPainter.MODE_FLATTEN
+	var show_color := mode == HT_TerrainPainter.MODE_COLOR
+	var show_density := mode == HT_TerrainPainter.MODE_DETAIL
+	var show_opacity := mode != HT_TerrainPainter.MODE_MASK
+	var show_holes := mode == HT_TerrainPainter.MODE_MASK
+	var show_slope_limit := mode == HT_TerrainPainter.MODE_SPLAT
 
 	_set_visibility_of(_opacity_label, show_opacity)
 	_set_visibility_of(_opacity_control, show_opacity)

@@ -5,7 +5,7 @@ tool
 # while brush properties apply to all of them.
 # This is separate from Painter because it could apply to multiple Painters at once.
 
-const Errors = preload("../../util/errors.gd")
+const HT_Errors = preload("../../util/errors.gd")
 
 const SHAPES_DIR = "addons/zylann.hterrain/tools/brush/shapes"
 const DEFAULT_BRUSH = "round2.exr"
@@ -128,7 +128,7 @@ static func load_shape_from_image_file(fpath: String, logger) -> Texture:
 	var err := im.load(fpath)
 	if err != OK:
 		logger.error("Could not load image at '{0}', error {1}" \
-			.format([fpath, Errors.get_message(err)]))
+			.format([fpath, HT_Errors.get_message(err)]))
 		return null
 	var tex := ImageTexture.new()
 	tex.create_from_image(im, Texture.FLAG_FILTER)

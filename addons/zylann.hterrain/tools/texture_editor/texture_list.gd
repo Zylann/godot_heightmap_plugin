@@ -8,8 +8,8 @@
 tool
 extends ScrollContainer
 
-const TextureListItemScene = preload("./texture_list_item.tscn")
-const TextureListItem = preload("./texture_list_item.gd")
+const HT_TextureListItemScene = preload("./texture_list_item.tscn")
+const HT_TextureListItem = preload("./texture_list_item.gd")
 
 signal item_selected(index)
 signal item_activated(index)
@@ -33,7 +33,7 @@ var _selected_item := -1
 
 # Note: the texture can be a TextureArray, which does not inherit Texture
 func add_item(text: String, texture: Resource, texture_layer: int = 0):
-	var item = TextureListItemScene.instance()
+	var item = HT_TextureListItemScene.instance()
 	_container.add_child(item)
 	item.set_text(text)
 	item.set_texture(texture, texture_layer)
@@ -60,16 +60,16 @@ func clear():
 	_selected_item = -1
 
 
-func _on_item_selected(item: TextureListItem):
+func _on_item_selected(item: HT_TextureListItem):
 	_selected_item = item.get_index()
 	for i in _container.get_child_count():
 		var child = _container.get_child(i)
-		if child is TextureListItem and child != item:
+		if child is HT_TextureListItem and child != item:
 			child.set_selected(false, false)
 	emit_signal("item_selected", _selected_item)
 
 
-func _on_item_activated(item: TextureListItem):
+func _on_item_activated(item: HT_TextureListItem):
 	emit_signal("item_activated", item.get_index())
 
 

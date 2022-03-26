@@ -1,17 +1,17 @@
 tool
 extends Control
 
-const PreviewPainter = preload("./preview_painter.gd")
-const DefaultBrushTexture = preload("../shapes/round2.exr")
+const HT_PreviewPainter = preload("./preview_painter.gd")
+const HT_DefaultBrushTexture = preload("../shapes/round2.exr")
 
 onready var _texture_rect : TextureRect = $TextureRect
-onready var _painter : PreviewPainter = $Painter
+onready var _painter : HT_PreviewPainter = $Painter
 
 
 func _ready():
 	reset_image()
 	# Default so it doesnt crash when painting and can be tested
-	_painter.get_brush().set_shapes([DefaultBrushTexture])
+	_painter.get_brush().set_shapes([HT_DefaultBrushTexture])
 
 
 func reset_image():
@@ -24,7 +24,7 @@ func reset_image():
 	_painter.set_image_texture(image, texture)
 
 
-func get_painter() -> PreviewPainter:
+func get_painter() -> HT_PreviewPainter:
 	return _painter
 
 

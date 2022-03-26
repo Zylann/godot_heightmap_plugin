@@ -1,6 +1,6 @@
 tool
 
-const Logger = preload("./util/logger.gd")
+#const HT_Logger = preload("./util/logger.gd")
 
 const SEAM_LEFT = 1
 const SEAM_RIGHT = 2

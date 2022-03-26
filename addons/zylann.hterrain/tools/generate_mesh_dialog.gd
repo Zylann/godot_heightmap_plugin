@@ -4,7 +4,7 @@ extends WindowDialog
 signal generate_selected(lod)
 
 const HTerrainMesher = preload("../hterrain_mesher.gd")
-const Util = preload("../util/util.gd")
+const HT_Util = preload("../util/util.gd")
 
 onready var _preview_label = $VBoxContainer/PreviewLabel
 onready var _lod_spinbox = $VBoxContainer/HBoxContainer/LODSpinBox
@@ -34,8 +34,8 @@ func _update_preview():
 	resolution /= stride
 	var s = HTerrainMesher.get_mesh_size(resolution, resolution)
 	_preview_label.text = str( \
-		Util.format_integer(s.vertices), " vertices, ", \
-		Util.format_integer(s.triangles), " triangles")
+		HT_Util.format_integer(s.vertices), " vertices, ", \
+		HT_Util.format_integer(s.triangles), " triangles")
 
 
 func _on_Generate_pressed():

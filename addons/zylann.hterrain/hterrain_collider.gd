@@ -1,12 +1,12 @@
 tool
 
-const Logger = preload("./util/logger.gd")
+const HT_Logger = preload("./util/logger.gd")
 
 var _shape_rid = RID()
 var _body_rid = RID()
 var _terrain_transform = Transform()
 var _terrain_data = null
-var _logger = Logger.get_for(self)
+var _logger = HT_Logger.get_for(self)
 
 
 func _init(attached_node: Node, initial_layer: int, initial_mask: int):

@@ -1,12 +1,12 @@
 tool
 extends WindowDialog
 
-const Util = preload("../../util/util.gd")
+const HT_Util = preload("../../util/util.gd")
 const HTerrain = preload("../../hterrain.gd")
 const HTerrainData = preload("../../hterrain_data.gd")
-const Errors = preload("../../util/errors.gd")
-const Logger = preload("../../util/logger.gd")
-const XYZFormat = preload("../../util/xyz_format.gd")
+const HT_Errors = preload("../../util/errors.gd")
+const HT_Logger = preload("../../util/logger.gd")
+const HT_XYZFormat = preload("../../util/xyz_format.gd")
 
 signal permanent_change_performed(message)
 
@@ -18,7 +18,7 @@ const RAW_LITTLE_ENDIAN = 0
 const RAW_BIG_ENDIAN = 1
 
 var _terrain : HTerrain = null
-var _logger = Logger.get_for(self)
+var _logger = HT_Logger.get_for(self)
 
 
 func _ready():
@@ -209,7 +209,7 @@ func _validate_form():
 
 
 static func _check_map_size(path: String, map_name: String, heightmap_size: int, res: Dictionary, 
-	logger: Logger):
+	logger: HT_Logger):
 	
 	var size = _load_image_size(path, logger)
 	if size.has("error"):
@@ -228,7 +228,7 @@ static func _check_map_size(path: String, map_name: String, heightmap_size: int,
 				map_name, " will be cropped.")
 
 
-static func _load_image_size(path: String, logger: Logger) -> Dictionary:
+static func _load_image_size(path: String, logger: HT_Logger) -> Dictionary:
 	var ext := path.get_extension().to_lower()
 
 	if ext == "png" or ext == "exr":
@@ -253,7 +253,7 @@ static func _load_image_size(path: String, logger: Logger) -> Dictionary:
 		# so its size is function of file length
 		var flen := f.get_len()
 		f.close()
-		var size = Util.integer_square_root(flen / 2)
+		var size = HT_Util.integer_square_root(flen / 2)
 		if size == -1:
 			return { "error": "RAW image is not square" }
 		
@@ -269,7 +269,7 @@ static func _load_image_size(path: String, logger: Logger) -> Dictionary:
 			logger.error("Error opening file {0}".format([path]))
 			return { "error": err }
 
-		var bounds := XYZFormat.load_bounds(f)
+		var bounds := HT_XYZFormat.load_bounds(f)
 
 		return { "width": bounds.image_width, "height": bounds.image_height }
 
@@ -280,4 +280,4 @@ static func _load_image_size(path: String, logger: Logger) -> Dictionary:
 static func _error_to_string(err) -> String:
 	if typeof(err) == TYPE_STRING:
 		return err
-	return str("code ", err, ": ", Errors.get_message(err))
+	return str("code ", err, ": ", HT_Errors.get_message(err))

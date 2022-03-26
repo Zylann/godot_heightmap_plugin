@@ -9,11 +9,11 @@ tool
 # Needs to be a Control, otherwise we don't receive the notification...
 extends Control
 
-const Util = preload("../../util/util.gd")
+const HT_Util = preload("../../util/util.gd")
 
 
 func _notification(what: int):
-	if Util.is_in_edited_scene(self):
+	if HT_Util.is_in_edited_scene(self):
 		return
 	if is_inside_tree() and what == Control.NOTIFICATION_VISIBILITY_CHANGED:
 		#print("Visible ", is_visible_in_tree(), ", ", visible)

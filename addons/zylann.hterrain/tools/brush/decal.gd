@@ -1,11 +1,11 @@
 tool
 # Shows a cursor on top of the terrain to preview where the brush will paint
 
-const DirectMeshInstance = preload("../../util/direct_mesh_instance.gd")
+const HT_DirectMeshInstance = preload("../../util/direct_mesh_instance.gd")
 const HTerrainData = preload("../../hterrain_data.gd")
-const Util = preload("../../util/util.gd")
+const HT_Util = preload("../../util/util.gd")
 
-var _mesh_instance : DirectMeshInstance
+var _mesh_instance : HT_DirectMeshInstance
 var _mesh : PlaneMesh
 var _material = ShaderMaterial.new()
 #var _debug_mesh = CubeMesh.new()
@@ -16,7 +16,7 @@ var _terrain = null
 
 func _init():
 	_material.shader = load("res://addons/zylann.hterrain/tools/brush/decal.shader")
-	_mesh_instance = DirectMeshInstance.new()
+	_mesh_instance = HT_DirectMeshInstance.new()
 	_mesh_instance.set_material(_material)
 	
 	_mesh = PlaneMesh.new()

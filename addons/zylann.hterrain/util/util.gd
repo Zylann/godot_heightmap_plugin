@@ -1,6 +1,6 @@
 tool
 
-const Errors = preload("./errors.gd")
+const HT_Errors = preload("./errors.gd")
 
 
 # Godot has this internally but doesn't expose it
@@ -319,7 +319,7 @@ static func get_aabb_intersection_with_segment(aabb: AABB,
 	return hits
 
 
-class GridRaytraceResult2D:
+class HT_GridRaytraceResult2D:
 	var hit_cell_pos: Vector2
 	var prev_cell_pos: Vector2
 
@@ -336,7 +336,7 @@ class GridRaytraceResult2D:
 # btHeightfieldTerrainShape.cpp#L418
 #
 static func grid_raytrace_2d(ray_origin: Vector2, ray_direction: Vector2, 
-	quad_predicate: FuncRef, max_distance: float) -> GridRaytraceResult2D:
+	quad_predicate: FuncRef, max_distance: float) -> HT_GridRaytraceResult2D:
 	
 	if max_distance < 0.0001:
 		# Consider the ray is too small to hit anything
@@ -435,7 +435,7 @@ static func grid_raytrace_2d(ray_origin: Vector2, ray_direction: Vector2,
 			param = max_distance
 			# quad coordinates, enter param, exit/end param
 			if quad_predicate.call_func(prev_x, prev_y, prev_param, param):
-				var res := GridRaytraceResult2D.new()
+				var res := HT_GridRaytraceResult2D.new()
 				res.hit_cell_pos = Vector2(x, y)
 				res.prev_cell_pos = Vector2(prev_x, prev_y)
 				return res
@@ -443,7 +443,7 @@ static func grid_raytrace_2d(ray_origin: Vector2, ray_direction: Vector2,
 				break
 			
 		elif quad_predicate.call_func(prev_x, prev_y, prev_param, param):
-			var res := GridRaytraceResult2D.new()
+			var res := HT_GridRaytraceResult2D.new()
 			res.hit_cell_pos = Vector2(x, y)
 			res.prev_cell_pos = Vector2(prev_x, prev_y)
 			return res
@@ -537,7 +537,7 @@ static func write_import_file(settings: Dictionary, imp_fpath: String, logger) -
 	var err := f.open(imp_fpath, File.WRITE)
 	if err != OK:
 		logger.error("Could not open '{0}' for write, error {1}" \
-			.format([imp_fpath, Errors.get_message(err)]))
+			.format([imp_fpath, HT_Errors.get_message(err)]))
 		return false
 
 	for section in settings:

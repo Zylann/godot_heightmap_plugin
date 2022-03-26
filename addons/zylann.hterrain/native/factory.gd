@@ -1,8 +1,8 @@
 
 const NATIVE_PATH = "res://addons/zylann.hterrain/native/"
 
-const ImageUtilsGeneric = preload("./image_utils_generic.gd")
-const QuadTreeLodGeneric = preload("./quad_tree_lod_generic.gd")
+const HT_ImageUtilsGeneric = preload("./image_utils_generic.gd")
+const HT_QuadTreeLodGeneric = preload("./quad_tree_lod_generic.gd")
 
 # See https://docs.godotengine.org/en/stable/classes/class_os.html#class-os-method-get-name
 const _supported_os = {
@@ -23,15 +23,15 @@ static func is_native_available() -> bool:
 
 static func get_image_utils():
 	if is_native_available():
-		var ImageUtilsNative = load(NATIVE_PATH + "image_utils.gdns")
-		if ImageUtilsNative != null:
-			return ImageUtilsNative.new()
-	return ImageUtilsGeneric.new()
+		var HT_ImageUtilsNative = load(NATIVE_PATH + "image_utils.gdns")
+		if HT_ImageUtilsNative != null:
+			return HT_ImageUtilsNative.new()
+	return HT_ImageUtilsGeneric.new()
 
 
 static func get_quad_tree_lod():
 	if is_native_available():
-		var QuadTreeLod = load(NATIVE_PATH + "quad_tree_lod.gdns")
-		if QuadTreeLod != null:
-			return QuadTreeLod.new()
-	return QuadTreeLodGeneric.new()
+		var HT_QuadTreeLod = load(NATIVE_PATH + "quad_tree_lod.gdns")
+		if HT_QuadTreeLod != null:
+			return HT_QuadTreeLod.new()
+	return HT_QuadTreeLodGeneric.new()

@@ -3,7 +3,7 @@ extends Control
 
 const HTerrainData = preload("../../hterrain_data.gd")
 const HTerrainDetailLayer = preload("../../hterrain_detail_layer.gd")
-const ImageFileCache = preload("../../util/image_file_cache.gd")
+const HT_ImageFileCache = preload("../../util/image_file_cache.gd")
 
 signal detail_selected(index)
 # Emitted when the tool added or removed a detail map
@@ -17,7 +17,7 @@ var _dialog_target = -1
 var _placeholder_icon = load("res://addons/zylann.hterrain/tools/icons/icon_grass.svg")
 var _detail_layer_icon = load("res://addons/zylann.hterrain/tools/icons/icon_detail_layer_node.svg")
 var _undo_redo : UndoRedo
-var _image_cache : ImageFileCache
+var _image_cache : HT_ImageFileCache
 
 
 func set_terrain(terrain):
@@ -31,7 +31,7 @@ func set_undo_redo(ur: UndoRedo):
 	_undo_redo = ur
 
 
-func set_image_cache(image_cache: ImageFileCache):
+func set_image_cache(image_cache: HT_ImageFileCache):
 	_image_cache = image_cache
 
 

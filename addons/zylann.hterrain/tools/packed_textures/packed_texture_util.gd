@@ -1,15 +1,15 @@
 tool
 
-const Logger = preload("../../util/logger.gd")
-const Errors = preload("../../util/errors.gd")
-const Result = preload("../util/result.gd")
+const HT_Logger = preload("../../util/logger.gd")
+const HT_Errors = preload("../../util/errors.gd")
+const HT_Result = preload("../util/result.gd")
 
 const _transform_params = [
 	"normalmap_flip_y"
 ]
 
 
-static func generate_image(sources: Dictionary, resolution: int, logger) -> Result:
+static func generate_image(sources: Dictionary, resolution: int, logger) -> HT_Result:
 	var image := Image.new()
 	image.create(resolution, resolution, true, Image.FORMAT_RGBA8)
 	
@@ -37,8 +37,8 @@ static func generate_image(sources: Dictionary, resolution: int, logger) -> Resu
 			# File
 			var err := src_image.load(src_path)
 			if err != OK:
-				return Result.new(false, "Could not open file \"{0}\": {1}" \
-					.format([src_path, Errors.get_message(err)])) \
+				return HT_Result.new(false, "Could not open file \"{0}\": {1}" \
+					.format([src_path, HT_Errors.get_message(err)])) \
 					.with_value(err)
 			src_image.decompress()
 		
@@ -74,7 +74,7 @@ static func generate_image(sources: Dictionary, resolution: int, logger) -> Resu
 	if sources.has("normalmap_flip_y") and sources.normalmap_flip_y:
 		_flip_normalmap_y(image)
 	
-	return Result.new(true).with_value(image)
+	return HT_Result.new(true).with_value(image)
 
 
 static func _flip_normalmap_y(image: Image):

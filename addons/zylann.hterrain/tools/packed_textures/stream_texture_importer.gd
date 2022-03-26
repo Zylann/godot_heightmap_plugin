@@ -4,9 +4,9 @@ tool
 # So we have to re-implement the entire logic of `ResourceImporterTexture`.
 # See https://github.com/godotengine/godot/issues/24381
 
-const Result = preload("../util/result.gd")
-const Errors = preload("../../util/errors.gd")
-const Util = preload("../../util/util.gd")
+const HT_Result = preload("../util/result.gd")
+const HT_Errors = preload("../../util/errors.gd")
+const HT_Util = preload("../../util/util.gd")
 
 const COMPRESS_LOSSLESS = 0
 const COMPRESS_LOSSY = 1
@@ -44,7 +44,7 @@ static func import(
 	p_repeat: int,
 	p_filter: bool,
 	p_mipmaps: bool,
-	p_anisotropic: bool) -> Result:
+	p_anisotropic: bool) -> HT_Result:
 
 	var compress_mode := p_compress_mode
 	var lossy := 0.7
@@ -237,7 +237,7 @@ static func import(
 		if not ok_on_pc:
 			# TODO This warning is normally printed by `EditorNode::add_io_error`,
 			# which doesn't seem to be exposed to the script API
-			return Result.new(false, 
+			return HT_Result.new(false, 
 				"No suitable PC VRAM compression enabled in Project Settings. " +
 				"The texture {0} will not display correctly on PC.".format([p_source_path])) \
 				.with_value(ERR_INVALID_PARAMETER)
@@ -270,7 +270,7 @@ static func import(
 #		*r_metadata = metadata;
 #	}
 
-	return Result.new(true).with_value(OK)
+	return HT_Result.new(true).with_value(OK)
 
 
 static func _save_stex(
@@ -288,7 +288,7 @@ static func _save_stex(
 	p_detect_normal: bool,
 	p_force_normal: bool,
 	p_force_po2_for_compressed: bool
-	) -> Result:
+	) -> HT_Result:
 
 	# Need to work on a copy because we will modify it,
 	# but the calling code may have to call this function multiple times
@@ -297,8 +297,8 @@ static func _save_stex(
 	var f = File.new()
 	var err = f.open(p_fpath, File.WRITE)
 	if err != OK:
-		return Result.new(false, "Could not open file {0}:\n{1}" \
-			.format([p_fpath, Errors.get_message(err)]))
+		return HT_Result.new(false, "Could not open file {0}:\n{1}" \
+			.format([p_fpath, HT_Errors.get_message(err)]))
 
 	f.store_8(ord('G'))
 	f.store_8(ord('D'))
@@ -310,9 +310,9 @@ static func _save_stex(
 	if p_compress_mode == COMPRESS_VIDEO_RAM and p_force_po2_for_compressed \
 	and (p_mipmaps or p_texture_flags & Texture.FLAG_REPEAT):
 		resize_to_po2 = true
-		f.store_16(Util.next_power_of_two(p_image.get_width()))
+		f.store_16(HT_Util.next_power_of_two(p_image.get_width()))
 		f.store_16(p_image.get_width())
-		f.store_16(Util.next_power_of_two(p_image.get_height()))
+		f.store_16(HT_Util.next_power_of_two(p_image.get_height()))
 		f.store_16(p_image.get_height())
 	else:
 		f.store_16(p_image.get_width())
@@ -369,7 +369,7 @@ static func _save_stex(
 				f.store_buffer(data)
 
 		COMPRESS_LOSSY:
-			return Result.new(false,
+			return HT_Result.new(false,
 				"Saving a StreamTexture with lossy compression cannot be achieved by scripts.\n"
 				+ "Godot would need to either allow to save an image as WEBP to a buffer,\n"
 				+ "or expose `ResourceImporterTexture::_save_stex` so custom importers\n"
@@ -418,10 +418,10 @@ static func _save_stex(
 			f.store_buffer(data)
 
 		_:
-			return Result.new(false, "Invalid compress mode specified: {0}" \
+			return HT_Result.new(false, "Invalid compress mode specified: {0}" \
 				.format([p_compress_mode]))
 	
-	return Result.new(true)
+	return HT_Result.new(true)
 
 
 # TODO Godot doesn't expose `Image.get_mipmap_count()`

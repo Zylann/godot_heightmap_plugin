@@ -6,7 +6,7 @@ tool
 # to find the origin and then set points in an image.
 
 
-class Bounds:
+class HT_XYZBounds:
 	# Note: it is important for these to be double-precision floats,
 	# GIS data can have large coordinates
 	var min_x := 0.0
@@ -25,7 +25,7 @@ class Bounds:
 # Despite that, I still use it here because it doesn't seem to cause issues and is faster.
 # If it becomes an issue, we'll have to switch to `split` and casting to `float`.
 
-static func load_bounds(f: File) -> Bounds:
+static func load_bounds(f: File) -> HT_XYZBounds:
 	# It is faster to get line and split floats than using CSV functions
 	var line := f.get_line()
 	var floats = line.split_floats(" ")
@@ -62,7 +62,7 @@ static func load_bounds(f: File) -> Bounds:
 
 		line_count += 1
 
-	var bounds := Bounds.new()
+	var bounds := HT_XYZBounds.new()
 	bounds.min_x = min_pos_x
 	bounds.min_y = min_pos_y
 	bounds.max_x = max_pos_x
@@ -76,7 +76,7 @@ static func load_bounds(f: File) -> Bounds:
 # Loads points into an image with existing dimensions and format.
 # `f` must be positionned at the beginning of the series of points.
 # If `bounds` is `null`, it will be computed.
-static func load_heightmap(f: File, dst_image: Image, bounds: Bounds):
+static func load_heightmap(f: File, dst_image: Image, bounds: HT_XYZBounds):
 	# We are not going to read the entire file directly in memory, because it can be really big.
 	# Instead we'll parse it directly and the only thing we retain in memory is the heightmap.
 	# This can be really slow on big files. If we can assume the file is square and points

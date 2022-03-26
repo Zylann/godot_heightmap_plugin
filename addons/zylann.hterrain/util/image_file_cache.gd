@@ -9,7 +9,7 @@
 # However if you want to obtain an image back while it didn't save yet, the main thread will block.
 # When the application or plugin is closed, the files get cleared.
 
-const Logger = preload("./logger.gd")
+const HT_Logger = preload("./logger.gd")
 
 const CACHE_FILE_SIZE_THRESHOLD = 1048576
 
@@ -17,7 +17,7 @@ var _cache_dir := ""
 var _next_id := 0
 var _session_id := ""
 var _cache_image_info := {}
-var _logger = Logger.get_for(self)
+var _logger = HT_Logger.get_for(self)
 var _current_cache_file_index := 0
 var _cache_file_offset := 0
 

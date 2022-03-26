@@ -5,13 +5,13 @@
 tool
 extends Resource
 
-const Grid = preload("./util/grid.gd")
-const Util = preload("./util/util.gd")
-const Errors = preload("./util/errors.gd")
-const NativeFactory = preload("./native/factory.gd")
-const Logger = preload("./util/logger.gd")
-const ImageFileCache = preload("./util/image_file_cache.gd")
-const XYZFormat = preload("./util/xyz_format.gd")
+const HT_Grid = preload("./util/grid.gd")
+const HT_Util = preload("./util/util.gd")
+const HT_Errors = preload("./util/errors.gd")
+const HT_NativeFactory = preload("./native/factory.gd")
+const HT_Logger = preload("./util/logger.gd")
+const HT_ImageFileCache = preload("./util/image_file_cache.gd")
+const HT_XYZFormat = preload("./util/xyz_format.gd")
 
 # Note: indexes matters for saving, don't re-order
 # TODO Rename "CHANNEL" to "MAP", makes more sense and less confusing with RGBA channels
@@ -143,7 +143,7 @@ signal map_changed(type, index)
 
 # A map is a texture covering the terrain.
 # The usage of a map depends on its type (heightmap, normalmap, splatmap...).
-class Map:
+class HT_Map:
 	var texture: Texture
 	# Reference used in case we need the data CPU-side
 	var image: Image
@@ -169,10 +169,10 @@ var _maps := [[]]
 var _chunked_vertical_bounds := Image.new()
 
 var _locked := false
-var _image_utils = NativeFactory.get_image_utils()
+var _image_utils = HT_NativeFactory.get_image_utils()
 
 var _edit_disable_apply_undo := false
-var _logger = Logger.get_for(self)
+var _logger = HT_Logger.get_for(self)
 
 
 func _init():
@@ -186,7 +186,7 @@ func _set_default_maps():
 		var maps = []
 		var n = _map_types[c].default_count
 		for i in range(n):
-			maps.append(Map.new(i))
+			maps.append(HT_Map.new(i))
 		_maps[c] = maps
 
 
@@ -257,14 +257,14 @@ func resize(p_res: int, stretch := true, anchor := Vector2(-1, -1)):
 	if p_res == get_resolution():
 		return
 
-	p_res = Util.clamp_int(p_res, MIN_RESOLUTION, MAX_RESOLUTION)
+	p_res = HT_Util.clamp_int(p_res, MIN_RESOLUTION, MAX_RESOLUTION)
 
 	# Power of two is important for LOD.
 	# Also, grid data is off by one,
 	# because for an even number of quads you need an odd number of vertices.
 	# To prevent size from increasing at every deserialization,
 	# remove 1 before applying power of two.
-	p_res = Util.next_power_of_two(p_res - 1) + 1
+	p_res = HT_Util.next_power_of_two(p_res - 1) + 1
 
 	_resolution = p_res;
 
@@ -274,7 +274,7 @@ func resize(p_res: int, stretch := true, anchor := Vector2(-1, -1)):
 		for index in len(maps):
 			_logger.debug(str("Resizing ", get_map_debug_name(channel, index), "..."))
 
-			var map := maps[index] as Map
+			var map := maps[index] as HT_Map
 			var im := map.image
 
 			if im == null:
@@ -297,7 +297,7 @@ func resize(p_res: int, stretch := true, anchor := Vector2(-1, -1)):
 						im.resize(_resolution, _resolution)
 					else:
 						var fill_color = _get_map_default_fill_color(channel, index)
-						map.image = Util.get_cropped_image(im, _resolution, _resolution, \
+						map.image = HT_Util.get_cropped_image(im, _resolution, _resolution, \
 							fill_color, anchor)
 
 			map.modified = true
@@ -334,7 +334,7 @@ func get_height_at(x: int, y: int) -> float:
 	assert(im != null)
 
 	im.lock();
-	var h = Util.get_pixel_clamped(im, x, y).r;
+	var h = HT_Util.get_pixel_clamped(im, x, y).r;
 	im.unlock();
 	return h;
 
@@ -355,10 +355,10 @@ func get_interpolated_height_at(pos: Vector3) -> float:
 	var yf := pos.z - y0
 
 	im.lock()
-	var h00 = Util.get_pixel_clamped(im, x0, y0).r
-	var h10 = Util.get_pixel_clamped(im, x0 + 1, y0).r
-	var h01 = Util.get_pixel_clamped(im, x0, y0 + 1).r
-	var h11 = Util.get_pixel_clamped(im, x0 + 1, y0 + 1).r
+	var h00 = HT_Util.get_pixel_clamped(im, x0, y0).r
+	var h10 = HT_Util.get_pixel_clamped(im, x0 + 1, y0).r
+	var h01 = HT_Util.get_pixel_clamped(im, x0, y0 + 1).r
+	var h11 = HT_Util.get_pixel_clamped(im, x0 + 1, y0 + 1).r
 	im.unlock()
 
 	# Bilinear filter
@@ -374,10 +374,10 @@ func get_heights_region(x0: int, y0: int, w: int, h: int) -> PoolRealArray:
 	var im = get_image(CHANNEL_HEIGHT)
 	assert(im != null)
 	
-	var min_x := Util.clamp_int(x0, 0, im.get_width())
-	var min_y := Util.clamp_int(y0, 0, im.get_height())
-	var max_x := Util.clamp_int(x0 + w, 0, im.get_width() + 1)
-	var max_y := Util.clamp_int(y0 + h, 0, im.get_height() + 1)
+	var min_x := HT_Util.clamp_int(x0, 0, im.get_width())
+	var min_y := HT_Util.clamp_int(y0, 0, im.get_height())
+	var max_x := HT_Util.clamp_int(x0 + w, 0, im.get_width() + 1)
+	var max_y := HT_Util.clamp_int(y0 + h, 0, im.get_height() + 1)
 
 	var heights := PoolRealArray()
 
@@ -471,7 +471,7 @@ func _edit_set_disable_apply_undo(e: bool):
 	_edit_disable_apply_undo = e
 
 
-func _edit_apply_undo(undo_data: Dictionary, image_cache: ImageFileCache):
+func _edit_apply_undo(undo_data: Dictionary, image_cache: HT_ImageFileCache):
 	if _edit_disable_apply_undo:
 		return
 
@@ -570,7 +570,7 @@ func _upload_region(channel: int, index: int, min_x: int, min_y: int, size_x: in
 	#_logger.debug("Upload ", min_x, ", ", min_y, ", ", size_x, "x", size_y)
 	#var time_before = OS.get_ticks_msec()
 
-	var map : Map = _maps[channel][index]
+	var map : HT_Map = _maps[channel][index]
 
 	var image := map.image
 	assert(image != null)
@@ -679,7 +679,7 @@ func _edit_add_map(map_type: int) -> int:
 	while map_type >= len(_maps):
 		_maps.append([])
 	var maps = _maps[map_type]
-	var map = Map.new(_get_free_id(map_type))
+	var map = HT_Map.new(_get_free_id(map_type))
 	map.image = Image.new()
 	map.image.create(_resolution, _resolution, false, get_channel_format(map_type))
 	var index = len(maps)
@@ -699,7 +699,7 @@ func _edit_insert_map_from_image_cache(map_type: int, index: int, image_cache, i
 	while map_type >= len(_maps):
 		_maps.append([])
 	var maps = _maps[map_type]
-	var map = Map.new(_get_free_id(map_type))
+	var map = HT_Map.new(_get_free_id(map_type))
 	map.image = image_cache.load_image(image_id)
 	maps.insert(index, map)
 	emit_signal("map_added", map_type, index)
@@ -721,7 +721,7 @@ func _get_free_id(map_type: int) -> int:
 	return id
 
 
-func _get_map_by_id(map_type: int, id: int) -> Map:
+func _get_map_by_id(map_type: int, id: int) -> HT_Map:
 	var maps = _maps[map_type]
 	for map in maps:
 		if map.id == id:
@@ -736,7 +736,7 @@ func get_image(map_type: int, index := 0) -> Image:
 
 func get_texture(map_type: int, index := 0, writable := false) -> Texture:
 	var maps : Array = _maps[map_type]
-	var map : Map = maps[index]
+	var map : HT_Map = maps[index]
 
 	if map.image != null:
 		if map.texture == null:
@@ -804,10 +804,10 @@ func get_region_aabb(origin_in_cells_x: int, origin_in_cells_y: int, \
 	var cmax_x := (origin_in_cells_x + size_in_cells_x - 1) / VERTICAL_BOUNDS_CHUNK_SIZE + 1
 	var cmax_y := (origin_in_cells_y + size_in_cells_y - 1) / VERTICAL_BOUNDS_CHUNK_SIZE + 1
 
-	cmin_x = Util.clamp_int(cmin_x, 0, _chunked_vertical_bounds.get_width() - 1)
-	cmin_y = Util.clamp_int(cmin_y, 0, _chunked_vertical_bounds.get_height() - 1)
-	cmax_x = Util.clamp_int(cmax_x, 0, _chunked_vertical_bounds.get_width())
-	cmax_y = Util.clamp_int(cmax_y, 0, _chunked_vertical_bounds.get_height())
+	cmin_x = HT_Util.clamp_int(cmin_x, 0, _chunked_vertical_bounds.get_width() - 1)
+	cmin_y = HT_Util.clamp_int(cmin_y, 0, _chunked_vertical_bounds.get_height() - 1)
+	cmax_x = HT_Util.clamp_int(cmax_x, 0, _chunked_vertical_bounds.get_width())
+	cmax_y = HT_Util.clamp_int(cmax_y, 0, _chunked_vertical_bounds.get_height())
 
 	_chunked_vertical_bounds.lock()
 	
@@ -855,10 +855,10 @@ func _update_vertical_bounds(origin_in_cells_x: int, origin_in_cells_y: int, \
 	var cmax_x := (origin_in_cells_x + size_in_cells_x - 1) / VERTICAL_BOUNDS_CHUNK_SIZE + 1
 	var cmax_y := (origin_in_cells_y + size_in_cells_y - 1) / VERTICAL_BOUNDS_CHUNK_SIZE + 1
 
-	cmin_x = Util.clamp_int(cmin_x, 0, _chunked_vertical_bounds.get_width() - 1)
-	cmin_y = Util.clamp_int(cmin_y, 0, _chunked_vertical_bounds.get_height() - 1)
-	cmax_x = Util.clamp_int(cmax_x, 0, _chunked_vertical_bounds.get_width())
-	cmax_y = Util.clamp_int(cmax_y, 0, _chunked_vertical_bounds.get_height())
+	cmin_x = HT_Util.clamp_int(cmin_x, 0, _chunked_vertical_bounds.get_width() - 1)
+	cmin_y = HT_Util.clamp_int(cmin_y, 0, _chunked_vertical_bounds.get_height() - 1)
+	cmax_x = HT_Util.clamp_int(cmax_x, 0, _chunked_vertical_bounds.get_width())
+	cmax_y = HT_Util.clamp_int(cmax_y, 0, _chunked_vertical_bounds.get_height())
 
 	# Note: chunks in _chunked_vertical_bounds share their edge cells and
 	# have an actual size of chunk size + 1.
@@ -1003,7 +1003,7 @@ func _deserialize_metadata(dict: Dictionary) -> bool:
 			# Cast because the data comes from json, where every number is double
 			var id := int(maps_data[j].id)
 			if map == null:
-				map = Map.new(id)
+				map = HT_Map.new(id)
 				maps[j] = map
 			else:
 				map.id = id
@@ -1083,7 +1083,7 @@ func _save_map(dir_path: String, map_type: int, index: int) -> bool:
 		var err = ResourceSaver.save(fpath, im)
 		if err != OK:
 			_logger.error("Could not save '{0}', error {1}" \
-				.format([fpath, Errors.get_message(err)]))
+				.format([fpath, HT_Errors.get_message(err)]))
 			return false
 		_try_delete_0_8_0_heightmap(fpath.get_basename(), _logger)
 
@@ -1138,7 +1138,7 @@ static func _try_write_default_import_options(fpath: String, channel: int, logge
 		}
 	}
 
-	Util.write_import_file(defaults, imp_fpath, logger)
+	HT_Util.write_import_file(defaults, imp_fpath, logger)
 
 
 func _load_map(dir: String, map_type: int, index: int) -> bool:
@@ -1228,7 +1228,7 @@ static func _try_load_0_8_0_heightmap(fpath: String, channel: int, existing_imag
 	var err = f.open(fpath, File.READ)
 	if err != OK:
 		logger.error("Could not open '{0}' for reading, error {1}" \
-			.format([fpath, Errors.get_message(err)]))
+			.format([fpath, HT_Errors.get_message(err)]))
 		return false
 
 	var width = f.get_32()
@@ -1255,7 +1255,7 @@ static func _try_delete_0_8_0_heightmap(fpath: String, logger):
 		var err = d.remove(fpath)
 		if err != OK:
 			logger.error("Could not erase file '{0}', error {1}" \
-				.format([fpath, Errors.get_message(err)]))
+				.format([fpath, HT_Errors.get_message(err)]))
 
 
 # Imports images into the terrain data by converting them to the internal format.
@@ -1291,10 +1291,10 @@ func _edit_import_maps(input: Dictionary) -> bool:
 # Provided an arbitrary width and height,
 # returns the closest size the terrain actuallysupports
 static func get_adjusted_map_size(width: int, height: int) -> int:
-	var width_po2 = Util.next_power_of_two(width - 1) + 1
-	var height_po2 = Util.next_power_of_two(height - 1) + 1
-	var size_po2 = Util.min_int(width_po2, height_po2)
-	size_po2 = Util.clamp_int(size_po2, MIN_RESOLUTION, MAX_RESOLUTION)
+	var width_po2 = HT_Util.next_power_of_two(width - 1) + 1
+	var height_po2 = HT_Util.next_power_of_two(height - 1) + 1
+	var size_po2 = HT_Util.min_int(width_po2, height_po2)
+	size_po2 = HT_Util.clamp_int(size_po2, MIN_RESOLUTION, MAX_RESOLUTION)
 	return size_po2
 
 
@@ -1324,8 +1324,8 @@ func _import_heightmap(fpath: String, min_y: int, max_y: int, big_endian: bool) 
 
 		var hrange := max_y - min_y
 
-		var width = Util.min_int(im.get_width(), src_image.get_width())
-		var height = Util.min_int(im.get_height(), src_image.get_height())
+		var width = HT_Util.min_int(im.get_width(), src_image.get_width())
+		var height = HT_Util.min_int(im.get_height(), src_image.get_height())
 
 		_logger.debug("Converting to internal format...")
 
@@ -1380,7 +1380,7 @@ func _import_heightmap(fpath: String, min_y: int, max_y: int, big_endian: bool) 
 			return false
 
 		var file_len = f.get_len()
-		var file_res = Util.integer_square_root(file_len / 2)
+		var file_res = HT_Util.integer_square_root(file_len / 2)
 		if file_res == -1:
 			# Can't deduce size
 			return false
@@ -1412,8 +1412,8 @@ func _import_heightmap(fpath: String, min_y: int, max_y: int, big_endian: bool) 
 
 		im.lock()
 
-		var rw := Util.min_int(res, file_res)
-		var rh := Util.min_int(res, file_res)
+		var rw := HT_Util.min_int(res, file_res)
+		var rh := HT_Util.min_int(res, file_res)
 
 		# Convert to internal format (from bytes to RH16)
 		var h := 0.0
@@ -1434,7 +1434,7 @@ func _import_heightmap(fpath: String, min_y: int, max_y: int, big_endian: bool) 
 		if err != OK:
 			return false
 
-		var bounds := XYZFormat.load_bounds(f)
+		var bounds := HT_XYZFormat.load_bounds(f)
 		var res := get_adjusted_map_size(bounds.image_width, bounds.image_height)
 
 		var width := res
@@ -1452,7 +1452,7 @@ func _import_heightmap(fpath: String, min_y: int, max_y: int, big_endian: bool) 
 
 		_logger.debug(str("Parsing XYZ file (this can take a while)..."))
 		f.seek(0)
-		XYZFormat.load_heightmap(f, im, bounds)
+		HT_XYZFormat.load_heightmap(f, im, bounds)
 
 		# Flipping because in Godot, for X to mean "east"/"right", Z must be backward,
 		# and we are using Z to map the Y axis of the heightmap image.
@@ -1506,7 +1506,7 @@ static func _get_xz(v: Vector3) -> Vector2:
 	return Vector2(v.x, v.z)
 
 
-class _CellRaycastContext:
+class HT_CellRaycastContext:
 	var begin_pos := Vector3()
 	var _cell_begin_pos_y := 0.0
 	var _cell_begin_pos_2d := Vector2()
@@ -1539,7 +1539,7 @@ class _CellRaycastContext:
 		var cell_ray_origin_2d := Vector2(begin.x, begin.z)
 		_cell_begin_pos_y = begin.y
 		_cell_begin_pos_2d = cell_ray_origin_2d
-		var rhit = Util.grid_raytrace_2d(
+		var rhit = HT_Util.grid_raytrace_2d(
 			cell_ray_origin_2d, dir_2d, cell_cb_funcref, distance_in_chunk_2d)
 		return rhit != null
 	
@@ -1557,10 +1557,10 @@ class _CellRaycastContext:
 	static func _intersect_cell(heightmap: Image, cx: int, cz: int,
 		begin_pos: Vector3, dir: Vector3):
 
-		var h00 := Util.get_pixel_clamped(heightmap, cx,     cz).r
-		var h10 := Util.get_pixel_clamped(heightmap, cx + 1, cz).r
-		var h01 := Util.get_pixel_clamped(heightmap, cx,     cz + 1).r
-		var h11 := Util.get_pixel_clamped(heightmap, cx + 1, cz + 1).r
+		var h00 := HT_Util.get_pixel_clamped(heightmap, cx,     cz).r
+		var h10 := HT_Util.get_pixel_clamped(heightmap, cx + 1, cz).r
+		var h01 := HT_Util.get_pixel_clamped(heightmap, cx,     cz + 1).r
+		var h11 := HT_Util.get_pixel_clamped(heightmap, cx + 1, cz + 1).r
 
 		var p00 := Vector3(cx,     h00, cz)
 		var p10 := Vector3(cx + 1, h10, cz)
@@ -1599,7 +1599,7 @@ func cell_raycast(ray_origin: Vector3, ray_direction: Vector3, max_distance: flo
 	# Project and clip into 2D
 	var ray_origin_2d := _get_xz(ray_origin)
 	var ray_end_2d := _get_xz(ray_origin + ray_direction * max_distance)
-	var clipped_segment_2d := Util.get_segment_clipped_by_rect(terrain_rect,
+	var clipped_segment_2d := HT_Util.get_segment_clipped_by_rect(terrain_rect,
 		ray_origin_2d, ray_end_2d)
 	# TODO We could clip along Y too if we had total AABB cached somewhere
 
@@ -1617,7 +1617,7 @@ func cell_raycast(ray_origin: Vector3, ray_direction: Vector3, max_distance: flo
 	
 	var ray_direction_2d := _get_xz(ray_direction).normalized()
 	
-	var ctx := _CellRaycastContext.new()
+	var ctx := HT_CellRaycastContext.new()
 	ctx.begin_pos = ray_origin + ray_direction * (begin_clip_param * max_distance)
 	ctx.dir = ray_direction
 	ctx.dir_2d = ray_direction_2d
@@ -1636,7 +1636,7 @@ func cell_raycast(ray_origin: Vector3, ray_direction: Vector3, max_distance: flo
 	var broad_ray_origin = clipped_segment_2d[0] / VERTICAL_BOUNDS_CHUNK_SIZE
 	var broad_max_distance = \
 		clipped_segment_2d[0].distance_to(clipped_segment_2d[1]) / VERTICAL_BOUNDS_CHUNK_SIZE
-	var hit_bp = Util.grid_raytrace_2d(broad_ray_origin, ray_direction_2d, 
+	var hit_bp = HT_Util.grid_raytrace_2d(broad_ray_origin, ray_direction_2d, 
 		funcref(ctx, "broad_cb"), broad_max_distance)
 
 	heightmap.unlock()

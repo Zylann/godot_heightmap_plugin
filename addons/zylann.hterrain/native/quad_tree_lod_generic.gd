@@ -1,7 +1,7 @@
 tool
 # Independent quad tree designed to handle LOD
 
-class Quad:
+class HT_QTLQuad:
 	var children = null
 	var origin_x : int = 0
 	var origin_y : int = 0
@@ -21,7 +21,7 @@ class Quad:
 		return children != null
 
 
-var _tree := Quad.new()
+var _tree := HT_QTLQuad.new()
 var _max_depth : int = 0
 var _base_size : int = 16
 var _split_scale : float = 2.0
@@ -90,7 +90,7 @@ func get_lod_factor(lod: int) -> int:
 	return 1 << lod
 
 
-func _update(quad: Quad, lod: int, view_pos: Vector3):
+func _update(quad: HT_QTLQuad, lod: int, view_pos: Vector3):
 	# This function should be called regularly over frames.
 	
 	var lod_factor : int = get_lod_factor(lod)
@@ -110,7 +110,7 @@ func _update(quad: Quad, lod: int, view_pos: Vector3):
 			quad.children = [null, null, null, null]
 
 			for i in 4:
-				var child := Quad.new()
+				var child := HT_QTLQuad.new()
 				child.origin_x = quad.origin_x * 2 + (i & 1)
 				child.origin_y = quad.origin_y * 2 + ((i & 2) >> 1)
 				quad.children[i] = child
@@ -138,7 +138,7 @@ func _update(quad: Quad, lod: int, view_pos: Vector3):
 			quad.data = _make_chunk(lod, quad.origin_x, quad.origin_y)
 
 
-func _join_all_recursively(quad: Quad, lod: int):
+func _join_all_recursively(quad: HT_QTLQuad, lod: int):
 	if quad.has_children():
 		for i in 4:
 			_join_all_recursively(quad.children[i], lod - 1)
@@ -167,7 +167,7 @@ func debug_draw_tree(ci: CanvasItem):
 	_debug_draw_tree_recursive(ci, quad, _max_depth, 0)
 
 
-func _debug_draw_tree_recursive(ci: CanvasItem, quad: Quad, lod_index: int, child_index: int):
+func _debug_draw_tree_recursive(ci: CanvasItem, quad: HT_QTLQuad, lod_index: int, child_index: int):
 	if quad.has_children():
 		for i in 4:
 			_debug_draw_tree_recursive(ci, quad.children[i], lod_index - 1, i)

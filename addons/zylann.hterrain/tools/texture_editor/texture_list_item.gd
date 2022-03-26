@@ -5,12 +5,12 @@ extends PanelContainer
 # Which means the entire item can have variable size, not just because of DPI.
 # In such cases, the hierarchy must be made of containers that grow based on their children.
 
+const HT_ColorMaterial = preload("./display_color_material.tres")
+const HT_ColorSliceShader = preload("./display_color_slice.shader")
+const HT_DummyTexture = preload("../icons/empty.png")
+
 onready var _texture_rect = $VB/TextureRect
 onready var _label = $VB/Label
-
-const ColorMaterial = preload("./display_color_material.tres")
-const ColorSliceShader = preload("./display_color_slice.shader")
-const DummyTexture = preload("../icons/empty.png")
 
 
 var _selected := false
@@ -25,14 +25,14 @@ func set_texture(texture: Resource, texture_layer: int):
 		var mat = _texture_rect.material
 		if mat == null or not (mat is ShaderMaterial):
 			mat = ShaderMaterial.new()
-			mat.shader = ColorSliceShader
+			mat.shader = HT_ColorSliceShader
 			_texture_rect.material = mat
 		mat.set_shader_param("u_texture_array", texture)
 		mat.set_shader_param("u_index", texture_layer)
-		_texture_rect.texture = DummyTexture
+		_texture_rect.texture = HT_DummyTexture
 	else:
 		_texture_rect.texture = texture
-		_texture_rect.material = ColorMaterial
+		_texture_rect.material = HT_ColorMaterial
 
 
 func _gui_input(event: InputEvent):
