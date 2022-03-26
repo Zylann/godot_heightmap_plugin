@@ -123,13 +123,22 @@ func get_shape(i: int) -> Texture:
 	return _shapes[i]
 
 
-static func load_shape_from_image_file(fpath: String, logger) -> Texture:
+static func load_shape_from_image_file(fpath: String, logger, retries = 1) -> Texture:
 	var im := Image.new()
 	var err := im.load(fpath)
 	if err != OK:
-		logger.error("Could not load image at '{0}', error {1}" \
-			.format([fpath, HT_Errors.get_message(err)]))
-		return null
+		if retries > 0:
+			# TODO There is a bug with Godot randomly being unable to load images.
+			# See https://github.com/Zylann/godot_heightmap_plugin/issues/219
+			# Attempting to workaround this by retrying (I suspect it's because of non-initialized
+			# variable in Godot's C++ code...)
+			logger.error("Could not load image at '{0}', error {1}. Retrying..." \
+				.format([fpath, HT_Errors.get_message(err)]))
+			return load_shape_from_image_file(fpath, logger, retries - 1)
+		else:
+			logger.error("Could not load image at '{0}', error {1}" \
+				.format([fpath, HT_Errors.get_message(err)]))
+			return null
 	var tex := ImageTexture.new()
 	tex.create_from_image(im, Texture.FLAG_FILTER)
 	return tex
