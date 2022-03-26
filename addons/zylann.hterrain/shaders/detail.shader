@@ -56,6 +56,9 @@ void vertex() {
 	float hash = get_hash(obj_pos.xz);
 	
 	if (density > hash) {
+		vec3 normal = normalize(
+			u_terrain_normal_basis * unpack_normal(texture(u_terrain_normalmap, map_uv)));
+		
 		// Snap model to the terrain
 		float height = texture(u_terrain_heightmap, map_uv).r / cell_coords.y;
 		VERTEX *= u_instance_scale;
@@ -68,8 +71,9 @@ void vertex() {
 		float dr = distance(wpos, CAMERA_MATRIX[3].xyz) / u_view_distance;
 		COLOR.a = clamp(1.0 - dr * dr * dr, 0.0, 1.0);
 
-		// When using billboards, the normal is the same as the terrain regardless of face orientation
-		v_normal = normalize(u_terrain_normal_basis * unpack_normal(texture(u_terrain_normalmap, map_uv)));
+		// When using billboards,
+		// the normal is the same as the terrain regardless of face orientation
+		v_normal = normal;
 
 	} else {
 		// Discard, output degenerate triangles

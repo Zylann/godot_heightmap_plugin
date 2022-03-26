@@ -149,6 +149,8 @@ export(int, 2, 5) var lod_scale := 2.0 setget set_lod_scale, get_lod_scale
 # it would scale grass too and other environment objects.
 export var map_scale := Vector3(1, 1, 1) setget set_map_scale
 
+export var centered := false setget set_centered
+
 var _custom_shader : Shader = null
 var _custom_globalmap_shader : Shader = null
 var _shader_type := SHADER_CLASSIC4_LITE
@@ -576,12 +578,31 @@ func set_map_scale(p_map_scale: Vector3):
 	_on_transform_changed()
 
 
+func set_centered(p_centered: bool):
+	if p_centered == centered:
+		return
+	centered = p_centered
+	_on_transform_changed()
+
+
 # Gets the global transform to apply to terrain geometry,
-# which is different from Spatial.global_transform gives
-# (that one must only have translation)
+# which is different from Spatial.global_transform gives.
+# global_transform must only have translation and rotation. Scale support is undefined.
 func get_internal_transform() -> Transform:
-	# Terrain can only be self-scaled and translated,
-	return Transform(Basis().scaled(map_scale), global_transform.origin)
+	var gt = global_transform
+	var it = Transform(gt.basis * Basis().scaled(map_scale), gt.origin)
+	if centered and _data != null:
+		var half_size = 0.5 * (_data.get_resolution() - 1.0)
+		it.origin += it.basis * (-Vector3(half_size, 0, half_size))
+	return it
+
+
+func get_internal_transform_unscaled():
+	var gt = global_transform
+	if centered and _data != null:
+		var half_size = 0.5 * (_data.get_resolution() - 1.0)
+		gt.origin += gt.basis * (-Vector3(half_size, 0, half_size))
+	return gt
 
 
 func _notification(what: int):
