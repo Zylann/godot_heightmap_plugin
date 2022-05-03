@@ -1,9 +1,8 @@
-[gd_scene load_steps=10 format=2]
+[gd_scene load_steps=9 format=2]
 
 [ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/set_editor/texture_set_editor.gd" type="Script" id=1]
 [ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/display_alpha.shader" type="Shader" id=2]
 [ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/display_color.shader" type="Shader" id=3]
-[ext_resource path="res://addons/zylann.hterrain/tools/icons/empty.png" type="Texture" id=4]
 [ext_resource path="res://addons/zylann.hterrain/tools/util/dialog_fitter.tscn" type="PackedScene" id=5]
 
 [sub_resource type="ShaderMaterial" id=1]
@@ -25,9 +24,6 @@ margin_bottom = 320.0
 rect_min_size = Vector2( 652, 320 )
 window_title = "TextureSet Editor"
 script = ExtResource( 1 )
-__meta__ = {
-"_edit_use_anchors_": false
-}
 
 [node name="VB" type="VBoxContainer" parent="."]
 anchor_right = 1.0
@@ -116,7 +112,6 @@ margin_top = 18.0
 margin_right = 128.0
 margin_bottom = 146.0
 rect_min_size = Vector2( 128, 128 )
-texture = ExtResource( 4 )
 expand = true
 stretch_mode = 1
 
@@ -127,7 +122,6 @@ margin_top = 18.0
 margin_right = 260.0
 margin_bottom = 146.0
 rect_min_size = Vector2( 128, 128 )
-texture = ExtResource( 4 )
 expand = true
 stretch_mode = 1
 
@@ -138,7 +132,6 @@ margin_top = 18.0
 margin_right = 392.0
 margin_bottom = 146.0
 rect_min_size = Vector2( 128, 128 )
-texture = ExtResource( 4 )
 expand = true
 stretch_mode = 1
 
@@ -149,7 +142,6 @@ margin_top = 18.0
 margin_right = 524.0
 margin_bottom = 146.0
 rect_min_size = Vector2( 128, 128 )
-texture = ExtResource( 4 )
 expand = true
 stretch_mode = 1
 
@@ -259,6 +251,7 @@ margin_bottom = 304.0
 rect_min_size = Vector2( 0, 2 )
 
 [node name="DialogFitter" parent="." instance=ExtResource( 5 )]
+
 [connection signal="item_selected" from="VB/HS/VB/SlotsList" to="." method="_on_SlotsList_item_selected"]
 [connection signal="pressed" from="VB/HS/VB/HB/AddSlot" to="." method="_on_AddSlot_pressed"]
 [connection signal="pressed" from="VB/HS/VB/HB/RemoveSlot" to="." method="_on_RemoveSlot_pressed"]

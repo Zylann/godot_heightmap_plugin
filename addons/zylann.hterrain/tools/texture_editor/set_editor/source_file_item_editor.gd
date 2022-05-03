@@ -1,7 +1,9 @@
 tool
 extends Control
 
-const HT_EmptyTexture = preload("../../icons/empty.png")
+# TODO Can't preload because it causes the plugin to fail loading if assets aren't imported
+#const HT_EmptyTexture = preload("../../icons/empty.png")
+const EMPTY_TEXTURE_PATH = "res://addons/zylann.hterrain/tools/icons/empty.png"
 
 signal load_pressed
 signal clear_pressed
@@ -16,6 +18,7 @@ onready var _buttons = [
 ]
 
 var _material : Material
+var _is_empty = true
 
 
 func set_label(text: String):
@@ -24,11 +27,13 @@ func set_label(text: String):
 
 func set_texture(tex: Texture):
 	if tex == null:
-		_texture_rect.texture = HT_EmptyTexture
+		_texture_rect.texture = load(EMPTY_TEXTURE_PATH)
 		_texture_rect.material = null
+		_is_empty = true
 	else:
 		_texture_rect.texture = tex
 		_texture_rect.material = _material
+		_is_empty = false
 
 
 func set_texture_tooltip(msg: String):
@@ -45,7 +50,7 @@ func _on_ClearButton_pressed():
 
 func set_material(mat: Material):
 	_material = mat
-	if _texture_rect.texture != HT_EmptyTexture:
+	if not _is_empty:
 		_texture_rect.material = _material
 
 

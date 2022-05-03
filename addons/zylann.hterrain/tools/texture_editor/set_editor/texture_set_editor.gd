@@ -4,12 +4,15 @@ extends Control
 const HTerrainTextureSet = preload("../../../hterrain_texture_set.gd")
 const HT_EditorUtil = preload("../../util/editor_util.gd")
 const HT_Util = preload("../../../util/util.gd")
+const HT_Logger = preload("../../../util/logger.gd")
 
 const HT_ColorShader = preload("../display_color.shader")
 const HT_ColorSliceShader = preload("../display_color_slice.shader")
 const HT_AlphaShader = preload("../display_alpha.shader")
 const HT_AlphaSliceShader = preload("../display_alpha_slice.shader")
-const HT_EmptyTexture = preload("../../icons/empty.png")
+# TODO Can't preload because it causes the plugin to fail loading if assets aren't imported
+#const HT_EmptyTexture = preload("../../icons/empty.png")
+const EMPTY_TEXTURE_PATH = "res://addons/zylann.hterrain/tools/icons/empty.png"
 
 signal import_selected
 
@@ -34,6 +37,8 @@ var _delete_slot_confirmation_dialog : ConfirmationDialog
 var _load_texture_dialog : WindowDialog
 var _load_texture_array_dialog : WindowDialog
 var _load_texture_type := -1
+
+var _logger = HT_Logger.get_for(self)
 
 
 func _ready():
@@ -173,10 +178,14 @@ func select_slot(slot_index: int):
 
 
 func _clear_previews():
-	_albedo_preview.texture = HT_EmptyTexture
-	_bump_preview.texture = HT_EmptyTexture
-	_normal_preview.texture = HT_EmptyTexture
-	_roughness_preview.texture = HT_EmptyTexture
+	var empty_texture = load(EMPTY_TEXTURE_PATH)
+	if empty_texture == null:
+		_logger.error("Failed to load empty texture ", EMPTY_TEXTURE_PATH)
+	
+	_albedo_preview.texture = empty_texture
+	_bump_preview.texture = empty_texture
+	_normal_preview.texture = empty_texture
+	_roughness_preview.texture = empty_texture
 	
 	_albedo_preview.hint_tooltip = _get_resource_path_or_empty(null)
 	_bump_preview.hint_tooltip = _get_resource_path_or_empty(null)
@@ -187,17 +196,21 @@ func _clear_previews():
 func _select_slot(slot_index: int):
 	assert(slot_index >= 0)
 	assert(slot_index < _texture_set.get_slots_count())
+
+	var empty_texture = load(EMPTY_TEXTURE_PATH)
+	if empty_texture == null:
+		_logger.error("Failed to load empty texture ", EMPTY_TEXTURE_PATH)
 	
 	if _texture_set.get_mode() == HTerrainTextureSet.MODE_TEXTURES:
 		var albedo_tex := \
 			_texture_set.get_texture(slot_index, HTerrainTextureSet.TYPE_ALBEDO_BUMP)
 		var normal_tex := \
 			_texture_set.get_texture(slot_index, HTerrainTextureSet.TYPE_NORMAL_ROUGHNESS)
-	
-		_albedo_preview.texture = albedo_tex if albedo_tex != null else HT_EmptyTexture
-		_bump_preview.texture = albedo_tex if albedo_tex != null else HT_EmptyTexture
-		_normal_preview.texture = normal_tex if normal_tex != null else HT_EmptyTexture
-		_roughness_preview.texture = normal_tex if normal_tex != null else HT_EmptyTexture
+
+		_albedo_preview.texture = albedo_tex if albedo_tex != null else empty_texture
+		_bump_preview.texture = albedo_tex if albedo_tex != null else empty_texture
+		_normal_preview.texture = normal_tex if normal_tex != null else empty_texture
+		_roughness_preview.texture = normal_tex if normal_tex != null else empty_texture
 		
 		_albedo_preview.hint_tooltip = _get_resource_path_or_empty(albedo_tex)
 		_bump_preview.hint_tooltip = _get_resource_path_or_empty(albedo_tex)
@@ -218,10 +231,10 @@ func _select_slot(slot_index: int):
 		var albedo_tex := _texture_set.get_texture_array(HTerrainTextureSet.TYPE_ALBEDO_BUMP)
 		var normal_tex := _texture_set.get_texture_array(HTerrainTextureSet.TYPE_NORMAL_ROUGHNESS)
 	
-		_albedo_preview.texture = HT_EmptyTexture
-		_bump_preview.texture = HT_EmptyTexture
-		_normal_preview.texture = HT_EmptyTexture
-		_roughness_preview.texture = HT_EmptyTexture
+		_albedo_preview.texture = empty_texture
+		_bump_preview.texture = empty_texture
+		_normal_preview.texture = empty_texture
+		_roughness_preview.texture = empty_texture
 		
 		_albedo_preview.hint_tooltip = _get_resource_path_or_empty(albedo_tex)
 		_bump_preview.hint_tooltip = _get_resource_path_or_empty(albedo_tex)

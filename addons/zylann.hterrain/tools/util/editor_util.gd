@@ -106,3 +106,23 @@ static func _add_texture_array_filters(file_dialog):
 	_add_image_filters(file_dialog)
 	file_dialog.add_filter("*.texarr ; TextureArray files")
 	file_dialog.add_filter("*.packed_texarr ; HTerrainPackedTextureArray files")
+
+
+# Tries to load a texture with the ResourceLoader, and if it fails, attempts
+# to load it manually as an ImageTexture
+static func load_texture(path: String, logger) -> Texture:
+	var tex : Texture = load(path)
+	if tex != null:
+		return tex
+	# This can unfortunately happen when the editor didn't import assets yet.
+	# See https://github.com/godotengine/godot/issues/17483
+	logger.error(str("Failed to load texture ", path, ", attempting to load manually"))
+	var im := Image.new()
+	var err = im.load(path)
+	if err != OK:
+		logger.error(str("Failed to load image ", path))
+		return null
+	var itex := ImageTexture.new()
+	itex.create_from_image(im, Texture.FLAG_FILTER)
+	return itex
+

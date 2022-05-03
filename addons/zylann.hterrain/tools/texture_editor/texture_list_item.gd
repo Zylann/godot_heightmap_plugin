@@ -7,7 +7,9 @@ extends PanelContainer
 
 const HT_ColorMaterial = preload("./display_color_material.tres")
 const HT_ColorSliceShader = preload("./display_color_slice.shader")
-const HT_DummyTexture = preload("../icons/empty.png")
+# TODO Can't preload because it causes the plugin to fail loading if assets aren't imported
+#const HT_DummyTexture = preload("../icons/empty.png")
+const DUMMY_TEXTURE_PATH = "res://addons/zylann.hterrain/tools/icons/empty.png"
 
 onready var _texture_rect = $VB/TextureRect
 onready var _label = $VB/Label
@@ -29,7 +31,7 @@ func set_texture(texture: Resource, texture_layer: int):
 			_texture_rect.material = mat
 		mat.set_shader_param("u_texture_array", texture)
 		mat.set_shader_param("u_index", texture_layer)
-		_texture_rect.texture = HT_DummyTexture
+		_texture_rect.texture = load(DUMMY_TEXTURE_PATH)
 	else:
 		_texture_rect.texture = texture
 		_texture_rect.material = HT_ColorMaterial

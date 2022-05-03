@@ -4,6 +4,13 @@ extends Control
 const HTerrainData = preload("../../hterrain_data.gd")
 const HTerrainDetailLayer = preload("../../hterrain_detail_layer.gd")
 const HT_ImageFileCache = preload("../../util/image_file_cache.gd")
+const HT_EditorUtil = preload("../util/editor_util.gd")
+const HT_Logger = preload("../../util/logger.gd")
+
+# TODO Can't preload because it causes the plugin to fail loading if assets aren't imported
+const PLACEHOLDER_ICON_TEXTURE = "res://addons/zylann.hterrain/tools/icons/icon_grass.svg"
+const DETAIL_LAYER_ICON_TEXTURE = \
+	"res://addons/zylann.hterrain/tools/icons/icon_detail_layer_node.svg"
 
 signal detail_selected(index)
 # Emitted when the tool added or removed a detail map
@@ -14,10 +21,9 @@ onready var _confirmation_dialog = $ConfirmationDialog
 
 var _terrain = null
 var _dialog_target = -1
-var _placeholder_icon = load("res://addons/zylann.hterrain/tools/icons/icon_grass.svg")
-var _detail_layer_icon = load("res://addons/zylann.hterrain/tools/icons/icon_detail_layer_node.svg")
 var _undo_redo : UndoRedo
 var _image_cache : HT_ImageFileCache
+var _logger = HT_Logger.get_for(self)
 
 
 func set_terrain(terrain):
@@ -57,9 +63,11 @@ func _update_list():
 		# Display layers from what terrain data actually contains,
 		# because layer nodes are just what makes them rendered and aren't much restricted.
 		var layer_count = data.get_map_count(HTerrainData.CHANNEL_DETAIL)
+		var placeholder_icon = HT_EditorUtil.load_texture(PLACEHOLDER_ICON_TEXTURE, _logger)
+		
 		for i in layer_count:
 			# TODO Show a preview icon
-			_item_list.add_item(str("Map ", i), _placeholder_icon)
+			_item_list.add_item(str("Map ", i), placeholder_icon)
 			
 			if layer_nodes_by_index.has(i):
 				# TODO How to keep names updated with node names?
@@ -104,7 +112,8 @@ func _add_layer():
 	# First, create node and map image	
 	var node = HTerrainDetailLayer.new()
 	# TODO Workarounds for https://github.com/godotengine/godot/issues/21410
-	node.set_meta("_editor_icon", _detail_layer_icon)
+	var detail_layer_icon = HT_EditorUtil.load_texture(DETAIL_LAYER_ICON_TEXTURE, _logger)
+	node.set_meta("_editor_icon", detail_layer_icon)
 	node.name = "HTerrainDetailLayer"
 	var map_index := terrain_data._edit_add_map(HTerrainData.CHANNEL_DETAIL)
 	var map_image := terrain_data.get_image(HTerrainData.CHANNEL_DETAIL)

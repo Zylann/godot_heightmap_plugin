@@ -1,6 +1,5 @@
-[gd_scene load_steps=5 format=2]
+[gd_scene load_steps=4 format=2]
 
-[ext_resource path="res://addons/zylann.hterrain/tools/brush/shapes/round2.exr" type="Texture" id=1]
 [ext_resource path="res://addons/zylann.hterrain/tools/util/spin_slider.tscn" type="PackedScene" id=2]
 [ext_resource path="res://addons/zylann.hterrain/tools/brush/settings_dialog/brush_settings_dialog.gd" type="Script" id=3]
 [ext_resource path="res://addons/zylann.hterrain/tools/brush/settings_dialog/preview_scratchpad.tscn" type="PackedScene" id=4]
@@ -52,7 +51,6 @@ margin_right = 120.0
 margin_bottom = 308.0
 rect_min_size = Vector2( 120, 0 )
 size_flags_vertical = 3
-items = [ "", ExtResource( 1 ), false ]
 fixed_icon_size = Vector2( 100, 100 )
 
 [node name="ChangeShape" type="Button" parent="VB/HB/VB"]

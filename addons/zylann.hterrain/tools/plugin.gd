@@ -19,7 +19,6 @@ const HT_GlobalMapBaker = preload("./globalmap_baker.gd")
 const HT_ImageFileCache = preload("../util/image_file_cache.gd")
 const HT_Logger = preload("../util/logger.gd")
 
-# TODO Suffix with Scene
 const HT_EditPanelScene = preload("./panel.tscn")
 const HT_ProgressWindowScene = preload("./progress_window.tscn")
 const HT_GeneratorDialogScene = preload("./generator/generator_dialog.tscn")
@@ -84,8 +83,9 @@ var _pending_paint_commit := false
 var _logger = HT_Logger.get_for(self)
 
 
-static func get_icon(name: String) -> Texture:
-	return load("res://addons/zylann.hterrain/tools/icons/icon_" + name + ".svg") as Texture
+func get_icon(icon_name: String) -> Texture:
+	return HT_EditorUtil.load_texture(
+		"res://addons/zylann.hterrain/tools/icons/icon_" + icon_name + ".svg", _logger)
 
 
 func _enter_tree():

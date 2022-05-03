@@ -68,11 +68,9 @@ anchor_bottom = 1.0
 rect_clip_content = true
 mouse_filter = 2
 script = ExtResource( 3 )
-__meta__ = {
-"_edit_use_anchors_": false
-}
 cursor_texture = ExtResource( 4 )
 out_of_range_texture = ExtResource( 5 )
 
 [node name="Cursor" type="Sprite" parent="Overlay"]
+
 [connection signal="id_pressed" from="PopupMenu" to="." method="_on_PopupMenu_id_pressed"]

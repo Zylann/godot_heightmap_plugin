@@ -4,6 +4,9 @@ extends Control
 const HTerrain = preload("../../hterrain.gd")
 const HTerrainTextureSet = preload("../../hterrain_texture_set.gd")
 const HT_TextureList = preload("./texture_list.gd")
+const HT_Logger = preload("../../util/logger.gd")
+# TODO Can't preload because it causes the plugin to fail loading if assets aren't imported
+const EMPTY_ICON_TEXTURE_PATH = "res://addons/zylann.hterrain/tools/icons/empty.png"
 
 signal texture_selected(index)
 signal edit_pressed(index)
@@ -16,10 +19,16 @@ var _terrain : HTerrain = null
 var _texture_set : HTerrainTextureSet = null
 
 var _texture_list_need_update := false
-var _empty_icon = load("res://addons/zylann.hterrain/tools/icons/empty.png")
+var _empty_icon : Texture
+
+var _logger = HT_Logger.get_for(self)
 
 
 func _ready():
+	_empty_icon = load(EMPTY_ICON_TEXTURE_PATH)
+	if _empty_icon == null:
+		_logger.error(str("Failed to load empty icon ", EMPTY_ICON_TEXTURE_PATH))
+	
 	# Default amount, will be updated when a terrain is assigned
 	_textures_list.clear()
 	for i in range(4):

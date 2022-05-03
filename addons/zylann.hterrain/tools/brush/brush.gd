@@ -8,7 +8,7 @@ tool
 const HT_Errors = preload("../../util/errors.gd")
 
 const SHAPES_DIR = "addons/zylann.hterrain/tools/brush/shapes"
-const DEFAULT_BRUSH = "round2.exr"
+const DEFAULT_BRUSH_TEXTURE_PATH = SHAPES_DIR + "/round2.exr"
 # Reasonable size for sliders to be usable
 const MAX_SIZE_FOR_SLIDERS = 500
 # Absolute size limit. Terrains can't be larger than that, and it will be very slow to paint

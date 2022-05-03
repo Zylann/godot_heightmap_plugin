@@ -127,7 +127,7 @@ func set_terrain_painter(terrain_painter: HT_TerrainPainter):
 		
 		# Load default brush
 		var brush := _terrain_painter.get_brush()
-		var default_shape_fpath := HT_Brush.SHAPES_DIR.plus_file(HT_Brush.DEFAULT_BRUSH)
+		var default_shape_fpath := HT_Brush.DEFAULT_BRUSH_TEXTURE_PATH
 		var default_shape := HT_Brush.load_shape_from_image_file(default_shape_fpath, _logger)
 		brush.set_shapes([default_shape])
 		_shape_texture_rect.texture = brush.get_shape(0)

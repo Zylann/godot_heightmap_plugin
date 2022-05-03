@@ -16,7 +16,9 @@ const HT_DirectMultiMeshInstance = preload("./util/direct_multimesh_instance.gd"
 const HT_DirectMeshInstance = preload("./util/direct_mesh_instance.gd")
 const HT_Util = preload("./util/util.gd")
 const HT_Logger = preload("./util/logger.gd")
-const HT_DefaultMesh = preload("./models/grass_quad.obj")
+# TODO Can't preload because it causes the plugin to fail loading if assets aren't imported
+const DEFAULT_MESH_PATH = "res://addons/zylann.hterrain/models/grass_quad.obj"
+
 var HTerrain = load("res://addons/zylann.hterrain/hterrain.gd")
 
 const CHUNK_SIZE = 32
@@ -267,7 +269,10 @@ func get_render_layer_mask() -> int:
 
 func _get_used_mesh() -> Mesh:
 	if instance_mesh == null:
-		return HT_DefaultMesh
+		var mesh = load(DEFAULT_MESH_PATH) as Mesh
+		if mesh == null:
+			_logger.error(str("Failed to load default mesh: ", DEFAULT_MESH_PATH))
+		return mesh
 	return instance_mesh
 
 

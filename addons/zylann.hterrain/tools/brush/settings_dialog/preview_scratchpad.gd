@@ -2,16 +2,24 @@ tool
 extends Control
 
 const HT_PreviewPainter = preload("./preview_painter.gd")
-const HT_DefaultBrushTexture = preload("../shapes/round2.exr")
+# TODO Can't preload because it causes the plugin to fail loading if assets aren't imported
+#const HT_DefaultBrushTexture = preload("../shapes/round2.exr")
+const HT_Brush = preload("../brush.gd")
+const HT_Logger = preload("../../../util/logger.gd")
+const HT_EditorUtil = preload("../../util/editor_util.gd")
 
 onready var _texture_rect : TextureRect = $TextureRect
 onready var _painter : HT_PreviewPainter = $Painter
+
+var _logger := HT_Logger.get_for(self)
 
 
 func _ready():
 	reset_image()
 	# Default so it doesnt crash when painting and can be tested
-	_painter.get_brush().set_shapes([HT_DefaultBrushTexture])
+	var default_brush_texture = \
+		HT_EditorUtil.load_texture(HT_Brush.DEFAULT_BRUSH_TEXTURE_PATH, _logger)
+	_painter.get_brush().set_shapes([default_brush_texture])
 
 
 func reset_image():

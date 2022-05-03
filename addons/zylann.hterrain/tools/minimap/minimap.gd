@@ -5,7 +5,9 @@ const HT_Util = preload("../../util/util.gd")
 const HTerrainData = preload("../../hterrain_data.gd")
 
 const HT_MinimapShader = preload("./minimap_normal.shader")
-const HT_WhiteTexture = preload("../icons/white.png")
+# TODO Can't preload because it causes the plugin to fail loading if assets aren't imported
+#const HT_WhiteTexture = preload("../icons/white.png")
+const WHITE_TEXTURE_PATH = "res://addons/zylann.hterrain/tools/icons/white.png"
 
 const MODE_QUADTREE = 0
 const MODE_NORMAL = 1
@@ -99,9 +101,11 @@ func _update_normal_material():
 	var normalmap = data.get_texture(HTerrainData.CHANNEL_NORMAL)
 	_set_if_changed(_color_rect.material, "u_normalmap", normalmap)
 
-	var globalmap = HT_WhiteTexture
+	var globalmap : Texture
 	if data.has_texture(HTerrainData.CHANNEL_GLOBAL_ALBEDO, 0):
 		globalmap = data.get_texture(HTerrainData.CHANNEL_GLOBAL_ALBEDO)
+	if globalmap == null:
+		globalmap = load(WHITE_TEXTURE_PATH)
 	_set_if_changed(_color_rect.material, "u_globalmap", globalmap)
 
 

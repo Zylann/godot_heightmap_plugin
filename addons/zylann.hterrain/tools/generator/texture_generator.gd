@@ -7,6 +7,9 @@ extends Node
 
 const HT_Util = preload("res://addons/zylann.hterrain/util/util.gd")
 const HT_TextureGeneratorPass = preload("./texture_generator_pass.gd")
+const HT_Logger = preload("../../util/logger.gd")
+# TODO Can't preload because it causes the plugin to fail loading if assets aren't imported
+const DUMMY_TEXTURE_PATH = "res://addons/zylann.hterrain/tools/icons/empty.png"
 
 signal progress_reported(info)
 # Emitted when an output is generated.
@@ -19,7 +22,7 @@ var _resolution := Vector2(512, 512)
 var _output_padding := [0, 0, 0, 0]
 var _viewport : Viewport = null
 var _ci : TextureRect = null
-var _dummy_texture = load("res://addons/zylann.hterrain/tools/icons/empty.png")
+var _dummy_texture : Texture
 var _running := false
 var _rerun := false
 #var _tiles = PoolVector2Array([Vector2()])
@@ -29,6 +32,8 @@ var _running_pass_index := 0
 var _running_iteration := 0
 var _shader_material : ShaderMaterial = null
 #var _uv_offset = 0 # Offset de to padding
+
+var _logger = HT_Logger.get_for(self)
 
 
 func _ready():
@@ -41,6 +46,10 @@ func _ready():
 	_viewport.render_target_v_flip = true
 	_viewport.render_target_update_mode = Viewport.UPDATE_DISABLED
 	add_child(_viewport)
+	
+	_dummy_texture = load(DUMMY_TEXTURE_PATH)
+	if _dummy_texture == null:
+		_logger.error(str("Failed to load dummy texture ", DUMMY_TEXTURE_PATH))
 
 	_ci = TextureRect.new()
 	_ci.expand = true

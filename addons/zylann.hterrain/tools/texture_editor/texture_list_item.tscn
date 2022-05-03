@@ -1,6 +1,5 @@
-[gd_scene load_steps=4 format=2]
+[gd_scene load_steps=3 format=2]
 
-[ext_resource path="res://icon.png" type="Texture" id=1]
 [ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/texture_list_item.gd" type="Script" id=2]
 
 [sub_resource type="StyleBoxEmpty" id=1]
@@ -16,9 +15,6 @@ rect_min_size = Vector2( 64, 80 )
 focus_mode = 1
 custom_styles/panel = SubResource( 1 )
 script = ExtResource( 2 )
-__meta__ = {
-"_edit_use_anchors_": false
-}
 
 [node name="VB" type="VBoxContainer" parent="."]
 margin_left = 2.0
@@ -37,7 +33,6 @@ margin_bottom = 62.0
 rect_min_size = Vector2( 60, 60 )
 mouse_filter = 2
 size_flags_vertical = 3
-texture = ExtResource( 1 )
 expand = true
 stretch_mode = 1
 __meta__ = {
