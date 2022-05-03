@@ -605,6 +605,12 @@ func get_internal_transform_unscaled():
 	return gt
 
 
+# Converts a world-space position into a map-space position.
+# Map space X and Z coordinates correspond to pixel coordinates of the heightmap.
+func world_to_map(world_pos: Vector3) -> Vector3:
+	return get_internal_transform().affine_inverse(world_pos) * world_pos
+
+
 func _notification(what: int):
 	match what:
 		NOTIFICATION_PREDELETE:
