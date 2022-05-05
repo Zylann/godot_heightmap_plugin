@@ -4,7 +4,6 @@ render_mode blend_disabled;
 uniform sampler2D u_src_texture;
 uniform vec4 u_src_rect;
 uniform float u_opacity = 1.0;
-uniform float u_factor = 1.0;
 uniform vec4 u_splat = vec4(1.0, 0.0, 0.0, 0.0);
 uniform sampler2D u_other_splatmap_1;
 uniform sampler2D u_other_splatmap_2;
@@ -51,7 +50,7 @@ float apply_slope_limit(float brush_value, vec3 normal, float normal_min_y, floa
 }
 
 void fragment() {
-	float brush_value = u_opacity * texture(TEXTURE, UV).r * u_factor;
+	float brush_value = u_opacity * texture(TEXTURE, UV).r;
 	
 	vec2 src_uv = get_src_uv(SCREEN_UV);
 	vec3 normal = get_normal(u_heightmap, src_uv);

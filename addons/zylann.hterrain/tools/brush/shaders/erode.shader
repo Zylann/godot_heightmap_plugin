@@ -3,7 +3,6 @@ shader_type canvas_item;
 uniform sampler2D u_src_texture;
 uniform vec4 u_src_rect;
 uniform float u_opacity = 1.0;
-uniform float u_factor = 1.0;
 uniform vec4 u_color = vec4(1.0);
 
 vec2 get_src_uv(vec2 screen_uv) {
@@ -50,7 +49,7 @@ float erode(sampler2D heightmap, vec2 uv, vec2 pixel_size, float weight) {
 }
 
 void fragment() {
-	float brush_value = u_opacity * texture(TEXTURE, UV).r * u_factor;
+	float brush_value = u_opacity * texture(TEXTURE, UV).r;
 	vec2 src_pixel_size = 1.0 / vec2(textureSize(u_src_texture, 0));
 	float ph = erode(u_src_texture, get_src_uv(SCREEN_UV), src_pixel_size, brush_value);
 	//ph += brush_value * 0.35;

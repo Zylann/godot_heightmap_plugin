@@ -14,7 +14,7 @@ vec2 get_src_uv(vec2 screen_uv) {
 // TODO Could actually level to whatever height the brush was at the beginning of the stroke?
 
 void fragment() {
-	float brush_value = u_opacity * texture(TEXTURE, UV).r;
+	float brush_value = u_factor * u_opacity * texture(TEXTURE, UV).r;
 
 	// The heightmap does not have mipmaps,
 	// so we need to use an approximation of average.
@@ -34,6 +34,6 @@ void fragment() {
 	
 	// TODO I have no idea if this will check out
 	float src_h = texture(u_src_texture, get_src_uv(SCREEN_UV)).r;
-	float h = mix(src_h, dst_h, u_factor * brush_value);
+	float h = mix(src_h, dst_h, brush_value);
 	COLOR = vec4(h, 0.0, 0.0, 1.0);
 }

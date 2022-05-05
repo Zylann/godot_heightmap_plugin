@@ -36,7 +36,6 @@ func paint_input(position: Vector2, pressure: float):
 		return
 	
 	p.set_brush_shader(HT_ColorShader)
-	#p.set_brush_shader_param("u_factor", _opacity)
 	p.set_brush_shader_param("u_color", Color(0,0,0,1))
 	#p.set_image(_image, _texture)
 	p.paint_input(position)

@@ -368,7 +368,6 @@ func _paint_flatten(data: HTerrainData, position: Vector2):
 	var p : HT_Painter = _painters[0]
 	
 	p.set_brush_shader(HT_FlattenShader)
-	#p.set_brush_shader_param("u_factor", _opacity)
 	p.set_brush_shader_param("u_flatten_value", _flatten_height)
 	p.set_image(image, texture)
 	p.paint_input(position)
@@ -405,7 +404,6 @@ func _paint_erode(data: HTerrainData, position: Vector2):
 	var p : HT_Painter = _painters[0]
 	
 	p.set_brush_shader(HT_ErodeShader)
-	#p.set_brush_shader_param("u_factor", _opacity)
 	p.set_image(image, texture)
 	p.paint_input(position)
 
@@ -425,7 +423,6 @@ func _paint_splat4(data: HTerrainData, position: Vector2):
 	var splat = Color(0.0, 0.0, 0.0, 0.0)
 	splat[_texture_index] = 1.0;
 	p.set_brush_shader(HT_Splat4Shader)
-	#p.set_brush_shader_param("u_factor", _opacity)
 	p.set_brush_shader_param("u_splat", splat)
 	p.set_brush_shader_param("u_normal_min_y", cos(_slope_limit_high_angle))
 	p.set_brush_shader_param("u_normal_max_y", cos(_slope_limit_low_angle) + 0.001)
@@ -458,7 +455,6 @@ func _paint_splat_indexed(data: HTerrainData, position: Vector2):
 
 		p.set_brush_shader(HT_SplatIndexedShader)
 		p.set_brush_shader_param("u_mode", mode)
-		#p.set_brush_shader_param("u_factor", _opacity)
 		p.set_brush_shader_param("u_index_map", textures[0])
 		p.set_brush_shader_param("u_weight_map", textures[1])
 		p.set_brush_shader_param("u_texture_index", _texture_index)
@@ -500,7 +496,6 @@ func _paint_splat16(data: HTerrainData, position: Vector2):
 				other_splatmaps.append(tex)
 		
 		p.set_brush_shader(HT_Splat16Shader)
-		#p.set_brush_shader_param("u_factor", _opacity)
 		p.set_brush_shader_param("u_splat", splats[i])
 		p.set_brush_shader_param("u_other_splatmap_1", other_splatmaps[0])
 		p.set_brush_shader_param("u_other_splatmap_2", other_splatmaps[1])
@@ -528,7 +523,6 @@ func _paint_color(data: HTerrainData, position: Vector2):
 	# https://github.com/Zylann/godot_heightmap_plugin/issues/17#issuecomment-734001879
 
 	p.set_brush_shader(HT_ColorShader)
-	#p.set_brush_shader_param("u_factor", _opacity)
 	p.set_brush_shader_param("u_color", _color)
 	p.set_image(image, texture)
 	p.paint_input(position)
@@ -547,7 +541,6 @@ func _paint_mask(data: HTerrainData, position: Vector2):
 	var p : HT_Painter = _painters[0]
 	
 	p.set_brush_shader(HT_AlphaShader)
-	#p.set_brush_shader_param("u_factor", _opacity)
 	p.set_brush_shader_param("u_value", 1.0 if _mask_flag else 0.0)
 	p.set_image(image, texture)
 	p.paint_input(position)
@@ -568,7 +561,6 @@ func _paint_detail(data: HTerrainData, position: Vector2):
 	
 	# TODO Don't use this shader
 	p.set_brush_shader(HT_ColorShader)
-	#p.set_brush_shader_param("u_factor", _opacity)
 	p.set_brush_shader_param("u_color", c)
 	p.set_image(image, texture)
 	p.paint_input(position)

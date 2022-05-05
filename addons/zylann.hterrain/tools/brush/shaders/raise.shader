@@ -12,9 +12,9 @@ vec2 get_src_uv(vec2 screen_uv) {
 }
 
 void fragment() {
-	float brush_value = u_opacity * texture(TEXTURE, UV).r;
+	float brush_value = u_factor * u_opacity * texture(TEXTURE, UV).r;
 	
 	float src_h = texture(u_src_texture, get_src_uv(SCREEN_UV)).r;
-	float h = src_h + u_factor * brush_value;
+	float h = src_h + brush_value;
 	COLOR = vec4(h, 0.0, 0.0, 1.0);
 }

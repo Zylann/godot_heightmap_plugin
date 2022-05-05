@@ -4,7 +4,6 @@ render_mode blend_disabled;
 uniform sampler2D u_src_texture;
 uniform vec4 u_src_rect;
 uniform float u_opacity = 1.0;
-uniform float u_factor = 1.0;
 uniform int u_texture_index;
 uniform int u_mode; // 0: output index, 1: output weight
 uniform sampler2D u_index_map;
@@ -16,7 +15,7 @@ vec2 get_src_uv(vec2 screen_uv) {
 }
 
 void fragment() {
-	float brush_value = u_opacity * texture(TEXTURE, UV).r * clamp(u_factor, 0.0, 1.0);
+	float brush_value = u_opacity * texture(TEXTURE, UV).r;
 	
 	vec2 src_uv = get_src_uv(SCREEN_UV);
 	vec4 iv = texture(u_index_map, src_uv);

@@ -4,7 +4,6 @@ render_mode blend_disabled;
 uniform sampler2D u_src_texture;
 uniform vec4 u_src_rect;
 uniform float u_opacity = 1.0;
-uniform float u_factor = 1.0;
 uniform vec4 u_color = vec4(1.0);
 
 vec2 get_src_uv(vec2 screen_uv) {
@@ -23,6 +22,6 @@ void fragment() {
 	// So it's not possible to use viewports to paint albedo...
 	//src.rgb = pow(src.rgb, vec3(0.4545));
 
-	vec4 col = vec4(mix(src.rgb, u_color.rgb, brush_value * u_factor), src.a);
+	vec4 col = vec4(mix(src.rgb, u_color.rgb, brush_value), src.a);
 	COLOR = col;
 }
