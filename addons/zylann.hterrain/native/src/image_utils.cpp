@@ -26,7 +26,7 @@ inline void generic_brush_op(Image &image, Image &brush, Vector2 p_pos, float fa
 	}
 
 	image.unlock();
-	brush.lock();
+	brush.unlock();
 }
 
 ImageUtils::ImageUtils() {
@@ -248,7 +248,7 @@ void ImageUtils::blur_red_brush(Ref<Image> image_ref, Ref<Image> brush_ref, Vect
 	}
 
 	image.unlock();
-	brush.lock();
+	brush.unlock();
 }
 
 void ImageUtils::paint_indexed_splat(Ref<Image> index_map_ref, Ref<Image> weight_map_ref,
