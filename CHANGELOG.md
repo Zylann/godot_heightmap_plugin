@@ -4,6 +4,35 @@ Changelog
 This is a high-level changelog for each released versions of the plugin.
 For a more detailed list of past and incoming changes, see the commit history.
 
+
+1.6
+------
+
+- Added island modifier to the terrain generator
+- Added option to add the current heightmap to the generated one in the generator
+- Added `render_layers` property to expose the same as `VisualInstance.layers`
+- Added `anisotropic` parameter to packed texture importers
+- Added support for loading terrain maps imported as `Image`, allowing modification in game
+- Added basic support for pen pressure (tablets)
+- Added random brush rotation
+- Added brush multi-shape randomization
+- Added brush spacing based on time and distance
+- Added support for importing `.xyz` files as heightmap
+- Added rotation and centering support
+- Increased brush size slider maximum to 500, and allow up to 4000 if typed in (expensive, use at your own risk)
+- Ported quad tree code to GDNative for a bit of speedup on Windows and Linux (thanks to tinmanjuggernaut)
+- Prefixed ALL internal classes of the plugin to prevent clashes with `class_name` (see issue #313)
+- Added workarounds to allow the plugin to initialize even if assets are not imported yet (The UI might still have issues, in this case you need to restart Godot)
+- Dropped support for Godot 3.1 and 3.2 due to engine crashes.
+- Fixed grass chunks not updating properly when the terrain is moved
+- Fixed invalid index error that can happen in some cases in the TextureArray importer mode
+- Fixed loading an existing texture array when the current texture set is empty
+- Fixed `BaseButton.focus_mode` warning printed when the plugin is enabled
+- Fixed some dialogs going outside window if editor font is larger (buttons outside windows did nothing)
+- Fixed flatten brush not allowing to set decimal heights
+- Fixed wrong shading in `multisplat16` shaders
+
+
 1.5.2
 ------
 
