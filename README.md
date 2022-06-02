@@ -3,10 +3,10 @@ HeightMap terrain plugin for Godot Engine
 
 ![Editor screenshot](https://user-images.githubusercontent.com/1311555/49705861-a5275380-fc19-11e8-8338-9ad364d2db8d.png)
 
-Heightmap-based terrain for Godot 3.1.x, 3.2.x, 3.3.x and 3.4.x.
+Heightmap-based terrain for Godot 3.3.x, 3.4.x and 3.5.x.
 It supports texture painting, colouring, holes, level of detail and grass, while still targetting the Godot API.
 
-**Note:** The current Godot `master` branch isn't supported yet. Use Godot 3.x if you want to use this plugin.
+**Note:** The current Godot `master` branch isn't supported yet. Use Godot 3.3.x or higher if you want to use this plugin.
 
 This repository holds the latest development version, which means it has the latest features but can also have bugs.
 For a "stable" version, use the asset library or download from a commit tagged with a version.
