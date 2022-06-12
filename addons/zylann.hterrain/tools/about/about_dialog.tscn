@@ -58,52 +58,60 @@ bbcode_text = "[b]Version:[/b] {version}
 [b]Repository:[/b] [url]https://github.com/Zylann/godot_heightmap_plugin[/url]
 [b]Issue tracker:[/b] [url]https://github.com/Zylann/godot_heightmap_plugin/issues[/url]
 
-[b]Donors:[/b]
-wacyym
-Sergey Lapin (slapin)
-Jonas (NoFr1ends)
-lenis0012
-Phyronnaz
+[b]Gold supporters:[/b]
+
+Aaron Franke (aaronfranke)
+
+[b]Silver supporters:[/b]
+
+TheConceptBoy
+Chris Bolton (yochrisbolton)
+Gamerfiend (Snowminx) 
+greenlion (Justin Swanhart) 
+segfault-god (jp.owo.Manda)
 RonanZe
-furtherorbit
-jp.owo.Manda (segfault-god)
-hidemat
-Jakub Buriánek (Buri)
-Justin Swanhart (Greenlion)
-Sebastian Clausen (sclausen)
-MrGreaterThan
-baals
-Treer
-stackdump.eth
-Snowminx (Gamerfiend)
-Skyquakers
+Phyronnaz
+NoFr1ends (Lynx)
+
+[b]Bronze supporters:[/b]
+
+rcorre (Ryan Roden-Corrent) 
+duchainer (Raphaël Duchaîne)
 MadMartian
+stackdump (stackdump.eth)
+Treer
+MrGreaterThan
+lenis0012
 "
 text = "Version: {version}
 Author: Marc Gilleron
 Repository: https://github.com/Zylann/godot_heightmap_plugin
 Issue tracker: https://github.com/Zylann/godot_heightmap_plugin/issues
 
-Donors:
-wacyym
-Sergey Lapin (slapin)
-Jonas (NoFr1ends)
-lenis0012
-Phyronnaz
+Gold supporters:
+
+Aaron Franke (aaronfranke)
+
+Silver supporters:
+
+TheConceptBoy
+Chris Bolton (yochrisbolton)
+Gamerfiend (Snowminx) 
+greenlion (Justin Swanhart) 
+segfault-god (jp.owo.Manda)
 RonanZe
-furtherorbit
-jp.owo.Manda (segfault-god)
-hidemat
-Jakub Buriánek (Buri)
-Justin Swanhart (Greenlion)
-Sebastian Clausen (sclausen)
-MrGreaterThan
-baals
-Treer
-stackdump.eth
-Snowminx (Gamerfiend)
-Skyquakers
+Phyronnaz
+NoFr1ends (Lynx)
+
+Bronze supporters:
+
+rcorre (Ryan Roden-Corrent) 
+duchainer (Raphaël Duchaîne)
 MadMartian
+stackdump (stackdump.eth)
+Treer
+MrGreaterThan
+lenis0012
 "
 script = ExtResource( 3 )
 
