@@ -209,7 +209,7 @@ func _validate_form():
 
 
 static func _check_map_size(path: String, map_name: String, heightmap_size: int, res: Dictionary, 
-	logger: HT_Logger):
+	logger):
 	
 	var size = _load_image_size(path, logger)
 	if size.has("error"):
@@ -228,7 +228,7 @@ static func _check_map_size(path: String, map_name: String, heightmap_size: int,
 				map_name, " will be cropped.")
 
 
-static func _load_image_size(path: String, logger: HT_Logger) -> Dictionary:
+static func _load_image_size(path: String, logger) -> Dictionary:
 	var ext := path.get_extension().to_lower()
 
 	if ext == "png" or ext == "exr":
