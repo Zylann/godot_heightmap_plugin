@@ -41,3 +41,7 @@ func set_aabb(aabb: AABB):
 
 func set_layer_mask(mask: int):
 	VisualServer.instance_set_layer_mask(_multimesh_instance, mask)
+
+
+func set_cast_shadow(cast_shadow: int):
+	VisualServer.instance_geometry_set_cast_shadows_setting(_multimesh_instance, cast_shadow)

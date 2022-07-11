@@ -68,6 +68,11 @@ export(Mesh) var instance_mesh : Mesh setget set_instance_mesh, get_instance_mes
 export(int, LAYERS_3D_RENDER) \
 	var render_layers := 1 setget set_render_layer_mask, get_render_layer_mask
 
+# Exposes shadow casting setting.
+# Possible values are the same as the enum `GeometryInstance.SHADOW_CASTING_SETTING_*`.
+export(int, "Off", "On", "DoubleSided", "ShadowsOnly") \
+	var cast_shadow := 1 setget set_cast_shadow, get_cast_shadow
+
 var _material: ShaderMaterial = null
 var _default_shader: Shader = null
 
@@ -473,6 +478,7 @@ func _load_chunk(terrain_transform_without_map_scale: Transform, cx: int, cz: in
 	mmi.set_transform(trans)
 	mmi.set_aabb(aabb)
 	mmi.set_layer_mask(render_layers)
+	mmi.set_cast_shadow(cast_shadow)
 	mmi.set_visible(visible)
 
 	_chunks[Vector2(cx, cz)] = mmi
@@ -597,6 +603,19 @@ func _get_configuration_warning() -> String:
 	if tex == null:
 		return "The terrain does not have a map assigned in slot {0}".format([layer_index])
 	return ""
+
+
+func set_cast_shadow(option: int):
+	if option == cast_shadow:
+		return
+	cast_shadow = option
+	for k in _chunks:
+		var mmi : HT_DirectMultiMeshInstance = _chunks[k]
+		mmi.set_cast_shadow(option)
+
+
+func get_cast_shadow() -> int:
+	return cast_shadow
 
 
 static func _generate_multimesh(resolution: int, density: float, mesh: Mesh, multimesh: MultiMesh):
