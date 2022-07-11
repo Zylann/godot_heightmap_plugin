@@ -71,7 +71,8 @@ export(int, LAYERS_3D_RENDER) \
 # Exposes shadow casting setting.
 # Possible values are the same as the enum `GeometryInstance.SHADOW_CASTING_SETTING_*`.
 export(int, "Off", "On", "DoubleSided", "ShadowsOnly") \
-	var cast_shadow := 1 setget set_cast_shadow, get_cast_shadow
+	var cast_shadow := GeometryInstance.SHADOW_CASTING_SETTING_ON \
+	setget set_cast_shadow, get_cast_shadow
 
 var _material: ShaderMaterial = null
 var _default_shader: Shader = null

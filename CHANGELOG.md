@@ -8,6 +8,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 1.6.2 (dev)
 ------------
 
+- Added `cast_shadow` setting to `HTerrain`
 - Added `cast_shadow` setting to `HTerrainDetailLayer`
 
 
