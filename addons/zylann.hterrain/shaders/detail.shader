@@ -92,7 +92,7 @@ void fragment() {
 	ALBEDO = COLOR.rgb * col.rgb;
 
 	// Blend with ground color
-	float nh = sqrt(1.0 - UV.y);
+	float nh = sqrt(max(1.0 - UV.y, 0.0));
 	ALBEDO = mix(ALBEDO, texture(u_terrain_globalmap, v_map_uv).rgb, mix(u_globalmap_tint_bottom, u_globalmap_tint_top, nh));
 	
 	// Fake bottom AO
