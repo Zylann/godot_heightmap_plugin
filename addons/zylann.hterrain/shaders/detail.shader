@@ -15,6 +15,7 @@ uniform float u_globalmap_tint_top : hint_range(0.0, 1.0);
 uniform float u_bottom_ao : hint_range(0.0, 1.0);
 uniform vec2 u_ambient_wind; // x: amplitude, y: time
 uniform vec3 u_instance_scale = vec3(1.0, 1.0, 1.0);
+uniform float u_roughness = 0.9;
 
 varying vec3 v_normal;
 varying vec2 v_map_uv;
@@ -84,7 +85,7 @@ void vertex() {
 void fragment() {
 	NORMAL = (INV_CAMERA_MATRIX * (WORLD_MATRIX * vec4(v_normal, 0.0))).xyz;
 	ALPHA_SCISSOR = 0.5;
-	ROUGHNESS = 1.0;
+	ROUGHNESS = u_roughness;
 
 	vec4 col = texture(u_albedo_alpha, UV);
 	ALPHA = col.a * COLOR.a;// - clamp(1.4 - UV.y, 0.0, 1.0);//* 0.5 + 0.5*cos(2.0*TIME);
