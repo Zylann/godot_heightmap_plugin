@@ -10,6 +10,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 
 - Added `cast_shadow` setting to `HTerrain`
 - Added `cast_shadow` setting to `HTerrainDetailLayer`
+- Exposed `roughness` in detail layer shader (but reflections may be off due to the normals hack)
 
 
 1.6.1
