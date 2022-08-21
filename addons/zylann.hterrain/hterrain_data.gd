@@ -1298,7 +1298,7 @@ static func get_adjusted_map_size(width: int, height: int) -> int:
 	return size_po2
 
 
-func _import_heightmap(fpath: String, min_y: int, max_y: int, big_endian: bool) -> bool:
+func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bool) -> bool:
 	var ext := fpath.get_extension().to_lower()
 
 	if ext == "png":

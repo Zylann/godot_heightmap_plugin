@@ -36,12 +36,12 @@ func _ready():
 		},
 		"min_height": {
 			"type": TYPE_REAL,
-			"range": {"min": -2000.0, "max": 2000.0, "step": 1.0},
+			"range": {"min": -2000.0, "max": 2000.0, "step": 0.01},
 			"default_value": 0.0
 		},
 		"max_height": {
 			"type": TYPE_REAL,
-			"range": {"min": -2000.0, "max": 2000.0, "step": 1.0},
+			"range": {"min": -2000.0, "max": 2000.0, "step": 0.01},
 			"default_value": 400.0
 		},
 		"splatmap": {
