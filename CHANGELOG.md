@@ -10,6 +10,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 
 - Added `cast_shadow` setting to `HTerrain`
 - Added `cast_shadow` setting to `HTerrainDetailLayer`
+- Added slope limit slider to detail density painting
 - Exposed `roughness` in detail layer shader (but reflections may be off due to the normals hack)
 - Allow decimal values in `min_height` and `max_height` when importing a heightmap
 - Fixed terrain not functional when using a 32-bit version of Godot (The GDNative library is only maintained for 64-bit)

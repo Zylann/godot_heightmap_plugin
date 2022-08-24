@@ -151,7 +151,7 @@ func set_display_mode(mode: int):
 	var show_density := mode == HT_TerrainPainter.MODE_DETAIL
 	var show_opacity := mode != HT_TerrainPainter.MODE_MASK
 	var show_holes := mode == HT_TerrainPainter.MODE_MASK
-	var show_slope_limit := mode == HT_TerrainPainter.MODE_SPLAT
+	var show_slope_limit := mode == HT_TerrainPainter.MODE_SPLAT or mode == HT_TerrainPainter.MODE_DETAIL
 
 	_set_visibility_of(_opacity_label, show_opacity)
 	_set_visibility_of(_opacity_control, show_opacity)
