@@ -14,6 +14,8 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Exposed `roughness` in detail layer shader (but reflections may be off due to the normals hack)
 - Allow decimal values in `min_height` and `max_height` when importing a heightmap
 - Fixed terrain not functional when using a 32-bit version of Godot (The GDNative library is only maintained for 64-bit)
+- Fixed TextureSet editor logging errors when selecting slots with textures using color codes instead of image files
+- Fixed texture list becoming empty when selecting another terrain sharing the same TextureSet
 
 
 1.6.1
