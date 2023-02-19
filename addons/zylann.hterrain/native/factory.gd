@@ -4,10 +4,13 @@ const NATIVE_PATH = "res://addons/zylann.hterrain/native/"
 const HT_ImageUtilsGeneric = preload("./image_utils_generic.gd")
 const HT_QuadTreeLodGeneric = preload("./quad_tree_lod_generic.gd")
 
+# No native code was ported when moving to Godot 4.
+# It may be changed too using GDExtension.
+
 # See https://docs.godotengine.org/en/stable/classes/class_os.html#class-os-method-get-name
 const _supported_os = {
-	"Windows": true,
-	"X11": true,
+	# "Windows": true,
+	# "X11": true,
 	#"OSX": true
 }
 # See https://docs.godotengine.org/en/stable/tutorials/export/feature_tags.html
