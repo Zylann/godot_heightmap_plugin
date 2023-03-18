@@ -1,3 +1,4 @@
+@tool
 extends Node
 
 const HT_Painter = preload("./painter.gd")
@@ -98,7 +99,7 @@ func set_flatten_height(h: float):
 	if h == _flatten_height:
 		return
 	_flatten_height = h
-	emit_signal("flatten_height_changed")
+	flatten_height_changed.emit()
 
 
 func get_flatten_height() -> float:
@@ -122,7 +123,7 @@ func get_mask_flag() -> bool:
 
 
 func set_detail_density(d: float):
-	_detail_density = clamp(d, 0.0, 1.0)
+	_detail_density = clampf(d, 0.0, 1.0)
 
 
 func get_detail_density() -> float:

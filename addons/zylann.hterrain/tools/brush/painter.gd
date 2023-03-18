@@ -8,7 +8,7 @@
 # Example: when painting a heightmap, it would be doable to output height in R, normalmap in GB, and
 # then separate channels in two images at the end.
 
-tool
+@tool
 extends Node
 
 const HT_Logger = preload("../../util/logger.gd")
@@ -60,9 +60,9 @@ const _supported_formats = [
 #        Size of actual brush, scaled/rotated, modifies source image.
 #        Assigned texture is the brush texture, src image is a shader param
 
-var _viewport : Viewport
-var _viewport_bg_sprite : Sprite
-var _viewport_brush_sprite : Sprite
+var _viewport : SubViewport
+var _viewport_bg_sprite : Sprite2D
+var _viewport_brush_sprite : Sprite2D
 var _brush_size := 32
 var _brush_scale := 1.0
 var _brush_position := Vector2()
@@ -82,12 +82,13 @@ var _logger = HT_Logger.get_for(self)
 
 
 func _init():
-	_viewport = Viewport.new()
+	_viewport = SubViewport.new()
 	_viewport.size = Vector2(_brush_size, _brush_size)
-	_viewport.render_target_update_mode = Viewport.UPDATE_ONCE
-	_viewport.render_target_v_flip = true
-	_viewport.render_target_clear_mode = Viewport.CLEAR_MODE_ONLY_NEXT_FRAME
-	_viewport.hdr = false
+	_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+	# No longer available in Godot 4...
+	#_viewport.render_target_v_flip = true
+	_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ONLY_NEXT_FRAME
+	#_viewport.hdr = false
 	_viewport.transparent_bg = true
 	# Apparently HDR doesn't work if this is set to 2D... so let's waste a depth buffer :/
 	#_viewport.usage = Viewport.USAGE_2D
@@ -96,12 +97,12 @@ func _init():
 	# There is no "blend_disabled" option on standard CanvasItemMaterial...
 	var no_blend_material := ShaderMaterial.new()
 	no_blend_material.shader = HT_NoBlendShader
-	_viewport_bg_sprite = Sprite.new()
+	_viewport_bg_sprite = Sprite2D.new()
 	_viewport_bg_sprite.centered = false
 	_viewport_bg_sprite.material = no_blend_material
 	_viewport.add_child(_viewport_bg_sprite)
 	
-	_viewport_brush_sprite = Sprite.new()
+	_viewport_brush_sprite = Sprite2D.new()
 	_viewport_brush_sprite.centered = true
 	_viewport_brush_sprite.material = _brush_material
 	_viewport_brush_sprite.position = _viewport.size / 2.0
@@ -120,9 +121,13 @@ func set_image(image: Image, texture: ImageTexture):
 	_image = image
 	_texture = texture
 	_viewport_bg_sprite.texture = _texture
-	_brush_material.set_shader_param(SHADER_PARAM_SRC_TEXTURE, _texture)
+	_brush_material.set_shader_parameter(SHADER_PARAM_SRC_TEXTURE, _texture)
 	if image != null:
-		_viewport.hdr = image.get_format() in _hdr_formats
+		# TODO HDR is required in order to paint heightmaps.
+		# Seems Godot 4.0 does not support it, so we have to wait for Godot 4.1...
+		#_viewport.hdr = image.get_format() in _hdr_formats
+		if image.get_format() in _hdr_formats:
+			push_error("Godot 4.0 does not support HDR viewports for GPU-editing heightmaps!")
 	#print("PAINTER VIEWPORT HDR: ", _viewport.hdr)
 
 
@@ -149,7 +154,7 @@ func get_brush_rotation() -> float:
 # Scale is also a lot cheaper to change, so you may prefer changing it instead of size if that
 # happens often during a painting stroke.
 func set_brush_scale(s: float):
-	_brush_scale = clamp(s, 0.0, 1.0)
+	_brush_scale = clampf(s, 0.0, 1.0)
 	#_viewport_brush_sprite.scale = Vector2(s, s)
 
 
@@ -158,7 +163,7 @@ func get_brush_scale() -> float:
 
 
 func set_brush_opacity(opacity: float):
-	_brush_opacity = clamp(opacity, 0.0, 1.0)
+	_brush_opacity = clampf(opacity, 0.0, 1.0)
 
 
 func get_brush_opacity() -> float:
@@ -177,19 +182,19 @@ func set_brush_shader(shader: Shader):
 func set_brush_shader_param(p: String, v):
 	assert(not _API_SHADER_PARAMS.has(p))
 	_modified_shader_params[p] = true
-	_brush_material.set_shader_param(p, v)
+	_brush_material.set_shader_parameter(p, v)
 
 
 func clear_brush_shader_params():
 	for key in _modified_shader_params:
-		_brush_material.set_shader_param(key, null)
+		_brush_material.set_shader_parameter(key, null)
 	_modified_shader_params.clear()
 
 
 # If we want to be able to rotate the brush quad every frame,
 # we must prepare a bigger viewport otherwise the quad will not fit inside
 static func _get_size_fit_for_rotation(src_size: Vector2) -> Vector2:
-	var d = int(ceil(src_size.length()))
+	var d = int(ceilf(src_size.length()))
 	return Vector2(d, d)
 
 
@@ -204,8 +209,8 @@ func paint_input(center_pos: Vector2):
 
 	# Need to floor the position in case the brush has an odd size
 	var brush_pos := (center_pos - _viewport.size * 0.5).round()
-	_viewport.render_target_update_mode = Viewport.UPDATE_ONCE
-	_viewport.render_target_clear_mode = Viewport.CLEAR_MODE_ONLY_NEXT_FRAME
+	_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+	_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ONLY_NEXT_FRAME
 	_viewport_bg_sprite.position = -brush_pos
 	_brush_position = brush_pos
 	_cmd_paint = true
@@ -231,8 +236,8 @@ func paint_input(center_pos: Vector2):
 #	rect.g = brush_LL.y / _texture.get_height()
 #	rect.b = (brush_UR.x - brush_LL.x) / _texture.get_width()
 #	rect.a = (brush_UR.y - brush_LL.y) / _texture.get_height()
-	_brush_material.set_shader_param(SHADER_PARAM_SRC_RECT, rect)
-	_brush_material.set_shader_param(SHADER_PARAM_OPACITY, _brush_opacity)
+	_brush_material.set_shader_parameter(SHADER_PARAM_SRC_RECT, rect)
+	_brush_material.set_shader_parameter(SHADER_PARAM_OPACITY, _brush_opacity)
 
 
 # Don't commit until this is false
@@ -256,24 +261,27 @@ func _process(delta: float):
 		_pending_paint_render = false
 	
 		#print("Paint result at frame ", Engine.get_frames_drawn())
-		var data := _viewport.get_texture().get_data()
+		var data := _viewport.get_texture().get_image()
 		data.convert(_image.get_format())
+
+		# Flipping on the CPU since the v-flip was removed from viewports in Godot 4...
+		data.flip_y()
 		
 		var brush_pos = _last_brush_position
 		
 		var dst_x : int = clamp(brush_pos.x, 0, _texture.get_width())
 		var dst_y : int = clamp(brush_pos.y, 0, _texture.get_height())
 		
-		var src_x : int = max(-brush_pos.x, 0)
-		var src_y : int = max(-brush_pos.y, 0)
-		var src_w : int = min(max(_viewport.size.x - src_x, 0), _texture.get_width() - dst_x)
-		var src_h : int = min(max(_viewport.size.y - src_y, 0), _texture.get_height() - dst_y)
+		var src_x : int = maxf(-brush_pos.x, 0)
+		var src_y : int = maxf(-brush_pos.y, 0)
+		var src_w : int = minf(maxf(_viewport.size.x - src_x, 0), _texture.get_width() - dst_x)
+		var src_h : int = minf(maxf(_viewport.size.y - src_y, 0), _texture.get_height() - dst_y)
 		
 		if src_w != 0 and src_h != 0:
 			_mark_modified_chunks(dst_x, dst_y, src_w, src_h)
-			VisualServer.texture_set_data_partial(
+			RenderingServer.texture_set_data_partial(
 				_texture.get_rid(), data, src_x, src_y, src_w, src_h, dst_x, dst_y, 0, 0)
-			emit_signal("texture_region_changed", Rect2(dst_x, dst_y, src_w, src_h))
+			texture_region_changed.emit_signal(Rect2(dst_x, dst_y, src_w, src_h))
 	
 	# Input is handled just before process, so we still have to wait till next frame
 	if _cmd_paint:
@@ -298,7 +306,7 @@ func _mark_modified_chunks(bx: int, by: int, bw: int, bh: int):
 
 
 func _commit_modified_chunks() -> Dictionary:
-	var time_before := OS.get_ticks_msec()
+	var time_before := Time.get_ticks_msec()
 	
 	var cs := UNDO_CHUNK_SIZE
 	var chunks_positions := []
@@ -315,10 +323,10 @@ func _commit_modified_chunks() -> Dictionary:
 		
 		var x := cx * cs
 		var y := cy * cs
-		var w : int = min(cs, _image.get_width() - x)
-		var h : int = min(cs, _image.get_height() - y)
+		var w : int = mini(cs, _image.get_width() - x)
+		var h : int = mini(cs, _image.get_height() - y)
 		
-		var rect := Rect2(x, y, w, h)
+		var rect := Rect2i(x, y, w, h)
 		var initial_data := _image.get_rect(rect)
 		var final_data := final_image.get_rect(rect)
 		
@@ -333,7 +341,7 @@ func _commit_modified_chunks() -> Dictionary:
 	
 	_modified_chunks.clear()
 	
-	var time_spent := OS.get_ticks_msec() - time_before
+	var time_spent := Time.get_ticks_msec() - time_before
 	_logger.debug("Spent {0} ms to commit paint operation".format([time_spent]))
 	
 	return {

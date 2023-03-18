@@ -1,4 +1,4 @@
-tool
+@tool
 extends WindowDialog
 
 const HT_Util = preload("../../util/util.gd")
@@ -10,9 +10,9 @@ const HT_XYZFormat = preload("../../util/xyz_format.gd")
 
 signal permanent_change_performed(message)
 
-onready var _inspector = $VBoxContainer/Inspector
-onready var _errors_label = $VBoxContainer/ColorRect/ScrollContainer/VBoxContainer/Errors
-onready var _warnings_label = $VBoxContainer/ColorRect/ScrollContainer/VBoxContainer/Warnings
+@onready var _inspector = $VBoxContainer/Inspector
+@onready var _errors_label = $VBoxContainer/ColorRect/ScrollContainer/VBoxContainer/Errors
+@onready var _warnings_label = $VBoxContainer/ColorRect/ScrollContainer/VBoxContainer/Warnings
 
 const RAW_LITTLE_ENDIAN = 0
 const RAW_BIG_ENDIAN = 1
@@ -35,12 +35,12 @@ func _ready():
 			"enabled": false
 		},
 		"min_height": {
-			"type": TYPE_REAL,
+			"type": TYPE_FLOAT,
 			"range": {"min": -2000.0, "max": 2000.0, "step": 0.01},
 			"default_value": 0.0
 		},
 		"max_height": {
-			"type": TYPE_REAL,
+			"type": TYPE_FLOAT,
 			"range": {"min": -2000.0, "max": 2000.0, "step": 0.01},
 			"default_value": 400.0
 		},
@@ -75,7 +75,7 @@ static func _format_feedbacks(feed):
 	var a = []
 	for s in feed:
 		a.append("- " + s)
-	return PoolStringArray(a).join("\n")
+	return PackedStringArray(a).join("\n")
 
 
 func _clear_feedback():
@@ -83,7 +83,7 @@ func _clear_feedback():
 	_warnings_label.text = ""
 
 
-func _show_feedback(res):
+func _show_feedback(res: Dictionary):
 	for e in res.errors:
 		_logger.error(e)
 
@@ -100,7 +100,7 @@ func _show_feedback(res):
 
 
 func _on_CheckButton_pressed():
-	var res = _validate_form()
+	var res := _validate_form()
 	_show_feedback(res)
 
 
@@ -108,7 +108,7 @@ func _on_ImportButton_pressed():
 	assert(_terrain != null and _terrain.get_data() != null)
 
 	# Verify input to inform the user of potential issues
-	var res = _validate_form()
+	var res := _validate_form()
 	_show_feedback(res)
 
 	if len(res.errors) != 0:
@@ -157,7 +157,7 @@ func _on_Inspector_property_changed(key: String, value):
 		_inspector.set_property_enabled("raw_endianess", is_raw)
 
 
-func _validate_form():
+func _validate_form() -> Dictionary:
 	var res := {
 		"errors": [],
 		"warnings": []
@@ -243,8 +243,8 @@ static func _load_image_size(path: String, logger) -> Dictionary:
 		return { "width": im.get_width(), "height": im.get_height() }
 
 	elif ext == "raw":
-		var f := File.new()
-		var err := f.open(path, File.READ)
+		var f := FileAccess.open(path, File.READ)
+		var err := FileAccess.get_open_error()
 		if err != OK:
 			logger.error("Error opening file {0}".format([path]))
 			return { "error": err }
@@ -252,7 +252,7 @@ static func _load_image_size(path: String, logger) -> Dictionary:
 		# Assume the raw data is square in 16-bit format,
 		# so its size is function of file length
 		var flen := f.get_len()
-		f.close()
+		f = null
 		var size = HT_Util.integer_square_root(flen / 2)
 		if size == -1:
 			return { "error": "RAW image is not square" }
@@ -263,8 +263,8 @@ static func _load_image_size(path: String, logger) -> Dictionary:
 		return { "width": size, "height": size }
 
 	elif ext == "xyz":
-		var f := File.new()
-		var err := f.open(path, File.READ)
+		var f := FileAccess.open(path, File.READ)
+		var err := FileAccess.get_open_error()
 		if err != OK:
 			logger.error("Error opening file {0}".format([path]))
 			return { "error": err }

@@ -214,7 +214,7 @@ vec4 texture_array_antitile(sampler2DArray albedo_tex, sampler2DArray normal_tex
 }
 
 void vertex() {
-	vec4 wpos = WORLD_MATRIX * vec4(VERTEX, 1);
+	vec4 wpos = MODEL_MATRIX * vec4(VERTEX, 1);
 	vec2 cell_coords = (u_terrain_inverse_transform * wpos).xz;
 	// Must add a half-offset so that we sample the center of pixels,
 	// otherwise bilinear filtering of the textures will give us mixed results (#183)
@@ -228,7 +228,7 @@ void vertex() {
 	VERTEX.y = h;
 	wpos.y = h;
 
-	vec3 base_ground_uv = vec3(cell_coords.x, h * WORLD_MATRIX[1][1], cell_coords.y);
+	vec3 base_ground_uv = vec3(cell_coords.x, h * MODEL_MATRIX[1][1], cell_coords.y);
 	v_ground_uv = base_ground_uv / u_ground_uv_scale;
 
 	// Putting this in vertex saves a fetch from the fragment shader,
@@ -242,7 +242,7 @@ void vertex() {
 	// Need to use u_terrain_normal_basis to handle scaling.
 	NORMAL = u_terrain_normal_basis * unpack_normal(texture(u_terrain_normalmap, UV));
 
-	v_distance_to_camera = distance(wpos.xyz, CAMERA_MATRIX[3].xyz);
+	v_distance_to_camera = distance(wpos.xyz, CAMERA_POSITION_WORLD);
 }
 
 void fragment() {
@@ -367,5 +367,5 @@ void fragment() {
 //		ALBEDO = vec3(1.0, 0.0, 0.0);
 //	}
 
-	NORMAL = (INV_CAMERA_MATRIX * (vec4(normal, 0.0))).xyz;
+	NORMAL = (VIEW_MATRIX * (vec4(normal, 0.0))).xyz;
 }

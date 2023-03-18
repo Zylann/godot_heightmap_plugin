@@ -1,4 +1,4 @@
-tool
+@tool
 extends WindowDialog
 
 const HTerrain = preload("../../hterrain.gd")
@@ -8,6 +8,7 @@ const HT_Util = preload("../../util/util.gd")
 const HT_TextureGenerator = preload("./texture_generator.gd")
 const HT_TextureGeneratorPass = preload("./texture_generator_pass.gd")
 const HT_Logger = preload("../../util/logger.gd")
+const HT_ImageFileCache = preload("../../util/image_file_cache.gd")
 
 # TODO Power of two is assumed here.
 # I wonder why it doesn't have the off by one terrain textures usually have
@@ -15,10 +16,10 @@ const MAX_VIEWPORT_RESOLUTION = 512
 
 signal progress_notified(info) # { "progress": real, "message": string, "finished": bool }
 
-onready var _inspector_container = $VBoxContainer/Editor/Settings
-onready var _inspector = $VBoxContainer/Editor/Settings/Inspector
-onready var _preview = $VBoxContainer/Editor/Preview/TerrainPreview
-onready var _progress_bar = $VBoxContainer/Editor/Preview/ProgressBar
+@onready var _inspector_container = $VBoxContainer/Editor/Settings
+@onready var _inspector = $VBoxContainer/Editor/Settings/Inspector
+@onready var _preview = $VBoxContainer/Editor/Preview/TerrainPreview
+@onready var _progress_bar = $VBoxContainer/Editor/Preview/ProgressBar
 
 var _dummy_texture = load("res://addons/zylann.hterrain/tools/icons/empty.png")
 var _terrain : HTerrain = null
@@ -27,7 +28,7 @@ var _generator : HT_TextureGenerator
 var _generated_textures := [null, null]
 var _dialog_visible := false
 var _undo_map_ids := {}
-var _image_cache = null
+var _image_cache : HT_ImageFileCache = null
 var _undo_redo : UndoRedo
 var _logger := HT_Logger.get_for(self)
 var _viewport_resolution := MAX_VIEWPORT_RESOLUTION
@@ -35,7 +36,7 @@ var _viewport_resolution := MAX_VIEWPORT_RESOLUTION
 
 static func get_shader(shader_name: String) -> Shader:
 	var path := "res://addons/zylann.hterrain/tools/generator/shaders"\
-		.plus_file(str(shader_name, ".shader"))
+		.path_join(str(shader_name, ".shader"))
 	return load(path) as Shader
 
 
@@ -51,27 +52,27 @@ func _ready():
 			"type": TYPE_VECTOR2
 		},
 		"base_height": { 
-			"type": TYPE_REAL,
+			"type": TYPE_FLOAT,
 			"range": {"min": -500.0, "max": 500.0, "step": 0.1 },
 			"default_value": -50.0
 		},
 		"height_range": {
-			"type": TYPE_REAL,
+			"type": TYPE_FLOAT,
 			"range": {"min": 0.0, "max": 2000.0, "step": 0.1 },
 			"default_value": 150.0
 		},
 		"scale": {
-			"type": TYPE_REAL,
+			"type": TYPE_FLOAT,
 			"range": {"min": 1.0, "max": 1000.0, "step": 1.0},
 			"default_value": 100.0
 		},
 		"roughness": {
-			"type": TYPE_REAL,
+			"type": TYPE_FLOAT,
 			"range": {"min": 0.0, "max": 1.0, "step": 0.01},
 			"default_value": 0.4
 		},
 		"curve": {
-			"type": TYPE_REAL,
+			"type": TYPE_FLOAT,
 			"range": {"min": 1.0, "max": 10.0, "step": 0.1},
 			"default_value": 1.0
 		},
@@ -86,12 +87,12 @@ func _ready():
 			"default_value": 0
 		},
 		"erosion_weight": {
-			"type": TYPE_REAL,
+			"type": TYPE_FLOAT,
 			"range": { "min": 0.0, "max": 1.0 },
 			"default_value": 0.5
 		},
 		"erosion_slope_factor": {
-			"type": TYPE_REAL,
+			"type": TYPE_FLOAT,
 			"range": { "min": 0.0, "max": 1.0 },
 			"default_value": 0.0
 		},
@@ -104,27 +105,27 @@ func _ready():
 			"default_value": false
 		},
 		"dilation": {
-			"type": TYPE_REAL,
+			"type": TYPE_FLOAT,
 			"range": { "min": 0.0, "max": 1.0 },
 			"default_value": 0.0
 		},
 		"island_weight": {
-			"type": TYPE_REAL,
+			"type": TYPE_FLOAT,
 			"range": { "min": 0.0, "max": 1.0, "step": 0.01 },
 			"default_value": 0.0
 		},
 		"island_sharpness": {
-			"type": TYPE_REAL,
+			"type": TYPE_FLOAT,
 			"range": { "min": 0.0, "max": 1.0, "step": 0.01 },
 			"default_value": 0.0
 		},
 		"island_height_ratio": {
-			"type": TYPE_REAL,
+			"type": TYPE_FLOAT,
 			"range": { "min": -1.0, "max": 1.0, "step": 0.01 },
 			"default_value": -1.0
 		},
 		"island_shape": {
-			"type": TYPE_REAL,
+			"type": TYPE_FLOAT,
 			"range": { "min": 0.0, "max": 1.0, "step": 0.01 },
 			"default_value": 0.0
 		},
@@ -148,26 +149,26 @@ func _ready():
 	# TODO I wonder if it's not better to let the generator shaders work in pixels
 	# instead of NDC, rather than putting a padding system there
 	_generator.set_output_padding([0, 1, 0, 1])
-	_generator.connect("output_generated", self, "_on_TextureGenerator_output_generated")
-	_generator.connect("completed", self, "_on_TextureGenerator_completed")
-	_generator.connect("progress_reported", self, "_on_TextureGenerator_progress_reported")
+	_generator.output_generated.connect(_on_TextureGenerator_output_generated)
+	_generator.completed.connect(_on_TextureGenerator_completed)
+	_generator.progress_reported.connect(_on_TextureGenerator_progress_reported)
 	add_child(_generator)
 
 
 func apply_dpi_scale(dpi_scale: float):
-	rect_min_size *= dpi_scale
-	_inspector_container.rect_min_size *= dpi_scale
+	custom_minimum_size *= dpi_scale
+	_inspector_container.custom_minimum_size *= dpi_scale
 
 
 # TEST
 #func _input(event):
-#	if Engine.editor_hint:
+#	if Engine.is_editor_hint():
 #		return
 #	if event is InputEventKey and event.pressed and not visible:
 #		call_deferred("popup_centered")
 
 
-func set_terrain(terrain):
+func set_terrain(terrain: HTerrain):
 	_terrain = terrain
 	_adjust_viewport_resolution()
 
@@ -190,7 +191,7 @@ func _adjust_viewport_resolution():
 	_viewport_resolution = vp_res
 
 
-func set_image_cache(image_cache):
+func set_image_cache(image_cache: HT_ImageFileCache):
 	_image_cache = image_cache
 
 
@@ -230,7 +231,7 @@ func _notification(what: int):
 func _update_generator(preview: bool):
 	var scale = _inspector.get_value("scale")
 	# Scale is inverted in the shader
-	if abs(scale) < 0.01:
+	if absf(scale) < 0.01:
 		scale = 0.0
 	else:
 		scale = 1.0 / scale
@@ -380,7 +381,7 @@ func _on_Inspector_property_changed(key, value):
 
 
 func _on_TerrainPreview_dragged(relative, button_mask):
-	if button_mask & BUTTON_MASK_LEFT:
+	if button_mask & MOUSE_BUTTON_MASK_LEFT:
 		var offset = _inspector.get_value("offset")
 		offset += relative
 		_inspector.set_value("offset", offset)
@@ -430,9 +431,10 @@ func _on_TextureGenerator_output_generated(image: Image, info: Dictionary):
 		# TODO Improve TextureGenerator so we can get a ViewportTexture per output?
 		var tex = _generated_textures[info.maptype]
 		if tex == null:
-			tex = ImageTexture.new()
-		tex.create_from_image(image, Texture.FLAG_FILTER)
-		_generated_textures[info.maptype] = tex
+			tex = ImageTexture.create_from_image(image)
+			_generated_textures[info.maptype] = tex
+		else:
+			tex.update(image)
 
 		var num_set := 0
 		for v in _generated_textures:
@@ -452,10 +454,10 @@ func _on_TextureGenerator_output_generated(image: Image, info: Dictionary):
 		image.convert(dst.get_format())
 
 		dst.blit_rect(image, \
-			Rect2(0, 0, image.get_width(), image.get_height()), \
+			Rect2i(0, 0, image.get_width(), image.get_height()), \
 			info.sector * _viewport_resolution)
 
-		emit_signal("progress_notified", {
+		progress_notified.emit({
 			"progress": info.progress,
 			"message": "Calculating sector (" 
 				+ str(info.sector.x) + ", " + str(info.sector.y) + ")"
@@ -490,6 +492,6 @@ func _on_TextureGenerator_completed():
 	_undo_redo.commit_action()
 	data._edit_set_disable_apply_undo(false)
 
-	emit_signal("progress_notified", { "finished": true })
+	progress_notified.emit({ "finished": true })
 	_logger.debug("Done")
 

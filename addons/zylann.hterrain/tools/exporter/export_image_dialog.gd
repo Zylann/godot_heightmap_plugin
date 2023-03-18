@@ -1,6 +1,7 @@
-tool
+@tool
 extends WindowDialog
 
+const HTerrain = preload("../../hterrain.gd")
 const HTerrainData = preload("../../hterrain_data.gd")
 const HT_Errors = preload("../../util/errors.gd")
 const HT_Util = preload("../../util/util.gd")
@@ -12,12 +13,12 @@ const FORMAT_PNG8 = 2
 const FORMAT_EXRH = 3
 const FORMAT_COUNT = 4
 
-onready var _output_path_line_edit := $VB/Grid/OutputPath/HeightmapPathLineEdit as LineEdit
-onready var _format_selector := $VB/Grid/FormatSelector as OptionButton
-onready var _height_range_min_spinbox := $VB/Grid/HeightRange/HeightRangeMin as SpinBox
-onready var _height_range_max_spinbox := $VB/Grid/HeightRange/HeightRangeMax as SpinBox
-onready var _export_button := $VB/Buttons/ExportButton as Button
-onready var _show_in_explorer_checkbox := $VB/ShowInExplorerCheckbox as CheckBox
+@onready var _output_path_line_edit := $VB/Grid/OutputPath/HeightmapPathLineEdit as LineEdit
+@onready var _format_selector := $VB/Grid/FormatSelector as OptionButton
+@onready var _height_range_min_spinbox := $VB/Grid/HeightRange/HeightRangeMin as SpinBox
+@onready var _height_range_max_spinbox := $VB/Grid/HeightRange/HeightRangeMax as SpinBox
+@onready var _export_button := $VB/Buttons/ExportButton as Button
+@onready var _show_in_explorer_checkbox := $VB/ShowInExplorerCheckbox as CheckBox
 
 var _terrain = null
 var _file_dialog : EditorFileDialog = null
@@ -45,20 +46,20 @@ func _ready():
 			_format_selector.get_popup().add_item(_format_names[i], i)
 
 
-func setup_dialogs(base_control):
+func setup_dialogs(base_control: Control):
 	assert(_file_dialog == null)
 	var fd := EditorFileDialog.new()
 	fd.mode = EditorFileDialog.MODE_SAVE_FILE
 	fd.resizable = true
 	fd.access = EditorFileDialog.ACCESS_FILESYSTEM
-	fd.connect("file_selected", self, "_on_FileDialog_file_selected")
+	fd.file_selected.connect(_on_FileDialog_file_selected)
 	base_control.add_child(fd)
 	_file_dialog = fd
 	
 	_update_file_extension()
 
 
-func set_terrain(terrain):
+func set_terrain(terrain: HTerrain):
 	_terrain = terrain
 
 
@@ -68,7 +69,7 @@ func _exit_tree():
 		_file_dialog = null
 
 
-func _on_FileDialog_file_selected(fpath):
+func _on_FileDialog_file_selected(fpath: String):
 	_output_path_line_edit.text = fpath
 
 
@@ -104,19 +105,12 @@ func _export() -> bool:
 	
 	if format == FORMAT_PNG8:
 		var hscale = 1.0 / (height_max - height_min)
-		var im = Image.new()
-		im.create(heightmap.get_width(), heightmap.get_height(), false, Image.FORMAT_R8)
-		
-		im.lock()
-		heightmap.lock()
+		var im := Image.create(heightmap.get_width(), heightmap.get_height(), false, Image.FORMAT_R8)
 		
 		for y in heightmap.get_height():
 			for x in heightmap.get_width():
-				var h = clamp((heightmap.get_pixel(x, y).r - height_min) * hscale, 0.0, 1.0)
+				var h := clampf((heightmap.get_pixel(x, y).r - height_min) * hscale, 0.0, 1.0)
 				im.set_pixel(x, y, Color(h, h, h))
-		
-		im.unlock()
-		heightmap.unlock()
 		
 		save_error = im.save_png(fpath)
 	
@@ -124,8 +118,8 @@ func _export() -> bool:
 		save_error = heightmap.save_exr(fpath, true)
 		
 	else:
-		var f = File.new()
-		var err = f.open(fpath, File.WRITE)
+		var f := FileAccess.open(fpath, File.WRITE)
+		var err := FileAccess.get_open_error()
 		if err != OK:
 			_print_file_error(fpath, err)
 			return false
@@ -136,7 +130,6 @@ func _export() -> bool:
 		
 		elif format == FORMAT_R16:
 			var hscale = 65535.0 / (height_max - height_min)
-			heightmap.lock()
 			for y in heightmap.get_height():
 				for x in heightmap.get_width():
 					var h = int((heightmap.get_pixel(x, y).r - height_min) * hscale)
@@ -147,9 +140,6 @@ func _export() -> bool:
 					if x % 50 == 0:
 						_logger.debug(str(h))
 					f.store_16(h)
-			heightmap.unlock()
-	
-		f.close()
 	
 	if save_error == OK:
 		_logger.debug("Exported heightmap as \"{0}\"".format([fpath]))
@@ -177,7 +167,7 @@ func _update_file_extension():
 		_output_path_line_edit.text = str(fpath.get_basename(), ".", ext)
 
 
-func _print_file_error(fpath, err):
+func _print_file_error(fpath: String, err: int):
 	_logger.error("Could not save path {0}, error: {1}" \
 		.format([fpath, HT_Errors.get_message(err)]))
 
@@ -193,7 +183,7 @@ func _on_ExportButton_pressed():
 		OS.shell_open(_output_path_line_edit.text.strip_edges().get_base_dir())
 
 
-func _on_HeightmapPathLineEdit_text_changed(new_text):
+func _on_HeightmapPathLineEdit_text_changed(new_text: String):
 	_export_button.disabled = (new_text.strip_edges() == "")
 
 
@@ -201,7 +191,7 @@ func _on_HeightmapPathBrowseButton_pressed():
 	_file_dialog.popup_centered_ratio()
 
 
-func _on_FormatSelector_item_selected(ID):
+func _on_FormatSelector_item_selected(id):
 	_update_file_extension()
 
 

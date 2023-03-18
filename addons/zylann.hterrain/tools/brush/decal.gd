@@ -1,5 +1,7 @@
-tool
+@tool
 # Shows a cursor on top of the terrain to preview where the brush will paint
+
+# TODO Use an actual decal node, it wasn't available in Godot 3
 
 const HT_DirectMeshInstance = preload("../../util/direct_mesh_instance.gd")
 const HTerrainData = preload("../../hterrain_data.gd")
@@ -42,7 +44,7 @@ func set_size(size: float):
 #	set_size(shape_image.get_width())
 
 
-func _on_terrain_transform_changed(terrain_global_trans):
+func _on_terrain_transform_changed(terrain_global_trans: Transform3D):
 	var inv = terrain_global_trans.affine_inverse()
 	_material.set_shader_param("u_terrain_inverse_transform", inv)
 
@@ -55,16 +57,16 @@ func set_terrain(terrain):
 		return
 
 	if _terrain != null:
-		_terrain.disconnect("transform_changed", self, "_on_terrain_transform_changed")
+		_terrain.transform_changed.connect(_on_terrain_transform_changed)
 		_mesh_instance.exit_world()
 		#_debug_mesh_instance.exit_world()
 
 	_terrain = terrain
 
 	if _terrain != null:
-		_terrain.connect("transform_changed", self, "_on_terrain_transform_changed")
+		_terrain.transform_changed.connect(_on_terrain_transform_changed)
 		_on_terrain_transform_changed(_terrain.get_internal_transform())
-		_mesh_instance.enter_world(terrain.get_world())
+		_mesh_instance.enter_world(terrain.get_world_3d())
 		#_debug_mesh_instance.enter_world(terrain.get_world())
 
 	update_visibility()
@@ -87,7 +89,7 @@ func set_position(p_local_pos: Vector3):
 		_mesh.custom_aabb = aabb
 		#_debug_mesh.size = aabb.size
 	
-	var trans = Transform(Basis(), p_local_pos)
+	var trans = Transform3D(Basis(), p_local_pos)
 	var terrain_gt = _terrain.get_internal_transform()
 	trans = terrain_gt * trans
 	_mesh_instance.set_transform(trans)
@@ -99,11 +101,11 @@ func update_visibility():
 	var heightmap = _get_heightmap(_terrain)
 	if heightmap == null:
 		# I do this for refcounting because heightmaps are large resources
-		_material.set_shader_param("u_terrain_heightmap", null)
+		_material.set_shader_parameter("u_terrain_heightmap", null)
 		_mesh_instance.set_visible(false)
 		#_debug_mesh_instance.set_visible(false)
 	else:
-		_material.set_shader_param("u_terrain_heightmap", heightmap)
+		_material.set_shader_parameter("u_terrain_heightmap", heightmap)
 		_mesh_instance.set_visible(true)
 		#_debug_mesh_instance.set_visible(true)
 

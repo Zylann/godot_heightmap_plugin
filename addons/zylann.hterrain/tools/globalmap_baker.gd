@@ -2,7 +2,7 @@
 # Bakes a global albedo map using the same shader the terrain uses,
 # but renders top-down in orthographic mode.
 
-tool
+@tool
 extends Node
 
 const HTerrain = preload("../hterrain.gd")
@@ -16,10 +16,10 @@ signal progress_notified(info)
 signal permanent_change_performed(message)
 
 var _terrain : HTerrain = null
-var _viewport : Viewport = null
+var _viewport : SubViewport = null
 var _viewport_size := DEFAULT_VIEWPORT_SIZE
-var _plane : MeshInstance = null
-var _camera : Camera = null
+var _plane : MeshInstance3D = null
+var _camera : Camera3D = null
 var _sectors := []
 var _sector_index := 0
 
@@ -62,18 +62,18 @@ func _setup_scene(terrain_size: int):
 	while _viewport_size > terrain_size:
 		_viewport_size /= 2
 
-	_viewport = Viewport.new()
+	_viewport = SubViewport.new()
 	_viewport.size = Vector2(_viewport_size + 1, _viewport_size + 1)
-	_viewport.render_target_update_mode = Viewport.UPDATE_ALWAYS
-	_viewport.render_target_clear_mode = Viewport.CLEAR_MODE_ALWAYS
-	_viewport.render_target_v_flip = true
-	_viewport.world = World.new()
+	_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ALWAYS
+	# _viewport.render_target_v_flip = true
+	_viewport.world = World3D.new()
 	_viewport.own_world = true
 	_viewport.debug_draw = Viewport.DEBUG_DRAW_UNSHADED
 	
 	var mat := ShaderMaterial.new()
 	
-	_plane = MeshInstance.new()
+	_plane = MeshInstance3D.new()
 	# Make a very small mesh, vertex precision isn't required
 	var plane_res := 4
 	_plane.mesh = \
@@ -81,13 +81,13 @@ func _setup_scene(terrain_size: int):
 	_plane.material_override = mat
 	_viewport.add_child(_plane)
 	
-	_camera = Camera.new()
-	_camera.projection = Camera.PROJECTION_ORTHOGONAL
+	_camera = Camera3D.new()
+	_camera.projection = Camera3D.PROJECTION_ORTHOGONAL
 	_camera.size = _viewport.size.x
 	_camera.near = 0.1
 	_camera.far = 10.0
 	_camera.current = true
-	_camera.rotation_degrees = Vector3(-90, 0, 0)
+	_camera.rotation = Vector3(deg_to_rad(-90), 0, 0)
 	_viewport.add_child(_camera)
 	
 	add_child(_viewport)
@@ -110,7 +110,7 @@ func _process(delta):
 	if _sector_index >= len(_sectors):
 		set_process(false)
 		_finish()
-		emit_signal("progress_notified", { "finished": true })
+		progress_notified.emit({ "finished": true })
 	else:
 		_setup_pass(_sectors[_sector_index])
 		_report_progress()
@@ -119,7 +119,7 @@ func _process(delta):
 
 func _report_progress():
 	var sector = _sectors[_sector_index]
-	emit_signal("progress_notified", {
+	progress_notified.emit({
 		"progress": float(_sector_index) / len(_sectors),
 		"message": "Calculating sector (" + str(sector.x) + ", " + str(sector.y) + ")"
 	})
@@ -137,7 +137,10 @@ func _setup_pass(sector: Vector2):
 
 func _grab_image(sector: Vector2):
 	var tex := _viewport.get_texture()
-	var src := tex.get_data()
+	var src := tex.get_image()
+	# TODO Optimize: In Godot 3 viewports could render flipped, but in Godot 4 it was removed...
+	# so we have to flip on the CPU
+	src.flip_y()
 	
 	assert(_terrain != null)
 	var data := _terrain.get_data()
@@ -150,7 +153,7 @@ func _grab_image(sector: Vector2):
 	
 	src.convert(dst.get_format())
 	var origin = sector * _viewport_size
-	dst.blit_rect(src, Rect2(0, 0, src.get_width(), src.get_height()), origin)
+	dst.blit_rect(src, Rect2i(0, 0, src.get_width(), src.get_height()), origin)
 
 
 func _finish():
@@ -161,7 +164,7 @@ func _finish():
 	
 	data.notify_region_change(Rect2(0, 0, dst.get_width(), dst.get_height()), 
 		HTerrainData.CHANNEL_GLOBAL_ALBEDO)
-	emit_signal("permanent_change_performed", "Bake globalmap")
+	permanent_change_performed.emit("Bake globalmap")
 	
 	_cleanup_scene()
 	_terrain = null

@@ -1,3 +1,4 @@
+@tool
 
 class HT_LoggerBase:
 	var _context := ""

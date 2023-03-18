@@ -1,4 +1,4 @@
-tool
+@tool
 
 var cell_origin_x := 0
 var cell_origin_y := 0
@@ -18,7 +18,7 @@ var _mesh : Mesh = null
 
 # TODO p_parent is HTerrain, can't add type hint due to cyclic reference
 func _init(p_parent, p_cell_x: int, p_cell_y: int, p_material: Material):
-	assert(p_parent is Spatial)
+	assert(p_parent is Node3D)
 	assert(typeof(p_cell_x) == TYPE_INT)
 	assert(typeof(p_cell_y) == TYPE_INT)
 	assert(p_material is Material)
@@ -26,20 +26,20 @@ func _init(p_parent, p_cell_x: int, p_cell_y: int, p_material: Material):
 	cell_origin_x = p_cell_x
 	cell_origin_y = p_cell_y
 
-	var vs = VisualServer
+	var rs = RenderingServer
 
-	_mesh_instance = vs.instance_create()
+	_mesh_instance = rs.instance_create()
 
 	if p_material != null:
-		vs.instance_geometry_set_material_override(_mesh_instance, p_material.get_rid())
+		rs.instance_geometry_set_material_override(_mesh_instance, p_material.get_rid())
 
-	var world = p_parent.get_world()
+	var world = p_parent.get_world_3d()
 	if world != null:
-		vs.instance_set_scenario(_mesh_instance, world.get_scenario())
+		rs.instance_set_scenario(_mesh_instance, world.get_scenario())
 
 	_visible = true
 	# TODO Is this needed?
-	vs.instance_set_visible(_mesh_instance, _visible)
+	rs.instance_set_visible(_mesh_instance, _visible)
 
 	_active = true
 	_pending_update = false
@@ -64,44 +64,44 @@ func is_pending_update() -> bool:
 	return _pending_update
 
 
-func set_pending_update(p):
+func set_pending_update(p: bool):
 	_pending_update = p
 
 
-func enter_world(world):
+func enter_world(world: World3D):
 	assert(_mesh_instance != RID())
-	VisualServer.instance_set_scenario(_mesh_instance, world.get_scenario())
+	RenderingServer.instance_set_scenario(_mesh_instance, world.get_scenario())
 
 
 func exit_world():
 	assert(_mesh_instance != RID())
-	VisualServer.instance_set_scenario(_mesh_instance, RID())
+	RenderingServer.instance_set_scenario(_mesh_instance, RID())
 
 
-func parent_transform_changed(parent_transform):
+func parent_transform_changed(parent_transform: Transform3D):
 	assert(_mesh_instance != RID())
-	var local_transform = Transform(Basis(), Vector3(cell_origin_x, 0, cell_origin_y))
+	var local_transform = Transform3D(Basis(), Vector3(cell_origin_x, 0, cell_origin_y))
 	var world_transform = parent_transform * local_transform
-	VisualServer.instance_set_transform(_mesh_instance, world_transform)
+	RenderingServer.instance_set_transform(_mesh_instance, world_transform)
 
 
 func set_mesh(mesh: Mesh):
 	assert(_mesh_instance != RID())
 	if mesh == _mesh:
 		return
-	VisualServer.instance_set_base(_mesh_instance, mesh.get_rid() if mesh != null else RID())
+	RenderingServer.instance_set_base(_mesh_instance, mesh.get_rid() if mesh != null else RID())
 	_mesh = mesh
 
 
 func set_material(material: Material):
 	assert(_mesh_instance != RID())
-	VisualServer.instance_geometry_set_material_override( \
+	RenderingServer.instance_geometry_set_material_override( \
 		_mesh_instance, material.get_rid() if material != null else RID())
 
 
 func set_visible(visible: bool):
 	assert(_mesh_instance != RID())
-	VisualServer.instance_set_visible(_mesh_instance, visible)
+	RenderingServer.instance_set_visible(_mesh_instance, visible)
 	_visible = visible
 
 
@@ -111,15 +111,15 @@ func is_visible() -> bool:
 
 func set_aabb(aabb: AABB):
 	assert(_mesh_instance != RID())
-	VisualServer.instance_set_custom_aabb(_mesh_instance, aabb)
+	RenderingServer.instance_set_custom_aabb(_mesh_instance, aabb)
 
 
 func set_render_layer_mask(mask: int):
 	assert(_mesh_instance != RID())
-	VisualServer.instance_set_layer_mask(_mesh_instance, mask)
+	RenderingServer.instance_set_layer_mask(_mesh_instance, mask)
 
 
 func set_cast_shadow_setting(setting: int):
 	assert(_mesh_instance != RID())
-	VisualServer.instance_geometry_set_cast_shadows_setting(_mesh_instance, setting)
+	RenderingServer.instance_geometry_set_cast_shadows_setting(_mesh_instance, setting)
 

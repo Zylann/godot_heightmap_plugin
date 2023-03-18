@@ -33,7 +33,7 @@ static func is_native_available() -> bool:
 		return false
 	# API changes can cause binary incompatibility
 	var v = Engine.get_version_info()
-	return v.major == 3 and v.minor >= 2 and v.minor <= 5
+	return v.major == 4 and v.minor == 0
 
 
 static func get_image_utils():

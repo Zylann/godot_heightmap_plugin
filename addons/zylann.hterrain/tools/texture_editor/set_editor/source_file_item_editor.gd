@@ -1,4 +1,4 @@
-tool
+@tool
 extends Control
 
 # TODO Can't preload because it causes the plugin to fail loading if assets aren't imported
@@ -9,16 +9,16 @@ signal load_pressed
 signal clear_pressed
 
 
-onready var _label = $Label
-onready var _texture_rect = $TextureRect
+@onready var _label : Label = $Label
+@onready var _texture_rect : TextureRect = $TextureRect
 
-onready var _buttons = [
+@onready var _buttons = [
 	$LoadButton,
 	$ClearButton
 ]
 
 var _material : Material
-var _is_empty = true
+var _is_empty := true
 
 
 func set_label(text: String):
@@ -41,11 +41,11 @@ func set_texture_tooltip(msg: String):
 
 
 func _on_LoadButton_pressed():
-	emit_signal("load_pressed")
+	load_pressed.emit()
 
 
 func _on_ClearButton_pressed():
-	emit_signal("clear_pressed")
+	clear_pressed.emit()
 
 
 func set_material(mat: Material):

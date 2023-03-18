@@ -22,7 +22,7 @@ vec3 unpack_normal(vec4 rgba) {
 }
 
 void vertex() {
-	vec2 cell_coords = (u_terrain_inverse_transform * WORLD_MATRIX * vec4(VERTEX, 1)).xz;
+	vec2 cell_coords = (u_terrain_inverse_transform * MODEL_MATRIX * vec4(VERTEX, 1)).xz;
 	// Must add a half-offset so that we sample the center of pixels,
 	// otherwise bilinear filtering of the textures will give us mixed results (#183)
 	cell_coords += vec2(0.5);
@@ -56,6 +56,6 @@ void fragment() {
 	
 	ALBEDO = v_tint.rgb;
 	ROUGHNESS = 1.0;
-	NORMAL = normalize(cross(dFdx(VERTEX), dFdy(VERTEX)));
+	NORMAL = normalize(cross(dFdy(VERTEX), dFdx(VERTEX)));
 }
 

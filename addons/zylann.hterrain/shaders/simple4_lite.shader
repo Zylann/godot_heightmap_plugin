@@ -116,7 +116,7 @@ void vertex() {
 	float h = texture(u_terrain_heightmap, UV).r;
 	VERTEX.y = h;
 
-	v_ground_uv = vec3(cell_coords.x, h * WORLD_MATRIX[1][1], cell_coords.y) / u_ground_uv_scale;
+	v_ground_uv = vec3(cell_coords.x, h * MODEL_MATRIX[1][1], cell_coords.y) / u_ground_uv_scale;
 	
 	// Putting this in vertex saves 2 fetches from the fragment shader,
 	// which is good for performance at a negligible quality cost,
@@ -201,7 +201,7 @@ void fragment() {
 	
 	ROUGHNESS = 1.0;
 	
-	NORMAL = (INV_CAMERA_MATRIX * (vec4(terrain_normal_world, 0.0))).xyz;
+	NORMAL = (VIEW_MATRIX * (vec4(terrain_normal_world, 0.0))).xyz;
 
 	//ALBEDO = w.rgb;
 	//ALBEDO = v_ground_uv.xyz;

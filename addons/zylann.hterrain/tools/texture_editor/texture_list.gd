@@ -5,7 +5,7 @@
 # and items cannot have individual shaders.
 # I could create new textures just for that but it would be expensive.
 
-tool
+@tool
 extends ScrollContainer
 
 const HT_TextureListItemScene = preload("./texture_list_item.tscn")
@@ -14,7 +14,7 @@ const HT_TextureListItem = preload("./texture_list_item.gd")
 signal item_selected(index)
 signal item_activated(index)
 
-onready var _container = $Container
+@onready var _container : Container = $Container
 
 
 var _selected_item := -1
@@ -66,11 +66,11 @@ func _on_item_selected(item: HT_TextureListItem):
 		var child = _container.get_child(i)
 		if child is HT_TextureListItem and child != item:
 			child.set_selected(false, false)
-	emit_signal("item_selected", _selected_item)
+	item_selected.emit(_selected_item)
 
 
 func _on_item_activated(item: HT_TextureListItem):
-	emit_signal("item_activated", item.get_index())
+	item_activated.emit(item.get_index())
 
 
 func _draw():

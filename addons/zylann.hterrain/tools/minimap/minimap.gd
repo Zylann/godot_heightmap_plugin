@@ -1,7 +1,8 @@
-tool
+@tool
 extends Control
 
 const HT_Util = preload("../../util/util.gd")
+const HTerrain = preload("../../hterrain.gd")
 const HTerrainData = preload("../../hterrain_data.gd")
 
 const HT_MinimapShader = preload("./minimap_normal.shader")
@@ -12,13 +13,13 @@ const WHITE_TEXTURE_PATH = "res://addons/zylann.hterrain/tools/icons/white.png"
 const MODE_QUADTREE = 0
 const MODE_NORMAL = 1
 
-onready var _popup_menu = $PopupMenu
-onready var _color_rect = $ColorRect
-onready var _overlay = $Overlay
+@onready var _popup_menu = $PopupMenu
+@onready var _color_rect = $ColorRect
+@onready var _overlay = $Overlay
 
-var _terrain = null
+var _terrain : HTerrain = null
 var _mode := MODE_NORMAL
-var _camera_transform := Transform()
+var _camera_transform := Transform3D()
 
 
 func _ready():
@@ -31,13 +32,13 @@ func _ready():
 	_popup_menu.add_item("Normal mode", MODE_NORMAL)
 
 
-func set_terrain(node):
+func set_terrain(node: HTerrain):
 	if _terrain != node:
 		_terrain = node
 		set_process(_terrain != null)
 
 
-func set_camera_transform(ct: Transform):
+func set_camera_transform(ct: Transform3D):
 	if _camera_transform == ct:
 		return
 	if _terrain == null:
@@ -73,7 +74,7 @@ func _gui_input(event: InputEvent):
 func _process(delta):
 	if _terrain != null:
 		if _mode == MODE_QUADTREE:
-			update()
+			queue_redraw()
 		else:
 			_update_normal_material()
 
@@ -88,7 +89,7 @@ func _set_mode(mode: int):
 		_color_rect.show()
 		_update_normal_material()
 	_mode = mode
-	update()
+	queue_redraw()
 
 
 func _update_normal_material():
@@ -122,7 +123,7 @@ func _draw():
 		return
 	
 	if _mode == MODE_QUADTREE:
-		var lod_count = _terrain.get_lod_count()
+		var lod_count := _terrain.get_lod_count()
 	
 		if lod_count > 0:
 			# Fit drawing to rect

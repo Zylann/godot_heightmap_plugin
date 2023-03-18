@@ -24,7 +24,7 @@ vec3 unpack_normal(vec4 rgba) {
 }
 
 void vertex() {
-	vec4 wpos = WORLD_MATRIX * vec4(VERTEX, 1);
+	vec4 wpos = MODEL_MATRIX * vec4(VERTEX, 1);
 	vec2 cell_coords = (u_terrain_inverse_transform * wpos).xz;
 	// Must add a half-offset so that we sample the center of pixels,
 	// otherwise bilinear filtering of the textures will give us mixed results (#183)
@@ -65,5 +65,5 @@ void fragment() {
 	
 	ALBEDO = value.rgb;
 	ROUGHNESS = 0.5;
-	NORMAL = (INV_CAMERA_MATRIX * (vec4(normal, 0.0))).xyz;
+	NORMAL = (VIEW_MATRIX * (vec4(normal, 0.0))).xyz;
 }

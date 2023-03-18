@@ -6,7 +6,7 @@ uniform mat4 u_terrain_inverse_transform;
 uniform mat3 u_terrain_normal_basis;
 
 void vertex() {
-	vec2 cell_coords = (u_terrain_inverse_transform * WORLD_MATRIX * vec4(VERTEX, 1)).xz;
+	vec2 cell_coords = (u_terrain_inverse_transform * MODEL_MATRIX * vec4(VERTEX, 1)).xz;
 
 	vec2 ps = vec2(1.0) / vec2(textureSize(u_terrain_heightmap, 0));
 	vec2 uv = ps * cell_coords;

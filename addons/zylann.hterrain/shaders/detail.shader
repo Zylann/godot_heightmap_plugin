@@ -43,7 +43,7 @@ vec3 get_ambient_wind_displacement(vec2 uv, float hash) {
 }
 
 void vertex() {
-	vec4 obj_pos = WORLD_MATRIX * vec4(0, 1, 0, 1);
+	vec4 obj_pos = MODEL_MATRIX * vec4(0, 1, 0, 1);
 	vec3 cell_coords = (u_terrain_inverse_transform * obj_pos).xyz;
 	// Must add a half-offset so that we sample the center of pixels,
 	// otherwise bilinear filtering of the textures will give us mixed results (#183)
@@ -68,8 +68,8 @@ void vertex() {
 		VERTEX += get_ambient_wind_displacement(UV, hash);
 		
 		// Fade alpha with distance
-		vec3 wpos = (WORLD_MATRIX * vec4(VERTEX, 1)).xyz;
-		float dr = distance(wpos, CAMERA_MATRIX[3].xyz) / u_view_distance;
+		vec3 wpos = (MODEL_MATRIX * vec4(VERTEX, 1)).xyz;
+		float dr = distance(wpos, CAMERA_POSITION_WORLD) / u_view_distance;
 		COLOR.a = clamp(1.0 - dr * dr * dr, 0.0, 1.0);
 
 		// When using billboards,
@@ -83,7 +83,7 @@ void vertex() {
 }
 
 void fragment() {
-	NORMAL = (INV_CAMERA_MATRIX * (WORLD_MATRIX * vec4(v_normal, 0.0))).xyz;
+	NORMAL = (VIEW_MATRIX * (MODEL_MATRIX * vec4(v_normal, 0.0))).xyz;
 	ALPHA_SCISSOR = 0.5;
 	ROUGHNESS = u_roughness;
 

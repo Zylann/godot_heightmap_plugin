@@ -1,4 +1,4 @@
-tool
+@tool
 extends EditorImportPlugin
 
 const HT_TextureLayeredImporter = preload("./texture_layered_importer.gd")
@@ -13,36 +13,37 @@ const RESOURCE_TYPE = "TextureArray"
 var _logger = HT_Logger.get_for(self)
 
 
-func get_importer_name() -> String:
+func _get_importer_name() -> String:
 	return IMPORTER_NAME
 
 
-func get_visible_name() -> String:
+func _get_visible_name() -> String:
 	# This shows up next to "Import As:"
 	return "HTerrainPackedTextureArray"
 
 
-func get_recognized_extensions() -> Array:
-	return ["packed_texarr"]
+func _get_recognized_extensions() -> PackedStringArray:
+	return PackedStringArray(["packed_texarr"])
 
 
-func get_save_extension() -> String:
-	return "texarr"
+func _get_save_extension() -> String:
+	# Same as Godot's default TextureArray importer
+	return "ctexarray"
 
 
-func get_resource_type() -> String:
+func _get_resource_type() -> String:
 	return RESOURCE_TYPE
 
 
-func get_preset_count() -> int:
+func _get_preset_count() -> int:
 	return 1
 
 
-func get_preset_name(preset_index: int) -> String:
+func _get_preset_name(preset_index: int) -> String:
 	return ""
 
 
-func get_import_options(preset_index: int) -> Array:
+func _get_import_options(preset_index: int) -> Array:
 	return [
 		{
 			"name": "compress/mode",
@@ -51,34 +52,21 @@ func get_import_options(preset_index: int) -> Array:
 			"hint_string": HT_TextureLayeredImporter.COMPRESS_HINT_STRING
 		},
 		{
-			"name": "flags/repeat",
-			"default_value": HT_TextureLayeredImporter.REPEAT_ENABLED,
-			"property_hint": PROPERTY_HINT_ENUM,
-			"hint_string": HT_TextureLayeredImporter.REPEAT_HINT_STRING
-		},
-		{
-			"name": "flags/filter",
-			"default_value": true
-		},
-		{
 			"name": "flags/mipmaps",
 			"default_value": true
-		},
-		{
-			"name": "flags/anisotropic",
-			"default_value": false
 		}
 	]
 
 
-func get_option_visibility(option: String, options: Dictionary) -> bool:
+func _get_option_visibility(path: String, option_name: StringName, options: Dictionary) -> bool:
 	return true
 
 
-func import(p_source_path: String, p_save_path: String, options: Dictionary, 
+func _import(p_source_path: String, p_save_path: String, options: Dictionary, 
 	r_platform_variants: Array, r_gen_files: Array) -> int:
 
-	var result := _import(p_source_path, p_save_path, options, r_platform_variants, r_gen_files)
+	var result := _import_internal(
+		p_source_path, p_save_path, options, r_platform_variants, r_gen_files)
 	
 	if not result.success:
 		_logger.error(result.get_message())
@@ -88,30 +76,31 @@ func import(p_source_path: String, p_save_path: String, options: Dictionary,
 	return code
 
 
-func _import(p_source_path: String, p_save_path: String, options: Dictionary, 
+func _import_internal(p_source_path: String, p_save_path: String, options: Dictionary, 
 	r_platform_variants: Array, r_gen_files: Array) -> HT_Result:
 	
-	var f := File.new()
-	var err := f.open(p_source_path, File.READ)
+	var f := FileAccess.open(p_source_path, File.READ)
+	var err := FileAccess.get_open_error()
 	if err != OK:
 		return HT_Result.new(false, "Could not open file {0}: {1}" \
 			.format([p_source_path, HT_Errors.get_message(err)])) \
 			.with_value(err)
 	var text := f.get_as_text()
-	f.close()
+	f = null
 	
-	var json_result := JSON.parse(text)
-	if json_result.error != OK:
+	var json = JSON.new()
+	var json_err := json.parse(text)
+	if json_err != OK:
 		return HT_Result.new(false, "Failed to parse file {0}: {1}" \
-			.format([p_source_path, json_result.error_string])) \
-			.with_value(json_result.error)
-	var json_data : Dictionary = json_result.result
+			.format([p_source_path, json.get_error_message()])) \
+			.with_value(json_err)
+	var json_data : Dictionary = json.data
 	
 	var resolution : int = int(json_data.resolution)
 	var contains_albedo : bool = json_data.get("contains_albedo", false)
-	var layers = json_data.get("layers")
+	var layers : Array = json_data.get("layers")
 	
-	var images = []
+	var images := []
 	
 	for layer_index in len(layers):
 		var sources = layers[layer_index]
@@ -134,10 +123,7 @@ func _import(p_source_path: String, p_save_path: String, options: Dictionary,
 		contains_albedo,
 		get_visible_name(),
 		options["compress/mode"],
-		options["flags/repeat"],
-		options["flags/filter"],
-		options["flags/mipmaps"],
-		options["flags/anisotropic"])
+		options["flags/mipmaps"])
 	
 	if not result.success:
 		return HT_Result.new(false, 

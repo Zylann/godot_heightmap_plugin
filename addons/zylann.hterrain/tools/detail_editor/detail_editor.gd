@@ -1,4 +1,4 @@
-tool
+@tool
 extends Control
 
 const HTerrainData = preload("../../hterrain_data.gd")
@@ -16,8 +16,8 @@ signal detail_selected(index)
 # Emitted when the tool added or removed a detail map
 signal detail_list_changed
 
-onready var _item_list = $ItemList
-onready var _confirmation_dialog = $ConfirmationDialog
+@onready var _item_list = $ItemList
+@onready var _confirmation_dialog = $ConfirmationDialog
 
 var _terrain = null
 var _dialog_target = -1
@@ -34,6 +34,7 @@ func set_terrain(terrain):
 
 
 func set_undo_redo(ur: UndoRedo):
+	assert(ur != null)
 	_undo_redo = ur
 
 
@@ -41,7 +42,7 @@ func set_image_cache(image_cache: HT_ImageFileCache):
 	_image_cache = image_cache
 
 
-func set_layer_index(i):
+func set_layer_index(i: int):
 	_item_list.select(i, true)
 
 
@@ -52,7 +53,7 @@ func _update_list():
 		return
 	
 	var layer_nodes = _terrain.get_detail_layers()
-	var layer_nodes_by_index = {}
+	var layer_nodes_by_index := {}
 	for layer in layer_nodes:
 		if not layer_nodes_by_index.has(layer.layer_index):
 			layer_nodes_by_index[layer.layer_index] = []
@@ -71,7 +72,7 @@ func _update_list():
 			
 			if layer_nodes_by_index.has(i):
 				# TODO How to keep names updated with node names?
-				var names = PoolStringArray(layer_nodes_by_index[i]).join(", ")
+				var names := PackedStringArray(layer_nodes_by_index[i]).join(", ")
 				if len(names) == 1:
 					_item_list.set_item_tooltip(i, "Used by " + names)
 				else:
@@ -142,12 +143,12 @@ func _add_layer():
 	terrain_data._edit_set_disable_apply_undo(false)
 	
 	#_update_list()
-	emit_signal("detail_list_changed")
+	detail_list_changed.emit()
 	
 	var index = node.layer_index
 	_item_list.select(index)
 	# select() doesn't trigger the signal
-	emit_signal("detail_selected", index)
+	detail_selected.emit(index)
 
 
 func _remove_layer(map_index: int):
@@ -182,11 +183,11 @@ func _remove_layer(map_index: int):
 	_undo_redo.commit_action()
 	
 	#_update_list()
-	emit_signal("detail_list_changed")
+	detail_list_changed.emit()
 
 
 func _on_ItemList_item_selected(index):
-	emit_signal("detail_selected", index)
+	detail_selected.emit(index)
 
 
 	

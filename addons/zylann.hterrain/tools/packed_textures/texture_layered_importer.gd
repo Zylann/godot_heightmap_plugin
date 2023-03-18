@@ -1,4 +1,6 @@
-tool
+@tool
+
+# TODO Port API usage to Godot 4
 
 # TODO Godot does not have an API to make custom texture importers easier.
 # So we have to re-implement the entire logic of `ResourceImporterLayeredTexture`.
@@ -14,12 +16,6 @@ const COMPRESS_UNCOMPRESSED = 2
 # For some reason lossy TextureArrays are not implemented in Godot -_-
 
 const COMPRESS_HINT_STRING = "Lossless,VRAM,Uncompressed"
-
-const REPEAT_NONE = 0
-const REPEAT_ENABLED = 1
-const REPEAT_MIRRORED = 2
-
-const REPEAT_HINT_STRING = "None,Enabled,Mirrored"
 
 # TODO COMPRESS_SOURCE_LAYERED is not exposed 
 # https://github.com/godotengine/godot/issues/43387

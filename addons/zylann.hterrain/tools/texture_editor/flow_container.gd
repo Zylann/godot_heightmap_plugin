@@ -1,4 +1,4 @@
-tool
+@tool
 extends Container
 
 const SEPARATION = 2
@@ -36,5 +36,5 @@ func _sort_children2():
 		
 		pos.x += rect.size.x + SEPARATION
 	
-	rect_min_size.y = pos.y + line_height
+	custom_minimum_size.y = pos.y + line_height
 

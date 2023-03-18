@@ -1,4 +1,4 @@
-tool
+@tool
 extends Node
 
 const HT_Painter = preload("./../painter.gd")

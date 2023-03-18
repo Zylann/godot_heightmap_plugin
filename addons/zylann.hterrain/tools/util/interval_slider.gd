@@ -1,7 +1,7 @@
 
 # Slider with two handles representing an interval.
 
-tool
+@tool
 extends Control
 
 const VALUE_LOW = 0
@@ -22,12 +22,12 @@ func _get_property_list():
 	return [
 		{
 			"name": "min_value",
-			"type": TYPE_REAL,
+			"type": TYPE_FLOAT,
 			"usage": PROPERTY_USAGE_EDITOR
 		},
 		{
 			"name": "max_value",
-			"type": TYPE_REAL,
+			"type": TYPE_FLOAT,
 			"usage": PROPERTY_USAGE_EDITOR
 		},
 		{
@@ -83,12 +83,12 @@ func set_value(i: int, v: float, notify_change: bool):
 		_:
 			assert(false)
 	
-	v = clamp(v, min_value, max_value)
+	v = clampf(v, min_value, max_value)
 	if v != _values[i]:
 		_values[i] = v
-		update()
+		queue_redraw()
 		if notify_change:
-			emit_signal("changed")
+			changed.emit()
 
 
 func get_value(i: int) -> float:
@@ -126,8 +126,8 @@ func _value_to_ratio(v: float) -> float:
 
 
 func _get_closest_index(ratio: float) -> int:
-	var distance_low := abs(ratio - get_low_ratio())
-	var distance_high := abs(ratio - get_high_ratio())
+	var distance_low := absf(ratio - get_low_ratio())
+	var distance_high := absf(ratio - get_high_ratio())
 	if distance_low < distance_high:
 		return VALUE_LOW
 	return VALUE_HIGH
@@ -140,14 +140,14 @@ func _set_from_pixel(px: float):
 	set_value(i, v, true)
 
 
-func _gui_input(event):
+func _gui_input(event: InputEvent):
 	if event is InputEventMouseButton:
 		if event.pressed:
-			if event.button_index == BUTTON_LEFT:
+			if event.button_index == MOUSE_BUTTON_LEFT:
 				_grabbing = true
 				_set_from_pixel(event.position.x)
 		else:
-			if event.button_index == BUTTON_LEFT:
+			if event.button_index == MOUSE_BUTTON_LEFT:
 				_grabbing = false
 				
 	elif event is InputEventMouseMotion:

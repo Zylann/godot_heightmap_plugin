@@ -1,5 +1,5 @@
-tool
-extends WindowDialog
+@tool
+extends AcceptDialog
 
 const HT_Util = preload("../../util/util.gd")
 const HT_Logger = preload("../../util/logger.gd")
@@ -8,7 +8,7 @@ const HT_Errors = preload("../../util/errors.gd")
 const PLUGIN_CFG_PATH = "res://addons/zylann.hterrain/plugin.cfg"
 
 
-onready var _about_rich_text_label = $VB/HB2/TC/About
+@onready var _about_rich_text_label = $VB/HB2/TC/About
 
 var _logger = HT_Logger.get_for(self)
 
@@ -27,7 +27,3 @@ func _ready():
 	
 	_about_rich_text_label.bbcode_text = _about_rich_text_label.bbcode_text \
 		.format({"version": version})
-
-
-func _on_Ok_pressed():
-	hide()

@@ -1,4 +1,4 @@
-tool
+@tool
 extends Control
 
 const HT_PreviewPainter = preload("./preview_painter.gd")
@@ -8,8 +8,8 @@ const HT_Brush = preload("../brush.gd")
 const HT_Logger = preload("../../../util/logger.gd")
 const HT_EditorUtil = preload("../../util/editor_util.gd")
 
-onready var _texture_rect : TextureRect = $TextureRect
-onready var _painter : HT_PreviewPainter = $Painter
+@onready var _texture_rect : TextureRect = $TextureRect
+@onready var _painter : HT_PreviewPainter = $Painter
 
 var _logger := HT_Logger.get_for(self)
 
@@ -38,12 +38,12 @@ func get_painter() -> HT_PreviewPainter:
 
 func _gui_input(event):
 	if event is InputEventMouseMotion:
-		if Input.is_mouse_button_pressed(BUTTON_LEFT):
+		if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 			_painter.paint_input(event.position, event.pressure)
 		update()
 	
 	elif event is InputEventMouseButton:
-		if event.button_index == BUTTON_LEFT:
+		if event.button_index == MOUSE_BUTTON_LEFT:
 			if event.pressed:
 				# TODO `pressure` is not available on button events
 				# So I have to assume zero... which means clicks do not paint anything?

@@ -4,7 +4,7 @@ const HT_Logger = preload("./util/logger.gd")
 
 var _shape_rid = RID()
 var _body_rid = RID()
-var _terrain_transform = Transform()
+var _terrain_transform = Transform3D()
 var _terrain_data = null
 var _logger = HT_Logger.get_for(self)
 
@@ -12,55 +12,57 @@ var _logger = HT_Logger.get_for(self)
 func _init(attached_node: Node, initial_layer: int, initial_mask: int):
 	_logger.debug("HTerrainCollider: creating body")
 	assert(attached_node != null)
-	_shape_rid = PhysicsServer.shape_create(PhysicsServer.SHAPE_HEIGHTMAP)
-	_body_rid = PhysicsServer.body_create(PhysicsServer.BODY_MODE_STATIC)
+	_shape_rid = PhysicsServer3D.shape_create(PhysicsServer3D.SHAPE_HEIGHTMAP)
+	_body_rid = PhysicsServer3D.body_create()
+	PhysicsServer3D.body_set_mode(_body_rid, PhysicsServer3D.BODY_MODE_STATIC)
 
-	PhysicsServer.body_set_collision_layer(_body_rid, initial_layer)
-	PhysicsServer.body_set_collision_mask(_body_rid, initial_mask)
+	PhysicsServer3D.body_set_collision_layer(_body_rid, initial_layer)
+	PhysicsServer3D.body_set_collision_mask(_body_rid, initial_mask)
 
 	# TODO This is an attempt to workaround https://github.com/godotengine/godot/issues/24390
-	PhysicsServer.body_set_ray_pickable(_body_rid, false)
+	PhysicsServer3D.body_set_ray_pickable(_body_rid, false)
 
+	# Assigng dummy data
 	# TODO This is a workaround to https://github.com/godotengine/godot/issues/25304
-	PhysicsServer.shape_set_data(_shape_rid, {
+	PhysicsServer3D.shape_set_data(_shape_rid, {
 		"width": 2,
 		"depth": 2,
-		"heights": PoolRealArray([0, 0, 0, 0]),
+		"heights": PackedFloat32Array([0, 0, 0, 0]),
 		"min_height": -1,
 		"max_height": 1
 	})
 
-	PhysicsServer.body_add_shape(_body_rid, _shape_rid)
+	PhysicsServer3D.body_add_shape(_body_rid, _shape_rid)
 	
 	# This makes collision hits report the provided object as `collider`
-	PhysicsServer.body_attach_object_instance_id(_body_rid, attached_node.get_instance_id())
+	PhysicsServer3D.body_attach_object_instance_id(_body_rid, attached_node.get_instance_id())
 
 
 func set_collision_layer(layer: int):
-	PhysicsServer.body_set_collision_layer(_body_rid, layer)
+	PhysicsServer3D.body_set_collision_layer(_body_rid, layer)
 
 
 func set_collision_mask(mask: int):
-	PhysicsServer.body_set_collision_mask(_body_rid, mask)
+	PhysicsServer3D.body_set_collision_mask(_body_rid, mask)
 
 
-func _notification(what):
+func _notification(what: int):
 	if what == NOTIFICATION_PREDELETE:
 		_logger.debug("Destroy HTerrainCollider")
-		PhysicsServer.free_rid(_body_rid)
+		PhysicsServer3D.free_rid(_body_rid)
 		# The shape needs to be freed after the body, otherwise the engine crashes
-		PhysicsServer.free_rid(_shape_rid)
+		PhysicsServer3D.free_rid(_shape_rid)
 
 
-func set_transform(transform):
+func set_transform(transform: Transform3D):
 	assert(_body_rid != RID())
 	_terrain_transform = transform
 	_update_transform()
 
 
-func set_world(world):
+func set_world(world: World3D):
 	assert(_body_rid != RID())
-	PhysicsServer.body_set_space(_body_rid, world.get_space() if world != null else RID())
+	PhysicsServer3D.body_set_space(_body_rid, world.get_space() if world != null else RID())
 
 
 func create_from_terrain_data(terrain_data):
@@ -84,7 +86,7 @@ func create_from_terrain_data(terrain_data):
 		"max_height": aabb.end.y
 	}
 
-	PhysicsServer.shape_set_data(_shape_rid, shape_data)
+	PhysicsServer3D.shape_set_data(_shape_rid, shape_data)
 
 	_update_transform(aabb)
 
@@ -103,20 +105,12 @@ func _update_transform(aabb=null):
 
 	#_terrain_transform
 
-	var trans
-	var v = Engine.get_version_info()
-	if v.major == 3 and v.minor <= 1:
-		# Bullet centers the shape to its overall AABB so we need to move it to match the visuals
-		trans = Transform(Basis(), 0.5 * Vector3(width, height, depth) + Vector3(0, aabb.position.y, 0))
-	else:
-		# In 3.2, vertical centering changed.
-		# https://github.com/godotengine/godot/pull/28326
-		trans = Transform(Basis(), 0.5 * Vector3(width - 1, 0, depth - 1))
+	var trans = Transform3D(Basis(), 0.5 * Vector3(width - 1, 0, depth - 1))
 	
 	# And then apply the terrain transform
 	trans = _terrain_transform * trans
 
-	PhysicsServer.body_set_state(_body_rid, PhysicsServer.BODY_STATE_TRANSFORM, trans)
+	PhysicsServer3D.body_set_state(_body_rid, PhysicsServer3D.BODY_STATE_TRANSFORM, trans)
 	# Cannot use shape transform when scaling is involved,
 	# because Godot is undoing that scale for some reason.
 	# See https://github.com/Zylann/godot_heightmap_plugin/issues/70

@@ -1,4 +1,4 @@
-tool
+@tool
 extends EditorFileDialog
 
 
@@ -10,7 +10,7 @@ func _init():
 	add_filter("*.jpg ; JPG files")
 	resizable = true
 	access = EditorFileDialog.ACCESS_RESOURCES
-	connect("popup_hide", self, "call_deferred", ["_on_close"])
+	popup_hide.connect(call_deferred.bind("_on_close"))
 
 
 func _on_close():

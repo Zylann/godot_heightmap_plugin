@@ -1,4 +1,4 @@
-tool
+@tool
 extends PanelContainer
 # Had to use PanelContainer, because due to variable font sizes in the editor,
 # the contents of the VBoxContainer can vary in size, and so in height.
@@ -11,8 +11,8 @@ const HT_ColorSliceShader = preload("./display_color_slice.shader")
 #const HT_DummyTexture = preload("../icons/empty.png")
 const DUMMY_TEXTURE_PATH = "res://addons/zylann.hterrain/tools/icons/empty.png"
 
-onready var _texture_rect = $VB/TextureRect
-onready var _label = $VB/Label
+@onready var _texture_rect = $VB/TextureRect
+@onready var _label = $VB/Label
 
 
 var _selected := false
@@ -29,8 +29,8 @@ func set_texture(texture: Resource, texture_layer: int):
 			mat = ShaderMaterial.new()
 			mat.shader = HT_ColorSliceShader
 			_texture_rect.material = mat
-		mat.set_shader_param("u_texture_array", texture)
-		mat.set_shader_param("u_index", texture_layer)
+		mat.set_shader_parameter("u_texture_array", texture)
+		mat.set_shader_parameter("u_index", texture_layer)
 		_texture_rect.texture = load(DUMMY_TEXTURE_PATH)
 	else:
 		_texture_rect.texture = texture
@@ -40,10 +40,10 @@ func set_texture(texture: Resource, texture_layer: int):
 func _gui_input(event: InputEvent):
 	if event is InputEventMouseButton:
 		if event.pressed:
-			if event.button_index == BUTTON_LEFT:
+			if event.button_index == MOUSE_BUTTON_LEFT:
 				grab_focus()
 				set_selected(true, true)
-				if event.doubleclick:
+				if event.double_click:
 					# Don't do this at home.
 					# I do it here because this script is very related to its container anyways.
 					get_parent().get_parent()._on_item_activated(self)
@@ -53,7 +53,7 @@ func set_selected(selected: bool, notify: bool):
 	if selected == _selected:
 		return
 	_selected = selected
-	update()
+	queue_redraw()
 	if _selected:
 		_label.modulate = Color(0,0,0)
 	else:
@@ -65,7 +65,7 @@ func set_selected(selected: bool, notify: bool):
 func _draw():
 	var color : Color
 	if _selected:
-		color = get_color("accent_color", "Editor")
+		color = get_theme_color("accent_color", "Editor")
 	else:
 		color = Color(0.0, 0.0, 0.0, 0.5)
 	# Draw background

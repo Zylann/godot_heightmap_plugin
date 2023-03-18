@@ -1,4 +1,6 @@
-tool
+@tool
+
+# TODO Port API usage to Godot 4
 
 # TODO Godot does not have an API to make custom texture importers easier.
 # So we have to re-implement the entire logic of `ResourceImporterTexture`.
@@ -14,12 +16,6 @@ const COMPRESS_VIDEO_RAM = 2
 const COMPRESS_UNCOMPRESSED = 3
 
 const COMPRESS_HINT_STRING = "Lossless,Lossy,VRAM,Uncompressed"
-
-const REPEAT_NONE = 0
-const REPEAT_ENABLED = 1
-const REPEAT_MIRRORED = 2
-
-const REPEAT_HINT_STRING = "None,Enabled,Mirrored"
 
 # StreamTexture.FormatBits, not exposed to GDScript
 const StreamTexture_FORMAT_MASK_IMAGE_FORMAT = (1 << 20) - 1

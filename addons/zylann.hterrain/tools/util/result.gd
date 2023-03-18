@@ -3,7 +3,7 @@
 # instead of forgetting them to the console or having the script break on an assertion.
 # This is a C-like way of things, where the result can bubble, and does not require globals.
 
-tool
+@tool
 
 # Replace `success` with `error : int`?
 var success := false

@@ -1,4 +1,4 @@
-tool
+@tool
 extends Resource
 
 const MODE_TEXTURES = 0
@@ -105,14 +105,19 @@ func _set(key: String, value):
 func get_slots_count() -> int:
 	if _mode == MODE_TEXTURES:
 		return get_texture_count()
-	# TODO What if there are two texture arrays of different size?
-	var texarray = _textures[TYPE_ALBEDO_BUMP][0]
-	if texarray == null:
-		var count = 0
-		texarray = _textures[TYPE_NORMAL_ROUGHNESS][0]
+
+	elif _mode == MODE_TEXTURE_ARRAYS:
+		# TODO What if there are two texture arrays of different size?
+		var texarray = _textures[TYPE_ALBEDO_BUMP][0]
 		if texarray == null:
-			return 0
-	return texarray.get_depth()
+			var count = 0
+			texarray = _textures[TYPE_NORMAL_ROUGHNESS][0]
+			if texarray == null:
+				return 0
+		return texarray.get_depth()
+
+	else:
+		assert(false)
 
 
 func get_texture_count() -> int:
@@ -121,12 +126,18 @@ func get_texture_count() -> int:
 
 
 func get_texture(slot_index: int, ground_texture_type: int) -> Texture:
-	if _mode != MODE_TEXTURES:
+	if _mode == MODE_TEXTURE_ARRAYS:
+		# Can't get a single texture at once
 		return null
-	var texs = _textures[ground_texture_type]
-	if slot_index >= len(texs):
-		return null
-	return texs[slot_index]
+
+	elif _mode == MODE_TEXTURES:
+		var texs = _textures[ground_texture_type]
+		if slot_index >= len(texs):
+			return null
+		return texs[slot_index]
+
+	else:
+		assert(false)
 
 
 func set_texture(slot_index: int, ground_texture_type: int, texture: Texture):
@@ -181,7 +192,9 @@ func clear():
 				_textures[type] = []
 		MODE_TEXTURE_ARRAYS:
 			for type in TYPE_COUNT:
-				_textures[type] = [null]		
+				_textures[type] = [null]
+		_:
+			assert(false)
 	emit_changed()
 
 
@@ -211,10 +224,6 @@ func has_any_textures() -> bool:
 			if texs[i] != null:
 				return true
 	return false
-
-
-func emit_changed():
-	emit_signal("changed")
 
 
 #func set_textures(textures: Array):

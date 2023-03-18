@@ -1,4 +1,4 @@
-tool
+@tool
 
 const HT_Logger = preload("../../util/logger.gd")
 const HT_Errors = preload("../../util/errors.gd")
@@ -10,11 +10,8 @@ const _transform_params = [
 
 
 static func generate_image(sources: Dictionary, resolution: int, logger) -> HT_Result:
-	var image := Image.new()
-	image.create(resolution, resolution, true, Image.FORMAT_RGBA8)
+	var image := Image.create(resolution, resolution, true, Image.FORMAT_RGBA8)
 	
-	image.lock()
-
 	var flip_normalmap_y := false
 	
 	# TODO Accelerate with GDNative
@@ -26,15 +23,16 @@ static func generate_image(sources: Dictionary, resolution: int, logger) -> HT_R
 		
 		logger.debug(str("Processing source \"", src_path, "\""))
 		
-		var src_image := Image.new()
+		var src_image : Image
 		if src_path.begins_with("#"):
 			# Plain color
 			var col = Color(src_path)
-			src_image.create(resolution, resolution, false, Image.FORMAT_RGBA8)
+			src_image = Image.create(resolution, resolution, false, Image.FORMAT_RGBA8)
 			src_image.fill(col)
 			
 		else:
 			# File
+			src_image = Image.new()
 			var err := src_image.load(src_path)
 			if err != OK:
 				return HT_Result.new(false, "Could not open file \"{0}\": {1}" \
@@ -43,7 +41,6 @@ static func generate_image(sources: Dictionary, resolution: int, logger) -> HT_R
 			src_image.decompress()
 		
 		src_image.resize(image.get_width(), image.get_height())
-		src_image.lock()
 		
 		# TODO Support more channel configurations
 		if key == "rgb":
@@ -65,12 +62,8 @@ static func generate_image(sources: Dictionary, resolution: int, logger) -> HT_R
 		elif key == "rgba":
 			# Meh
 			image.blit_rect(src_image, 
-				Rect2(0, 0, image.get_width(), image.get_height()), Vector2())
+				Rect2i(0, 0, image.get_width(), image.get_height()), Vector2i())
 
-		src_image.unlock()
-
-	image.unlock()
-	
 	if sources.has("normalmap_flip_y") and sources.normalmap_flip_y:
 		_flip_normalmap_y(image)
 	
@@ -78,11 +71,9 @@ static func generate_image(sources: Dictionary, resolution: int, logger) -> HT_R
 
 
 static func _flip_normalmap_y(image: Image):
-	image.lock()
 	for y in image.get_height():
 		for x in image.get_width():
 			var col := image.get_pixel(x, y)
 			col.g = 1.0 - col.g
 			image.set_pixel(x, y, col)
-	image.unlock()
 

@@ -1,4 +1,4 @@
-tool
+@tool
 
 # Brush properties (shape, transform, timing and opacity).
 # Other attributes like color, height or texture index are tool-specific,
@@ -39,7 +39,7 @@ func set_size(size: int):
 		size = 1
 	if size != _size:
 		_size = size
-		emit_signal("size_changed", _size)
+		size_changed.emit(_size)
 
 
 func get_size() -> int:
@@ -47,7 +47,7 @@ func get_size() -> int:
 
 
 func set_opacity(opacity: float):
-	_opacity = clamp(opacity, 0.0, 1.0)
+	_opacity = clampf(opacity, 0.0, 1.0)
 
 
 func get_opacity() -> float:
@@ -71,7 +71,7 @@ func is_pressure_enabled() -> bool:
 
 
 func set_pressure_over_scale(amount: float):
-	_pressure_over_scale = clamp(amount, 0.0, 1.0)
+	_pressure_over_scale = clampf(amount, 0.0, 1.0)
 
 
 func get_pressure_over_scale() -> float:
@@ -79,7 +79,7 @@ func get_pressure_over_scale() -> float:
 
 
 func set_pressure_over_opacity(amount: float):
-	_pressure_over_opacity = clamp(amount, 0.0, 1.0)
+	_pressure_over_opacity = clampf(amount, 0.0, 1.0)
 
 
 func get_pressure_over_opacity() -> float:
@@ -87,7 +87,7 @@ func get_pressure_over_opacity() -> float:
 
 
 func set_frequency_distance(d: float):
-	_frequency_distance = max(d, 0.0)
+	_frequency_distance = maxf(d, 0.0)
 
 
 func get_frequency_distance() -> float:
@@ -112,7 +112,7 @@ func set_shapes(shapes: Array):
 	_shapes = shapes.duplicate(false)
 	if _shape_index >= len(_shapes):
 		_shape_index = len(_shapes) - 1
-	emit_signal("shapes_changed")
+	shapes_changed.emit()
 
 
 func get_shapes() -> Array:
@@ -124,9 +124,8 @@ func get_shape(i: int) -> Texture:
 
 
 static func load_shape_from_image_file(fpath: String, logger, retries = 1) -> Texture:
-	var im := Image.new()
-	var err := im.load(fpath)
-	if err != OK:
+	var im := Image.load_from_file(fpath)
+	if im == null:
 		if retries > 0:
 			# TODO There is a bug with Godot randomly being unable to load images.
 			# See https://github.com/Zylann/godot_heightmap_plugin/issues/219
@@ -139,8 +138,7 @@ static func load_shape_from_image_file(fpath: String, logger, retries = 1) -> Te
 			logger.error("Could not load image at '{0}', error {1}" \
 				.format([fpath, HT_Errors.get_message(err)]))
 			return null
-	var tex := ImageTexture.new()
-	tex.create_from_image(im, Texture.FLAG_FILTER)
+	var tex = ImageTexture.create_from_image(im)
 	return tex
 
 	
@@ -154,7 +152,7 @@ func configure_paint_input(painters: Array, position: Vector2, pressure: float) 
 	
 	if position.distance_to(_prev_position) < _frequency_distance:
 		return false
-	var now = OS.get_ticks_msec()
+	var now = Time.get_ticks_msec()
 	if (now - _prev_time_ms) < _frequency_time_ms:
 		return false
 	_prev_position = position
@@ -162,7 +160,7 @@ func configure_paint_input(painters: Array, position: Vector2, pressure: float) 
 	
 	for painter in painters:
 		if _random_rotation:
-			painter.set_brush_rotation(rand_range(-PI, PI))
+			painter.set_brush_rotation(randf_range(-PI, PI))
 		else:
 			painter.set_brush_rotation(0.0)
 
@@ -170,8 +168,8 @@ func configure_paint_input(painters: Array, position: Vector2, pressure: float) 
 		painter.set_brush_size(_size)
 		
 		if _pressure_enabled:
-			painter.set_brush_scale(lerp(1.0, pressure, _pressure_over_scale))
-			painter.set_brush_opacity(_opacity * lerp(1.0, pressure, _pressure_over_opacity))
+			painter.set_brush_scale(lerpf(1.0, pressure, _pressure_over_scale))
+			painter.set_brush_opacity(_opacity * lerpf(1.0, pressure, _pressure_over_opacity))
 		else:
 			painter.set_brush_scale(1.0)
 			painter.set_brush_opacity(_opacity)

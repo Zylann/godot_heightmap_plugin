@@ -2,7 +2,7 @@
 # Passes can have different shaders and re-use what was drawn by a previous pass.
 # TODO I'd like to make such a system working as a graph of passes for more possibilities.
 
-tool
+@tool
 extends Node
 
 const HT_Util = preload("res://addons/zylann.hterrain/util/util.gd")
@@ -20,7 +20,7 @@ signal completed
 var _passes := []
 var _resolution := Vector2(512, 512)
 var _output_padding := [0, 0, 0, 0]
-var _viewport : Viewport = null
+var _viewport : SubViewport = null
 var _ci : TextureRect = null
 var _dummy_texture : Texture
 var _running := false
@@ -40,10 +40,11 @@ func _ready():
 	assert(_viewport == null)
 	assert(_ci == null)
 
-	_viewport = Viewport.new()
+	_viewport = SubViewport.new()
 	_viewport.own_world = true
 	_viewport.world = World.new()
-	_viewport.render_target_v_flip = true
+	# Godot 4 no longer supports this...
+	# _viewport.render_target_v_flip = true
 	_viewport.render_target_update_mode = Viewport.UPDATE_DISABLED
 	add_child(_viewport)
 	
@@ -137,8 +138,8 @@ func run():
 	_ci.rect_size = padded_size
 
 	_viewport.size = padded_size
-	_viewport.render_target_update_mode = Viewport.UPDATE_ALWAYS
-	_viewport.render_target_clear_mode = Viewport.CLEAR_MODE_ONLY_NEXT_FRAME
+	_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ONLY_NEXT_FRAME
 
 	_running_pass_index = 0
 	_running_iteration = 0
@@ -159,7 +160,7 @@ func _process(delta: float):
 	if _running_pass_index >= len(_running_passes):
 		_running = false
 		
-		emit_signal("completed")
+		completed.emit_signal()
 		
 		if _rerun:
 			# run() was requested again before we complete...
@@ -168,7 +169,7 @@ func _process(delta: float):
 			_rerun = false
 			run()
 		else:
-			_viewport.render_target_update_mode = Viewport.UPDATE_DISABLED
+			_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 			set_process(false)
 			return
 	
@@ -204,7 +205,7 @@ func _setup_pass(p: HT_TextureGeneratorPass):
 		
 		if p.params != null:
 			for param_name in p.params:
-				_shader_material.set_shader_param(param_name, p.params[param_name])
+				_shader_material.set_shader_parameter(param_name, p.params[param_name])
 		
 		var scale_ndc = _viewport.size / _resolution
 		var pad_offset_ndc = ((_viewport.size - _resolution) / 2) / _viewport.size
@@ -216,10 +217,10 @@ func _setup_pass(p: HT_TextureGeneratorPass):
 		# 	vec2 uv = (SCREEN_UV + u_uv_offset) * u_uv_scale;
 		
 		if p.params == null or not p.params.has("u_uv_scale"):
-			_shader_material.set_shader_param("u_uv_scale", scale_ndc)
+			_shader_material.set_shader_parameter("u_uv_scale", scale_ndc)
 			
 		if p.params == null or not p.params.has("u_uv_offset"):
-			_shader_material.set_shader_param("u_uv_offset", offset_ndc)
+			_shader_material.set_shader_parameter("u_uv_offset", offset_ndc)
 		
 	else:
 		_ci.material = null
@@ -230,10 +231,13 @@ func _setup_pass(p: HT_TextureGeneratorPass):
 
 func _create_output_image(metadata):
 	var tex := _viewport.get_texture()
-	var src := tex.get_data()
+	var src := tex.get_image()
+	# TODO Optimize: Godot 3 used to be able to render flipped viewports, Godot 4 no longer...
+	# So we have to flip on the CPU instead, which is slower
+	src.flip_y()
 	
 	# Pick the center of the image
-	var subrect := Rect2( \
+	var subrect := Rect2i( \
 		(src.get_width() - _resolution.x) / 2, \
 		(src.get_height() - _resolution.y) / 2, \
 		_resolution.x, _resolution.y)
@@ -248,25 +252,24 @@ func _create_output_image(metadata):
 	subrect.size.y += _output_padding[2] + _output_padding[3]
 		
 	var dst
-	if subrect == Rect2(0, 0, src.get_width(), src.get_height()):
+	if subrect == Rect2i(0, 0, src.get_width(), src.get_height()):
 		dst = src
 	else:
-		dst = Image.new()
 		# Note: size MUST match at this point.
 		# If it doesn't, the viewport has not been configured properly,
 		# or padding has been modified while the generator was running
-		dst.create( \
+		dst = Image.create( \
 			_resolution.x + _output_padding[0] + _output_padding[1], \
 			_resolution.y + _output_padding[2] + _output_padding[3], \
 			false, src.get_format())
-		dst.blit_rect(src, subrect, Vector2())
+		dst.blit_rect(src, subrect, Vector2i())
 
-	emit_signal("output_generated", dst, metadata)
+	output_generated.emit(dst, metadata)
 
 
 func _report_progress(passes: Array, pass_index: int, iteration: int):
 	var p = passes[pass_index]
-	emit_signal("progress_reported", {
+	progress_reported.emit({
 		"name": p.debug_name,
 		"pass_index": pass_index,
 		"pass_count": len(passes),

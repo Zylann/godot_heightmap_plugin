@@ -5,7 +5,7 @@
 # This script adjusts the size of the parent WindowDialog based on the first Container it finds
 # when the node becomes visible.
 
-tool
+@tool
 # Needs to be a Control, otherwise we don't receive the notification...
 extends Control
 
@@ -31,7 +31,7 @@ func _fit_to_contents():
 				var margin : Vector2 = child.get_rect().position
 				#print("Fitting ", dialog.get_path(), " from ", dialog.rect_size, 
 				#	" to ", child_rect.size + margin * 2.0)
-				dialog.rect_min_size = child_rect.size + margin * 2.0
+				dialog.custom_minimum_size = child_rect.size + margin * 2.0
 
 
 #func _process(delta):
