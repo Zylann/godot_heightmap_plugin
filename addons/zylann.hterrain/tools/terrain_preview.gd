@@ -1,5 +1,5 @@
 @tool
-extends ViewportContainer
+extends SubViewportContainer
 
 const PREVIEW_MESH_LOD = 2
 
@@ -19,15 +19,15 @@ var _yaw := 0.0
 var _pitch := -PI / 6.0
 var _distance := 0.0
 var _default_distance := 0.0
-var _sea_outline : MeshInstance = null
-var _sea_plane : MeshInstance = null
+var _sea_outline : MeshInstance3D = null
+var _sea_plane : MeshInstance3D = null
 var _mesh_resolution := 0
 
 
 func _ready():
 	if _sea_outline == null:
-		var mesh = HT_Util.create_wirecube_mesh()
-		var mat2 = StandardMaterial3D.new()
+		var mesh := HT_Util.create_wirecube_mesh()
+		var mat2 := StandardMaterial3D.new()
 		mat2.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		mat2.albedo_color = Color(0, 0.5, 1)
 		mesh.surface_set_material(0, mat2)
@@ -36,9 +36,9 @@ func _ready():
 		_viewport.add_child(_sea_outline)
 	
 	if _sea_plane == null:
-		var mesh = PlaneMesh.new()
+		var mesh := PlaneMesh.new()
 		mesh.size = Vector2(1, 1)
-		var mat2 = StandardMaterial3D.new()
+		var mat2 := StandardMaterial3D.new()
 		mat2.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		mat2.albedo_color = Color(0, 0.5, 1, 0.5)
 		mat2.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -49,13 +49,13 @@ func _ready():
 		_viewport.add_child(_sea_plane)
 
 
-func setup(heights_texture: Texture, normals_texture: Texture):
-	var terrain_size = heights_texture.get_width()
-	var mesh_resolution = terrain_size / PREVIEW_MESH_LOD
+func setup(heights_texture: Texture2D, normals_texture: Texture2D):
+	var terrain_size := heights_texture.get_width()
+	var mesh_resolution := terrain_size / PREVIEW_MESH_LOD
 	
 	if _mesh_resolution != mesh_resolution or not (_mesh_instance.mesh is ArrayMesh):
 		_mesh_resolution = mesh_resolution
-		var mesh = HTerrainMesher.make_flat_chunk(
+		var mesh := HTerrainMesher.make_flat_chunk(
 			_mesh_resolution, _mesh_resolution, PREVIEW_MESH_LOD, 0)
 		_mesh_instance.mesh = mesh
 		_default_distance = _mesh_instance.get_aabb().size.x
@@ -63,7 +63,7 @@ func setup(heights_texture: Texture, normals_texture: Texture):
 		#_mesh_instance.translation -= 0.5 * Vector3(terrain_size, 0, terrain_size)
 		_update_camera()
 
-	var mat = _mesh_instance.mesh.surface_get_material(0)
+	var mat : ShaderMaterial = _mesh_instance.mesh.surface_get_material(0)
 	
 	if mat == null:
 		mat = ShaderMaterial.new()
@@ -75,12 +75,12 @@ func setup(heights_texture: Texture, normals_texture: Texture):
 	mat.set_shader_parameter("u_terrain_inverse_transform", Transform3D())
 	mat.set_shader_parameter("u_terrain_normal_basis", Basis())
 
-	var aabb = _mesh_instance.get_aabb()
+	var aabb := _mesh_instance.get_aabb()
 	_sea_outline.scale = aabb.size
 
 	aabb = _mesh_instance.get_aabb()
 	_sea_plane.scale = Vector3(aabb.size.x, 1, aabb.size.z)
-	_sea_plane.translation = Vector3(aabb.size.x, 0, aabb.size.z) / 2.0
+	_sea_plane.position = Vector3(aabb.size.x, 0, aabb.size.z) / 2.0
 
 
 func set_sea_visible(visible: bool):
@@ -92,18 +92,18 @@ func set_shadows_enabled(enabled: bool):
 
 
 func _update_camera():
-	var aabb = _mesh_instance.get_aabb()
-	var target = aabb.position + 0.5 * aabb.size
-	var trans = Transform3D()
+	var aabb := _mesh_instance.get_aabb()
+	var target := aabb.position + 0.5 * aabb.size
+	var trans := Transform3D()
 	trans.basis = Basis(Quaternion(Vector3(0, 1, 0), _yaw) * Quaternion(Vector3(1, 0, 0), _pitch))
-	var back = trans.basis.z
+	var back := trans.basis.z
 	trans.origin = target + back * _distance
 	_camera.transform = trans
 
 
 func cleanup():
 	if _mesh_instance != null:
-		var mat = _mesh_instance.mesh.surface_get_material(0)
+		var mat : ShaderMaterial = _mesh_instance.mesh.surface_get_material(0)
 		assert(mat != null)
 		mat.set_shader_parameter("u_terrain_heightmap", null)
 		mat.set_shader_parameter("u_terrain_normalmap", null)
@@ -115,12 +115,12 @@ func _gui_input(event: InputEvent):
 	
 	if event is InputEventMouseMotion:
 		if event.button_mask & MOUSE_BUTTON_MASK_MIDDLE:
-			var d = 0.01 * event.relative
+			var d : Vector2 = 0.01 * event.relative
 			_yaw -= d.x
 			_pitch -= d.y
 			_update_camera()
 		else:
-			var rel = 0.01 * event.relative
+			var rel : Vector2 = 0.01 * event.relative
 			# Align dragging to view rotation
 			rel = -rel.rotated(-_yaw)
 			dragged.emit(rel, event.button_mask)
@@ -128,10 +128,10 @@ func _gui_input(event: InputEvent):
 	elif event is InputEventMouseButton:
 		if event.pressed:
 			
-			var factor = 1.2
-			var max_factor = 10.0
-			var min_distance = _default_distance / max_factor
-			var max_distance = _default_distance
+			var factor := 1.2
+			var max_factor := 10.0
+			var min_distance := _default_distance / max_factor
+			var max_distance := _default_distance
 			
 			# Zoom in/out
 			if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:

@@ -9,18 +9,18 @@ const HT_DirectMeshInstance = preload("./util/direct_mesh_instance.gd")
 const HT_Util = preload("./util/util.gd")
 
 
-var _debug_cube = null
-var _aabb = AABB()
-var _parent_transform = Transform3D()
+var _debug_cube : HT_DirectMeshInstance = null
+var _aabb := AABB()
+var _parent_transform := Transform3D()
 
 
-func _init(p_parent, p_cell_x, p_cell_y, p_material):
+func _init(p_parent: Node3D, p_cell_x: int, p_cell_y: int, p_material: Material):
 	super(p_parent, p_cell_x, p_cell_y, p_material)
 
-	var wirecube
+	var wirecube : Mesh
 	if not p_parent.has_meta("debug_wirecube_mesh"):
 		wirecube = HT_Util.create_wirecube_mesh()
-		var mat = StandardMaterial3D.new()
+		var mat := StandardMaterial3D.new()
 		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		wirecube.surface_set_material(0, mat)
 		# Cache the debug cube in the parent node to avoid re-creating each time

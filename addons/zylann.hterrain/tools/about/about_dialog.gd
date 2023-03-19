@@ -8,7 +8,7 @@ const HT_Errors = preload("../../util/errors.gd")
 const PLUGIN_CFG_PATH = "res://addons/zylann.hterrain/plugin.cfg"
 
 
-@onready var _about_rich_text_label = $VB/HB2/TC/About
+@onready var _about_rich_text_label : RichTextLabel = $VB/HB2/TC/About
 
 var _logger = HT_Logger.get_for(self)
 
@@ -18,7 +18,7 @@ func _ready():
 		return
 
 	var plugin_cfg = ConfigFile.new()
-	var err = plugin_cfg.load(PLUGIN_CFG_PATH)
+	var err := plugin_cfg.load(PLUGIN_CFG_PATH)
 	if err != OK:
 		_logger.error("Could not load {0}: {1}" \
 			.format([PLUGIN_CFG_PATH, HT_Errors.get_message(err)]))

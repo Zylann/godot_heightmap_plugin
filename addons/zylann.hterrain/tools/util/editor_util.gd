@@ -11,12 +11,12 @@ static func create_open_file_dialog() -> ConfirmationDialog:
 	var d
 	if Engine.is_editor_hint():
 		d = EditorFileDialog.new()
-		d.mode = EditorFileDialog.MODE_OPEN_FILE
+		d.file_mode = EditorFileDialog.FILE_MODE_OPEN_FILE
 		d.access = EditorFileDialog.ACCESS_RESOURCES
 	else:
 		# Duh. I need to be able to test it.
 		d = FileDialog.new()
-		d.mode = FileDialog.MODE_OPEN_FILE
+		d.file_mode = FileDialog.FILE_MODE_OPEN_FILE
 		d.access = FileDialog.ACCESS_RESOURCES
 	d.resizable = true
 	return d
@@ -26,12 +26,12 @@ static func create_open_dir_dialog() -> ConfirmationDialog:
 	var d
 	if Engine.is_editor_hint():
 		d = EditorFileDialog.new()
-		d.mode = EditorFileDialog.MODE_OPEN_DIR
+		d.file_mode = EditorFileDialog.FILE_MODE_OPEN_DIR
 		d.access = EditorFileDialog.ACCESS_RESOURCES
 	else:
 		# Duh. I need to be able to test it.
 		d = FileDialog.new()
-		d.mode = FileDialog.MODE_OPEN_DIR
+		d.file_mode = FileDialog.FILE_MODE_OPEN_DIR
 		d.access = FileDialog.ACCESS_RESOURCES
 	d.resizable = true
 	return d

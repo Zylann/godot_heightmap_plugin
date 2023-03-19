@@ -135,7 +135,7 @@ func _process(delta):
 		# The sprite will be much larger than the viewport due to the size of the heightmap.
 		# We move it around so the part inside the viewport will correspond to the tile.
 		_ci.position = -VIEWPORT_SIZE * tpos + Vector2(1, 1)
-		_viewport.render_target_update_mode = Viewport.UPDATE_ONCE
+		_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 		_processing_tile = tpos
 		_pending_tiles_grid[tpos] = STATE_PROCESSING
 	else:

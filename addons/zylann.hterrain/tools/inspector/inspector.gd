@@ -403,9 +403,9 @@ func _randomize_property_pressed(key):
 				v = randi() % (prop.range.max - prop.range.min) + prop.range.min
 			else:
 				v = randi() - 0x7fffffff
-		TYPE_REAL:
+		TYPE_FLOAT:
 			if prop.has("range"):
-				v = rand_range(prop.range.min, prop.range.max)
+				v = randf_range(prop.range.min, prop.range.max)
 			else:
 				v = randf()
 	
@@ -442,7 +442,7 @@ func _on_file_dialog_close():
 	# so we can re-use the same dialog with different listeners
 	var cons = _file_dialog.get_signal_connection_list("file_selected")
 	for con in cons:
-		_file_dialog.disconnect("file_selected", con.target, con.method)
+		_file_dialog.file_selected.disconnect(con.callable)
 
 
 func _on_texture_selected(path: String, key):
@@ -461,7 +461,7 @@ func _on_ask_clear_texture(key):
 
 
 func _on_ask_load_file(key, exts):
-	var filters = []
+	var filters := []
 	for ext in exts:
 		filters.append(str("*.", ext, " ; ", ext.to_upper(), " files"))
 	_open_file_dialog(filters, _on_file_selected.bind(key), FileDialog.ACCESS_FILESYSTEM)

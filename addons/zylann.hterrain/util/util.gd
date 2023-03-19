@@ -59,7 +59,7 @@ static func create_wirecube_mesh(color = Color(1,1,1)) -> Mesh:
 
 static func integer_square_root(x: int) -> int:
 	assert(typeof(x) == TYPE_INT)
-	var r = int(roundf(sqrt(x)))
+	var r := int(roundf(sqrt(x)))
 	if r * r == x:
 		return r
 	# Does not exist
@@ -70,7 +70,7 @@ static func integer_square_root(x: int) -> int:
 static func format_integer(n: int, sep := ",") -> String:
 	assert(typeof(n) == TYPE_INT)
 	
-	var negative = false
+	var negative := false
 	if n < 0:
 		negative = true
 		n = -n
@@ -90,18 +90,18 @@ static func format_integer(n: int, sep := ",") -> String:
 static func get_node_in_parents(node: Node, klass) -> Node:
 	while node != null:
 		node = node.get_parent()
-		if node != null and node is klass:
+		if node != null and is_instance_of(node, klass):
 			return node
 	return null
 
 
 # Goes down all children until a node of the given class is found
 static func find_first_node(node: Node, klass) -> Node:
-	if node is klass:
+	if is_instance_of(node, klass):
 		return node
 	for i in node.get_child_count():
-		var child = node.get_child(i)
-		var found_node = find_first_node(child, klass)
+		var child := node.get_child(i)
+		var found_node := find_first_node(child, klass)
 		if found_node != null:
 			return found_node
 	return null
@@ -110,10 +110,10 @@ static func find_first_node(node: Node, klass) -> Node:
 static func is_in_edited_scene(node: Node) -> bool:
 	if not node.is_inside_tree():
 		return false
-	var edited_scene = node.get_tree().edited_scene_root
+	var edited_scene := node.get_tree().edited_scene_root
 	if node == edited_scene:
 		return true
-	return edited_scene != null and edited_scene.is_a_parent_of(node)
+	return edited_scene != null and edited_scene.is_ancestor_of(node)
 
 
 # Get an extended or cropped version of an image,
@@ -126,7 +126,7 @@ static func get_cropped_image(src: Image, width: int, height: int,
 	height = int(height)
 	if width == src.get_width() and height == src.get_height():
 		return src
-	var im = Image.create(width, height, false, src.get_format())
+	var im := Image.create(width, height, false, src.get_format())
 	if fill_color != null:
 		im.fill(fill_color)
 	var p = get_cropped_image_params(
@@ -135,8 +135,8 @@ static func get_cropped_image(src: Image, width: int, height: int,
 	return im
 
 
-static func get_cropped_image_params(src_w: int, src_h: int, dst_w: int, dst_h: int,
-	 anchor: Vector2) -> Dictionary:
+static func get_cropped_image_params(src_w: int, src_h: int, dst_w: int, dst_h: int, 
+	anchor: Vector2) -> Dictionary:
 	
 	var rel_anchor := (anchor + Vector2(1, 1)) / 2.0
 
@@ -199,16 +199,19 @@ static func get_cropped_image_params(src_w: int, src_h: int, dst_w: int, dst_h: 
 
 # Generic way to apply editor scale to a plugin UI scene.
 # It is slower than doing it manually on specific controls.
-static func apply_dpi_scale(root: Control, dpi_scale: float):
+# Takes a node as root because since Godot 4 Window dialogs are no longer Controls.
+static func apply_dpi_scale(root: Node, dpi_scale: float):
 	if dpi_scale == 1.0:
 		return
 	var to_process := [root]
 	while len(to_process) > 0:
 		var node : Node = to_process[-1]
 		to_process.pop_back()
-		if node is Viewport or node is SubViewport:
+		if node is Window:
+			node.size = Vector2(node.size) * dpi_scale
+		elif node is Viewport or node is SubViewport:
 			continue
-		if node is Control:
+		elif node is Control:
 			if node.custom_minimum_size != Vector2(0, 0):
 				node.custom_minimum_size = node.custom_minimum_size * dpi_scale
 			var parent = node.get_parent()
@@ -236,7 +239,7 @@ static func get_aabb_intersection_with_segment(aabb: AABB,
 	
 	var hit
 	
-	var x_rect = Rect2(aabb.position.y, aabb.position.z, aabb.size.y, aabb.size.z)
+	var x_rect := Rect2(aabb.position.y, aabb.position.z, aabb.size.y, aabb.size.z)
 	
 	hit = Plane(Vector3(1, 0, 0), aabb.position.x) \
 		.intersects_segment(segment_begin, segment_end)
@@ -248,7 +251,7 @@ static func get_aabb_intersection_with_segment(aabb: AABB,
 	if hit != null and x_rect.has_point(Vector2(hit.y, hit.z)):
 		hits.append(hit)
 
-	var y_rect = Rect2(aabb.position.x, aabb.position.z, aabb.size.x, aabb.size.z)
+	var y_rect := Rect2(aabb.position.x, aabb.position.z, aabb.size.x, aabb.size.z)
 
 	hit = Plane(Vector3(0, 1, 0), aabb.position.y) \
 		.intersects_segment(segment_begin, segment_end)
@@ -260,7 +263,7 @@ static func get_aabb_intersection_with_segment(aabb: AABB,
 	if hit != null and y_rect.has_point(Vector2(hit.x, hit.z)):
 		hits.append(hit)
 
-	var z_rect = Rect2(aabb.position.x, aabb.position.y, aabb.size.x, aabb.size.y)
+	var z_rect := Rect2(aabb.position.x, aabb.position.y, aabb.size.x, aabb.size.y)
 
 	hit = Plane(Vector3(0, 0, 1), aabb.position.z) \
 		.intersects_segment(segment_begin, segment_end)
@@ -490,7 +493,7 @@ static func update_configuration_warning(node: Node, recursive: bool):
 
 static func write_import_file(settings: Dictionary, imp_fpath: String, logger) -> bool:
 	# TODO Should use ConfigFile instead
-	var f := FileAccess.open(imp_fpath, File.WRITE)
+	var f := FileAccess.open(imp_fpath, FileAccess.WRITE)
 	if f == null:
 		var err = FileAccess.get_open_error()
 		logger.error("Could not open '{0}' for write, error {1}" \
@@ -515,3 +518,30 @@ static func write_import_file(settings: Dictionary, imp_fpath: String, logger) -
 		f.store_line("")
 
 	return true
+
+
+static func update_texture_partial(
+	tex: ImageTexture, im: Image, src_rect: Rect2i, dst_pos: Vector2i):
+	
+	#               ..ooo@@@XXX%%%xx..
+	#            .oo@@XXX%x%xxx..     ` .
+	#          .o@XX%%xx..               ` .
+	#        o@X%..                  ..ooooooo
+	#      .@X%x.                 ..o@@^^   ^^@@o
+	#    .ooo@@@@@@ooo..      ..o@@^          @X%
+	#    o@@^^^     ^^^@@@ooo.oo@@^             %
+	#   xzI    -*--      ^^^o^^        --*-     %
+	#   @@@o     ooooooo^@@^o^@X^@oooooo     .X%x
+	#  I@@@@@@@@@XX%%xx  ( o@o )X%x@ROMBASED@@@X%x
+	#  I@@@@XX%%xx  oo@@@@X% @@X%x   ^^^@@@@@@@X%x
+	#   @X%xx     o@@@@@@@X% @@XX%%x  )    ^^@X%x
+	#    ^   xx o@@@@@@@@Xx  ^ @XX%%x    xxx
+	#          o@@^^^ooo I^^ I^o ooo   .  x
+	#          oo @^ IX      I   ^X  @^ oo
+	#          IX     U  .        V     IX
+	#           V     .           .     V
+	#
+
+	# TODO Optimize: Godot 4 has lost the ability to update textures partially!
+	tex.update(im)
+

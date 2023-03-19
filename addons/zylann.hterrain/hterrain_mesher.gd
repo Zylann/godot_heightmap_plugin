@@ -33,7 +33,7 @@ func configure(chunk_size_x: int, chunk_size_y: int, lod_count: int):
 
 	# TODO Will reduce the size of this cache, but need index buffer swap feature
 	for seams in SEAM_CONFIG_COUNT:
-		var slot = []
+		var slot := []
 		slot.resize(lod_count)
 		_mesh_cache[seams] = slot
 		
@@ -55,14 +55,14 @@ static func make_flat_chunk(quad_count_x: int, quad_count_y: int, stride: int, s
 			positions[i] = Vector3(x * stride, 0, y * stride)
 			i += 1
 		
-	var indices = make_indices(quad_count_x, quad_count_y, seams)
+	var indices := make_indices(quad_count_x, quad_count_y, seams)
 
-	var arrays = []
+	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX);
 	arrays[Mesh.ARRAY_VERTEX] = positions
 	arrays[Mesh.ARRAY_INDEX] = indices
 
-	var mesh = ArrayMesh.new()
+	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 
 	return mesh
@@ -318,8 +318,8 @@ static func make_heightmap_mesh(heightmap: Image, stride: int, scale: Vector3,
 	var i := 0
 	for mz in size_z:
 		for mx in size_x:
-			var x = mx * stride
-			var z = mz * stride
+			var x := mx * stride
+			var z := mz * stride
 			var y := heightmap.get_pixel(x, z).r
 			positions[i] = Vector3(x, y, z) * scale
 			i += 1

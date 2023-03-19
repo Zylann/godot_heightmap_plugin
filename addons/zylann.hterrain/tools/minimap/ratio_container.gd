@@ -19,8 +19,8 @@ func _sort_children2():
 		var child = get_child(i)
 		if not (child is Control):
 			continue
-		var w = size.x
-		var h = size.x / ratio
+		var w := size.x
+		var h := size.x / ratio
 		
 		if h > size.y:
 			h = size.y

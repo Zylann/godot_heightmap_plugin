@@ -2,7 +2,7 @@
 # Holds data of the terrain.
 # This is mostly a set of textures using specific formats, some precalculated, and metadata.
 
-tool
+@tool
 extends Resource
 
 const HT_Grid = preload("./util/grid.gd")
@@ -152,7 +152,7 @@ signal map_changed(type, index)
 # A map is a texture covering the terrain.
 # The usage of a map depends on its type (heightmap, normalmap, splatmap...).
 class HT_Map:
-	var texture: Texture
+	var texture: Texture2D
 	# Reference used in case we need the data CPU-side
 	var image: Image
 	# ID used for saving, because when adding/removing maps,
@@ -336,9 +336,9 @@ static func _get_map_default_fill_color(map_type: int, map_index: int):
 # This function is relatively slow due to locking, so don't use it to fetch large areas.
 func get_height_at(x: int, y: int) -> float:
 	# Height data must be loaded in RAM
-	var im = get_image(CHANNEL_HEIGHT)
+	var im := get_image(CHANNEL_HEIGHT)
 	assert(im != null)
-	var h = HT_Util.get_pixel_clamped(im, x, y).r;
+	var h := HT_Util.get_pixel_clamped(im, x, y).r;
 	return h;
 
 
@@ -357,13 +357,13 @@ func get_interpolated_height_at(pos: Vector3) -> float:
 	var xf := pos.x - x0
 	var yf := pos.z - y0
 
-	var h00 = HT_Util.get_pixel_clamped(im, x0, y0).r
-	var h10 = HT_Util.get_pixel_clamped(im, x0 + 1, y0).r
-	var h01 = HT_Util.get_pixel_clamped(im, x0, y0 + 1).r
-	var h11 = HT_Util.get_pixel_clamped(im, x0 + 1, y0 + 1).r
+	var h00 := HT_Util.get_pixel_clamped(im, x0, y0).r
+	var h10 := HT_Util.get_pixel_clamped(im, x0 + 1, y0).r
+	var h01 := HT_Util.get_pixel_clamped(im, x0, y0 + 1).r
+	var h11 := HT_Util.get_pixel_clamped(im, x0 + 1, y0 + 1).r
 
 	# Bilinear filter
-	var h = lerpf(lerpf(h00, h10, xf), lerpf(h01, h11, xf), yf)
+	var h := lerpf(lerpf(h00, h10, xf), lerpf(h01, h11, xf), yf)
 
 	return h;
 
@@ -375,14 +375,14 @@ func get_heights_region(x0: int, y0: int, w: int, h: int) -> PackedFloat32Array:
 	var im = get_image(CHANNEL_HEIGHT)
 	assert(im != null)
 	
-	var min_x := HT_Util.clamp_int(x0, 0, im.get_width())
-	var min_y := HT_Util.clamp_int(y0, 0, im.get_height())
-	var max_x := HT_Util.clamp_int(x0 + w, 0, im.get_width() + 1)
-	var max_y := HT_Util.clamp_int(y0 + h, 0, im.get_height() + 1)
+	var min_x := clampi(x0, 0, im.get_width())
+	var min_y := clampi(y0, 0, im.get_height())
+	var max_x := clampi(x0 + w, 0, im.get_width() + 1)
+	var max_y := clampi(y0 + h, 0, im.get_height() + 1)
 
 	var heights := PackedFloat32Array()
 
-	var area = (max_x - min_x) * (max_y - min_y)
+	var area := (max_x - min_x) * (max_y - min_y)
 	if area == 0:
 		_logger.debug("Empty heights region!")
 		return heights
@@ -544,17 +544,17 @@ func _edit_apply_undo(undo_data: Dictionary, image_cache: HT_ImageFileCache):
 
 # TODO Support map indexes
 # Used for undoing full-terrain changes
-func _edit_apply_maps_from_file_cache(image_file_cache, map_ids: Dictionary):
+func _edit_apply_maps_from_file_cache(image_file_cache: HT_ImageFileCache, map_ids: Dictionary):
 	if _edit_disable_apply_undo:
 		return
 	for map_type in map_ids:
 		var id = map_ids[map_type]
-		var src_im = image_file_cache.load_image(id)
+		var src_im := image_file_cache.load_image(id)
 		if src_im == null:
 			continue
 		var index := 0
 		var dst_im := get_image(map_type, index)
-		var rect = Rect2i(0, 0, src_im.get_height(), src_im.get_height())
+		var rect := Rect2i(0, 0, src_im.get_height(), src_im.get_height())
 		dst_im.blit_rect(src_im, rect, Vector2i())
 		notify_region_change(rect, map_type, index)
 
@@ -585,7 +585,7 @@ func _upload_region(channel: int, index: int, min_x: int, min_y: int, size_x: in
 	if size_x <= 0 or size_y <= 0:
 		return
 
-	var texture = map.texture
+	var texture := map.texture
 
 	if texture == null or not (texture is ImageTexture):
 		# The texture doesn't exist yet in an editable format
@@ -603,7 +603,8 @@ func _upload_region(channel: int, index: int, min_x: int, min_y: int, size_x: in
 		# Need to notify because other systems may want to grab the new texture object
 		map_changed.emit(channel, index)
 
-	elif texture.get_size() != image.get_size():
+	# TODO Unfortunately Texture2D.get_size() wasn't updated to use Vector2i in Godot 4
+	elif Vector2i(texture.get_size()) != image.get_size():
 		_logger.debug(str(
 			"_upload_region was used but the image size is different. ",\
 			"The map ", channel, "[", index, "] will be reuploaded entirely."))
@@ -616,39 +617,8 @@ func _upload_region(channel: int, index: int, min_x: int, min_y: int, size_x: in
 		map_changed.emit(channel, index)
 
 	else:
-		# TODO Godot 3 had partial texture update, but Godot 4 does not.
-		# This will affect edition performance.
-		if RenderingServer.has_method("texture_set_data_partial"):
-			assert(false)
-			# RenderingServer.texture_set_data_partial( \
-			# 	texture.get_rid(), image, \
-			# 	min_x, min_y, \
-			# 	size_x, size_y, \
-			# 	min_x, min_y, \
-			# 	0, 0)
-		else:
-			# Godot 4.0
-			# It is slow.
-
-			#               ..ooo@@@XXX%%%xx..
-			#            .oo@@XXX%x%xxx..     ` .
-			#          .o@XX%%xx..               ` .
-			#        o@X%..                  ..ooooooo
-			#      .@X%x.                 ..o@@^^   ^^@@o
-			#    .ooo@@@@@@ooo..      ..o@@^          @X%
-			#    o@@^^^     ^^^@@@ooo.oo@@^             %
-			#   xzI    -*--      ^^^o^^        --*-     %
-			#   @@@o     ooooooo^@@^o^@X^@oooooo     .X%x
-			#  I@@@@@@@@@XX%%xx  ( o@o )X%x@ROMBASED@@@X%x
-			#  I@@@@XX%%xx  oo@@@@X% @@X%x   ^^^@@@@@@@X%x
-			#   @X%xx     o@@@@@@@X% @@XX%%x  )    ^^@X%x
-			#    ^   xx o@@@@@@@@Xx  ^ @XX%%x    xxx
-			#          o@@^^^ooo I^^ I^o ooo   .  x
-			#          oo @^ IX      I   ^X  @^ oo
-			#          IX     U  .        V     IX
-			#           V     .           .     V
-			#
-			texture.update(image)
+		HT_Util.update_texture_partial(texture, image, 
+			Rect2i(min_x, min_y, size_x, size_y), Vector2i(min_x, min_y))
 
 	#_logger.debug(str("Channel updated ", channel))
 
@@ -699,7 +669,7 @@ func _edit_insert_map_from_image_cache(map_type: int, index: int, image_cache, i
 	while map_type >= len(_maps):
 		_maps.append([])
 	var maps = _maps[map_type]
-	var map = HT_Map.new(_get_free_id(map_type))
+	var map := HT_Map.new(_get_free_id(map_type))
 	map.image = image_cache.load_image(image_id)
 	maps.insert(index, map)
 	map_added.emit(map_type, index)
@@ -708,8 +678,8 @@ func _edit_insert_map_from_image_cache(map_type: int, index: int, image_cache, i
 func _edit_remove_map(map_type: int, index: int):
 	# TODO Check minimum and maximum instances of a given map
 	_logger.debug(str("Removing map ", get_channel_name(map_type), " at index ", index))
-	var maps = _maps[map_type]
-	maps.remove(index)
+	var maps : Array = _maps[map_type]
+	maps.remove_at(index)
 	map_removed.emit(map_type, index)
 
 
@@ -735,6 +705,8 @@ func get_image(map_type: int, index := 0) -> Image:
 
 
 func get_texture(map_type: int, index := 0, writable := false) -> Texture:
+	# TODO Split into `get_texture` and `get_writable_texture`?
+	
 	var maps : Array = _maps[map_type]
 	var map : HT_Map = maps[index]
 
@@ -784,8 +756,8 @@ func get_point_aabb(cell_x: int, cell_y: int) -> Vector2:
 	return Vector2(b.r, b.g)
 
 
-func get_region_aabb(origin_in_cells_x: int, origin_in_cells_y: int, \
-					 size_in_cells_x: int, size_in_cells_y: int) -> AABB:
+func get_region_aabb(origin_in_cells_x: int, origin_in_cells_y: int,
+	size_in_cells_x: int, size_in_cells_y: int) -> AABB:
 
 	assert(typeof(origin_in_cells_x) == TYPE_INT)
 	assert(typeof(origin_in_cells_y) == TYPE_INT)
@@ -889,10 +861,10 @@ func save_data(data_dir: String) -> bool:
 
 	var pi = 0
 	for map_type in CHANNEL_COUNT:
-		var maps = _maps[map_type]
+		var maps : Array = _maps[map_type]
 
 		for index in len(maps):
-			var map = _maps[map_type][index]
+			var map : HT_Map = maps[index]
 			if not map.modified:
 				_logger.debug(str(
 					"Skipping non-modified ", get_map_debug_name(map_type, index)))
@@ -934,14 +906,14 @@ func _load_metadata(path: String):
 	assert(f != null)
 	var text = f.get_as_text()
 	f = null # close file
-	var res = JSON.parse(text)
-	assert(res.error == OK)
-	_deserialize_metadata(res.result)
+	var json = JSON.new()
+	assert(json.parse(text) == OK)
+	_deserialize_metadata(json.data)
 
 
 func _save_metadata(path: String):
 	var d = _serialize_metadata()
-	var text = JSON.print(d, "\t", true)
+	var text = JSON.stringify(d, "\t", true)
 	var f = FileAccess.open(path, FileAccess.WRITE)
 	var err = f.get_error()
 	assert(err == OK)
@@ -949,15 +921,15 @@ func _save_metadata(path: String):
 
 
 func _serialize_metadata() -> Dictionary:
-	var data = []
+	var data := []
 	data.resize(len(_maps))
 
 	for i in range(len(_maps)):
 		var maps = _maps[i]
-		var maps_data = []
+		var maps_data := []
 
 		for j in range(len(maps)):
-			var map = maps[j]
+			var map : HT_Map = maps[j]
 			maps_data.append({ "id": map.id })
 
 		data[i] = maps_data
@@ -1025,7 +997,7 @@ func load_data(dir_path: String):
 			_load_map(dir_path, map_type, index)
 
 			# A map that was just loaded is considered not modified yet
-			_maps[map_type][index].modified = false
+			maps[index].modified = false
 
 			pi += 1
 
@@ -1046,10 +1018,10 @@ func get_data_dir() -> String:
 
 
 func _save_map(dir_path: String, map_type: int, index: int) -> bool:
-	var map = _maps[map_type][index]
-	var im = map.image
+	var map : HT_Map = _maps[map_type][index]
+	var im := map.image
 	if im == null:
-		var tex = map.texture
+		var tex := map.texture
 		if tex != null:
 			_logger.debug(str("Image not found for map ", map_type, ", downloading from VRAM"))
 			im = tex.get_image()
@@ -1062,13 +1034,13 @@ func _save_map(dir_path: String, map_type: int, index: int) -> bool:
 	# which from a user standpoint are not absolute. Also, `FileAccess.file_exists` exists but
 	# isn't named "absolute" :shrug:
 	if not DirAccess.dir_exists_absolute(dir_path):
-		var err = DirAccess.make_dir_absolute(dir_path)
+		var err := DirAccess.make_dir_absolute(dir_path)
 		if err != OK:
 			_logger.error("Could not create directory '{0}', error {1}" \
 				.format([dir_path, HT_Errors.get_message(err)]))
 		return false
 
-	var fpath = dir_path.path_join(_get_map_filename(map_type, index))
+	var fpath := dir_path.path_join(_get_map_filename(map_type, index))
 
 	if _channel_can_be_saved_as_png(map_type):
 		fpath += ".png"
@@ -1077,7 +1049,7 @@ func _save_map(dir_path: String, map_type: int, index: int) -> bool:
 
 	else:
 		fpath += ".res"
-		var err = ResourceSaver.save(fpath, im)
+		var err := ResourceSaver.save(im, fpath)
 		if err != OK:
 			_logger.error("Could not save '{0}', error {1}" \
 				.format([fpath, HT_Errors.get_message(err)]))
@@ -1087,7 +1059,7 @@ func _save_map(dir_path: String, map_type: int, index: int) -> bool:
 
 
 static func _try_write_default_import_options(fpath: String, channel: int, logger):
-	var imp_fpath = fpath + ".import"
+	var imp_fpath := fpath + ".import"
 	if FileAccess.file_exists(imp_fpath):
 		# Already exists
 		return
@@ -1136,10 +1108,10 @@ static func _try_write_default_import_options(fpath: String, channel: int, logge
 
 
 func _load_map(dir: String, map_type: int, index: int) -> bool:
-	var fpath = dir.path_join(_get_map_filename(map_type, index))
+	var fpath := dir.path_join(_get_map_filename(map_type, index))
 
 	# Maps must be configured before being loaded
-	var map = _maps[map_type][index]
+	var map : HT_Map = _maps[map_type][index]
 	# while len(_maps) <= map_type:
 	# 	_maps.append([])
 	# while len(_maps[map_type]) <= index:
@@ -1184,7 +1156,7 @@ func _load_map(dir: String, map_type: int, index: int) -> bool:
 		# It has often uses beyond graphics, so we always keep a RAM copy by default.
 
 		fpath += ".res"
-		im = load(fpath)
+		var im : Image = load(fpath)
 
 		if im == null:
 			_logger.error("Could not load '{0}'".format([fpath]))
@@ -1200,7 +1172,7 @@ func _load_map(dir: String, map_type: int, index: int) -> bool:
 
 
 func _ensure_map_format(im: Image, map_type: int, index: int):
-	var format = im.get_format()
+	var format := im.get_format()
 	var expected_format = _map_types[map_type].texture_format
 	if format != expected_format:
 		_logger.warn("Map {0} loaded as format {1}, expected {2}. Will be converted." \
@@ -1274,8 +1246,8 @@ func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bo
 
 		var hrange := max_y - min_y
 
-		var width = mini(im.get_width(), src_image.get_width())
-		var height = mini(im.get_height(), src_image.get_height())
+		var width := mini(im.get_width(), src_image.get_width())
+		var height := mini(im.get_height(), src_image.get_height())
 
 		_logger.debug("Converting to internal format...")
 
@@ -1322,8 +1294,8 @@ func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bo
 		if f == null:
 			return false
 
-		var file_len = f.get_len()
-		var file_res = HT_Util.integer_square_root(file_len / 2)
+		var file_len := f.get_length()
+		var file_res := HT_Util.integer_square_root(file_len / 2)
 		if file_res == -1:
 			# Can't deduce size
 			return false
@@ -1416,19 +1388,19 @@ func _import_map(map_type: int, path: String) -> bool:
 	# Heightmap requires special treatment
 	assert(map_type != CHANNEL_HEIGHT)
 
-	var im = Image.load_from_file(path)
+	var im := Image.load_from_file(path)
 	# TODO No way to get the error code?
 	if im == null:
 		return false
 
-	var res = get_resolution()
+	var res := get_resolution()
 	if im.get_width() != res or im.get_height() != res:
 		im.crop(res, res)
 
 	if im.get_format() != get_channel_format(map_type):
 		im.convert(get_channel_format(map_type))
 
-	var map = _maps[map_type][0]
+	var map : HT_Map = _maps[map_type][0]
 	map.image = im
 
 	notify_region_change(Rect2(0, 0, im.get_width(), im.get_height()), map_type)
@@ -1504,8 +1476,8 @@ class HT_CellRaycastContext:
 		var p01 := Vector3(cx,     h01, cz + 1)
 		var p11 := Vector3(cx + 1, h11, cz + 1)
 
-		var th0 = Geometry.ray_intersects_triangle(begin_pos, dir, p00, p10, p11)
-		var th1 = Geometry.ray_intersects_triangle(begin_pos, dir, p00, p11, p01)
+		var th0 = Geometry3D.ray_intersects_triangle(begin_pos, dir, p00, p10, p11)
+		var th1 = Geometry3D.ray_intersects_triangle(begin_pos, dir, p00, p11, p01)
 
 		if th0 != null:
 			return th0

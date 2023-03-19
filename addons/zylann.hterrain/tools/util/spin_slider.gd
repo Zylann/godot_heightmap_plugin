@@ -59,7 +59,7 @@ var _centered := true
 @export var centered: bool:
 	get:
 		return _centered
-	set:
+	set(v):
 		set_centered(v)
 
 
@@ -134,7 +134,7 @@ func _init():
 	_line_edit.anchor_bottom = 1
 	_line_edit.gui_input.connect(_on_LineEdit_gui_input)
 	_line_edit.focus_exited.connect(_on_LineEdit_focus_exited)
-	_line_edit.text_entered.connect(_on_LineEdit_text_entered)
+	_line_edit.text_submitted.connect(_on_LineEdit_text_submitted)
 	_line_edit.hide()
 	add_child(_line_edit)
 	
@@ -155,7 +155,7 @@ func set_centered(p_centered: bool):
 		_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		_label.offset_right = -8
 		_label2.show()
-	update()
+	queue_redraw()
 
 
 func is_centered() -> bool:
@@ -249,7 +249,7 @@ func is_allowing_greater() -> bool:
 
 
 func _set_from_pixel(px: float):
-	var r := (px - FG_MARGIN) / (rect_size.x - FG_MARGIN * 2.0)
+	var r := (px - FG_MARGIN) / (size.x - FG_MARGIN * 2.0)
 	var v := _ratio_to_value(r)
 	set_value(v, true, true)
 
@@ -263,7 +263,7 @@ func _ratio_to_value(r: float) -> float:
 
 
 func _value_to_ratio(v: float) -> float:
-	if abs(_max_value - _min_value) < 0.001:
+	if absf(_max_value - _min_value) < 0.001:
 		return 0.0
 	return (v - _min_value) / (_max_value - _min_value)
 
@@ -284,14 +284,14 @@ func _on_LineEdit_focus_exited():
 	_enter_text()
 
 
-func _on_LineEdit_text_entered(text: String):
+func _on_LineEdit_text_submitted(text: String):
 	_enter_text()
 
 
 func _enter_text():
 	var s = _line_edit.text.strip_edges()
 	if s.is_valid_float():
-		var v = s.to_float()
+		var v := s.to_float()
 		if not _allow_greater:
 			v = minf(v, _max_value)
 		set_value(v, true, false)
@@ -346,7 +346,7 @@ func _draw():
 	var interval_color := Color(0.4,0.4,0.4)
 	var background_color := Color(0.1, 0.1, 0.1)
 	
-	var control_rect := Rect2(Vector2(), rect_size)
+	var control_rect := Rect2(Vector2(), size)
 	
 	var bg_rect := Rect2(
 		control_rect.position.x, 
@@ -365,7 +365,7 @@ func _draw():
 
 	var dot_pos := value_text.find(".")
 	if dot_pos != -1:
-		var decimal_count = len(value_text) - dot_pos
+		var decimal_count := len(value_text) - dot_pos
 		if decimal_count > MAX_DECIMALS_VISUAL:
 			value_text = value_text.substr(0, dot_pos + MAX_DECIMALS_VISUAL + 1)
 	
@@ -379,7 +379,7 @@ func _draw():
 	
 	else:
 		_label2.text = _prefix
-		var text = value_text
+		var text := value_text
 		if _suffix != "":
 			text = str(text, " ", _suffix)
 		_label.text = text

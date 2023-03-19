@@ -43,7 +43,7 @@ func _get_preset_name(preset_index: int) -> String:
 	return ""
 
 
-func _get_import_options(preset_index: int) -> Array:
+func _get_import_options(path: String, preset_index: int) -> Array:
 	return [
 		{
 			"name": "compress/mode",
@@ -63,7 +63,7 @@ func _get_option_visibility(path: String, option_name: StringName, options: Dict
 
 
 func _import(p_source_path: String, p_save_path: String, options: Dictionary, 
-	r_platform_variants: Array, r_gen_files: Array) -> int:
+	r_platform_variants: Array[String], r_gen_files: Array[String]) -> Error:
 
 	var result := _import_internal(
 		p_source_path, p_save_path, options, r_platform_variants, r_gen_files)
@@ -79,9 +79,9 @@ func _import(p_source_path: String, p_save_path: String, options: Dictionary,
 func _import_internal(p_source_path: String, p_save_path: String, options: Dictionary, 
 	r_platform_variants: Array, r_gen_files: Array) -> HT_Result:
 	
-	var f := FileAccess.open(p_source_path, File.READ)
-	var err := FileAccess.get_open_error()
-	if err != OK:
+	var f := FileAccess.open(p_source_path, FileAccess.READ)
+	if f == null:
+		var err := FileAccess.get_open_error()
 		return HT_Result.new(false, "Could not open file {0}: {1}" \
 			.format([p_source_path, HT_Errors.get_message(err)])) \
 			.with_value(err)
@@ -121,7 +121,7 @@ func _import_internal(p_source_path: String, p_save_path: String, options: Dicti
 		r_platform_variants, 
 		r_gen_files, 
 		contains_albedo,
-		get_visible_name(),
+		_get_visible_name(),
 		options["compress/mode"],
 		options["flags/mipmaps"])
 	

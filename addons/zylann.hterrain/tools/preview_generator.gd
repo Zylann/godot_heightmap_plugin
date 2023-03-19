@@ -8,7 +8,7 @@ const HT_Logger = preload("../util/logger.gd")
 var _logger = HT_Logger.get_for(self)
 
 
-func _generate(res: Resource, size: Vector2) -> Texture:
+func _generate(res: Resource, size: Vector2i) -> Texture2D:
 	if res == null or not (res is HTerrainData):
 		return null
 	var normalmap = res.get_image(HTerrainData.CHANNEL_NORMAL)
@@ -17,7 +17,7 @@ func _generate(res: Resource, size: Vector2) -> Texture:
 	return _generate_internal(normalmap, size)
 
 
-func _generate_from_path(path: String, size: Vector2) -> Texture:
+func _generate_from_path(path: String, size: Vector2i) -> Texture2D:
 	if not path.ends_with("." + HTerrainData.META_EXTENSION):
 		return null
 	var data_dir := path.get_base_dir()
@@ -36,10 +36,10 @@ func _handles(type: String) -> bool:
 	return type == "Resource"
 
 
-static func _generate_internal(normals: Image, size: Vector2) -> Texture:
+static func _generate_internal(normals: Image, size: Vector2) -> Texture2D:
 	var im := Image.create(size.x, size.y, false, Image.FORMAT_RGB8)
 
-	var light_dir = Vector3(-1, -0.5, -1).normalized()
+	var light_dir := Vector3(-1, -0.5, -1).normalized()
 
 	for y in im.get_height():
 		for x in im.get_width():
@@ -57,7 +57,7 @@ static func _generate_internal(normals: Image, size: Vector2) -> Texture:
 
 			im.set_pixel(x, y, col)
 
-	var tex = ImageTexture.create_from_image(im)
+	var tex := ImageTexture.create_from_image(im)
 	return tex
 
 

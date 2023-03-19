@@ -285,7 +285,7 @@ func _exit_tree():
 	_logger.debug("HTerrain plugin Exit tree")
 	
 	# Make sure we release all references to edited stuff
-	edit(null)
+	_edit(null)
 
 	_panel.queue_free()
 	_panel = null
@@ -433,13 +433,13 @@ func _make_visible(visible: bool):
 	# loaded in memory, so if the user closes the scene and reopens it later, the changes will
 	# still be partially present, and this is not expected.
 	if not visible:
-		edit(null)
+		_edit(null)
 
 
 # TODO Can't hint return as `Vector2?` because it's nullable
-func _get_pointed_cell_position(mouse_position: Vector2, p_camera: Camera):# -> Vector2:
+func _get_pointed_cell_position(mouse_position: Vector2, p_camera: Camera3D):# -> Vector2:
 	# Need to do an extra conversion in case the editor viewport is in half-resolution mode
-	var viewport = p_camera.get_viewport()
+	var viewport := p_camera.get_viewport()
 	var viewport_container = viewport.get_parent()
 	var screen_pos = mouse_position * viewport.size / viewport_container.rect_size
 	
@@ -450,9 +450,9 @@ func _get_pointed_cell_position(mouse_position: Vector2, p_camera: Camera):# -> 
 	return _node.cell_raycast(origin, dir, ray_distance)
 
 
-func _forward_3d_gui_input(p_camera: Camera3D, p_event: InputEvent) -> bool:
+func _forward_3d_gui_input(p_camera: Camera3D, p_event: InputEvent) -> int:
 	if _node == null || _node.get_data() == null:
-		return false
+		return AFTER_GUI_INPUT_PASS
 	
 	_node._edit_update_viewer_position(p_camera)
 	_panel.set_camera_transform(p_camera.global_transform)
@@ -510,7 +510,9 @@ func _forward_3d_gui_input(p_camera: Camera3D, p_event: InputEvent) -> bool:
 		# to keep the decal working without having to noodle around with nested signals
 		_brush_decal.update_visibility()
 
-	return captured_event
+	if captured_event:
+		return AFTER_GUI_INPUT_STOP
+	return AFTER_GUI_INPUT_PASS
 
 
 func _process(delta: float):
@@ -624,7 +626,7 @@ func _paint_completed(changes: Dictionary):
 
 func _terrain_exited_scene():
 	_logger.debug("HTerrain exited the scene")
-	edit(null)
+	_edit(null)
 
 
 func _menu_item_selected(id: int):
@@ -840,20 +842,20 @@ func _debug_spawn_collider_indicators():
 		test_root = terrain.get_node("__DEBUG")
 	
 	var space_state := terrain.get_world_3d().direct_space_state
-	var hit_material = StandardMaterial3D.new()
+	var hit_material := StandardMaterial3D.new()
 	hit_material.albedo_color = Color(0, 1, 1)
-	var cube = CubeMesh.new()
+	var cube := BoxMesh.new()
 	
 	for zi in 16:
 		for xi in 16:
-			var hit_name = str(xi, "_", zi)
-			var pos = Vector3(xi * 16, 1000, zi * 16)
+			var hit_name := str(xi, "_", zi)
+			var pos := Vector3(xi * 16, 1000, zi * 16)
 			
 			var query := PhysicsRayQueryParameters3D.new()
 			query.from = pos
 			query.to = pos + Vector3(0, -2000, 0)
 
-			var hit = space_state.intersect_ray(query)
+			var hit := space_state.intersect_ray(query)
 
 			var mi : MeshInstance3D
 			if not test_root.has_node(hit_name):
@@ -864,34 +866,34 @@ func _debug_spawn_collider_indicators():
 				test_root.add_child(mi)
 			else:
 				mi = test_root.get_node(hit_name)
-			if hit.empty():
+			if hit.is_empty():
 				mi.hide()
 			else:
 				mi.show()
-				mi.translation = hit.position
+				mi.position = hit.position
 
 
 func _spawn_vertical_bound_boxes():
-	var data = _node.get_data()
+	var data := _node.get_data()
 #	var sy = data._chunked_vertical_bounds_size_y
 #	var sx = data._chunked_vertical_bounds_size_x
-	var mat = StandardMaterial3D.new()
+	var mat := StandardMaterial3D.new()
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mat.albedo_color = Color(1,1,1,0.2)
 	for cy in range(30, 60):
 		for cx in range(30, 60):
-			var vb = data._chunked_vertical_bounds.get_pixel(cx, cy)
-			var minv = vb.r
-			var maxv = vb.g
-			var mi = MeshInstance3D.new()
+			var vb := data._chunked_vertical_bounds.get_pixel(cx, cy)
+			var minv := vb.r
+			var maxv := vb.g
+			var mi := MeshInstance3D.new()
 			mi.mesh = BoxMesh.new()
-			var cs = HTerrainData.VERTICAL_BOUNDS_CHUNK_SIZE
+			var cs := HTerrainData.VERTICAL_BOUNDS_CHUNK_SIZE
 			mi.mesh.size = Vector3(cs, maxv - minv, cs)
-			mi.translation = Vector3(
+			mi.position = Vector3(
 				(float(cx) + 0.5) * cs,
 				minv + mi.mesh.size.y * 0.5, 
 				(float(cy) + 0.5) * cs)
-			mi.translation *= _node.map_scale
+			mi.position *= _node.map_scale
 			mi.scale = _node.map_scale
 			mi.material_override = mat
 			_node.add_child(mi)

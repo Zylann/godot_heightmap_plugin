@@ -4,6 +4,7 @@
 # TODO Use an actual decal node, it wasn't available in Godot 3
 
 const HT_DirectMeshInstance = preload("../../util/direct_mesh_instance.gd")
+const HTerrain = preload("../../hterrain.gd")
 const HTerrainData = preload("../../hterrain_data.gd")
 const HT_Util = preload("../../util/util.gd")
 
@@ -13,7 +14,7 @@ var _material = ShaderMaterial.new()
 #var _debug_mesh = CubeMesh.new()
 #var _debug_mesh_instance = null
 
-var _terrain = null
+var _terrain : HTerrain = null
 
 
 func _init():
@@ -32,7 +33,7 @@ func set_size(size: float):
 	_mesh.size = Vector2(size, size)
 	# Must line up to terrain vertex policy, so must apply an off-by-one.
 	# If I don't do that, the brush will appear to wobble above the ground
-	var ss = size - 1
+	var ss := size - 1
 	# Don't subdivide too much
 	while ss > 50:
 		ss /= 2
@@ -46,13 +47,13 @@ func set_size(size: float):
 
 func _on_terrain_transform_changed(terrain_global_trans: Transform3D):
 	var inv = terrain_global_trans.affine_inverse()
-	_material.set_shader_param("u_terrain_inverse_transform", inv)
+	_material.set_shader_parameter("u_terrain_inverse_transform", inv)
 
 	var normal_basis = terrain_global_trans.basis.inverse().transposed()
-	_material.set_shader_param("u_terrain_normal_basis", normal_basis)
+	_material.set_shader_parameter("u_terrain_normal_basis", normal_basis)
 
 
-func set_terrain(terrain):
+func set_terrain(terrain: HTerrain):
 	if _terrain == terrain:
 		return
 

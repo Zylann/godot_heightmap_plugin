@@ -18,7 +18,7 @@ signal output_generated(image, metadata)
 signal completed
 
 var _passes := []
-var _resolution := Vector2(512, 512)
+var _resolution := Vector2i(512, 512)
 var _output_padding := [0, 0, 0, 0]
 var _viewport : SubViewport = null
 var _ci : TextureRect = null
@@ -42,10 +42,10 @@ func _ready():
 
 	_viewport = SubViewport.new()
 	_viewport.own_world = true
-	_viewport.world = World.new()
+	_viewport.world = World3D.new()
 	# Godot 4 no longer supports this...
 	# _viewport.render_target_v_flip = true
-	_viewport.render_target_update_mode = Viewport.UPDATE_DISABLED
+	_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	add_child(_viewport)
 	
 	_dummy_texture = load(DUMMY_TEXTURE_PATH)
@@ -87,7 +87,7 @@ func add_output(meta):
 # In tiled rendering, this is the resolution of one tile.
 # The internal viewport may be larger if some passes need more room,
 # and the resulting images might include some of these pixels if output padding is used.
-func set_resolution(res: Vector2):
+func set_resolution(res: Vector2i):
 	assert(not _running)
 	_resolution = res
 
@@ -129,7 +129,7 @@ func run():
 	for v in _output_padding:
 		if v > largest_padding:
 			largest_padding = v
-	var padded_size := _resolution + 2 * Vector2(largest_padding, largest_padding)
+	var padded_size := _resolution + 2 * Vector2i(largest_padding, largest_padding)
 	
 #	_uv_offset = Vector2( \
 #		float(largest_padding) / padded_size.x,
@@ -139,7 +139,7 @@ func run():
 
 	_viewport.size = padded_size
 	_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ONLY_NEXT_FRAME
+	_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ONCE
 
 	_running_pass_index = 0
 	_running_iteration = 0
@@ -160,7 +160,7 @@ func _process(delta: float):
 	if _running_pass_index >= len(_running_passes):
 		_running = false
 		
-		completed.emit_signal()
+		completed.emit()
 		
 		if _rerun:
 			# run() was requested again before we complete...
@@ -173,7 +173,7 @@ func _process(delta: float):
 			set_process(false)
 			return
 	
-	var p = _running_passes[_running_pass_index]
+	var p : HT_TextureGeneratorPass = _running_passes[_running_pass_index]
 	
 	if _running_iteration == 0:
 		_setup_pass(p)
@@ -207,9 +207,11 @@ func _setup_pass(p: HT_TextureGeneratorPass):
 			for param_name in p.params:
 				_shader_material.set_shader_parameter(param_name, p.params[param_name])
 		
-		var scale_ndc = _viewport.size / _resolution
-		var pad_offset_ndc = ((_viewport.size - _resolution) / 2) / _viewport.size
-		var offset_ndc = -pad_offset_ndc + p.tile_pos / scale_ndc
+		var vp_size_f := Vector2(_viewport.size)
+		var res_f := Vector2(_resolution)
+		var scale_ndc := vp_size_f / res_f
+		var pad_offset_ndc := ((vp_size_f - res_f) / 2.0) / vp_size_f
+		var offset_ndc := -pad_offset_ndc + p.tile_pos / scale_ndc
 		
 		# Because padding may be used around the generated area,
 		# the shader can use these predefined parameters,
@@ -226,7 +228,7 @@ func _setup_pass(p: HT_TextureGeneratorPass):
 		_ci.material = null
 
 	if p.clear:
-		_viewport.render_target_clear_mode = Viewport.CLEAR_MODE_ONLY_NEXT_FRAME
+		_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ONCE
 
 
 func _create_output_image(metadata):

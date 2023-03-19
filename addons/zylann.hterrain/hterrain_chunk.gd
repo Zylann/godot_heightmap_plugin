@@ -17,7 +17,7 @@ var _mesh : Mesh = null
 
 
 # TODO p_parent is HTerrain, can't add type hint due to cyclic reference
-func _init(p_parent, p_cell_x: int, p_cell_y: int, p_material: Material):
+func _init(p_parent: Node3D, p_cell_x: int, p_cell_y: int, p_material: Material):
 	assert(p_parent is Node3D)
 	assert(typeof(p_cell_x) == TYPE_INT)
 	assert(typeof(p_cell_y) == TYPE_INT)
@@ -33,7 +33,7 @@ func _init(p_parent, p_cell_x: int, p_cell_y: int, p_material: Material):
 	if p_material != null:
 		rs.instance_geometry_set_material_override(_mesh_instance, p_material.get_rid())
 
-	var world = p_parent.get_world_3d()
+	var world := p_parent.get_world_3d()
 	if world != null:
 		rs.instance_set_scenario(_mesh_instance, world.get_scenario())
 
@@ -48,7 +48,7 @@ func _init(p_parent, p_cell_x: int, p_cell_y: int, p_material: Material):
 func _notification(p_what: int):
 	if p_what == NOTIFICATION_PREDELETE:
 		if _mesh_instance != RID():
-			VisualServer.free_rid(_mesh_instance)
+			RenderingServer.free_rid(_mesh_instance)
 			_mesh_instance = RID()
 
 
@@ -80,8 +80,8 @@ func exit_world():
 
 func parent_transform_changed(parent_transform: Transform3D):
 	assert(_mesh_instance != RID())
-	var local_transform = Transform3D(Basis(), Vector3(cell_origin_x, 0, cell_origin_y))
-	var world_transform = parent_transform * local_transform
+	var local_transform := Transform3D(Basis(), Vector3(cell_origin_x, 0, cell_origin_y))
+	var world_transform := parent_transform * local_transform
 	RenderingServer.instance_set_transform(_mesh_instance, world_transform)
 
 

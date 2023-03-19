@@ -37,17 +37,11 @@ static func import(
 	p_contains_albedo: bool,
 	importer_name: String,
 	p_compress_mode: int,
-	p_repeat: int,
-	p_filter: bool,
-	p_mipmaps: bool,
-	p_anisotropic: bool) -> HT_Result:
+	p_mipmaps: bool) -> HT_Result:
 
 	var compress_mode := p_compress_mode
 	var lossy := 0.7
-	var repeat := p_repeat
-	var filter := p_filter
 	var mipmaps := p_mipmaps
-	var anisotropic := p_anisotropic
 	var srgb := 1 if p_contains_albedo else 2
 	var fix_alpha_border := false
 	var premult_alpha := false
@@ -64,16 +58,8 @@ static func import(
 	var formats_imported := []
 
 	var tex_flags := 0
-	if repeat > 0:
-		tex_flags |= Texture.FLAG_REPEAT
-	if repeat == 2:
-		tex_flags |= Texture.FLAG_MIRRORED_REPEAT
-	if filter:
-		tex_flags |= Texture.FLAG_FILTER
 	if mipmaps or compress_mode == COMPRESS_VIDEO_RAM:
 		tex_flags |= Texture.FLAG_MIPMAPS
-	if anisotropic:
-		tex_flags |= Texture.FLAG_ANISOTROPIC_FILTER
 	if srgb == 1:
 		tex_flags |= Texture.FLAG_CONVERT_TO_LINEAR
 

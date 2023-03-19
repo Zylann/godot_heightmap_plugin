@@ -28,12 +28,12 @@ class HT_XYZBounds:
 static func load_bounds(f: FileAccess) -> HT_XYZBounds:
 	# It is faster to get line and split floats than using CSV functions
 	var line := f.get_line()
-	var floats = line.split_floats(" ")
+	var floats := line.split_floats(" ")
 	
 	# We only care about X and Y, it makes less operations to do in the loop.
 	# Z is the height and will remain as-is at the end.
-	var min_pos_x : float = floats[0]
-	var min_pos_y : float = floats[1]
+	var min_pos_x := floats[0]
+	var min_pos_y := floats[1]
 
 	var max_pos_x := min_pos_x
 	var max_pos_y := min_pos_y
@@ -51,8 +51,8 @@ static func load_bounds(f: FileAccess) -> HT_XYZBounds:
 
 		floats = line.split_floats(" ")
 
-		var pos_x = floats[0]
-		var pos_y = floats[1]
+		var pos_x := floats[0]
+		var pos_y := floats[1]
 		
 		min_pos_x = minf(min_pos_x, pos_x)
 		min_pos_y = minf(min_pos_y, pos_y)

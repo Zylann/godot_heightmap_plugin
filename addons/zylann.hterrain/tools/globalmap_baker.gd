@@ -131,8 +131,8 @@ func _setup_pass(sector: Vector2):
 	var center = origin + 0.5 * _viewport.size
 	# The heightmap is left empty, so will default to white, which is a height of 1.
 	# The camera must be placed above the terrain to see it.
-	_camera.translation = Vector3(center.x, 2.0, center.y)
-	_plane.translation = Vector3(origin.x, 0.0, origin.y)
+	_camera.position = Vector3(center.x, 2.0, center.y)
+	_plane.position = Vector3(origin.x, 0.0, origin.y)
 
 
 func _grab_image(sector: Vector2):

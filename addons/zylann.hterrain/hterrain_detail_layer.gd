@@ -19,6 +19,7 @@ const HT_Logger = preload("./util/logger.gd")
 # TODO Can't preload because it causes the plugin to fail loading if assets aren't imported
 const DEFAULT_MESH_PATH = "res://addons/zylann.hterrain/models/grass_quad.obj"
 
+# Cannot use `const` because `HTerrain` depends on the current script
 var HTerrain = load("res://addons/zylann.hterrain/hterrain.gd")
 
 const CHUNK_SIZE = 32
@@ -71,7 +72,7 @@ const _API_SHADER_PARAMS = {
 	set(v):
 		if view_distance == v:
 			return
-		view_distance = max(v, 1.0)
+		view_distance = maxf(v, 1.0)
 		if is_inside_tree():
 			_update_material()
 
@@ -125,7 +126,7 @@ const _API_SHADER_PARAMS = {
 @export_flags_3d_render var render_layers := 1:
 	get:
 		return render_layers
-	set:
+	set(mask):
 		render_layers = mask
 		for k in _chunks:
 			var chunk = _chunks[k]
@@ -134,8 +135,9 @@ const _API_SHADER_PARAMS = {
 
 # Exposes shadow casting setting.
 # Possible values are the same as the enum `GeometryInstance.SHADOW_CASTING_SETTING_*`.
+# TODO Casting to `int` should not be necessary! Had to do it otherwise GDScript complains...
 @export_enum("Off", "On", "DoubleSided", "ShadowsOnly") \
-	var cast_shadow := GeometryInstance3D.SHADOW_CASTING_SETTING_ON:
+	var cast_shadow := int(GeometryInstance3D.SHADOW_CASTING_SETTING_ON):
 	get:
 		return cast_shadow
 	set(option):
@@ -236,11 +238,11 @@ func _get_property_list() -> Array:
 	# Dynamic properties coming from the shader
 	var props := []
 	if _material != null:
-		var shader_params = RenderingServer.shader_get_parameter_list(_material.shader.get_rid())
+		var shader_params = RenderingServer.get_shader_parameter_list(_material.shader.get_rid())
 		for p in shader_params:
 			if _API_SHADER_PARAMS.has(p.name):
 				continue
-			var cp = {}
+			var cp := {}
 			for k in p:
 				cp[k] = p[k]
 			cp.name = str("shader_params/", p.name)
@@ -248,15 +250,17 @@ func _get_property_list() -> Array:
 	return props
 
 
-func _get(key: String):
-	if key.begins_with("shader_params/"):
-		var param_name = key.substr(len("shader_params/"))
+func _get(key: StringName):
+	var key_str := String(key)
+	if key_str.begins_with("shader_params/"):
+		var param_name = key_str.substr(len("shader_params/"))
 		return get_shader_param(param_name)
 
 
-func _set(key: String, v):
-	if key.begins_with("shader_params/"):
-		var param_name = key.substr(len("shader_params/"))
+func _set(key: StringName, v):
+	var key_str := String(key)
+	if key_str.begins_with("shader_params/"):
+		var param_name = key_str.substr(len("shader_params/"))
 		set_shader_param(param_name, v)
 
 
@@ -608,16 +612,16 @@ func _update_material():
 	mat.set_shader_parameter("u_terrain_globalmap", globalmap_texture)
 
 
-func _add_debug_cube(terrain, aabb: AABB):
-	var world = terrain.get_world_3d()
+func _add_debug_cube(terrain: Node3D, aabb: AABB):
+	var world : World3D = terrain.get_world_3d()
 
 	if _debug_wirecube_mesh == null:
 		_debug_wirecube_mesh = HT_Util.create_wirecube_mesh()
-		var mat = StandardMaterial3D.new()
+		var mat := StandardMaterial3D.new()
 		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		_debug_wirecube_mesh.surface_set_material(0, mat)
 
-	var debug_cube = HT_DirectMeshInstance.new()
+	var debug_cube := HT_DirectMeshInstance.new()
 	debug_cube.set_mesh(_debug_wirecube_mesh)
 	debug_cube.set_world(world)
 	#aabb.position.y += 0.2*randf()
@@ -644,10 +648,10 @@ func is_layer_index_valid() -> bool:
 
 
 func _get_configuration_warnings() -> PackedStringArray:
-	var warnings = PackedStringArray()
+	var warnings := PackedStringArray()
 
 	var terrain = _get_terrain()
-	if not (terrain is HTerrain):
+	if not (is_instance_of(terrain, HTerrain)):
 		warnings.append("This node must be child of an HTerrain node")
 		return warnings
 
@@ -685,25 +689,25 @@ func get_cast_shadow() -> int:
 static func _generate_multimesh(resolution: int, density: float, mesh: Mesh, multimesh: MultiMesh):
 	assert(multimesh != null)
 	
-	var position_randomness = 0.5
-	var scale_randomness = 0.0
+	var position_randomness := 0.5
+	var scale_randomness := 0.0
 	#var color_randomness = 0.5
 
-	var cell_count = resolution * resolution
-	var idensity = int(density)
-	var random_instance_count = int(cell_count * (density - floorf(density)))
-	var total_instance_count = cell_count * idensity + random_instance_count
+	var cell_count := resolution * resolution
+	var idensity := int(density)
+	var random_instance_count := int(cell_count * (density - floorf(density)))
+	var total_instance_count := cell_count * idensity + random_instance_count
 	
 	multimesh.instance_count = total_instance_count
 	multimesh.mesh = mesh
 
 	# First pass ensures uniform spread
-	var i = 0
+	var i := 0
 	for z in resolution:
 		for x in resolution:
 			for j in idensity:
 				
-				var pos = Vector3(x, 0, z)
+				var pos := Vector3(x, 0, z)
 				pos.x += randf_range(-position_randomness, position_randomness)
 				pos.z += randf_range(-position_randomness, position_randomness)
 
@@ -722,10 +726,10 @@ static func _generate_multimesh(resolution: int, density: float, mesh: Mesh, mul
 
 
 static func _get_random_instance_basis(scale_randomness: float) -> Basis:
-	var sr = randf_range(0, scale_randomness)
-	var s = 1.0 + (sr * sr * sr * sr * sr) * 50.0
+	var sr := randf_range(0, scale_randomness)
+	var s := 1.0 + (sr * sr * sr * sr * sr) * 50.0
 
-	var basis = Basis()
+	var basis := Basis()
 	basis = basis.scaled(Vector3(1, s, 1))
 	basis = basis.rotated(Vector3(0, 1, 0), randf_range(0, PI))
 	

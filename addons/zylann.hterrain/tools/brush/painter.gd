@@ -87,7 +87,7 @@ func _init():
 	_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 	# No longer available in Godot 4...
 	#_viewport.render_target_v_flip = true
-	_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ONLY_NEXT_FRAME
+	_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ONCE
 	#_viewport.hdr = false
 	_viewport.transparent_bg = true
 	# Apparently HDR doesn't work if this is set to 2D... so let's waste a depth buffer :/
@@ -210,7 +210,7 @@ func paint_input(center_pos: Vector2):
 	# Need to floor the position in case the brush has an odd size
 	var brush_pos := (center_pos - _viewport.size * 0.5).round()
 	_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
-	_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ONLY_NEXT_FRAME
+	_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ONCE
 	_viewport_bg_sprite.position = -brush_pos
 	_brush_position = brush_pos
 	_cmd_paint = true
@@ -264,10 +264,10 @@ func _process(delta: float):
 		var data := _viewport.get_texture().get_image()
 		data.convert(_image.get_format())
 
-		# Flipping on the CPU since the v-flip was removed from viewports in Godot 4...
+		# TODO Optimize: flipping on the CPU since GPU v-flip was removed in Godot 4...
 		data.flip_y()
 		
-		var brush_pos = _last_brush_position
+		var brush_pos := _last_brush_position
 		
 		var dst_x : int = clamp(brush_pos.x, 0, _texture.get_width())
 		var dst_y : int = clamp(brush_pos.y, 0, _texture.get_height())
@@ -279,9 +279,9 @@ func _process(delta: float):
 		
 		if src_w != 0 and src_h != 0:
 			_mark_modified_chunks(dst_x, dst_y, src_w, src_h)
-			RenderingServer.texture_set_data_partial(
-				_texture.get_rid(), data, src_x, src_y, src_w, src_h, dst_x, dst_y, 0, 0)
-			texture_region_changed.emit_signal(Rect2(dst_x, dst_y, src_w, src_h))
+			HT_Util.update_texture_partial(
+				_texture, data, Rect2i(src_x, src_y, src_w, src_h), Vector2i(dst_x, dst_y))
+			texture_region_changed.emit(Rect2(dst_x, dst_y, src_w, src_h))
 	
 	# Input is handled just before process, so we still have to wait till next frame
 	if _cmd_paint:
@@ -316,7 +316,7 @@ func _commit_modified_chunks() -> Dictionary:
 	#_logger.debug("About to commit ", len(_modified_chunks), " chunks")
 	
 	# TODO get_data_partial() would be nice...
-	var final_image := _texture.get_data()
+	var final_image := _texture.get_image()
 	for cpos in _modified_chunks:
 		var cx : int = cpos.x
 		var cy : int = cpos.y
@@ -327,8 +327,8 @@ func _commit_modified_chunks() -> Dictionary:
 		var h : int = mini(cs, _image.get_height() - y)
 		
 		var rect := Rect2i(x, y, w, h)
-		var initial_data := _image.get_rect(rect)
-		var final_data := final_image.get_rect(rect)
+		var initial_data := _image.get_region(rect)
+		var final_data := final_image.get_region(rect)
 		
 		chunks_positions.append(cpos)
 		chunks_initial_data.append(initial_data)

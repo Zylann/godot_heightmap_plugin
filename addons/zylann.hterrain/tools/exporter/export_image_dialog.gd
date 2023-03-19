@@ -1,5 +1,5 @@
 @tool
-extends WindowDialog
+extends AcceptDialog
 
 const HTerrain = preload("../../hterrain.gd")
 const HTerrainData = preload("../../hterrain_data.gd")
@@ -20,11 +20,17 @@ const FORMAT_COUNT = 4
 @onready var _export_button := $VB/Buttons/ExportButton as Button
 @onready var _show_in_explorer_checkbox := $VB/ShowInExplorerCheckbox as CheckBox
 
-var _terrain = null
+var _terrain : HTerrain = null
 var _file_dialog : EditorFileDialog = null
 var _format_names := []
 var _format_extensions := []
 var _logger = HT_Logger.get_for(self)
+
+
+func _init():
+	# Godot 4 decided to not have a plain WindowDialog class...
+	# there is Window but it's way too unfriendly...
+	get_ok_button().hide()
 
 
 func _ready():
@@ -49,7 +55,7 @@ func _ready():
 func setup_dialogs(base_control: Control):
 	assert(_file_dialog == null)
 	var fd := EditorFileDialog.new()
-	fd.mode = EditorFileDialog.MODE_SAVE_FILE
+	fd.file_mode = EditorFileDialog.FILE_MODE_SAVE_FILE
 	fd.resizable = true
 	fd.access = EditorFileDialog.ACCESS_FILESYSTEM
 	fd.file_selected.connect(_on_FileDialog_file_selected)
@@ -76,7 +82,7 @@ func _on_FileDialog_file_selected(fpath: String):
 func _auto_adjust_height_range():
 	assert(_terrain != null)
 	assert(_terrain.get_data() != null)
-	var aabb = _terrain.get_data().get_aabb()
+	var aabb := _terrain.get_data().get_aabb()
 	_height_range_min_spinbox.value = aabb.position.y
 	_height_range_max_spinbox.value = aabb.position.y + aabb.size.y
 
@@ -104,7 +110,7 @@ func _export() -> bool:
 	var save_error := OK
 	
 	if format == FORMAT_PNG8:
-		var hscale = 1.0 / (height_max - height_min)
+		var hscale := 1.0 / (height_max - height_min)
 		var im := Image.create(heightmap.get_width(), heightmap.get_height(), false, Image.FORMAT_R8)
 		
 		for y in heightmap.get_height():
@@ -118,9 +124,9 @@ func _export() -> bool:
 		save_error = heightmap.save_exr(fpath, true)
 		
 	else:
-		var f := FileAccess.open(fpath, File.WRITE)
-		var err := FileAccess.get_open_error()
-		if err != OK:
+		var f := FileAccess.open(fpath, FileAccess.WRITE)
+		if f == null:
+			var err := FileAccess.get_open_error()
 			_print_file_error(fpath, err)
 			return false
 		
@@ -129,10 +135,10 @@ func _export() -> bool:
 			f.store_buffer(heightmap.get_data())
 		
 		elif format == FORMAT_R16:
-			var hscale = 65535.0 / (height_max - height_min)
+			var hscale := 65535.0 / (height_max - height_min)
 			for y in heightmap.get_height():
 				for x in heightmap.get_width():
-					var h = int((heightmap.get_pixel(x, y).r - height_min) * hscale)
+					var h := int((heightmap.get_pixel(x, y).r - height_min) * hscale)
 					if h < 0:
 						h = 0
 					elif h > 65535:
@@ -158,11 +164,11 @@ func _update_file_extension():
 	# TODO Is `selected` an ID or an index? I need an ID, it works by chance for now.
 	var format = _format_selector.selected
 
-	var ext = _format_extensions[format]
+	var ext : String = _format_extensions[format]
 	_file_dialog.clear_filters()
 	_file_dialog.add_filter(str("*.", ext, " ; ", ext.to_upper(), " files"))
 	
-	var fpath = _output_path_line_edit.text.strip_edges()
+	var fpath := _output_path_line_edit.text.strip_edges()
 	if fpath != "":
 		_output_path_line_edit.text = str(fpath.get_basename(), ".", ext)
 

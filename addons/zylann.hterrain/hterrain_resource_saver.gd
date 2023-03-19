@@ -16,8 +16,8 @@ func _recognize(res: Resource) -> bool:
 	return res is HTerrainData
 
 
-func _save(resource: Resource, path: String, flags: int) -> int:
-	if resource.save_data(path.get_base_dir())
+func _save(resource: Resource, path: String, flags: int) -> Error:
+	if resource.save_data(path.get_base_dir()):
 		return OK
 	# This can occur if at least one map of the terrain fails to save.
 	# It doesnt necessarily mean the entire terrain failed to save.

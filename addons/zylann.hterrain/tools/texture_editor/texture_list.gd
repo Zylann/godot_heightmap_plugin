@@ -32,8 +32,8 @@ var _selected_item := -1
 
 
 # Note: the texture can be a TextureArray, which does not inherit Texture
-func add_item(text: String, texture: Resource, texture_layer: int = 0):
-	var item = HT_TextureListItemScene.instance()
+func add_item(text: String, texture: Texture, texture_layer: int = 0):
+	var item : HT_TextureListItem = HT_TextureListItemScene.instance()
 	_container.add_child(item)
 	item.set_text(text)
 	item.set_texture(texture, texture_layer)
@@ -43,8 +43,8 @@ func get_item_count() -> int:
 	return _container.get_child_count()
 
 
-func set_item_texture(index: int, tex: Resource, layer: int = 0):
-	var child = _container.get_child(index)
+func set_item_texture(index: int, tex: Texture, layer: int = 0):
+	var child : HT_TextureListItem = _container.get_child(index)
 	child.set_texture(tex, layer)
 
 

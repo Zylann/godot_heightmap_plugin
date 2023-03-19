@@ -31,33 +31,20 @@ static func import(
 	p_contains_albedo: bool,
 	importer_name: String,
 	p_compress_mode: int,
-	p_repeat: int,
-	p_filter: bool,
-	p_mipmaps: bool,
-	p_anisotropic: bool) -> HT_Result:
+	p_mipmaps: bool) -> HT_Result:
 	
 	var compress_mode := p_compress_mode
 	var no_bptc_if_rgb := false#p_options["compress/no_bptc_if_rgb"];
-	var repeat := p_repeat
-	var filter := p_filter
 	var mipmaps := p_mipmaps
 	var srgb := 1 if p_contains_albedo else 2#p_options["flags/srgb"];
 #	int hslices = p_options["slices/horizontal"];
 #	int vslices = p_options["slices/vertical"];
 
 	var tex_flags := 0
-	if repeat > 0:
-		tex_flags |= Texture.FLAG_REPEAT
-	if repeat == 2:
-		tex_flags |= Texture.FLAG_MIRRORED_REPEAT
-	if filter:
-		tex_flags |= Texture.FLAG_FILTER
 	if mipmaps or compress_mode == COMPRESS_VIDEO_RAM:
 		tex_flags |= Texture.FLAG_MIPMAPS
 	if srgb == 1:
 		tex_flags |= Texture.FLAG_CONVERT_TO_LINEAR
-	if p_anisotropic:
-		tex_flags |= Texture.FLAG_ANISOTROPIC_FILTER
 
 #	Vector<Ref<Image> > slices;
 #

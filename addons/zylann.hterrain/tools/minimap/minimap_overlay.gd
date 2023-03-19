@@ -2,10 +2,10 @@
 extends Control
 
 
-export(Texture) var cursor_texture
-export(Texture) var out_of_range_texture
+@export var cursor_texture : Texture
+@export var out_of_range_texture : Texture
 
-@onready var _sprite = $Cursor
+@onready var _sprite : Sprite2D = $Cursor
 
 var _pos := Vector2()
 var _rot := 0.0
@@ -19,6 +19,6 @@ func set_cursor_position_normalized(pos_norm: Vector2, dir: Vector2):
 		pos_norm.y = clampf(pos_norm.y, 0.0, 1.0)
 		_sprite.texture = out_of_range_texture
 	
-	_sprite.position = pos_norm * rect_size
+	_sprite.position = pos_norm * size
 	_sprite.rotation = dir.angle()
 

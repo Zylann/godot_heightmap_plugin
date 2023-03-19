@@ -53,6 +53,6 @@ const _names = {
 	ERR_PRINTER_ON_FIRE: "The printer is on fire"
 }
 
-static func get_message(err_code):
+static func get_message(err_code: int):
 	return str("[", err_code, "]: ", _names[err_code])
 

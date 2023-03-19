@@ -38,11 +38,11 @@ func _init(cache_dir: String):
 		_session_id += str(rng.randi() % 10)
 	_logger.debug(str("Image cache session ID: ", _session_id))
 	if not DirAccess.dir_exists_absolute(_cache_dir):
-		var err = DirAccess.make_dir_absolute(_cache_dir)
+		var err := DirAccess.make_dir_absolute(_cache_dir)
 		if err != OK:
 			_logger.error("Could not create directory {0}, error {1}".format([_cache_dir, err]))
 	_save_thread_running = true 
-	_saving_thread.start(self, "_save_thread_func")
+	_saving_thread.start(_save_thread_func)
 
 
 # TODO Cannot cleanup the cache in destructor!
@@ -57,7 +57,7 @@ func _notification(what: int):
 
 
 func _create_new_cache_file(fpath: String):
-	var f := FileAccess.open(fpath, File.WRITE)
+	var f := FileAccess.open(fpath, FileAccess.WRITE)
 	if f == null:
 		var err = FileAccess.get_open_error()
 		_logger.error("Failed to create new cache file {0}, error {1}".format([fpath, err]))
@@ -127,15 +127,15 @@ static func _read_image(f: FileAccess) -> Image:
 	var height := f.get_32()
 	var data_size := f.get_32()
 	var data := f.get_buffer(data_size)
-	var im = Image.create_from_data(width, height, false, format, data)
+	var im := Image.create_from_data(width, height, false, format, data)
 	return im
 
 
 func load_image(id: int) -> Image:
 	var info := _cache_image_info[id] as Dictionary
 	
-	var timeout = 5.0
-	var time_before = Time.get_ticks_msec()
+	var timeout := 5.0
+	var time_before := Time.get_ticks_msec()
 	# We could just grab `image`, because the thread only reads it.
 	# However it's still not safe to do that if we write or even lock it,
 	# so we have to assume it still has ownership of it.
@@ -148,9 +148,9 @@ func load_image(id: int) -> Image:
 	
 	var fpath := info.path as String
 	
-	var f = FileAccess.open(fpath, File.READ)
+	var f := FileAccess.open(fpath, FileAccess.READ)
 	if f == null:
-		var err = FileAccess.get_open_error()
+		var err := FileAccess.get_open_error()
 		_logger.error("Could not load cached image from {0}, error {1}" \
 			.format([fpath, err]))
 		return null
@@ -176,7 +176,7 @@ func clear():
 	dir.include_hidden = false
 	dir.include_navigational = false
 
-	var err = dir.list_dir_begin()
+	var err := dir.list_dir_begin()
 	if err != OK:
 		_logger.error("Could not start list_dir_begin in '{0}'".format([_cache_dir]))
 		return
@@ -226,7 +226,7 @@ func _save_thread_func(_unused_userdata):
 				f = null
 				path = ""
 
-				f = FileAccess.open(path, File.READ_WRITE)
+				f = FileAccess.open(path, FileAccess.READ_WRITE)
 				if f == null:
 					var err = FileAccess.get_open_error()
 					call_deferred("_on_error", "Could not open file {0}, error {1}" \

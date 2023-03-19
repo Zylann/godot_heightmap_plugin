@@ -1,5 +1,5 @@
 @tool
-extends WindowDialog
+extends AcceptDialog
 
 const HTerrain = preload("../../hterrain.gd")
 const HTerrainData = preload("../../hterrain_data.gd")
@@ -9,6 +9,8 @@ const HT_TextureGenerator = preload("./texture_generator.gd")
 const HT_TextureGeneratorPass = preload("./texture_generator_pass.gd")
 const HT_Logger = preload("../../util/logger.gd")
 const HT_ImageFileCache = preload("../../util/image_file_cache.gd")
+const HT_Inspector = preload("../inspector/inspector.gd")
+const HT_TerrainPreview = preload("../terrain_preview.gd")
 
 # TODO Power of two is assumed here.
 # I wonder why it doesn't have the off by one terrain textures usually have
@@ -16,10 +18,10 @@ const MAX_VIEWPORT_RESOLUTION = 512
 
 signal progress_notified(info) # { "progress": real, "message": string, "finished": bool }
 
-@onready var _inspector_container = $VBoxContainer/Editor/Settings
-@onready var _inspector = $VBoxContainer/Editor/Settings/Inspector
-@onready var _preview = $VBoxContainer/Editor/Preview/TerrainPreview
-@onready var _progress_bar = $VBoxContainer/Editor/Preview/ProgressBar
+@onready var _inspector_container : Control = $VBoxContainer/Editor/Settings
+@onready var _inspector : HT_Inspector = $VBoxContainer/Editor/Settings/Inspector
+@onready var _preview : HT_TerrainPreview = $VBoxContainer/Editor/Preview/TerrainPreview
+@onready var _progress_bar : ProgressBar = $VBoxContainer/Editor/Preview/ProgressBar
 
 var _dummy_texture = load("res://addons/zylann.hterrain/tools/icons/empty.png")
 var _terrain : HTerrain = null
@@ -38,6 +40,11 @@ static func get_shader(shader_name: String) -> Shader:
 	var path := "res://addons/zylann.hterrain/tools/generator/shaders"\
 		.path_join(str(shader_name, ".shader"))
 	return load(path) as Shader
+
+
+func _init():
+	# Godot 4 does not have a plain WindowDialog class... there is Window but it's too unfriendly...
+	get_ok_button().hide()
 
 
 func _ready():
@@ -156,7 +163,7 @@ func _ready():
 
 
 func apply_dpi_scale(dpi_scale: float):
-	custom_minimum_size *= dpi_scale
+	min_size *= dpi_scale
 	_inspector_container.custom_minimum_size *= dpi_scale
 
 
@@ -179,7 +186,7 @@ func _adjust_viewport_resolution():
 	var data = _terrain.get_data()
 	if data == null:
 		return
-	var terrain_resolution = data.get_resolution()
+	var terrain_resolution := data.get_resolution()
 	
 	# By default we want to work with a large enough viewport to generate tiles,
 	# but we should pick a smaller size if the terrain is smaller than that...
@@ -229,7 +236,7 @@ func _notification(what: int):
 
 
 func _update_generator(preview: bool):
-	var scale = _inspector.get_value("scale")
+	var scale : float = _inspector.get_value("scale")
 	# Scale is inverted in the shader
 	if absf(scale) < 0.01:
 		scale = 0.0
@@ -239,7 +246,7 @@ func _update_generator(preview: bool):
 
 	var preview_scale := 4.0 # As if 2049x2049
 	var sectors := []
-	var terrain_size = 513
+	var terrain_size := 513
 	
 	var additive_heightmap : Texture = null
 
@@ -273,8 +280,8 @@ func _update_generator(preview: bool):
 			# so the size or shape of the terrain doesn't matter
 			preview_scale = 1.0
 
-			var cw = terrain_size / _viewport_resolution
-			var ch = terrain_size / _viewport_resolution
+			var cw := terrain_size / _viewport_resolution
+			var ch := terrain_size / _viewport_resolution
 
 			for y in ch:
 				for x in cw:
@@ -392,17 +399,17 @@ func _apply():
 		_logger.error("cannot apply, terrain is null")
 		return
 
-	var data = _terrain.get_data()
+	var data := _terrain.get_data()
 	if data == null:
 		_logger.error("cannot apply, terrain data is null")
 		return
 
-	var dst_heights = data.get_image(HTerrainData.CHANNEL_HEIGHT)
+	var dst_heights := data.get_image(HTerrainData.CHANNEL_HEIGHT)
 	if dst_heights == null:
 		_logger.error("terrain heightmap image isn't loaded")
 		return
 
-	var dst_normals = data.get_image(HTerrainData.CHANNEL_NORMAL)
+	var dst_normals := data.get_image(HTerrainData.CHANNEL_NORMAL)
 	if dst_normals == null:
 		_logger.error("terrain normal image isn't loaded")
 		return
@@ -486,9 +493,9 @@ func _on_TextureGenerator_completed():
 	data._edit_set_disable_apply_undo(true)
 	_undo_redo.create_action("Generate terrain")
 	_undo_redo.add_do_method(
-		data, "_edit_apply_maps_from_file_cache", _image_cache, redo_map_ids)
+		data._edit_apply_maps_from_file_cache.bind(_image_cache, redo_map_ids))
 	_undo_redo.add_undo_method(
-		data, "_edit_apply_maps_from_file_cache", _image_cache, _undo_map_ids)
+		data._edit_apply_maps_from_file_cache.bind(_image_cache, _undo_map_ids))
 	_undo_redo.commit_action()
 	data._edit_set_disable_apply_undo(false)
 

@@ -19,7 +19,7 @@ var _terrain : HTerrain = null
 var _texture_set : HTerrainTextureSet = null
 
 var _texture_list_need_update := false
-var _empty_icon : Texture
+var _empty_icon : Texture2D
 
 var _logger = HT_Logger.get_for(self)
 
@@ -90,7 +90,7 @@ func _update_texture_list():
 			for slot_index in slots_count:
 				var texture := texture_set.get_texture(
 					slot_index, HTerrainTextureSet.TYPE_ALBEDO_BUMP)
-				var hint = _get_slot_hint_name(slot_index, _terrain.get_shader_type())
+				var hint := _get_slot_hint_name(slot_index, _terrain.get_shader_type())
 				if texture == null:
 					texture = _empty_icon
 				_textures_list.add_item(hint, texture)
@@ -98,7 +98,7 @@ func _update_texture_list():
 		HTerrainTextureSet.MODE_TEXTURE_ARRAYS:
 			var texture_array = texture_set.get_texture_array(HTerrainTextureSet.TYPE_ALBEDO_BUMP)
 			for slot_index in slots_count:
-				var hint = _get_slot_hint_name(slot_index, _terrain.get_shader_type())
+				var hint := _get_slot_hint_name(slot_index, _terrain.get_shader_type())
 				_textures_list.add_item(hint, texture_array, slot_index)
 
 

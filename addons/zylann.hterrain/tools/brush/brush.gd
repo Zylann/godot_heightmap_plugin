@@ -6,6 +6,7 @@
 # This is separate from Painter because it could apply to multiple Painters at once.
 
 const HT_Errors = preload("../../util/errors.gd")
+const HT_Painter = preload("./painter.gd")
 
 const SHAPES_DIR = "addons/zylann.hterrain/tools/brush/shapes"
 const DEFAULT_BRUSH_TEXTURE_PATH = SHAPES_DIR + "/round2.exr"
@@ -115,17 +116,18 @@ func set_shapes(shapes: Array):
 	shapes_changed.emit()
 
 
-func get_shapes() -> Array:
+func get_shapes() -> Array[Texture2D]:
 	return _shapes.duplicate(false)
 
 
-func get_shape(i: int) -> Texture:
+func get_shape(i: int) -> Texture2D:
 	return _shapes[i]
 
 
-static func load_shape_from_image_file(fpath: String, logger, retries = 1) -> Texture:
-	var im := Image.load_from_file(fpath)
-	if im == null:
+static func load_shape_from_image_file(fpath: String, logger, retries := 1) -> Texture2D:
+	var im := Image.new()
+	var err := im.load(fpath)
+	if err != OK:
 		if retries > 0:
 			# TODO There is a bug with Godot randomly being unable to load images.
 			# See https://github.com/Zylann/godot_heightmap_plugin/issues/219
@@ -138,13 +140,13 @@ static func load_shape_from_image_file(fpath: String, logger, retries = 1) -> Te
 			logger.error("Could not load image at '{0}', error {1}" \
 				.format([fpath, HT_Errors.get_message(err)]))
 			return null
-	var tex = ImageTexture.create_from_image(im)
+	var tex := ImageTexture.create_from_image(im)
 	return tex
 
-	
+
 # Call this while handling mouse or pen input.
 # If it returns false, painting should not run.
-func configure_paint_input(painters: Array, position: Vector2, pressure: float) -> bool:
+func configure_paint_input(painters: Array[HT_Painter], position: Vector2, pressure: float) -> bool:
 	assert(len(_shapes) != 0)
 	
 	# DEBUG
@@ -152,13 +154,15 @@ func configure_paint_input(painters: Array, position: Vector2, pressure: float) 
 	
 	if position.distance_to(_prev_position) < _frequency_distance:
 		return false
-	var now = Time.get_ticks_msec()
+	var now := Time.get_ticks_msec()
 	if (now - _prev_time_ms) < _frequency_time_ms:
 		return false
 	_prev_position = position
 	_prev_time_ms = now
 	
-	for painter in painters:
+	for painter_index in len(painters):
+		var painter : HT_Painter = painters[painter_index]
+		
 		if _random_rotation:
 			painter.set_brush_rotation(randf_range(-PI, PI))
 		else:

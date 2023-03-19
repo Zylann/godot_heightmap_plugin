@@ -1,10 +1,14 @@
-tool
+@tool
 # Independent quad tree designed to handle LOD
 
 class HT_QTLQuad:
+	# Optional array of 4 HT_QTLQuad
 	var children = null
+	
+	# TODO Use Vector2i
 	var origin_x : int = 0
 	var origin_y : int = 0
+	
 	var data = null
 
 	func _init():
@@ -17,7 +21,7 @@ class HT_QTLQuad:
 	func clear_children():
 		children = null
 	
-	func has_children():
+	func has_children() -> bool:
 		return children != null
 
 
@@ -99,7 +103,7 @@ func _update(quad: HT_QTLQuad, lod: int, view_pos: Vector3):
 		chunk_size * (Vector3(quad.origin_x, 0, quad.origin_y) + Vector3(0.5, 0, 0.5))
 	
 	if _vertical_bounds_func.is_valid():
-		var vbounds = _vertical_bounds_func.call(quad.origin_x, quad.origin_y, lod)
+		var vbounds : Vector2 = _vertical_bounds_func.call(quad.origin_x, quad.origin_y, lod)
 		world_center.y = (vbounds.x + vbounds.y) / 2.0
 	
 	var split_distance := _base_size * lod_factor * _split_scale
@@ -132,7 +136,7 @@ func _update(quad: HT_QTLQuad, lod: int, view_pos: Vector3):
 		if no_split_child and world_center.distance_to(view_pos) > split_distance:
 			# Join
 			for i in 4:
-				var child = quad.children[i]
+				var child : HT_QTLQuad = quad.children[i]
 				_recycle_chunk(child.data, child.origin_x, child.origin_y, lod - 1)
 			quad.clear_children()
 			quad.data = _make_chunk(lod, quad.origin_x, quad.origin_y)

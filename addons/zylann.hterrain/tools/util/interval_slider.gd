@@ -38,25 +38,25 @@ func _get_property_list():
 	]
 
 
-func _get(key: String):
+func _get(key: StringName):
 	match key:
-		"min_value":
+		&"min_value":
 			return _min_value
-		"max_value":
+		&"max_value":
 			return _max_value
-		"range":
+		&"range":
 			return Vector2(_min_value, _max_value)
 
 
-func _set(key: String, value):
+func _set(key: StringName, value):
 	match key:
-		"min_value":
+		&"min_value":
 			_min_value = min(value, _max_value)
-			update()
-		"max_value":
+			queue_redraw()
+		&"max_value":
 			_max_value = max(value, _min_value)
-			update()
-		"range":
+			queue_redraw()
+		&"range":
 			_min_value = value.x
 			_max_value = value.y
 
@@ -68,7 +68,7 @@ func set_values(low: float, high: float):
 		high = low
 	_values[VALUE_LOW] = low
 	_values[VALUE_HIGH] = high
-	update()
+	queue_redraw()
 
 
 func set_value(i: int, v: float, notify_change: bool):
@@ -120,7 +120,7 @@ func _ratio_to_value(r: float) -> float:
 
 
 func _value_to_ratio(v: float) -> float:
-	if abs(_max_value - _min_value) < 0.001:
+	if absf(_max_value - _min_value) < 0.001:
 		return 0.0
 	return (v - _min_value) / (_max_value - _min_value)
 
@@ -134,7 +134,7 @@ func _get_closest_index(ratio: float) -> int:
 
 
 func _set_from_pixel(px: float):
-	var r := (px - FG_MARGIN) / (rect_size.x - FG_MARGIN * 2.0)
+	var r := (px - FG_MARGIN) / (size.x - FG_MARGIN * 2.0)
 	var i := _get_closest_index(r)
 	var v := _ratio_to_value(r)
 	set_value(i, v, true)
@@ -163,7 +163,7 @@ func _draw():
 	var interval_color := Color(0.4,0.4,0.4)
 	var background_color := Color(0.1, 0.1, 0.1)
 	
-	var control_rect := Rect2(Vector2(), rect_size)
+	var control_rect := Rect2(Vector2(), size)
 	
 	var bg_rect := Rect2(
 		control_rect.position.x, 

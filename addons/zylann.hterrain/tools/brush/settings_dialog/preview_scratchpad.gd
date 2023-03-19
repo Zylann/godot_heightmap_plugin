@@ -23,11 +23,10 @@ func _ready():
 
 
 func reset_image():
-	var image = Image.new()
-	image.create(_texture_rect.rect_size.x, _texture_rect.rect_size.y, false, Image.FORMAT_RGB8)
+	var image = Image.create(
+		_texture_rect.rect_size.x, _texture_rect.rect_size.y, false, Image.FORMAT_RGB8)
 	image.fill(Color(1,1,1))
-	var texture = ImageTexture.new()
-	texture.create_from_image(image)
+	var texture = ImageTexture.create_from_image(image)
 	_texture_rect.texture = texture
 	_painter.set_image_texture(image, texture)
 
@@ -40,7 +39,7 @@ func _gui_input(event):
 	if event is InputEventMouseMotion:
 		if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 			_painter.paint_input(event.position, event.pressure)
-		update()
+		queue_redraw()
 	
 	elif event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT:

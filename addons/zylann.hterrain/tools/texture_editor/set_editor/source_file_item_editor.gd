@@ -37,7 +37,7 @@ func set_texture(tex: Texture):
 
 
 func set_texture_tooltip(msg: String):
-	_texture_rect.hint_tooltip = msg
+	_texture_rect.tooltip_text = msg
 
 
 func _on_LoadButton_pressed():

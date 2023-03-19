@@ -22,15 +22,16 @@ const SHADER_CUSTOM = "Custom"
 
 const MIN_MAP_SCALE = 0.01
 
-const _SHADER_TYPE_HINT_STRING = str(
-	"Classic4", ",",
-	"Classic4Lite", ",",
-	"LowPoly", ",",
-	"Array", ",",
-	"MultiSplat16", ",",
-	"MultiSplat16Lite", ",",
+# Note, the `str()` syntax is no longer accepted in constants in Godot 4
+const _SHADER_TYPE_HINT_STRING = \
+	"Classic4," + \
+	"Classic4Lite," + \
+	"LowPoly," + \
+	"Array," + \
+	"MultiSplat16," + \
+	"MultiSplat16Lite," + \
 	"Custom"
-)
+
 # TODO Had to downgrade this to support Godot 3.1.
 # Referring to other constants with this syntax isn't working...
 #const _SHADER_TYPE_HINT_STRING = str(
@@ -143,7 +144,7 @@ signal transform_changed(global_transform)
 @export_range(0.0, 1.0) var ambient_wind : float:
 	get:
 		return ambient_wind
-	set(value):
+	set(amplitude):
 		if ambient_wind == amplitude:
 			return
 		ambient_wind = amplitude
@@ -164,13 +165,13 @@ signal transform_changed(global_transform)
 # TODO Replace with `size` in world units?
 @export var map_scale := Vector3(1, 1, 1):
 	get:
-		return map_scale:
+		return map_scale
 	set(p_map_scale):
 		if map_scale == p_map_scale:
 			return
-		p_map_scale.x = max(p_map_scale.x, MIN_MAP_SCALE)
-		p_map_scale.y = max(p_map_scale.y, MIN_MAP_SCALE)
-		p_map_scale.z = max(p_map_scale.z, MIN_MAP_SCALE)
+		p_map_scale.x = maxf(p_map_scale.x, MIN_MAP_SCALE)
+		p_map_scale.y = maxf(p_map_scale.y, MIN_MAP_SCALE)
+		p_map_scale.z = maxf(p_map_scale.z, MIN_MAP_SCALE)
 		map_scale = p_map_scale
 		_on_transform_changed()
 
@@ -197,7 +198,7 @@ var _cast_shadow_setting := GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 var _render_layer_mask := 1
 
 # Actual number of textures supported by the shader currently selected
-var _ground_texture_count_cache = 0
+var _ground_texture_count_cache := 0
 
 var _used_splatmaps_count_cache := 0
 var _is_using_indexed_splatmap := false
@@ -379,11 +380,11 @@ func _get_property_list():
 	return props
 
 
-func _get(key: String):
-	if key == "data_directory":
+func _get(key: StringName):
+	if key == &"data_directory":
 		return _get_data_directory()
 
-	if key == "_terrain_data":
+	if key == &"_terrain_data":
 		if _data == null or _data.resource_path == "":
 			# Consider null if the data is not set or has no path,
 			# because in those cases we can't save the terrain properly
@@ -391,59 +392,60 @@ func _get(key: String):
 		else:
 			return _data
 
-	if key == "texture_set":
+	if key == &"texture_set":
 		return get_texture_set()
 
-	elif key == "shader_type":
+	elif key == &"shader_type":
 		return get_shader_type()
 
-	elif key == "custom_shader":
+	elif key == &"custom_shader":
 		return get_custom_shader()
 	
-	elif key == "custom_globalmap_shader":
+	elif key == &"custom_globalmap_shader":
 		return _custom_globalmap_shader
 
 	elif key.begins_with("shader_params/"):
-		var param_name = key.substr(len("shader_params/"))
+		var param_name := key.substr(len("shader_params/"))
 		return get_shader_param(param_name)
 
-	elif key == "chunk_size":
+	elif key == &"chunk_size":
 		return _chunk_size
 	
-	elif key == "collision_enabled":
+	elif key == &"collision_enabled":
 		return _collision_enabled
 	
-	elif key == "collision_layer":
+	elif key == &"collision_layer":
 		return _collision_layer
 
-	elif key == "collision_mask":
+	elif key == &"collision_mask":
 		return _collision_mask
 
-	elif key == "render_layers":
+	elif key == &"render_layers":
 		return get_render_layer_mask()
 	
-	elif key == "cast_shadow":
+	elif key == &"cast_shadow":
 		return _cast_shadow_setting
 	
 
-func _set(key: String, value):
-	if key == "data_directory":
+func _set(key: StringName, value):
+	if key == &"data_directory":
 		_set_data_directory(value)
 
 	# Can't use setget when the exported type is custom,
 	# because we were also are forced to use _get_property_list...
-	elif key == "_terrain_data":
+	elif key == &"_terrain_data":
 		set_data(value)
 
-	elif key == "texture_set":
+	elif key == &"texture_set":
 		set_texture_set(value)
 
 	# Legacy, left for migration from 1.4
-	if key.begins_with("ground/"):
+	var key_str := String(key)
+	if key_str.begins_with("ground/"):
 		for ground_texture_type in HTerrainTextureSet.TYPE_COUNT:
 			var type_name = _ground_enum_to_name[ground_texture_type]
-			if key.begins_with(str("ground/", type_name, "_")):
-				var i = key.substr(len(key) - 1).to_int()
+			if key_str.begins_with(str("ground/", type_name, "_")):
+				var i = key_str.substr(len(key_str) - 1).to_int()
 				if _texture_set_migration_textures == null:
 					_texture_set_migration_textures = []
 				while i >= len(_texture_set_migration_textures):
@@ -451,39 +453,39 @@ func _set(key: String, value):
 				var texs = _texture_set_migration_textures[i]
 				texs[ground_texture_type] = value
 
-	elif key == "shader_type":
+	elif key == &"shader_type":
 		set_shader_type(value)
 
-	elif key == "custom_shader":
+	elif key == &"custom_shader":
 		set_custom_shader(value)
 	
-	elif key == "custom_globalmap_shader":
+	elif key == &"custom_globalmap_shader":
 		_custom_globalmap_shader = value
 
 	elif key.begins_with("shader_params/"):
-		var param_name = key.substr(len("shader_params/"))
+		var param_name := String(key).substr(len("shader_params/"))
 		set_shader_param(param_name, value)
 
-	elif key == "chunk_size":
+	elif key == &"chunk_size":
 		set_chunk_size(value)
 		
-	elif key == "collision_enabled":
+	elif key == &"collision_enabled":
 		set_collision_enabled(value)
 
-	elif key == "collision_layer":
+	elif key == &"collision_layer":
 		_collision_layer = value
 		if _collider != null:
 			_collider.set_collision_layer(value)
 
-	elif key == "collision_mask":
+	elif key == &"collision_mask":
 		_collision_mask = value
 		if _collider != null:
 			_collider.set_collision_mask(value)
 
-	elif key == "render_layers":
+	elif key == &"render_layers":
 		return set_render_layer_mask(value)
 
-	elif key == "cast_shadow":
+	elif key == &"cast_shadow":
 		set_cast_shadow(value)
 
 
@@ -612,7 +614,7 @@ func get_chunk_size() -> int:
 func set_chunk_size(p_cs: int):
 	assert(typeof(p_cs) == TYPE_INT)
 	_logger.debug(str("Setting chunk size to ", p_cs))
-	var cs = HT_Util.next_power_of_two(p_cs)
+	var cs := HT_Util.next_power_of_two(p_cs)
 	if cs < MIN_CHUNK_SIZE:
 		cs = MIN_CHUNK_SIZE
 	if cs > MAX_CHUNK_SIZE:
@@ -639,18 +641,18 @@ func set_centered(p_centered: bool):
 # which is different from Node3D.global_transform gives.
 # global_transform must only have translation and rotation. Scale support is undefined.
 func get_internal_transform() -> Transform3D:
-	var gt = global_transform
-	var it = Transform3D(gt.basis * Basis().scaled(map_scale), gt.origin)
+	var gt := global_transform
+	var it := Transform3D(gt.basis * Basis().scaled(map_scale), gt.origin)
 	if centered and _data != null:
-		var half_size = 0.5 * (_data.get_resolution() - 1.0)
+		var half_size := 0.5 * (_data.get_resolution() - 1.0)
 		it.origin += it.basis * (-Vector3(half_size, 0, half_size))
 	return it
 
 
 func get_internal_transform_unscaled():
-	var gt = global_transform
+	var gt := global_transform
 	if centered and _data != null:
-		var half_size = 0.5 * (_data.get_resolution() - 1.0)
+		var half_size := 0.5 * (_data.get_resolution() - 1.0)
 		gt.origin += gt.basis * (-Vector3(half_size, 0, half_size))
 	return gt
 
@@ -985,8 +987,8 @@ func _update_material_params():
 	# Set all parameters from the terrain sytem.
 
 	if is_inside_tree():
-		var gt = get_internal_transform()
-		var t = gt.affine_inverse()
+		var gt := get_internal_transform()
+		var t := gt.affine_inverse()
 		_material.set_shader_parameter(SHADER_PARAM_INVERSE_TRANSFORM, t)
 
 		# This is needed to properly transform normals if the terrain is scaled
@@ -1428,8 +1430,8 @@ func cell_raycast(origin_world: Vector3, dir_world: Vector3, max_distance: float
 		return null
 	# Transform to local (takes map scale into account)
 	var to_local := get_internal_transform().affine_inverse()
-	var origin = to_local.xform(origin_world)
-	var dir = to_local.basis.xform(dir_world)
+	var origin = to_local * origin_world
+	var dir = to_local.basis * dir_world
 	return _data.cell_raycast(origin, dir, max_distance)
 
 
@@ -1463,7 +1465,7 @@ func _get_ground_texture_array_shader_param_name(type: int) -> String:
 
 
 # @obsolete
-func get_ground_texture_array(type: int) -> TextureArray:
+func get_ground_texture_array(type: int) -> Texture2DArray:
 	_logger.error(
 		"HTerrain.get_ground_texture_array is obsolete, " +
 		"use HTerrain.get_texture_set().get_texture_array(type) instead")
@@ -1472,7 +1474,7 @@ func get_ground_texture_array(type: int) -> TextureArray:
 
 
 # @obsolete
-func set_ground_texture_array(type: int, texture_array: TextureArray):
+func set_ground_texture_array(type: int, texture_array: Texture2DArray):
 	_logger.error(
 		"HTerrain.set_ground_texture_array is obsolete, " +
 		"use HTerrain.get_texture_set().set_texture_array(type, texarray) instead")
@@ -1619,7 +1621,7 @@ class HT_ExitWorldAction:
 
 
 class HT_TransformChangedAction:
-	var transform : Transform
+	var transform : Transform3D
 	func _init(t):
 		transform = t
 	func exec(chunk):

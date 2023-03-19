@@ -6,7 +6,7 @@
 
 
 # Performs a positive integer division rounded to upper (4/2 = 2, 5/3 = 2)
-static func up_div(a, b):
+static func up_div(a: int, b: int):
 	if a % b != 0:
 		return a / b + 1
 	return a / b
@@ -15,12 +15,12 @@ static func up_div(a, b):
 # Creates a 2D array as an array of arrays.
 # if v is provided, all cells will contain the same value.
 # if v is a funcref, it will be executed to fill the grid cell per cell.
-static func create_grid(w, h, v=null):
+static func create_grid(w: int, h: int, v=null):
 	var is_create_func = typeof(v) == TYPE_CALLABLE
-	var grid = []
+	var grid := []
 	grid.resize(h)
 	for y in range(grid.size()):
-		var row = []
+		var row := []
 		row.resize(w)
 		if is_create_func:
 			for x in range(row.size()):
@@ -34,10 +34,10 @@ static func create_grid(w, h, v=null):
 
 # Creates a 2D array that is a copy of another 2D array
 static func clone_grid(other_grid):
-	var grid = []
+	var grid := []
 	grid.resize(other_grid.size())
 	for y in range(0, grid.size()):
-		var row = []
+		var row := []
 		var other_row = other_grid[y]
 		row.resize(other_row.size())
 		grid[y] = row

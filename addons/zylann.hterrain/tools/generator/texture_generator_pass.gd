@@ -7,10 +7,11 @@ var clear := false
 # If not set, a default texture will be drawn.
 # Note that it won't matter if the shader disregards it,
 # and will only serve to provide UVs, due to https://github.com/godotengine/godot/issues/7298.
-var texture = null
+var texture : Texture = null
 # Which shader to use
 var shader : Shader = null
 # Parameters for the shader
+# TODO Use explicit Dictionary, dont allow null
 var params = null
 # How many pixels to pad the viewport on all edges, in case neighboring matters.
 # Outputs won't have that padding, but can pick part of it in case output padding is used.

@@ -1,88 +1,42 @@
-[gd_scene load_steps=4 format=2]
+[gd_scene load_steps=4 format=3 uid="uid://cvuubd08805oa"]
 
-[ext_resource path="res://addons/zylann.hterrain/tools/about/about_dialog.gd" type="Script" id=1]
-[ext_resource path="res://addons/zylann.hterrain/tools/icons/icon_heightmap_node_large.svg" type="Texture" id=2]
-[ext_resource path="res://addons/zylann.hterrain/tools/util/rich_text_label_hyperlinks.gd" type="Script" id=3]
+[ext_resource type="Script" path="res://addons/zylann.hterrain/tools/about/about_dialog.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://sdaddk8wxjin" path="res://addons/zylann.hterrain/tools/icons/icon_heightmap_node_large.svg" id="2"]
+[ext_resource type="Script" path="res://addons/zylann.hterrain/tools/util/rich_text_label_hyperlinks.gd" id="3"]
 
 [node name="AboutDialog" type="AcceptDialog"]
-margin_right = 630.0
-margin_bottom = 250.0
-rect_min_size = Vector2( 630, 250 )
-window_title = "About the HTerrain plugin"
-resizable = true
-script = ExtResource( 1 )
-__meta__ = {
-"_edit_use_anchors_": false
-}
+size = Vector2i(516, 357)
+visible = true
+script = ExtResource("1")
 
 [node name="VB" type="VBoxContainer" parent="."]
+custom_minimum_size = Vector2(500, 300)
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-margin_left = 8.0
-margin_top = 8.0
-margin_right = -8.0
-margin_bottom = -8.0
-__meta__ = {
-"_edit_use_anchors_": false
-}
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -49.0
 
 [node name="HB2" type="HBoxContainer" parent="VB"]
-margin_right = 614.0
-margin_bottom = 210.0
+layout_mode = 2
 size_flags_vertical = 3
 
 [node name="TextureRect" type="TextureRect" parent="VB/HB2"]
-margin_right = 128.0
-margin_bottom = 210.0
-texture = ExtResource( 2 )
+layout_mode = 2
+texture = ExtResource("2")
+stretch_mode = 2
 
 [node name="TC" type="TabContainer" parent="VB/HB2"]
-margin_left = 132.0
-margin_right = 614.0
-margin_bottom = 210.0
+layout_mode = 2
 size_flags_horizontal = 3
-tab_align = 0
 
 [node name="About" type="RichTextLabel" parent="VB/HB2/TC"]
-anchor_right = 1.0
-anchor_bottom = 1.0
-margin_left = 4.0
-margin_top = 32.0
-margin_right = -4.0
-margin_bottom = -4.0
+layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 bbcode_enabled = true
-bbcode_text = "[b]Version:[/b] {version}
-[b]Author:[/b] Marc Gilleron
-[b]Repository:[/b] [url]https://github.com/Zylann/godot_heightmap_plugin[/url]
-[b]Issue tracker:[/b] [url]https://github.com/Zylann/godot_heightmap_plugin/issues[/url]
-
-[b]Gold supporters:[/b]
-
-Aaron Franke (aaronfranke)
-
-[b]Silver supporters:[/b]
-
-TheConceptBoy
-Chris Bolton (yochrisbolton)
-Gamerfiend (Snowminx) 
-greenlion (Justin Swanhart) 
-segfault-god (jp.owo.Manda)
-RonanZe
-Phyronnaz
-NoFr1ends (Lynx)
-
-[b]Bronze supporters:[/b]
-
-rcorre (Ryan Roden-Corrent) 
-duchainer (Raphaël Duchaîne)
-MadMartian
-stackdump (stackdump.eth)
-Treer
-MrGreaterThan
-lenis0012
-"
 text = "Version: {version}
 Author: Marc Gilleron
 Repository: https://github.com/Zylann/godot_heightmap_plugin
@@ -113,16 +67,11 @@ Treer
 MrGreaterThan
 lenis0012
 "
-script = ExtResource( 3 )
+script = ExtResource("3")
 
 [node name="License" type="RichTextLabel" parent="VB/HB2/TC"]
 visible = false
-anchor_right = 1.0
-anchor_bottom = 1.0
-margin_left = 4.0
-margin_top = 32.0
-margin_right = -4.0
-margin_bottom = -4.0
+layout_mode = 2
 text = "Copyright (c) 2016-2020 Marc Gilleron
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
@@ -133,8 +82,5 @@ THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMP
 "
 
 [node name="HB" type="HBoxContainer" parent="VB"]
-margin_top = 214.0
-margin_right = 614.0
-margin_bottom = 234.0
+layout_mode = 2
 alignment = 1
-

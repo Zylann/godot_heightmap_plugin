@@ -6,13 +6,13 @@ extends PanelContainer
 # In such cases, the hierarchy must be made of containers that grow based on their children.
 
 const HT_ColorMaterial = preload("./display_color_material.tres")
-const HT_ColorSliceShader = preload("./display_color_slice.shader")
+const HT_ColorSliceShader = preload("./display_color_slice.gdshader")
 # TODO Can't preload because it causes the plugin to fail loading if assets aren't imported
 #const HT_DummyTexture = preload("../icons/empty.png")
 const DUMMY_TEXTURE_PATH = "res://addons/zylann.hterrain/tools/icons/empty.png"
 
-@onready var _texture_rect = $VB/TextureRect
-@onready var _label = $VB/Label
+@onready var _texture_rect : TextureRect = $VB/TextureRect
+@onready var _label : Label = $VB/Label
 
 
 var _selected := false
@@ -22,8 +22,8 @@ func set_text(text: String):
 	_label.text = text
 
 
-func set_texture(texture: Resource, texture_layer: int):
-	if texture is TextureArray:
+func set_texture(texture: Texture, texture_layer: int):
+	if texture is Texture2DArray:
 		var mat = _texture_rect.material
 		if mat == null or not (mat is ShaderMaterial):
 			mat = ShaderMaterial.new()
@@ -69,4 +69,4 @@ func _draw():
 	else:
 		color = Color(0.0, 0.0, 0.0, 0.5)
 	# Draw background
-	draw_rect(Rect2(Vector2(), rect_size), color)
+	draw_rect(Rect2(Vector2(), size), color)

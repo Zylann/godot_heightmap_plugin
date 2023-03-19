@@ -14,7 +14,7 @@ const HT_PackedTextureImporter = preload("../../packed_textures/packed_texture_i
 const HT_PackedTextureArrayImporter = \
 	preload("../../packed_textures/packed_texture_array_importer.gd")
 
-const HT_NormalMapPreviewShader = preload("../display_normal.shader")
+const HT_NormalMapPreviewShader = preload("../display_normal.gdshader")
 
 const COMPRESS_RAW = 0
 const COMPRESS_LOSSLESS = 1
@@ -73,7 +73,7 @@ var _logger = HT_Logger.get_for(self)
 
 # This is normally an `EditorFileDialog`. I can't type-hint this one properly,
 # because when I test this UI in isolation, I can't use `EditorFileDialog`.
-var _load_texture_dialog : WindowDialog
+var _load_texture_dialog : ConfirmationDialog
 var _load_texture_type : int = -1
 var _error_popup : AcceptDialog
 var _info_popup : AcceptDialog
@@ -82,12 +82,12 @@ var _open_dir_dialog : ConfirmationDialog
 var _editor_file_system : EditorFileSystem
 var _normalmap_material : ShaderMaterial
 
-var _import_mode = HTerrainTextureSet.MODE_TEXTURES
+var _import_mode := HTerrainTextureSet.MODE_TEXTURES
 
 class HT_TextureSetImportEditorSlot:
 	# Array of strings.
 	# Can be either path to images, hexadecimal colors starting with #, or empty string for "null".
-	var texture_paths = []
+	var texture_paths := []
 	var flip_normalmap_y := false
 	
 	func _init():
@@ -95,7 +95,7 @@ class HT_TextureSetImportEditorSlot:
 			texture_paths.append("")
 
 # Array of HT_TextureSetImportEditorSlot
-var _slots_data = []
+var _slots_data := []
 
 var _import_settings := {
 	"mipmaps": true,
@@ -214,7 +214,7 @@ func set_texture_set(texture_set: HTerrainTextureSet):
 					continue
 				
 				var import_data := _parse_json_file(texture.resource_path)
-				if import_data.empty() or not import_data.has("src"):
+				if import_data.is_empty() or not import_data.has("src"):
 					continue
 				
 				var src_types = HTerrainTextureSet.get_src_types_from_type(type)
@@ -240,7 +240,7 @@ func set_texture_set(texture_set: HTerrainTextureSet):
 				continue
 			
 			var import_data := _parse_json_file(texture_array.resource_path)
-			if import_data.empty() or not import_data.has("layers"):
+			if import_data.is_empty() or not import_data.has("layers"):
 				continue
 			
 			var layers_data = import_data["layers"]
@@ -270,9 +270,9 @@ func set_texture_set(texture_set: HTerrainTextureSet):
 
 
 func _parse_json_file(fpath: String) -> Dictionary:
-	var f := FileAccess.open(fpath, File.READ)
-	var err := FileAccess.get_open_error()
-	if err != OK:
+	var f := FileAccess.open(fpath, FileAccess.READ)
+	if f == null:
+		var err := FileAccess.get_open_error()
 		_logger.error("Could not load {0}: {1}".format([fpath, HT_Errors.get_message(err)]))
 		return {}
 	
@@ -295,7 +295,7 @@ func _update_ui_from_data():
 		_slots_list.add_item("Texture {0}".format([slot_index]))
 	
 	_resolution_spinbox.value = _import_settings.resolution
-	_mipmaps_checkbox.pressed = _import_settings.mipmaps
+	_mipmaps_checkbox.button_pressed = _import_settings.mipmaps
 	_set_selected_id(_compression_selector, _import_settings.compression)
 	_set_selected_id(_import_mode_selector, _import_mode)
 	
@@ -340,7 +340,7 @@ func _select_slot(slot_index: int):
 
 	_slots_list.select(slot_index)
 	
-	_normalmap_flip_checkbox.pressed = slot.flip_normalmap_y
+	_normalmap_flip_checkbox.button_pressed = slot.flip_normalmap_y
 	_normalmap_material.set_shader_parameter("u_flip_y", slot.flip_normalmap_y)
 
 
@@ -373,8 +373,7 @@ func _set_ui_slot_texture_from_path(im_path: String, type: int):
 			ed.set_texture_tooltip("<empty>")
 			return
 
-	var tex := ImageTexture.new()
-	tex.create_from_image(im, 0)
+	var tex := ImageTexture.create_from_image(im)
 	ed.set_texture(tex)
 	ed.set_texture_tooltip(im_path)
 
@@ -543,7 +542,7 @@ func _on_RemoveSlotButton_pressed():
 
 func _on_delete_confirmation_popup_confirmed():
 	var selected_item : int = _slots_list.get_selected_items()[0]
-	_slots_data.remove(selected_item)
+	_slots_data.remove_at(selected_item)
 	_update_ui_from_data()
 
 
@@ -625,9 +624,9 @@ func _on_ImportButton_pressed():
 			_show_error("A problem occurred while serializing data for {0}".format([fd.path]))
 			return
 		
-		var f := FileAccess.open(fd.path, File.WRITE)
-		var err := FileAccess.get_open_error()
-		if err != OK:
+		var f := FileAccess.open(fd.path, FileAccess.WRITE)
+		if f == null:
+			var err := FileAccess.get_open_error()
 			_show_error("Could not write file {0}: {1}".format([fd.path]))
 			return
 		
@@ -697,11 +696,11 @@ func _on_ImportButton_pressed():
 			var texture_array = load(fd.path)
 			if texture_array == null:
 				failed_resource_paths.append(fd.path)
-			assert(texture_array is TextureArray)
+			assert(texture_array is Texture2DArray)
 			fd["texture_array"] = texture_array
 
 	if len(failed_resource_paths) > 0:
-		var failed_list = PackedStringArray(failed_resource_paths).join("\n")
+		var failed_list := "\n".join(PackedStringArray(failed_resource_paths))
 		_show_error("Some resources failed to load:\n" + failed_list)
 
 	else:
@@ -712,24 +711,24 @@ func _on_ImportButton_pressed():
 			
 			HT_TextureSetEditor.backup_for_undo(_texture_set, ur)
 			
-			ur.add_do_method(_texture_set, "clear")
-			ur.add_do_method(_texture_set, "set_mode", _import_mode)
+			ur.add_do_method(_texture_set.clear)
+			ur.add_do_method(_texture_set.set_mode.bind(_import_mode))
 			
 			for i in len(_slots_data):
-				ur.add_do_method(_texture_set, "insert_slot", -1)
+				ur.add_do_method(_texture_set.insert_slot.bind(-1))
 			for fd in files_data:
-				ur.add_do_method(_texture_set, "set_texture", fd.slot_index, fd.type, fd.texture)
+				ur.add_do_method(_texture_set.set_texture.bind(fd.slot_index, fd.type, fd.texture))
 
 		else:
 			ur.create_action("HTerrainTextureSet: import texture arrays")
 			
 			HT_TextureSetEditor.backup_for_undo(_texture_set, ur)
 			
-			ur.add_do_method(_texture_set, "clear")
-			ur.add_do_method(_texture_set, "set_mode", _import_mode)
+			ur.add_do_method(_texture_set.clear)
+			ur.add_do_method(_texture_set.set_mode.bind(_import_mode))
 			
 			for fd in files_data:
-				ur.add_do_method(_texture_set, "set_texture_array", fd.type, fd.texture_array)
+				ur.add_do_method(_texture_set.set_texture_array.bind(fd.type, fd.texture_array))
 
 		ur.commit_action()
 		
@@ -751,7 +750,7 @@ func _generate_packed_textures_files_data(import_dir: String, prefix: String) ->
 		COMPRESS_LOSSLESS:
 			importer_compress_mode = HT_StreamTextureImporter.COMPRESS_LOSSLESS
 		COMPRESS_RAW:
-			importer_compress_mode = HT_StreamTextureImporter.COMPRESS_RAW
+			importer_compress_mode = HT_StreamTextureImporter.COMPRESS_UNCOMPRESSED
 		_:
 			return HT_Result.new(false, "Unknown compress mode {0}, might be a bug" \
 				.format([_import_settings.compression]))
@@ -830,7 +829,7 @@ func _generate_save_packed_texture_arrays_files_data(
 		COMPRESS_LOSSLESS:
 			importer_compress_mode = HT_TextureLayeredImporter.COMPRESS_LOSSLESS
 		COMPRESS_RAW:
-			importer_compress_mode = HT_TextureLayeredImporter.COMPRESS_RAW
+			importer_compress_mode = HT_TextureLayeredImporter.COMPRESS_UNCOMPRESSED
 		_:
 			return HT_Result.new(false, "Unknown compress mode {0}, might be a bug" \
 				.format([_import_settings.compression]))

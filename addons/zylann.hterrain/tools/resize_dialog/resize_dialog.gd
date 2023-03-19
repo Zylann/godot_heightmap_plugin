@@ -1,5 +1,5 @@
 @tool
-extends WindowDialog
+extends AcceptDialog
 
 const HT_Util = preload("../../util/util.gd")
 const HT_Logger = preload("../../util/logger.gd")
@@ -43,15 +43,15 @@ const _anchor_icon_names = [
 
 signal permanent_change_performed(message)
 
-@onready var _resolution_dropdown = $VBoxContainer/GridContainer/ResolutionDropdown
-@onready var _stretch_checkbox = $VBoxContainer/GridContainer/StretchCheckBox
-@onready var _anchor_control = $VBoxContainer/GridContainer/HBoxContainer/AnchorControl
+@onready var _resolution_dropdown : OptionButton = $VBoxContainer/GridContainer/ResolutionDropdown
+@onready var _stretch_checkbox : CheckBox = $VBoxContainer/GridContainer/StretchCheckBox
+@onready var _anchor_control : Control = $VBoxContainer/GridContainer/HBoxContainer/AnchorControl
 
 const _resolutions = HTerrainData.SUPPORTED_RESOLUTIONS
 
-var _anchor_buttons = []
-var _anchor_buttons_grid = {}
-var _anchor_button_group = null
+var _anchor_buttons := []
+var _anchor_buttons_grid := {}
+var _anchor_button_group : ButtonGroup = null
 var _selected_anchor = ANCHOR_TOP_LEFT
 var _logger = HT_Logger.get_for(self)
 
@@ -62,7 +62,7 @@ func set_terrain(terrain: HTerrain):
 	_terrain = terrain
 
 
-static func _get_icon(name):
+static func _get_icon(name) -> Texture2D:
 	return load("res://addons/zylann.hterrain/tools/icons/icon_" + name + ".svg")
 
 
@@ -77,16 +77,17 @@ func _ready():
 	
 	_anchor_button_group = ButtonGroup.new()
 	_anchor_buttons.resize(ANCHOR_COUNT)
-	var x = 0
-	var y = 0
+	var x := 0
+	var y := 0
 	for i in _anchor_control.get_child_count():
-		var child = _anchor_control.get_child(i)
-		assert(child is Button)
+		var child_node = _anchor_control.get_child(i)
+		assert(child_node is Button)
+		var child := child_node as Button
 		child.toggle_mode = true
-		child.custom_minimum_size = child.rect_size
+		child.custom_minimum_size = child.size
 		child.icon = null
 		child.pressed.connect(_on_AnchorButton_pressed.bind(i, x, y))
-		child.group = _anchor_button_group
+		child.button_group = _anchor_button_group
 		_anchor_buttons[i] = child
 		_anchor_buttons_grid[Vector2(x, y)] = child
 		x += 1
@@ -104,7 +105,7 @@ func _notification(what: int):
 		if visible:
 			# Select current resolution
 			if _terrain != null and _terrain.get_data() != null:
-				var res = _terrain.get_data().get_resolution()
+				var res := _terrain.get_data().get_resolution()
 				for i in len(_resolutions):
 					if res == _resolutions[i]:
 						_resolution_dropdown.select(i)
@@ -124,8 +125,8 @@ func _on_AnchorButton_pressed(anchor0: int, x0: int, y0: int):
 		var k = Vector2(nx, ny)
 		if not _anchor_buttons_grid.has(k):
 			continue
-		var button = _anchor_buttons_grid[k]
-		var icon = _get_icon(_anchor_icon_names[anchor])
+		var button : Button = _anchor_buttons_grid[k]
+		var icon := _get_icon(_anchor_icon_names[anchor])
 		button.icon = icon
 
 

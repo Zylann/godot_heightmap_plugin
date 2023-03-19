@@ -1,3 +1,4 @@
+@tool
 
 # These functions are the same as the ones found in the GDNative library.
 # They are used if the user's platform is not supported.
@@ -8,7 +9,7 @@ var _blur_buffer : Image
 
 
 func get_red_range(im: Image, rect: Rect2) -> Vector2:
-	rect = rect.clip(Rect2(0, 0, im.get_width(), im.get_height()))
+	rect = rect.intersection(Rect2(0, 0, im.get_width(), im.get_height()))
 	var min_x := int(rect.position.x)
 	var min_y := int(rect.position.y)
 	var max_x := min_x + int(rect.size.x)
@@ -29,7 +30,7 @@ func get_red_range(im: Image, rect: Rect2) -> Vector2:
 
 
 func get_red_sum(im: Image, rect: Rect2) -> float:
-	rect = rect.clip(Rect2(0, 0, im.get_width(), im.get_height()))
+	rect = rect.intersection(Rect2(0, 0, im.get_width(), im.get_height()))
 	var min_x := int(rect.position.x)
 	var min_y := int(rect.position.y)
 	var max_x := min_x + int(rect.size.x)
@@ -44,9 +45,7 @@ func get_red_sum(im: Image, rect: Rect2) -> float:
 	return sum
 
 
-func get_red_sum_weighted(im: Image, brush: Image, pos: Vector2, 
-	var factor: float) -> float:
-	
+func get_red_sum_weighted(im: Image, brush: Image, pos: Vector2, factor: float) -> float:
 	var min_x = int(pos.x)
 	var min_y = int(pos.y)
 	var max_x = min_x + brush.get_width()
@@ -73,7 +72,7 @@ func get_red_sum_weighted(im: Image, brush: Image, pos: Vector2,
 	return sum
 
 
-func add_red_brush(im: Image, brush: Image, pos: Vector2, var factor: float):
+func add_red_brush(im: Image, brush: Image, pos: Vector2, factor: float):
 	var min_x = int(pos.x)
 	var min_y = int(pos.y)
 	var max_x = min_x + brush.get_width()
@@ -153,7 +152,7 @@ func lerp_color_brush(im: Image, brush: Image, pos: Vector2,
 func generate_gaussian_brush(im: Image) -> float:
 	var sum := 0.0
 	var center := Vector2(im.get_width() / 2, im.get_height() / 2)
-	var radius := min(im.get_width(), im.get_height()) / 2.0
+	var radius := minf(im.get_width(), im.get_height()) / 2.0
 
 	for y in im.get_height():
 		for x in im.get_width():

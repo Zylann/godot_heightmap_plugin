@@ -4,8 +4,9 @@ extends Control
 const HT_Util = preload("../../util/util.gd")
 const HTerrain = preload("../../hterrain.gd")
 const HTerrainData = preload("../../hterrain_data.gd")
+const HT_MinimapOverlay = preload("./minimap_overlay.gd")
 
-const HT_MinimapShader = preload("./minimap_normal.shader")
+const HT_MinimapShader = preload("./minimap_normal.gdshader")
 # TODO Can't preload because it causes the plugin to fail loading if assets aren't imported
 #const HT_WhiteTexture = preload("../icons/white.png")
 const WHITE_TEXTURE_PATH = "res://addons/zylann.hterrain/tools/icons/white.png"
@@ -13,9 +14,9 @@ const WHITE_TEXTURE_PATH = "res://addons/zylann.hterrain/tools/icons/white.png"
 const MODE_QUADTREE = 0
 const MODE_NORMAL = 1
 
-@onready var _popup_menu = $PopupMenu
-@onready var _color_rect = $ColorRect
-@onready var _overlay = $Overlay
+@onready var _popup_menu : PopupMenu = $PopupMenu
+@onready var _color_rect : ColorRect = $ColorRect
+@onready var _overlay : HT_MinimapOverlay = $Overlay
 
 var _terrain : HTerrain = null
 var _mode := MODE_NORMAL
@@ -46,11 +47,11 @@ func set_camera_transform(ct: Transform3D):
 	var data = _terrain.get_data()
 	if data == null:
 		return
-	var to_local = _terrain.get_internal_transform().affine_inverse()
-	var pos := _get_xz(to_local.xform(_camera_transform.origin))
+	var to_local := _terrain.get_internal_transform().affine_inverse()
+	var pos := _get_xz(to_local * _camera_transform.origin)
 	var size := Vector2(data.get_resolution(), data.get_resolution())
 	pos /= size
-	var dir := _get_xz(to_local.basis.xform(-_camera_transform.basis.z)).normalized()
+	var dir := _get_xz(to_local.basis * (-_camera_transform.basis.z)).normalized()
 	_overlay.set_cursor_position_normalized(pos, dir)
 	_camera_transform = ct
 
@@ -63,10 +64,10 @@ func _gui_input(event: InputEvent):
 	if event is InputEventMouseButton:
 		if event.pressed:
 			match event.button_index:
-				BUTTON_RIGHT:
+				MOUSE_BUTTON_RIGHT:
 					_popup_menu.rect_position = get_global_mouse_position()
 					_popup_menu.popup()
-				BUTTON_LEFT:
+				MOUSE_BUTTON_LEFT:
 					# Teleport there?
 					pass
 
@@ -83,7 +84,7 @@ func _set_mode(mode: int):
 	if mode == MODE_QUADTREE:
 		_color_rect.hide()
 	else:
-		var mat = ShaderMaterial.new()
+		var mat := ShaderMaterial.new()
 		mat.shader = HT_MinimapShader
 		_color_rect.material = mat
 		_color_rect.show()
@@ -128,9 +129,9 @@ func _draw():
 		if lod_count > 0:
 			# Fit drawing to rect
 			
-			var size = 1 << (lod_count - 1)
-			var vsize = rect_size
-			draw_set_transform(Vector2(0, 0), 0, Vector2(vsize.x / size, vsize.y / size))
+			var qsize = 1 << (lod_count - 1)
+			var vsize := size
+			draw_set_transform(Vector2(0, 0), 0, Vector2(vsize.x / qsize, vsize.y / qsize))
 	
 			_terrain._edit_debug_draw(self)
 

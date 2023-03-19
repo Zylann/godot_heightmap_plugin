@@ -1,3 +1,4 @@
+@tool
 
 const NATIVE_PATH = "res://addons/zylann.hterrain/native/"
 
