@@ -12,6 +12,7 @@ config_version=5
 
 config/name="Heightmap Terrain"
 config/features=PackedStringArray("4.0")
+config/icon="res://icon.png"
 name="Heightmap GDNative"
 icon="res://icon.png"
 
