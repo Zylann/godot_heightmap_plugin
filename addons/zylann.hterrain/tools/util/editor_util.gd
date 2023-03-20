@@ -10,11 +10,13 @@
 static func create_open_file_dialog() -> ConfirmationDialog:
 	var d
 	if Engine.is_editor_hint():
-		d = EditorFileDialog.new()
+		# TODO Workaround bug when editor-only classes are created in source code, even if not run
+		# https://github.com/godotengine/godot/issues/73525
+#		d = EditorFileDialog.new()
+		d = ClassDB.instantiate(&"EditorFileDialog")
 		d.file_mode = EditorFileDialog.FILE_MODE_OPEN_FILE
 		d.access = EditorFileDialog.ACCESS_RESOURCES
 	else:
-		# Duh. I need to be able to test it.
 		d = FileDialog.new()
 		d.file_mode = FileDialog.FILE_MODE_OPEN_FILE
 		d.access = FileDialog.ACCESS_RESOURCES
@@ -25,11 +27,13 @@ static func create_open_file_dialog() -> ConfirmationDialog:
 static func create_open_dir_dialog() -> ConfirmationDialog:
 	var d
 	if Engine.is_editor_hint():
-		d = EditorFileDialog.new()
+		# TODO Workaround bug when editor-only classes are created in source code, even if not run
+		# https://github.com/godotengine/godot/issues/73525
+#		d = EditorFileDialog.new()
+		d = ClassDB.instantiate(&"EditorFileDialog")
 		d.file_mode = EditorFileDialog.FILE_MODE_OPEN_DIR
 		d.access = EditorFileDialog.ACCESS_RESOURCES
 	else:
-		# Duh. I need to be able to test it.
 		d = FileDialog.new()
 		d.file_mode = FileDialog.FILE_MODE_OPEN_DIR
 		d.access = FileDialog.ACCESS_RESOURCES

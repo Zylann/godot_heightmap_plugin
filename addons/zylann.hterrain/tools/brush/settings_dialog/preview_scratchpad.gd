@@ -23,9 +23,16 @@ func _ready():
 
 
 func reset_image():
-	var image = Image.create(
-		_texture_rect.rect_size.x, _texture_rect.rect_size.y, false, Image.FORMAT_RGB8)
+	var image = Image.create(_texture_rect.size.x, _texture_rect.size.y, false, Image.FORMAT_RGB8)
 	image.fill(Color(1,1,1))
+	
+	# TEST
+#	var fnl = FastNoiseLite.new()
+#	for y in image.get_height():
+#		for x in image.get_width():
+#			var g = 0.5 + 0.5 * fnl.get_noise_2d(x, y)
+#			image.set_pixel(x, y, Color(g, g, g, 1.0))
+	
 	var texture = ImageTexture.create_from_image(image)
 	_texture_rect.texture = texture
 	_painter.set_image_texture(image, texture)

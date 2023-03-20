@@ -135,7 +135,7 @@ func run():
 #		float(largest_padding) / padded_size.x,
 #		float(largest_padding) / padded_size.y)
 
-	_ci.rect_size = padded_size
+	_ci.size = padded_size
 
 	_viewport.size = padded_size
 	_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS

@@ -46,14 +46,15 @@ const _supported_formats = [
 	Image.FORMAT_R8,
 	Image.FORMAT_RG8,
 	Image.FORMAT_RGB8,
-	Image.FORMAT_RGBA8,
-	Image.FORMAT_RH,
-	Image.FORMAT_RGH,
-	Image.FORMAT_RGBH,
-	Image.FORMAT_RGBAH
+	Image.FORMAT_RGBA8
+	# No longer supported since Godot 4 removed support for it in 2D viewports...
+#	Image.FORMAT_RH,
+#	Image.FORMAT_RGH,
+#	Image.FORMAT_RGBH,
+#	Image.FORMAT_RGBAH
 ]
 
-# - Viewport (size of edited region + margin to allow quad rotation)
+# - SubViewport (size of edited region + margin to allow quad rotation)
 #   |- Background
 #   |    Fills pixels with unmodified source image.
 #   |- Brush sprite
@@ -85,8 +86,6 @@ func _init():
 	_viewport = SubViewport.new()
 	_viewport.size = Vector2(_brush_size, _brush_size)
 	_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
-	# No longer available in Godot 4...
-	#_viewport.render_target_v_flip = true
 	_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ONCE
 	#_viewport.hdr = false
 	_viewport.transparent_bg = true
@@ -193,14 +192,14 @@ func clear_brush_shader_params():
 
 # If we want to be able to rotate the brush quad every frame,
 # we must prepare a bigger viewport otherwise the quad will not fit inside
-static func _get_size_fit_for_rotation(src_size: Vector2) -> Vector2:
+static func _get_size_fit_for_rotation(src_size: Vector2) -> Vector2i:
 	var d = int(ceilf(src_size.length()))
-	return Vector2(d, d)
+	return Vector2i(d, d)
 
 
 # You must call this from an `_input` function or similar.
 func paint_input(center_pos: Vector2):
-	var vp_size = _get_size_fit_for_rotation(Vector2(_brush_size, _brush_size))
+	var vp_size := _get_size_fit_for_rotation(Vector2(_brush_size, _brush_size))
 	if _viewport.size != vp_size:
 		# Do this lazily so the brush slider won't lag while adjusting it
 		# TODO An "sliding_ended" handling might produce better user experience
@@ -217,14 +216,15 @@ func paint_input(center_pos: Vector2):
 	
 	# We want this quad to have a specific size, regardless of the texture assigned to it
 	_viewport_brush_sprite.scale = \
-		_brush_scale * Vector2(_brush_size, _brush_size) / _viewport_brush_sprite.texture.get_size()
+		_brush_scale * Vector2(_brush_size, _brush_size) \
+		/ Vector2(_viewport_brush_sprite.texture.get_size())
 
 	# Using a Color because Godot doesn't understand vec4
 	var rect := Color()
 	rect.r = brush_pos.x / _texture.get_width()
 	rect.g = brush_pos.y / _texture.get_height()
-	rect.b = _viewport.size.x / _texture.get_width()
-	rect.a = _viewport.size.y / _texture.get_height()
+	rect.b = float(_viewport.size.x) / float(_texture.get_width())
+	rect.a = float(_viewport.size.y) / float(_texture.get_height())
 	# In order to make sure that u_brush_rect is never bigger than the brush:
 	# 1. we ceil() the result of lower-left corner
 	# 2. we floor() the result of upper-right corner
@@ -263,9 +263,6 @@ func _process(delta: float):
 		#print("Paint result at frame ", Engine.get_frames_drawn())
 		var data := _viewport.get_texture().get_image()
 		data.convert(_image.get_format())
-
-		# TODO Optimize: flipping on the CPU since GPU v-flip was removed in Godot 4...
-		data.flip_y()
 		
 		var brush_pos := _last_brush_position
 		

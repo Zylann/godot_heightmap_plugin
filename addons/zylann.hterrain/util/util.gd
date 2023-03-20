@@ -543,5 +543,7 @@ static func update_texture_partial(
 	#
 
 	# TODO Optimize: Godot 4 has lost the ability to update textures partially!
-	tex.update(im)
+	var fuck = tex.get_image()
+	fuck.blit_rect(im, src_rect, dst_pos)
+	tex.update(fuck)
 
