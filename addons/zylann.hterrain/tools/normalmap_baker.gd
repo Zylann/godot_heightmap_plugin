@@ -33,7 +33,7 @@ func _init():
 	add_child(_viewport)
 	
 	var mat = ShaderMaterial.new()
-	mat.shader = load("res://addons/zylann.hterrain/tools/bump2normal_tex.shader")
+	mat.shader = load("res://addons/zylann.hterrain/tools/bump2normal_tex.gdshader")
 	
 	_ci = Sprite2D.new()
 	_ci.centered = false

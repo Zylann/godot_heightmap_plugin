@@ -38,7 +38,7 @@ var _viewport_resolution := MAX_VIEWPORT_RESOLUTION
 
 static func get_shader(shader_name: String) -> Shader:
 	var path := "res://addons/zylann.hterrain/tools/generator/shaders"\
-		.path_join(str(shader_name, ".shader"))
+		.path_join(str(shader_name, ".gdshader"))
 	return load(path) as Shader
 
 

@@ -14,7 +14,7 @@ signal dragged(relative, button_mask)
 @onready var _light : DirectionalLight3D = $Viewport/DirectionalLight
 
 # Use the simplest shader
-var _shader : Shader = load("res://addons/zylann.hterrain/shaders/simple4_lite.shader")
+var _shader : Shader = load("res://addons/zylann.hterrain/shaders/simple4_lite.gdshader")
 var _yaw := 0.0
 var _pitch := -PI / 6.0
 var _distance := 0.0

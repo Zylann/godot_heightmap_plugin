@@ -44,33 +44,33 @@ const _SHADER_TYPE_HINT_STRING = \
 
 const _builtin_shaders = {
 	SHADER_CLASSIC4: {
-		path = "res://addons/zylann.hterrain/shaders/simple4.shader",
-		global_path = "res://addons/zylann.hterrain/shaders/simple4_global.shader"
+		path = "res://addons/zylann.hterrain/shaders/simple4.gdshader",
+		global_path = "res://addons/zylann.hterrain/shaders/simple4_global.gdshader"
 	},
 	SHADER_CLASSIC4_LITE: {
-		path = "res://addons/zylann.hterrain/shaders/simple4_lite.shader",
-		global_path = "res://addons/zylann.hterrain/shaders/simple4_global.shader"
+		path = "res://addons/zylann.hterrain/shaders/simple4_lite.gdshader",
+		global_path = "res://addons/zylann.hterrain/shaders/simple4_global.gdshader"
 	},
 	SHADER_LOW_POLY: {
-		path = "res://addons/zylann.hterrain/shaders/low_poly.shader",
+		path = "res://addons/zylann.hterrain/shaders/low_poly.gdshader",
 		global_path = "" # Not supported
 	},
 	SHADER_ARRAY: {
-		path = "res://addons/zylann.hterrain/shaders/array.shader",
-		global_path = "res://addons/zylann.hterrain/shaders/array_global.shader"
+		path = "res://addons/zylann.hterrain/shaders/array.gdshader",
+		global_path = "res://addons/zylann.hterrain/shaders/array_global.gdshader"
 	},
 	SHADER_MULTISPLAT16: {
-		path = "res://addons/zylann.hterrain/shaders/multisplat16.shader",
-		global_path = "res://addons/zylann.hterrain/shaders/multisplat16_global.shader"
+		path = "res://addons/zylann.hterrain/shaders/multisplat16.gdshader",
+		global_path = "res://addons/zylann.hterrain/shaders/multisplat16_global.gdshader"
 	},
 	SHADER_MULTISPLAT16_LITE: {
-		path = "res://addons/zylann.hterrain/shaders/multisplat16_lite.shader",
-		global_path = "res://addons/zylann.hterrain/shaders/multisplat16_global.shader"
+		path = "res://addons/zylann.hterrain/shaders/multisplat16_lite.gdshader",
+		global_path = "res://addons/zylann.hterrain/shaders/multisplat16_global.gdshader"
 	}
 }
 
 const _NORMAL_BAKER_PATH = "res://addons/zylann.hterrain/tools/normalmap_baker.gd"
-const _LOOKDEV_SHADER_PATH = "res://addons/zylann.hterrain/shaders/lookdev.shader"
+const _LOOKDEV_SHADER_PATH = "res://addons/zylann.hterrain/shaders/lookdev.gdshader"
 
 const SHADER_PARAM_INVERSE_TRANSFORM = "u_terrain_inverse_transform"
 const SHADER_PARAM_NORMAL_BASIS = "u_terrain_normal_basis"

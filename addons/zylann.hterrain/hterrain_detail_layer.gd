@@ -23,7 +23,7 @@ const DEFAULT_MESH_PATH = "res://addons/zylann.hterrain/models/grass_quad.obj"
 var HTerrain = load("res://addons/zylann.hterrain/hterrain.gd")
 
 const CHUNK_SIZE = 32
-const DEFAULT_SHADER_PATH = "res://addons/zylann.hterrain/shaders/detail.shader"
+const DEFAULT_SHADER_PATH = "res://addons/zylann.hterrain/shaders/detail.gdshader"
 const DEBUG = false
 
 # These parameters are considered built-in,
