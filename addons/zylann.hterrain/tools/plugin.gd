@@ -7,8 +7,8 @@ const HTerrainDetailLayer = preload("../hterrain_detail_layer.gd")
 const HTerrainData = preload("../hterrain_data.gd")
 const HTerrainMesher = preload("../hterrain_mesher.gd")
 const HTerrainTextureSet = preload("../hterrain_texture_set.gd")
-const HT_PackedTextureImporter = preload("./packed_textures/packed_texture_importer.gd")
-const HT_PackedTextureArrayImporter = preload("./packed_textures/packed_texture_array_importer.gd")
+#const HT_PackedTextureImporter = preload("./packed_textures/packed_texture_importer.gd")
+#const HT_PackedTextureArrayImporter = preload("./packed_textures/packed_texture_array_importer.gd")
 const HT_PreviewGenerator = preload("./preview_generator.gd")
 const HT_TerrainPainter = preload("./brush/terrain_painter.gd")
 const HT_BrushDecal = preload("./brush/decal.gd")
@@ -71,8 +71,8 @@ var _terrain_had_data_previous_frame := false
 var _image_cache : HT_ImageFileCache
 
 # Import
-var _packed_texture_importer := HT_PackedTextureImporter.new()
-var _packed_texture_array_importer := HT_PackedTextureArrayImporter.new()
+#var _packed_texture_importer := HT_PackedTextureImporter.new()
+#var _packed_texture_array_importer := HT_PackedTextureArrayImporter.new()
 
 var _terrain_painter : HT_TerrainPainter = null
 var _brush_decal : HT_BrushDecal = null
@@ -101,8 +101,8 @@ func _enter_tree():
 	# TODO Proper texture
 	add_custom_type("HTerrainTextureSet", "Resource", HTerrainTextureSet, null)
 	
-	add_import_plugin(_packed_texture_importer)
-	add_import_plugin(_packed_texture_array_importer)
+#	add_import_plugin(_packed_texture_importer)
+#	add_import_plugin(_packed_texture_array_importer)
 	
 	_preview_generator = HT_PreviewGenerator.new()
 	get_editor_interface().get_resource_previewer().add_preview_generator(_preview_generator)
@@ -333,11 +333,11 @@ func _exit_tree():
 	remove_custom_type("HTerrainData")
 	remove_custom_type("HTerrainTextureSet")
 	
-	remove_import_plugin(_packed_texture_importer)
-	_packed_texture_importer = null
+#	remove_import_plugin(_packed_texture_importer)
+#	_packed_texture_importer = null
 	
-	remove_import_plugin(_packed_texture_array_importer)
-	_packed_texture_array_importer = null
+#	remove_import_plugin(_packed_texture_array_importer)
+#	_packed_texture_array_importer = null
 
 
 func _handles(object):

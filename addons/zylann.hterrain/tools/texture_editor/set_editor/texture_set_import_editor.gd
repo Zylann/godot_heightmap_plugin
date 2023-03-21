@@ -1,5 +1,5 @@
 @tool
-extends Control
+extends AcceptDialog
 
 const HTerrainTextureSet = preload("../../../hterrain_texture_set.gd")
 const HT_Logger = preload("../../../util/logger.gd")
@@ -8,23 +8,20 @@ const HT_Errors = preload("../../../util/errors.gd")
 const HT_TextureSetEditor = preload("./texture_set_editor.gd")
 const HT_Result = preload("../../util/result.gd")
 const HT_Util = preload("../../../util/util.gd")
-const HT_StreamTextureImporter = preload("../../packed_textures/stream_texture_importer.gd")
-const HT_TextureLayeredImporter = preload("../../packed_textures/texture_layered_importer.gd")
-const HT_PackedTextureImporter = preload("../../packed_textures/packed_texture_importer.gd")
-const HT_PackedTextureArrayImporter = \
-	preload("../../packed_textures/packed_texture_array_importer.gd")
+const HT_PackedTextureUtil = preload("../../packed_textures/packed_texture_util.gd")
+const ResourceImporterTexture_Unexposed = preload("../../util/resource_importer_texture.gd")
+const ResourceImporterTextureLayered_Unexposed = preload(
+	"../../util/resource_importer_texture_layered.gd")
 
 const HT_NormalMapPreviewShader = preload("../display_normal.gdshader")
 
 const COMPRESS_RAW = 0
 const COMPRESS_LOSSLESS = 1
-# Lossy is not available because the required functions are not exposed to GDScript,
-# and is not implemented on TextureArrays
-#const COMPRESS_LOSSY = 1
+const COMPRESS_LOSSY = 1
 const COMPRESS_VRAM = 2
 const COMPRESS_COUNT = 3
 
-const _compress_names = ["Raw", "Lossless", "VRAM"]
+const _compress_names = ["Raw", "Lossless", "Lossy", "VRAM"]
 
 # Indexed by HTerrainTextureSet.SRC_TYPE_* constants
 const _smart_pick_file_keywords = [
@@ -56,7 +53,10 @@ signal import_finished
 # did import them fine. Unfortunately, this short-circuits the workflow.
 # Since I have no idea what's going on with this reverse-engineering, I had to drop those options.
 # Godot needs an API to import specific files and choose settings before the first import.
-const _WRITE_IMPORT_FILES = false
+#
+# Godot 4: now we'll really need it, let's enable and we'll see if it works
+# when we can test the workflow...
+const _WRITE_IMPORT_FILES = true
 
 @onready var _import_mode_selector : OptionButton = $Import/GC/ImportModeSelector
 @onready var _compression_selector : OptionButton = $Import/GC/CompressionSelector
@@ -420,7 +420,8 @@ func _smart_pick_files(albedo_fpath: String):
 	for albedo_word in albedo_words:
 		var i = albedo_fname_lower.find(albedo_word, 0)
 		if i != -1:
-			fname_pattern = albedo_fname.substr(0, i) + "{0}" + albedo_fname.substr(i + len(albedo_word))
+			fname_pattern = \
+				albedo_fname.substr(0, i) + "{0}" + albedo_fname.substr(i + len(albedo_word))
 			break
 	
 	if fname_pattern == "":
@@ -597,52 +598,41 @@ func _on_ImportButton_pressed():
 	if _texture_set.resource_path != "":
 		prefix = _texture_set.resource_path.get_file().get_basename() + "_"
 	
-	var files_data_result
+	var files_data_result : HT_Result
 	if _import_mode == HTerrainTextureSet.MODE_TEXTURES:
-		files_data_result = _generate_packed_textures_files_data(import_dir, prefix)
+		files_data_result = _generate_packed_images(import_dir, prefix)
 	else:
-		files_data_result = _generate_save_packed_texture_arrays_files_data(import_dir, prefix)
-	
+		#files_data_result = _generate_save_packed_texture_arrays_files_data(import_dir, prefix)
+		_show_error("Texture arrays are not supported yet")
+		return
+
 	if not files_data_result.success:
 		_show_error(files_data_result.get_message())
 		return
-	
+
 	var files_data : Array = files_data_result.value
+	
 	if len(files_data) == 0:
 		_show_error("There are no files to save.\nYou must setup at least one slot of textures.")
 		return
-	
+
 	for fd in files_data:
 		var dir_path : String = fd.path.get_base_dir()
 		if not DirAccess.dir_exists_absolute(dir_path):
 			_show_error("The directory {0} could not be found.".format([dir_path]))
 			return
-	
-	for fd in files_data:
-		var json := JSON.stringify(fd.data, "\t", true)
-		if json == "":
-			_show_error("A problem occurred while serializing data for {0}".format([fd.path]))
-			return
-		
-		var f := FileAccess.open(fd.path, FileAccess.WRITE)
-		if f == null:
-			var err := FileAccess.get_open_error()
-			_show_error("Could not write file {0}: {1}".format([fd.path]))
-			return
-		
-		f.store_string(json)
-		f = null
-		
-		if _WRITE_IMPORT_FILES:
+
+	if _WRITE_IMPORT_FILES:
+		for fd in files_data:
 			var import_fpath = fd.path + ".import"
 			if not HT_Util.write_import_file(fd.import_data, import_fpath, _logger):
 				_show_error("Failed to write file {0}: {1}".format([import_fpath]))
 				return
-	
+
 	if _editor_file_system == null:
 		_show_error("EditorFileSystem is not setup, can't trigger import system.")
 		return
-	
+
 	#                   ______
 	#                .-"      "-.
 	#               /            \
@@ -676,232 +666,248 @@ func _on_ImportButton_pressed():
 		await get_tree().process_frame
 
 	var failed_resource_paths := []
-	
+
 	# Using UndoRedo is mandatory for Godot to consider the resource as modified...
 	# ...yet if files get deleted, that won't be undoable anyways, but whatever :shrug:
 	var ur := _undo_redo
-	
+
 	# Check imported textures
 	if _import_mode == HTerrainTextureSet.MODE_TEXTURES:
 		for fd in files_data:
-			var texture = load(fd.path)
+			var texture : Texture2D = load(fd.path)
 			if texture == null:
 				failed_resource_paths.append(fd.path)
 				continue
-			assert(texture is Texture)
-			fd["texture"] = texture
+			fd.texture = texture
 
 	else:
 		for fd in files_data:
-			var texture_array = load(fd.path)
+			var texture_array : Texture2DArray = load(fd.path)
 			if texture_array == null:
 				failed_resource_paths.append(fd.path)
-			assert(texture_array is Texture2DArray)
-			fd["texture_array"] = texture_array
+				continue
+			fd.texture_array = texture_array
 
 	if len(failed_resource_paths) > 0:
 		var failed_list := "\n".join(PackedStringArray(failed_resource_paths))
 		_show_error("Some resources failed to load:\n" + failed_list)
+		return
+
+	# All is OK, commit action to modify the texture set with imported textures
+
+	if _import_mode == HTerrainTextureSet.MODE_TEXTURES:
+		ur.create_action("HTerrainTextureSet: import textures")
+
+		HT_TextureSetEditor.backup_for_undo(_texture_set, ur)
+
+		ur.add_do_method(_texture_set.clear)
+		ur.add_do_method(_texture_set.set_mode.bind(_import_mode))
+
+		for i in len(_slots_data):
+			ur.add_do_method(_texture_set.insert_slot.bind(-1))
+		for fd in files_data:
+			ur.add_do_method(_texture_set.set_texture.bind(fd.slot_index, fd.type, fd.texture))
 
 	else:
-		# All is OK, commit action to modify the texture set with imported textures
+		ur.create_action("HTerrainTextureSet: import texture arrays")
 
-		if _import_mode == HTerrainTextureSet.MODE_TEXTURES:
-			ur.create_action("HTerrainTextureSet: import textures")
-			
-			HT_TextureSetEditor.backup_for_undo(_texture_set, ur)
-			
-			ur.add_do_method(_texture_set.clear)
-			ur.add_do_method(_texture_set.set_mode.bind(_import_mode))
-			
-			for i in len(_slots_data):
-				ur.add_do_method(_texture_set.insert_slot.bind(-1))
-			for fd in files_data:
-				ur.add_do_method(_texture_set.set_texture.bind(fd.slot_index, fd.type, fd.texture))
+		HT_TextureSetEditor.backup_for_undo(_texture_set, ur)
 
-		else:
-			ur.create_action("HTerrainTextureSet: import texture arrays")
-			
-			HT_TextureSetEditor.backup_for_undo(_texture_set, ur)
-			
-			ur.add_do_method(_texture_set.clear)
-			ur.add_do_method(_texture_set.set_mode.bind(_import_mode))
-			
-			for fd in files_data:
-				ur.add_do_method(_texture_set.set_texture_array.bind(fd.type, fd.texture_array))
+		ur.add_do_method(_texture_set.clear)
+		ur.add_do_method(_texture_set.set_mode.bind(_import_mode))
 
-		ur.commit_action()
-		
-		_logger.debug("Done importing")
+		for fd in files_data:
+			ur.add_do_method(_texture_set.set_texture_array.bind(fd.type, fd.texture_array))
 
-		_info_popup.dialog_text = "Importing complete!"
-		_info_popup.popup_centered()
+	ur.commit_action()
+	
+	_logger.debug("Done importing")
 
-		import_finished.emit()
+	_info_popup.dialog_text = "Importing complete!"
+	_info_popup.popup_centered()
+
+	import_finished.emit()
 
 
-func _generate_packed_textures_files_data(import_dir: String, prefix: String) -> HT_Result:
-	var files := []
+class HT_PackedImageInfo:
+	var path := "" # Where the packed image is saved
+	var slot_index : int # Slot in texture set, when using individual textures
+	var type : int # 0:Albedo+Bump, 1:Normal+Roughness
+	var import_file_data := {} # Data to write into the .import file (when enabled...)
+	var image : Image
+	var is_default := false
+	var texture : Texture2D
+	var texture_array : Texture2DArray
 
-	var importer_compress_mode := 0
-	match _import_settings.compression:
-		COMPRESS_VRAM:
-			importer_compress_mode = HT_StreamTextureImporter.COMPRESS_VIDEO_RAM
-		COMPRESS_LOSSLESS:
-			importer_compress_mode = HT_StreamTextureImporter.COMPRESS_LOSSLESS
-		COMPRESS_RAW:
-			importer_compress_mode = HT_StreamTextureImporter.COMPRESS_UNCOMPRESSED
-		_:
-			return HT_Result.new(false, "Unknown compress mode {0}, might be a bug" \
-				.format([_import_settings.compression]))
 
+func _generate_packed_images2() -> HT_Result:
+	var resolution : int = _import_settings.resolution
+	var images_infos := []
+	
 	for type in HTerrainTextureSet.TYPE_COUNT:
 		var src_types := HTerrainTextureSet.get_src_types_from_type(type)
 		
 		for slot_index in len(_slots_data):
 			var slot : HT_TextureSetImportEditorSlot = _slots_data[slot_index]
-
+			
+			# Albedo or Normal
 			var src0 : String = slot.texture_paths[src_types[0]]
+			# Bump or Roughness
 			var src1 : String = slot.texture_paths[src_types[1]]
 			
 			if src0 == "":
 				if src_types[0] == HTerrainTextureSet.SRC_TYPE_ALBEDO:
 					return HT_Result.new(false, 
 						"Albedo texture is missing in slot {0}".format([slot_index]))
-
+			
+			var is_default := (src0 == "" and src1 == "")
+			
 			if src0 == "":
 				src0 = HTerrainTextureSet.get_source_texture_default_color_code(src_types[0])
 			if src1 == "":
 				src1 = HTerrainTextureSet.get_source_texture_default_color_code(src_types[1])
-
-			var json_data := {
-				"contains_albedo": type == HTerrainTextureSet.TYPE_ALBEDO_BUMP,
-				"resolution": _import_settings.resolution,
-				"src": {
-					"rgb": src0,
-					"a": src1
-				}
-			}
-			
-			if HTerrainTextureSet.SRC_TYPE_NORMAL in src_types and slot.flip_normalmap_y:
-				json_data.src["normalmap_flip_y"] = true
-			
-			var type_name := HTerrainTextureSet.get_texture_type_name(type)
-			var fpath = import_dir.path_join(
-				str(prefix, "slot", slot_index, "_", type_name, ".packed_tex"))
-
-			files.append({
-				"slot_index": slot_index,
-				"type": type,
-				"path": fpath,
-				"data": json_data,
-
-				# This is for .import files
-				# TODO There is similar stuff in HTerrainData, we should make a common utility,
-				# because this had to be reverse-engineered and it's not fun
-				"import_data": {
-					"remap": {
-						"importer": HT_PackedTextureImporter.IMPORTER_NAME,
-						"type": HT_PackedTextureImporter.RESOURCE_TYPE
-					},
-					"deps": {
-						"source_file": fpath
-					},
-					"params": {
-						"compress/mode": importer_compress_mode,
-						"mipmaps/limit": -1 if _import_settings.mipmaps else 0
-					}
-				}
-			})
-	
-	return HT_Result.new(true).with_value(files)
-
-
-func _generate_save_packed_texture_arrays_files_data(
-	import_dir: String, prefix: String) -> HT_Result:
-	
-	var files := []
-	
-	var importer_compress_mode := 0
-	match _import_settings.compression:
-		COMPRESS_VRAM:
-			importer_compress_mode = HT_TextureLayeredImporter.COMPRESS_VIDEO_RAM
-		COMPRESS_LOSSLESS:
-			importer_compress_mode = HT_TextureLayeredImporter.COMPRESS_LOSSLESS
-		COMPRESS_RAW:
-			importer_compress_mode = HT_TextureLayeredImporter.COMPRESS_UNCOMPRESSED
-		_:
-			return HT_Result.new(false, "Unknown compress mode {0}, might be a bug" \
-				.format([_import_settings.compression]))
-
-	for type in HTerrainTextureSet.TYPE_COUNT:
-		var src_types := HTerrainTextureSet.get_src_types_from_type(type)
-		
-		var json_data := {
-			"contains_albedo": type == HTerrainTextureSet.TYPE_ALBEDO_BUMP,
-			"resolution": _import_settings.resolution,
-		}
-		var layers_data := []
-
-		var fully_defaulted_slots := 0
-
-		for slot_index in len(_slots_data):
-			var slot : HT_TextureSetImportEditorSlot = _slots_data[slot_index]
-
-			var src0 : String = slot.texture_paths[src_types[0]]
-			var src1 : String = slot.texture_paths[src_types[1]]
-			
-			if src0 == "":
-				if src_types[0] == HTerrainTextureSet.SRC_TYPE_ALBEDO:
-					return HT_Result.new(false, 
-						"Albedo texture is missing in slot {0}".format([slot_index]))
-
-			if src0 == "" and src1 == "":
-				fully_defaulted_slots += 1
-
-			if src0 == "":
-				src0 = HTerrainTextureSet.get_source_texture_default_color_code(src_types[0])
-			if src1 == "":
-				src1 = HTerrainTextureSet.get_source_texture_default_color_code(src_types[1])
-
-			var layer = {
+				
+			var pack_sources := {
 				"rgb": src0,
 				"a": src1
 			}
 
 			if HTerrainTextureSet.SRC_TYPE_NORMAL in src_types and slot.flip_normalmap_y:
-				layer["normalmap_flip_y"] = slot.flip_normalmap_y
+				pack_sources["normalmap_flip_y"] = true
 			
-			layers_data.append(layer)
+			var packed_image_result := HT_PackedTextureUtil.generate_image(
+				pack_sources, resolution, _logger)
+			if not packed_image_result.success:
+				return packed_image_result
+			var packed_image : Image = packed_image_result.value
+			
+			var fd := HT_PackedImageInfo.new()
+			fd.slot_index = slot_index
+			fd.type = type
+			fd.image = packed_image
+			fd.is_default = is_default
+			
+			images_infos.append(fd)
+	
+	return HT_Result.new(true).with_value(images_infos)
 
-		if fully_defaulted_slots == len(_slots_data):
+
+func _generate_packed_images(import_dir: String, prefix: String) -> HT_Result:
+	var images_infos_result := _generate_packed_images2()
+	if not images_infos_result.success:
+		return images_infos_result
+	var images_infos : Array = images_infos_result.value
+	
+	for info_index in len(images_infos):
+		var info : HT_PackedImageInfo = images_infos[info_index]
+		
+		var type_name := HTerrainTextureSet.get_texture_type_name(info.type)
+		var fpath := import_dir.path_join(
+			str(prefix, "slot", info.slot_index, "_", type_name, ".png"))
+		
+		var err := info.image.save_png(fpath)
+		if err != OK:
+			return HT_Result.new(false, 
+				"Could not save image {0}, {1}".format([fpath, HT_Errors.get_message(err)]))
+		
+		info.path = fpath
+		info.import_file_data = {
+			"remap": {
+				"importer": "texture",
+				"type": "CompressedTexture2D"
+			},
+			"deps": {
+				"source_file": fpath
+			},
+			"params": {
+				"compress/mode": ResourceImporterTexture_Unexposed.COMPRESS_VRAM_COMPRESSED,
+				"compress/high_quality": false,
+				"compress/lossy_quality": 0.7,
+				"mipmaps/generate": true,
+				"mipmaps/limit": -1,
+				"roughness/mode": ResourceImporterTexture_Unexposed.ROUGHNESS_DISABLED,
+				"process/fix_alpha_border": false
+			}
+		}
+	
+	return HT_Result.new(true).with_value(images_infos)
+
+
+static func _assemble_texarray_images(images: Array, resolution: Vector2i) -> Image:
+	# Godot expects some kind of grid. Let's be lazy and do a grid with only one row.
+	var atlas := Image.create(resolution.x * len(images), resolution.y, false, Image.FORMAT_RGBA8)
+	for index in len(images):
+		var image : Image = images[index]
+		if image.get_size() != resolution:
+			image.resize(resolution.x, resolution.y, Image.INTERPOLATE_BILINEAR)
+		atlas.blit_rect(image, 
+			Rect2i(0, 0, image.get_width(), image.get_height()),
+			Vector2i(index * resolution.x, 0))
+	return atlas
+	
+
+func _generate_packed_texarray_images(import_dir: String, prefix: String) -> HT_Result:
+	var images_infos_result := _generate_packed_images2()
+	if not images_infos_result.success:
+		return images_infos_result
+	var individual_images_infos : Array = images_infos_result.value
+
+	var resolution : int = _import_settings.resolution
+	
+	var texarray_images_infos := []
+	
+	for type in HTerrainTextureSet.TYPE_COUNT:
+		var texarray_images := []
+		texarray_images.resize(len(_slots_data))
+		
+		var fully_defaulted_slots := 0
+		
+		for i in len(individual_images_infos):
+			var info : HT_PackedImageInfo = individual_images_infos[i]
+			if info.type == type:
+				texarray_images[i] = info.image
+			if info.is_default:
+				fully_defaulted_slots += 1
+		
+		if fully_defaulted_slots == len(texarray_images):
 			# No need to generate this file at all
 			continue
-		
-		json_data["layers"] = layers_data
+			
+		var texarray_image := _assemble_texarray_images(texarray_images, 
+			Vector2i(resolution, resolution))
 		
 		var type_name := HTerrainTextureSet.get_texture_type_name(type)
-		var fpath := import_dir.path_join(str(prefix, type_name, ".packed_texarr"))
+		var fpath := import_dir.path_join(str(prefix, type_name, "_array.png"))
 		
-		files.append({
-			"type": type,
-			"path": fpath,
-			"data": json_data,
-
-			# This is for .import files
-			"import_data": {
-				"remap": {
-					"importer": HT_PackedTextureArrayImporter.IMPORTER_NAME,
-					"type": HT_PackedTextureArrayImporter.RESOURCE_TYPE
-				},
-				"deps": {
-					"source_file": fpath
-				},
-				"params": {
-					"compress/mode": importer_compress_mode,
-					"mipmaps/limit": -1 if _import_settings.mipmaps else 0
-				}
+		var err := texarray_image.save_png(fpath)
+		if err != OK:
+			return HT_Result.new(false, 
+				"Could not save image {0}, {1}".format([fpath, HT_Errors.get_message(err)]))
+		
+		var texarray_image_info := HT_PackedImageInfo.new()
+		texarray_image_info.type = type
+		texarray_image_info.path = fpath
+		texarray_image_info.import_file_data = {
+			"remap": {
+				"importer": "2d_array_texture",
+				"type": "CompressedTexture2DArray"
+			},
+			"deps": {
+				"source_file": fpath
+			},
+			"params": {
+				"compress/mode": ResourceImporterTextureLayered_Unexposed.COMPRESS_VRAM_COMPRESSED,
+				"compress/high_quality": false,
+				"compress/lossy_quality": 0.7,
+				"mipmaps/generate": true,
+				"mipmaps/limit": -1,
+				"process/fix_alpha_border": false,
+				"slices/horizontal": len(texarray_images),
+				"slices/vertical": 1
 			}
-		})
+		}
+		
+		texarray_images_infos.append(texarray_image_info)
 
-	return HT_Result.new(true).with_value(files)
+	return HT_Result.new(true).with_value(texarray_images_infos)
+

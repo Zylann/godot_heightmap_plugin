@@ -9,6 +9,12 @@ const _transform_params = [
 ]
 
 
+# sources: {
+#     "a": "path_to_image_where_red_channel_will_be_stored_in_alpha.png",
+#     "rgb": "path_to_image_where_rgb_channels_will_be_stored.png"
+#     "rgba": "path_to_image.png",
+#     "rgb": "#hexcolor"
+# }
 static func generate_image(sources: Dictionary, resolution: int, logger) -> HT_Result:
 	var image := Image.create(resolution, resolution, true, Image.FORMAT_RGBA8)
 	
@@ -76,4 +82,5 @@ static func _flip_normalmap_y(image: Image):
 			var col := image.get_pixel(x, y)
 			col.g = 1.0 - col.g
 			image.set_pixel(x, y, col)
+
 
