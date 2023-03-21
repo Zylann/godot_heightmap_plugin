@@ -1,5 +1,5 @@
 @tool
-extends Control
+extends AcceptDialog
 
 const HTerrainTextureSet = preload("../../../hterrain_texture_set.gd")
 const HT_EditorUtil = preload("../../util/editor_util.gd")
@@ -39,6 +39,10 @@ var _load_texture_array_dialog : ConfirmationDialog
 var _load_texture_type := -1
 
 var _logger = HT_Logger.get_for(self)
+
+
+func _init():
+	get_ok_button().hide()
 
 
 func _ready():
@@ -84,7 +88,8 @@ func _notification(what: int):
 			_load_texture_array_dialog.queue_free()
 	
 	if what == NOTIFICATION_VISIBILITY_CHANGED:
-		if not is_visible_in_tree():
+		if not visible:
+			# Cleanup referenced resources
 			set_texture_set(null)
 
 
