@@ -7,6 +7,7 @@ const HT_PreviewPainter = preload("./preview_painter.gd")
 const HT_Brush = preload("../brush.gd")
 const HT_Logger = preload("../../../util/logger.gd")
 const HT_EditorUtil = preload("../../util/editor_util.gd")
+const HT_Util = preload("../../../util/util.gd")
 
 @onready var _texture_rect : TextureRect = $TextureRect
 @onready var _painter : HT_PreviewPainter = $Painter
@@ -15,6 +16,10 @@ var _logger := HT_Logger.get_for(self)
 
 
 func _ready():
+	if HT_Util.is_in_edited_scene(self):
+		# If it runs in the edited scene,
+		# saving the scene would also save the ImageTexture in it...
+		return
 	reset_image()
 	# Default so it doesnt crash when painting and can be tested
 	var default_brush_texture = \
