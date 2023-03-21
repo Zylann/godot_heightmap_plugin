@@ -22,7 +22,7 @@ var _resolution := Vector2i(512, 512)
 var _output_padding := [0, 0, 0, 0]
 var _viewport : SubViewport = null
 var _ci : TextureRect = null
-var _dummy_texture : Texture
+var _dummy_texture : Texture2D
 var _running := false
 var _rerun := false
 #var _tiles = PoolVector2Array([Vector2()])
@@ -41,10 +41,9 @@ func _ready():
 	assert(_ci == null)
 
 	_viewport = SubViewport.new()
-	_viewport.own_world = true
-	_viewport.world = World3D.new()
-	# Godot 4 no longer supports this...
-	# _viewport.render_target_v_flip = true
+	# We render with 2D shaders, but we don't want the parent world to interfere
+	_viewport.own_world_3d = true
+	_viewport.world_3d = World3D.new()
 	_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	add_child(_viewport)
 	
@@ -53,7 +52,7 @@ func _ready():
 		_logger.error(str("Failed to load dummy texture ", DUMMY_TEXTURE_PATH))
 
 	_ci = TextureRect.new()
-	_ci.expand = true
+	_ci.stretch_mode = TextureRect.STRETCH_SCALE
 	_ci.texture = _dummy_texture
 	_viewport.add_child(_ci)
 	
@@ -153,7 +152,7 @@ func _process(delta: float):
 		return
 	
 	if _running_pass_index > 0:
-		var prev_pass = _running_passes[_running_pass_index - 1]
+		var prev_pass : HT_TextureGeneratorPass = _running_passes[_running_pass_index - 1]
 		if prev_pass.output:
 			_create_output_image(prev_pass.metadata)
 	
@@ -234,9 +233,6 @@ func _setup_pass(p: HT_TextureGeneratorPass):
 func _create_output_image(metadata):
 	var tex := _viewport.get_texture()
 	var src := tex.get_image()
-	# TODO Optimize: Godot 3 used to be able to render flipped viewports, Godot 4 no longer...
-	# So we have to flip on the CPU instead, which is slower
-	src.flip_y()
 	
 	# Pick the center of the image
 	var subrect := Rect2i( \
@@ -253,7 +249,7 @@ func _create_output_image(metadata):
 	subrect.size.x += _output_padding[0] + _output_padding[1]
 	subrect.size.y += _output_padding[2] + _output_padding[3]
 		
-	var dst
+	var dst : Image
 	if subrect == Rect2i(0, 0, src.get_width(), src.get_height()):
 		dst = src
 	else:

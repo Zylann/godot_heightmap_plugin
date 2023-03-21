@@ -8,7 +8,6 @@
 [node name="GeneratorDialog" type="AcceptDialog"]
 title = "Generate terrain"
 size = Vector2i(1100, 780)
-visible = true
 min_size = Vector2i(1100, 620)
 script = ExtResource("1")
 
@@ -37,7 +36,10 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="TerrainPreview" parent="VBoxContainer/Editor/Preview" instance=ExtResource("3")]
-layout_mode = 0
+layout_mode = 1
+anchors_preset = 15
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="Label" type="Label" parent="VBoxContainer/Editor/Preview"]
 layout_mode = 0

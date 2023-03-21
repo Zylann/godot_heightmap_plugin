@@ -1,5 +1,7 @@
 shader_type canvas_item;
 
+#include "res://addons/zylann.hterrain/shaders/include/heightmap_rgb8_encoding.gdshaderinc"
+
 uniform vec2 u_offset;
 uniform float u_scale = 0.02;
 uniform float u_base_height = 0.0;
@@ -201,5 +203,5 @@ void fragment() {
 
 	float h = get_height(uv_tile * u_tile_size);
 	
-	COLOR = vec4(h, h, h, 1.0);
+	COLOR = vec4(encode_height_to_rgb8_unorm(h), 1.0);
 }

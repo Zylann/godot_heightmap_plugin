@@ -151,7 +151,7 @@ func _ready():
 	})
 
 	_generator = HT_TextureGenerator.new()
-	_generator.set_resolution(Vector2(_viewport_resolution, _viewport_resolution))
+	_generator.set_resolution(Vector2i(_viewport_resolution, _viewport_resolution))
 	# Setup the extra pixels we want on max edges for terrain
 	# TODO I wonder if it's not better to let the generator shaders work in pixels
 	# instead of NDC, rather than putting a padding system there
@@ -161,18 +161,14 @@ func _ready():
 	_generator.progress_reported.connect(_on_TextureGenerator_progress_reported)
 	add_child(_generator)
 
+	# TEST
+	if not Engine.is_editor_hint():
+		call_deferred("popup_centered")
+
 
 func apply_dpi_scale(dpi_scale: float):
 	min_size *= dpi_scale
 	_inspector_container.custom_minimum_size *= dpi_scale
-
-
-# TEST
-#func _input(event):
-#	if Engine.is_editor_hint():
-#		return
-#	if event is InputEventKey and event.pressed and not visible:
-#		call_deferred("popup_centered")
 
 
 func set_terrain(terrain: HTerrain):
@@ -212,6 +208,9 @@ func _notification(what: int):
 			# We don't want any of this to run in an edited scene
 			if HT_Util.is_in_edited_scene(self):
 				return
+			# Since Godot 4 visibility can be changed even between _enter_tree and _ready
+			if _preview == null:
+				return
 
 			if visible:
 				# TODO https://github.com/godotengine/godot/issues/18160
@@ -248,12 +247,16 @@ func _update_generator(preview: bool):
 	var sectors := []
 	var terrain_size := 513
 	
-	var additive_heightmap : Texture = null
+	var additive_heightmap : Texture2D = null
+
+	# For testing
+	if not Engine.is_editor_hint() and _terrain == null:
+		sectors.append(Vector2(0, 0))
 
 	# Get preview scale and sectors to generate.
 	# Allowing null terrain to make it testable.
-	var terrain_data := _terrain.get_data()
-	if _terrain != null and terrain_data != null:
+	if _terrain != null and _terrain.get_data() != null:
+		var terrain_data := _terrain.get_data()
 		terrain_size = terrain_data.get_resolution()
 		
 		if _inspector.get_value("additive_heightmap"):
@@ -387,9 +390,9 @@ func _on_Inspector_property_changed(key, value):
 			_update_generator(true)
 
 
-func _on_TerrainPreview_dragged(relative, button_mask):
+func _on_TerrainPreview_dragged(relative: Vector2, button_mask: int):
 	if button_mask & MOUSE_BUTTON_MASK_LEFT:
-		var offset = _inspector.get_value("offset")
+		var offset : Vector2 = _inspector.get_value("offset")
 		offset += relative
 		_inspector.set_value("offset", offset)
 
