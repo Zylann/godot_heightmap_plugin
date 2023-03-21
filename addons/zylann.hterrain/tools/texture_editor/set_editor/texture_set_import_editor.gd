@@ -105,6 +105,8 @@ var _import_settings := {
 
 
 func _init():
+	get_ok_button().hide()
+	
 	# Default data
 	_slots_data.clear()
 	for i in 4:
