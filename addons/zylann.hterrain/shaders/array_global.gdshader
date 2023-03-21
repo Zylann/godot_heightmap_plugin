@@ -3,13 +3,13 @@
 
 shader_type spatial;
 
-// I had to remove `hint_albedo` from colormap because it makes sRGB conversion kick in,
+// I had to remove source_color` from colormap in Godot 3 because it makes sRGB conversion kick in,
 // which snowballs to black when doing GPU painting on that texture...
 uniform sampler2D u_terrain_colormap;
 uniform sampler2D u_terrain_splat_index_map;
 uniform sampler2D u_terrain_splat_weight_map;
 
-uniform sampler2DArray u_ground_albedo_bump_array : hint_albedo;
+uniform sampler2DArray u_ground_albedo_bump_array : source_color;
 
 // TODO Have UV scales for each texture in an array?
 uniform float u_ground_uv_scale;

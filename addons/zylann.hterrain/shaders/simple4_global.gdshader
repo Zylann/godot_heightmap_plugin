@@ -3,15 +3,15 @@ shader_type spatial;
 // This shader is used to bake the global albedo map.
 // It exposes a subset of the main shader API, so uniform names were not modified.
 
-// I had to remove `hint_albedo` from colormap because it makes sRGB conversion kick in,
+// I had to remove `hint_albedo` from colormap in Godot 3 because it makes sRGB conversion kick in,
 // which snowballs to black when doing GPU painting on that texture...
 uniform sampler2D u_terrain_colormap;// : hint_albedo;
 uniform sampler2D u_terrain_splatmap;
 
-uniform sampler2D u_ground_albedo_bump_0 : hint_albedo;
-uniform sampler2D u_ground_albedo_bump_1 : hint_albedo;
-uniform sampler2D u_ground_albedo_bump_2 : hint_albedo;
-uniform sampler2D u_ground_albedo_bump_3 : hint_albedo;
+uniform sampler2D u_ground_albedo_bump_0 : source_color;
+uniform sampler2D u_ground_albedo_bump_1 : source_color;
+uniform sampler2D u_ground_albedo_bump_2 : source_color;
+uniform sampler2D u_ground_albedo_bump_3 : source_color;
 
 // Keep depth blending because it has a high effect on the final result
 uniform bool u_depth_blending = true;

@@ -4,11 +4,11 @@ render_mode cull_disabled;
 uniform sampler2D u_terrain_heightmap;
 uniform sampler2D u_terrain_detailmap;
 uniform sampler2D u_terrain_normalmap;
-uniform sampler2D u_terrain_globalmap : hint_albedo;
+uniform sampler2D u_terrain_globalmap : source_color;
 uniform mat4 u_terrain_inverse_transform;
 uniform mat3 u_terrain_normal_basis;
 
-uniform sampler2D u_albedo_alpha : hint_albedo;
+uniform sampler2D u_albedo_alpha : source_color;
 uniform float u_view_distance = 100.0;
 uniform float u_globalmap_tint_bottom : hint_range(0.0, 1.0);
 uniform float u_globalmap_tint_top : hint_range(0.0, 1.0);
@@ -84,7 +84,7 @@ void vertex() {
 
 void fragment() {
 	NORMAL = (VIEW_MATRIX * (MODEL_MATRIX * vec4(v_normal, 0.0))).xyz;
-	ALPHA_SCISSOR = 0.5;
+	ALPHA_SCISSOR_THRESHOLD = 0.5;
 	ROUGHNESS = u_roughness;
 
 	vec4 col = texture(u_albedo_alpha, UV);

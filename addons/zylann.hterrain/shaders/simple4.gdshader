@@ -6,21 +6,21 @@ shader_type spatial;
 
 uniform sampler2D u_terrain_heightmap;
 uniform sampler2D u_terrain_normalmap;
-// I had to remove `hint_albedo` from colormap because it makes sRGB conversion kick in,
+// I had to remove `hint_albedo` from colormap in Godot 3 because it makes sRGB conversion kick in,
 // which snowballs to black when doing GPU painting on that texture...
 uniform sampler2D u_terrain_colormap;
 uniform sampler2D u_terrain_splatmap;
-uniform sampler2D u_terrain_globalmap : hint_albedo;
+uniform sampler2D u_terrain_globalmap : source_color;
 uniform mat4 u_terrain_inverse_transform;
 uniform mat3 u_terrain_normal_basis;
 
 // the reason bump is preferred with albedo is, roughness looks better with normal maps.
 // If we want no normal mapping, roughness would only give flat mirror surfaces,
 // while bump still allows to do depth-blending for free.
-uniform sampler2D u_ground_albedo_bump_0 : hint_albedo;
-uniform sampler2D u_ground_albedo_bump_1 : hint_albedo;
-uniform sampler2D u_ground_albedo_bump_2 : hint_albedo;
-uniform sampler2D u_ground_albedo_bump_3 : hint_albedo;
+uniform sampler2D u_ground_albedo_bump_0 : source_color;
+uniform sampler2D u_ground_albedo_bump_1 : source_color;
+uniform sampler2D u_ground_albedo_bump_2 : source_color;
+uniform sampler2D u_ground_albedo_bump_3 : source_color;
 
 uniform sampler2D u_ground_normal_roughness_0;
 uniform sampler2D u_ground_normal_roughness_1;
