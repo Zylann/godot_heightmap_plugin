@@ -20,7 +20,7 @@ static func create_open_file_dialog() -> ConfirmationDialog:
 		d = FileDialog.new()
 		d.file_mode = FileDialog.FILE_MODE_OPEN_FILE
 		d.access = FileDialog.ACCESS_RESOURCES
-	d.resizable = true
+	d.unresizable = false
 	return d
 
 
@@ -37,7 +37,7 @@ static func create_open_dir_dialog() -> ConfirmationDialog:
 		d = FileDialog.new()
 		d.file_mode = FileDialog.FILE_MODE_OPEN_DIR
 		d.access = FileDialog.ACCESS_RESOURCES
-	d.resizable = true
+	d.unresizable = false
 	return d
 
 

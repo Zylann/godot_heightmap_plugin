@@ -15,8 +15,8 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 8.0
 offset_top = 8.0
-offset_right = 484.0
-offset_bottom = 293.0
+offset_right = -8.0
+offset_bottom = -49.0
 
 [node name="HB" type="HBoxContainer" parent="VB"]
 layout_mode = 2

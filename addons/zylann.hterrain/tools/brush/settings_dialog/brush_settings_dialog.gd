@@ -74,7 +74,7 @@ func _exit_tree():
 
 
 func _get_shapes_from_gui() -> Array[Texture2D]:
-	var shapes := []
+	var shapes : Array[Texture2D] = []
 	for i in _shape_list.get_item_count():
 		var icon : Texture2D = _shape_list.get_item_icon(i)
 		assert(icon != null)
@@ -168,7 +168,9 @@ func _on_LoadImageDialog_file_selected(fpath: String):
 
 func _notification(what: int):
 	if what == NOTIFICATION_VISIBILITY_CHANGED:
-		if visible:
+		# Testing the scratchpad because visibility can not only change before entering the tree
+		# since Godot 4 port, it can also change between entering the tree and being _ready...
+		if visible and _scratchpad != null:
 			_update_controls_from_brush()
 
 
