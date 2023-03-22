@@ -6,7 +6,6 @@
 
 [node name="BrushSettingsDialog" type="AcceptDialog"]
 size = Vector2i(492, 342)
-visible = true
 script = ExtResource("3")
 
 [node name="VB" type="VBoxContainer" parent="."]
