@@ -56,7 +56,7 @@ func setup_dialogs(base_control: Control):
 	assert(_file_dialog == null)
 	var fd := EditorFileDialog.new()
 	fd.file_mode = EditorFileDialog.FILE_MODE_SAVE_FILE
-	fd.resizable = true
+	fd.unresizable = false
 	fd.access = EditorFileDialog.ACCESS_FILESYSTEM
 	fd.file_selected.connect(_on_FileDialog_file_selected)
 	base_control.add_child(fd)
