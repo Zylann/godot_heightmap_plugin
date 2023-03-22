@@ -23,7 +23,7 @@ func set_terrain(terrain: HTerrain):
 
 func _notification(what: int):
 	if what == NOTIFICATION_VISIBILITY_CHANGED:
-		if visible:
+		if visible and _terrain != null:
 			_update_preview()
 
 
