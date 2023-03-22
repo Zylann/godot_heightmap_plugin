@@ -67,8 +67,8 @@ func _setup_scene(terrain_size: int):
 	_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ALWAYS
 	# _viewport.render_target_v_flip = true
-	_viewport.world = World3D.new()
-	_viewport.own_world = true
+	_viewport.world_3d = World3D.new()
+	_viewport.own_world_3d = true
 	_viewport.debug_draw = Viewport.DEBUG_DRAW_UNSHADED
 	
 	var mat := ShaderMaterial.new()

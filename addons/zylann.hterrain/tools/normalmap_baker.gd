@@ -27,9 +27,9 @@ func _init():
 	_viewport.size = Vector2(VIEWPORT_SIZE + 2, VIEWPORT_SIZE + 2)
 	_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ALWAYS
-	# _viewport.render_target_v_flip = true
-	_viewport.world = World3D.new()
-	_viewport.own_world = true
+	# We only render 2D, but we don't want the parent world to interfere
+	_viewport.world_3d = World3D.new()
+	_viewport.own_world_3d = true
 	add_child(_viewport)
 	
 	var mat = ShaderMaterial.new()
