@@ -1,83 +1,69 @@
-[gd_scene load_steps=3 format=2]
+[gd_scene load_steps=3 format=3 uid="uid://ci0da54goyo5o"]
 
-[ext_resource path="res://addons/zylann.hterrain/tools/generate_mesh_dialog.gd" type="Script" id=1]
-[ext_resource path="res://addons/zylann.hterrain/tools/util/dialog_fitter.tscn" type="PackedScene" id=2]
+[ext_resource type="Script" path="res://addons/zylann.hterrain/tools/generate_mesh_dialog.gd" id="1"]
+[ext_resource type="PackedScene" path="res://addons/zylann.hterrain/tools/util/dialog_fitter.tscn" id="2"]
 
-[node name="GenerateMeshDialog" type="WindowDialog"]
-margin_left = 57.0
-margin_top = 83.0
-margin_right = 505.0
-margin_bottom = 269.0
-rect_min_size = Vector2( 448, 186 )
-window_title = "Generate full mesh"
-script = ExtResource( 1 )
+[node name="GenerateMeshDialog" type="AcceptDialog"]
+title = "Generate full mesh"
+size = Vector2i(448, 234)
+visible = true
+min_size = Vector2i(448, 186)
+script = ExtResource("1")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-margin_left = 8.0
-margin_top = 8.0
-margin_right = -8.0
-margin_bottom = -8.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -18.0
 
 [node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
-margin_right = 432.0
-margin_bottom = 24.0
+layout_mode = 2
 
 [node name="Label" type="Label" parent="VBoxContainer/HBoxContainer"]
-margin_top = 5.0
-margin_right = 28.0
-margin_bottom = 19.0
+layout_mode = 2
 text = "LOD"
 
 [node name="LODSpinBox" type="SpinBox" parent="VBoxContainer/HBoxContainer"]
-margin_left = 32.0
-margin_right = 432.0
-margin_bottom = 24.0
+layout_mode = 2
 size_flags_horizontal = 3
 min_value = 1.0
 max_value = 16.0
 value = 1.0
 
 [node name="PreviewLabel" type="Label" parent="VBoxContainer"]
-margin_top = 28.0
-margin_right = 432.0
-margin_bottom = 42.0
+layout_mode = 2
 text = "9999 vertices, 9999 triangles"
 
 [node name="Spacer" type="Control" parent="VBoxContainer"]
-margin_top = 46.0
-margin_right = 432.0
-margin_bottom = 54.0
-rect_min_size = Vector2( 0, 8 )
+layout_mode = 2
 
 [node name="Label" type="Label" parent="VBoxContainer"]
-margin_top = 58.0
-margin_right = 432.0
-margin_bottom = 123.0
+layout_mode = 2
 text = "Note: generating a full mesh from the terrain may result in a huge amount of vertices for a single object. It is preferred to do this for small terrains, or as a temporary workaround to generate a navmesh."
-autowrap = true
+autowrap_mode = 2
 
 [node name="Buttons" type="HBoxContainer" parent="VBoxContainer"]
-margin_top = 127.0
-margin_right = 432.0
-margin_bottom = 147.0
-custom_constants/separation = 32
+layout_mode = 2
 alignment = 1
 
 [node name="Generate" type="Button" parent="VBoxContainer/Buttons"]
-margin_left = 137.0
-margin_right = 208.0
-margin_bottom = 20.0
+layout_mode = 2
 text = "Generate"
 
 [node name="Cancel" type="Button" parent="VBoxContainer/Buttons"]
-margin_left = 240.0
-margin_right = 294.0
-margin_bottom = 20.0
+layout_mode = 2
 text = "Cancel"
 
-[node name="DialogFitter" parent="." instance=ExtResource( 2 )]
+[node name="DialogFitter" parent="." instance=ExtResource("2")]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 440.0
+offset_bottom = 216.0
 
 [connection signal="value_changed" from="VBoxContainer/HBoxContainer/LODSpinBox" to="." method="_on_LODSpinBox_value_changed"]
 [connection signal="pressed" from="VBoxContainer/Buttons/Generate" to="." method="_on_Generate_pressed"]
