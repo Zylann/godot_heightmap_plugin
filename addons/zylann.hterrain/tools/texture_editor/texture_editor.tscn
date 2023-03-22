@@ -4,9 +4,9 @@
 [ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/texture_list.tscn" type="PackedScene" id=2]
 
 [node name="TextureEditor" type="Control"]
-margin_right = 352.0
-margin_bottom = 104.0
-rect_min_size = Vector2( 100, 0 )
+offset_right = 352.0
+offset_bottom = 104.0
+custom_minimum_size = Vector2( 100, 0 )
 size_flags_horizontal = 3
 script = ExtResource( 1 )
 __meta__ = {
@@ -14,33 +14,33 @@ __meta__ = {
 }
 
 [node name="TextureList" parent="." instance=ExtResource( 2 )]
-margin_bottom = -26.0
+offset_bottom = -26.0
 
 [node name="HBoxContainer" type="HBoxContainer" parent="."]
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-margin_top = -24.0
+offset_top = -24.0
 __meta__ = {
 "_edit_use_anchors_": false
 }
 
 [node name="EditButton" type="Button" parent="HBoxContainer"]
-margin_right = 48.0
-margin_bottom = 24.0
+offset_right = 48.0
+offset_bottom = 24.0
 text = "Edit..."
 
 [node name="ImportButton" type="Button" parent="HBoxContainer"]
-margin_left = 52.0
-margin_right = 120.0
-margin_bottom = 24.0
+offset_left = 52.0
+offset_right = 120.0
+offset_bottom = 24.0
 text = "Import..."
 
 [node name="Label" type="Label" parent="HBoxContainer"]
-margin_left = 124.0
-margin_top = 5.0
-margin_right = 179.0
-margin_bottom = 19.0
+offset_left = 124.0
+offset_top = 5.0
+offset_right = 179.0
+offset_bottom = 19.0
 text = "Textures"
 [connection signal="item_activated" from="TextureList" to="." method="_on_TextureList_item_activated"]
 [connection signal="item_selected" from="TextureList" to="." method="_on_TextureList_item_selected"]
