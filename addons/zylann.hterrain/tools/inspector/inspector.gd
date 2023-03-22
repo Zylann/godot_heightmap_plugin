@@ -35,7 +35,7 @@ class HT_InspectorResourceEditor extends HT_InspectorEditor:
 class HT_InspectorVectorEditor extends HT_InspectorEditor:
 	signal value_changed(v)
 	
-	var value = Vector2()
+	var value := Vector2()
 	var xed = null
 	var yed = null
 	
@@ -138,7 +138,7 @@ func set_prototype(proto: Dictionary):
 		label.text = str(key).capitalize()
 		_grid_container.add_child(label)
 		
-		var editor = _make_editor(key, prop)
+		var editor := _make_editor(key, prop)
 		editor.key_label = label
 		
 		if prop.has("default_value"):
@@ -182,7 +182,7 @@ func set_property_enabled(prop_name: String, enabled: bool):
 	ed.key_label.modulate = col
 
 
-func _make_editor(key: String, prop: Dictionary):
+func _make_editor(key: String, prop: Dictionary) -> HT_InspectorEditor:
 	var ed : HT_InspectorEditor = null
 	
 	var editor : Control = null
@@ -268,13 +268,13 @@ func _make_editor(key: String, prop: Dictionary):
 				load_button.pressed.connect(_on_ask_load_file.bind(key, exts))
 				editor.add_child(load_button)
 				
-				line_edit.text_entered.connect(_property_edited.bind(key))
+				line_edit.text_submitted.connect(_property_edited.bind(key))
 				getter = line_edit.get_text
 				setter = line_edit.set_text
 				
 			else:
 				editor = LineEdit.new()
-				editor.text_entered.connect(_property_edited.bind(key))
+				editor.text_submitted.connect(_property_edited.bind(key))
 				getter = editor.get_text
 				setter = editor.set_text
 		

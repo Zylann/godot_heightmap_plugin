@@ -1,104 +1,86 @@
-[gd_scene load_steps=4 format=2]
+[gd_scene load_steps=4 format=3 uid="uid://on7x7xkovsc8"]
 
-[ext_resource path="res://addons/zylann.hterrain/tools/importer/importer_dialog.gd" type="Script" id=1]
-[ext_resource path="res://addons/zylann.hterrain/tools/inspector/inspector.tscn" type="PackedScene" id=2]
-[ext_resource path="res://addons/zylann.hterrain/tools/util/dialog_fitter.tscn" type="PackedScene" id=3]
+[ext_resource type="Script" path="res://addons/zylann.hterrain/tools/importer/importer_dialog.gd" id="1"]
+[ext_resource type="PackedScene" path="res://addons/zylann.hterrain/tools/inspector/inspector.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://addons/zylann.hterrain/tools/util/dialog_fitter.tscn" id="3"]
 
-[node name="WindowDialog" type="WindowDialog"]
+[node name="WindowDialog" type="AcceptDialog"]
+title = "Import maps"
+size = Vector2i(500, 433)
 visible = true
-margin_left = 223.0
-margin_top = 87.0
-margin_right = 747.0
-margin_bottom = 463.0
-rect_min_size = Vector2( 500, 380 )
-window_title = "Import maps"
-resizable = true
-script = ExtResource( 1 )
-__meta__ = {
-"_edit_use_anchors_": false
-}
+min_size = Vector2i(500, 380)
+script = ExtResource("1")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-margin_left = 8.0
-margin_top = 8.0
-margin_right = -8.0
-margin_bottom = -8.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -18.0
 
 [node name="Label" type="Label" parent="VBoxContainer"]
-margin_right = 508.0
-margin_bottom = 14.0
+layout_mode = 2
 text = "Select maps to import. Leave empty if you don't need some."
 
 [node name="Spacer" type="Control" parent="VBoxContainer"]
-margin_top = 18.0
-margin_right = 508.0
-margin_bottom = 34.0
-rect_min_size = Vector2( 0, 16 )
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
 
-[node name="Inspector" parent="VBoxContainer" instance=ExtResource( 2 )]
-margin_top = 38.0
-margin_right = 508.0
-margin_bottom = 224.0
+[node name="Inspector" parent="VBoxContainer" instance=ExtResource("2")]
+layout_mode = 2
 size_flags_vertical = 3
 
 [node name="ColorRect" type="ColorRect" parent="VBoxContainer"]
-margin_top = 228.0
-margin_right = 508.0
-margin_bottom = 328.0
-rect_min_size = Vector2( 0, 100 )
-color = Color( 0, 0, 0, 0.417529 )
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+color = Color(0, 0, 0, 0.417529)
 
 [node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer/ColorRect"]
+layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 
 [node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/ColorRect/ScrollContainer"]
-margin_bottom = 32.0
+layout_mode = 2
 
 [node name="Errors" type="Label" parent="VBoxContainer/ColorRect/ScrollContainer/VBoxContainer"]
-self_modulate = Color( 1, 0.203125, 0.203125, 1 )
-margin_bottom = 14.0
+self_modulate = Color(1, 0.203125, 0.203125, 1)
+layout_mode = 2
 
 [node name="Warnings" type="Label" parent="VBoxContainer/ColorRect/ScrollContainer/VBoxContainer"]
-self_modulate = Color( 1, 0.901428, 0.257813, 1 )
-margin_top = 18.0
-margin_bottom = 32.0
+self_modulate = Color(1, 0.901428, 0.257813, 1)
+layout_mode = 2
 
 [node name="Spacer2" type="Control" parent="VBoxContainer"]
-margin_top = 332.0
-margin_right = 508.0
-margin_bottom = 340.0
-rect_min_size = Vector2( 0, 8 )
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
 
 [node name="ButtonsArea" type="HBoxContainer" parent="VBoxContainer"]
-margin_top = 344.0
-margin_right = 508.0
-margin_bottom = 364.0
+layout_mode = 2
 mouse_filter = 0
-custom_constants/separation = 32
 alignment = 1
 
 [node name="CheckButton" type="Button" parent="VBoxContainer/ButtonsArea"]
-margin_left = 142.0
-margin_right = 192.0
-margin_bottom = 20.0
+layout_mode = 2
 text = "Check"
 
 [node name="ImportButton" type="Button" parent="VBoxContainer/ButtonsArea"]
-margin_left = 224.0
-margin_right = 280.0
-margin_bottom = 20.0
+layout_mode = 2
 text = "Import"
 
 [node name="CancelButton" type="Button" parent="VBoxContainer/ButtonsArea"]
-margin_left = 312.0
-margin_right = 366.0
-margin_bottom = 20.0
+layout_mode = 2
 text = "Cancel"
 
-[node name="DialogFitter" parent="." instance=ExtResource( 3 )]
+[node name="DialogFitter" parent="." instance=ExtResource("3")]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 492.0
+offset_bottom = 415.0
 
 [connection signal="property_changed" from="VBoxContainer/Inspector" to="." method="_on_Inspector_property_changed"]
 [connection signal="pressed" from="VBoxContainer/ButtonsArea/CheckButton" to="." method="_on_CheckButton_pressed"]

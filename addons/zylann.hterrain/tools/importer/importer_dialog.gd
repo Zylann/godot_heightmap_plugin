@@ -73,12 +73,14 @@ func set_terrain(terrain: HTerrain):
 
 func _notification(what: int):
 	if what == NOTIFICATION_VISIBILITY_CHANGED:
-		if visible and is_inside_tree():
+		# Checking a node set in _ready,
+		# because visibility can also change between _enter_tree and _ready...
+		if visible and _inspector != null:
 			_clear_feedback()
 
 
 static func _format_feedbacks(feed):
-	var a = []
+	var a := []
 	for s in feed:
 		a.append("- " + s)
 	return "\n".join(PackedStringArray(a))
