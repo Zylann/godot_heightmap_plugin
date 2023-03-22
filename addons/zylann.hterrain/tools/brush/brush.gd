@@ -27,8 +27,8 @@ var _pressure_over_opacity := 0.5
 # TODO Rename stamp_*?
 var _frequency_distance := 0.0
 var _frequency_time_ms := 0
-# Array of greyscale Textures
-var _shapes := []
+# Array of greyscale textures
+var _shapes : Array[Texture2D] = []
 
 var _shape_index := 0
 var _prev_position := Vector2(-999, -999)
@@ -105,11 +105,11 @@ func get_frequency_time_ms() -> int:
 	return _frequency_time_ms
 
 
-func set_shapes(shapes: Array):
+func set_shapes(shapes: Array[Texture2D]):
 	assert(len(shapes) >= 1)
 	for s in shapes:
 		assert(s != null)
-		assert(s is Texture)
+		assert(s is Texture2D)
 	_shapes = shapes.duplicate(false)
 	if _shape_index >= len(_shapes):
 		_shape_index = len(_shapes) - 1

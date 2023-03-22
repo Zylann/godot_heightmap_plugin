@@ -81,7 +81,7 @@ func set_brush_size(s: int):
 #		p.set_brush_size(_brush_size)
 
 
-func set_brush_texture(texture: Texture):
+func set_brush_texture(texture: Texture2D):
 	_brush.set_shapes([texture])
 #	for p in _painters:
 #		p.set_brush_texture(texture)
