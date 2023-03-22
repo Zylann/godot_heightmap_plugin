@@ -260,8 +260,7 @@ func _update_generator(preview: bool):
 		terrain_size = terrain_data.get_resolution()
 		
 		if _inspector.get_value("additive_heightmap"):
-			additive_heightmap = \
-				terrain_data.get_texture(HTerrainData.CHANNEL_HEIGHT)
+			additive_heightmap = terrain_data.get_texture(HTerrainData.CHANNEL_HEIGHT)
 
 		if preview:
 			# When previewing the resolution does not span the entire terrain,
@@ -460,7 +459,8 @@ func _on_TextureGenerator_output_generated(image: Image, info: Dictionary):
 		assert(data != null)
 		var dst = data.get_image(info.maptype)
 		assert(dst != null)
-
+		
+		#assert(image.get_format() == Image.FORMAT_RGB8 or image.get_format() == Image.FORMAT_RGBA8)
 		image.convert(dst.get_format())
 
 		dst.blit_rect(image, \

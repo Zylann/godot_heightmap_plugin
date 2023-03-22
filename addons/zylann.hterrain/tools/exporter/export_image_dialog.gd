@@ -37,10 +37,10 @@ func _ready():
 	_format_names.resize(FORMAT_COUNT)
 	_format_extensions.resize(FORMAT_COUNT)
 	
-	_format_names[FORMAT_RH] = "16-bit RAW float (native)"
+	_format_names[FORMAT_RH] = "16-bit RAW float"
 	_format_names[FORMAT_R16] = "16-bit RAW unsigned"
 	_format_names[FORMAT_PNG8] = "8-bit PNG"
-	_format_names[FORMAT_EXRH] = "16-bit float greyscale EXR (native)"
+	_format_names[FORMAT_EXRH] = "16-bit float greyscale EXR"
 	
 	_format_extensions[FORMAT_RH] = "raw"
 	_format_extensions[FORMAT_R16] = "raw"
@@ -90,7 +90,7 @@ func _auto_adjust_height_range():
 func _export() -> bool:
 	assert(_terrain != null)
 	assert(_terrain.get_data() != null)
-	var heightmap: Image = _terrain.get_data().get_image(HTerrainData.CHANNEL_HEIGHT)
+	var src_heightmap: Image = _terrain.get_data().get_image(HTerrainData.CHANNEL_HEIGHT)
 	var fpath := _output_path_line_edit.text.strip_edges()
 	
 	# TODO Is `selected` an ID or an index? I need an ID, it works by chance for now.
@@ -109,19 +109,23 @@ func _export() -> bool:
 	
 	var save_error := OK
 	
+	var float_heightmap := HTerrainData.convert_heightmap_to_float(src_heightmap, _logger)
+	
 	if format == FORMAT_PNG8:
 		var hscale := 1.0 / (height_max - height_min)
-		var im := Image.create(heightmap.get_width(), heightmap.get_height(), false, Image.FORMAT_R8)
+		var im := Image.create(
+			src_heightmap.get_width(), src_heightmap.get_height(), false, Image.FORMAT_R8)
 		
-		for y in heightmap.get_height():
-			for x in heightmap.get_width():
-				var h := clampf((heightmap.get_pixel(x, y).r - height_min) * hscale, 0.0, 1.0)
+		for y in src_heightmap.get_height():
+			for x in src_heightmap.get_width():
+				var h := clampf((float_heightmap.get_pixel(x, y).r - height_min) * hscale, 0.0, 1.0)
 				im.set_pixel(x, y, Color(h, h, h))
 		
 		save_error = im.save_png(fpath)
 	
 	elif format == FORMAT_EXRH:
-		save_error = heightmap.save_exr(fpath, true)
+		float_heightmap.convert(Image.FORMAT_RH)
+		save_error = float_heightmap.save_exr(fpath, true)
 		
 	else:
 		var f := FileAccess.open(fpath, FileAccess.WRITE)
@@ -131,14 +135,14 @@ func _export() -> bool:
 			return false
 		
 		if format == FORMAT_RH:
-			# Native format
-			f.store_buffer(heightmap.get_data())
+			float_heightmap.convert(Image.FORMAT_RH)
+			f.store_buffer(float_heightmap.get_data())
 		
 		elif format == FORMAT_R16:
 			var hscale := 65535.0 / (height_max - height_min)
-			for y in heightmap.get_height():
-				for x in heightmap.get_width():
-					var h := int((heightmap.get_pixel(x, y).r - height_min) * hscale)
+			for y in float_heightmap.get_height():
+				for x in float_heightmap.get_width():
+					var h := int((float_heightmap.get_pixel(x, y).r - height_min) * hscale)
 					if h < 0:
 						h = 0
 					elif h > 65535:

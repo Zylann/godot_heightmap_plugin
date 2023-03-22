@@ -1,6 +1,8 @@
 shader_type spatial;
 render_mode cull_disabled;
 
+#include "include/heightmap_rgb8_encoding.gdshaderinc"
+
 uniform sampler2D u_terrain_heightmap;
 uniform sampler2D u_terrain_detailmap;
 uniform sampler2D u_terrain_normalmap;
@@ -42,6 +44,10 @@ vec3 get_ambient_wind_displacement(vec2 uv, float hash) {
 	return disp;
 }
 
+float get_height(sampler2D heightmap, vec2 uv) {
+	return decode_height_from_rgb8_unorm(texture(heightmap, uv).rgb);
+}
+
 void vertex() {
 	vec4 obj_pos = MODEL_MATRIX * vec4(0, 1, 0, 1);
 	vec3 cell_coords = (u_terrain_inverse_transform * obj_pos).xyz;
@@ -61,7 +67,7 @@ void vertex() {
 			u_terrain_normal_basis * unpack_normal(texture(u_terrain_normalmap, map_uv)));
 		
 		// Snap model to the terrain
-		float height = texture(u_terrain_heightmap, map_uv).r / cell_coords.y;
+		float height = get_height(u_terrain_heightmap, map_uv) / cell_coords.y;
 		VERTEX *= u_instance_scale;
 		VERTEX.y += height;
 		

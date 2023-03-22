@@ -2,6 +2,8 @@ shader_type spatial;
 
 // Development shader used to debug or help authoring.
 
+#include "include/heightmap_rgb8_encoding.gdshaderinc"
+
 uniform sampler2D u_terrain_heightmap;
 uniform sampler2D u_terrain_normalmap;
 uniform sampler2D u_terrain_colormap;
@@ -34,7 +36,7 @@ void vertex() {
 	UV = cell_coords / vec2(textureSize(u_terrain_heightmap, 0));
 
 	// Height displacement
-	float h = texture(u_terrain_heightmap, UV).r;
+	float h = decode_height_from_rgb8_unorm(texture(u_terrain_heightmap, UV).rgb);
 	VERTEX.y = h;
 	wpos.y = h;
 

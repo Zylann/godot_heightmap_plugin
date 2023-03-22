@@ -1,6 +1,7 @@
 @tool
 
 #const HT_Logger = preload("./util/logger.gd")
+const HTerrainData = preload("./hterrain_data.gd")
 
 const SEAM_LEFT = 1
 const SEAM_RIGHT = 2
@@ -316,13 +317,29 @@ static func make_heightmap_mesh(heightmap: Image, stride: int, scale: Vector3,
 	positions.resize(size_x * size_z)
 	
 	var i := 0
-	for mz in size_z:
-		for mx in size_x:
-			var x := mx * stride
-			var z := mz * stride
-			var y := heightmap.get_pixel(x, z).r
-			positions[i] = Vector3(x, y, z) * scale
-			i += 1
+	
+	if heightmap.get_format() == Image.FORMAT_RH or heightmap.get_format() == Image.FORMAT_RF:
+		for mz in size_z:
+			for mx in size_x:
+				var x := mx * stride
+				var z := mz * stride
+				var y := heightmap.get_pixel(x, z).r
+				positions[i] = Vector3(x, y, z) * scale
+				i += 1
+
+	elif heightmap.get_format() == Image.FORMAT_RGB8:
+		for mz in size_z:
+			for mx in size_x:
+				var x := mx * stride
+				var z := mz * stride
+				var c := heightmap.get_pixel(x, z)
+				var y := HTerrainData.decode_height_from_rgb8_unorm(c)
+				positions[i] = Vector3(x, y, z) * scale
+				i += 1
+				
+	else:
+		logger.error("Unknown heightmap format!")
+		return null
 	
 	var indices := make_indices(size_x - 1, size_z - 1, 0)
 

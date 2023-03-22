@@ -4,6 +4,8 @@ shader_type spatial;
 // it should be preferred for high-end graphics cards.
 // For less features but lower-end targets, see the lite version.
 
+#include "include/heightmap_rgb8_encoding.gdshaderinc"
+
 uniform sampler2D u_terrain_heightmap;
 uniform sampler2D u_terrain_normalmap;
 // I had to remove `hint_albedo` from colormap in Godot 3 because it makes sRGB conversion kick in,
@@ -163,7 +165,7 @@ void vertex() {
 	UV = cell_coords / vec2(textureSize(u_terrain_heightmap, 0));
 
 	// Height displacement
-	float h = texture(u_terrain_heightmap, UV).r;
+	float h = decode_height_from_rgb8_unorm(texture(u_terrain_heightmap, UV).rgb);
 	VERTEX.y = h;
 	wpos.y = h;
 

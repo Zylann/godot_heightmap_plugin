@@ -188,7 +188,9 @@ float get_height(vec2 pos) {
 	
 	// Additive heightmap
 	{
-		h += u_additive_heightmap_factor * texture(u_additive_heightmap, pos / u_terrain_size).r;
+		vec2 uv = pos / u_terrain_size;
+		float ah = decode_height_from_rgb8_unorm(texture(u_additive_heightmap, uv).rgb);
+		h += u_additive_heightmap_factor * ah;
 	}
 	
 	return h;
