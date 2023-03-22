@@ -33,7 +33,7 @@ var _selected_item := -1
 
 # Note: the texture can be a TextureArray, which does not inherit Texture
 func add_item(text: String, texture: Texture, texture_layer: int = 0):
-	var item : HT_TextureListItem = HT_TextureListItemScene.instance()
+	var item : HT_TextureListItem = HT_TextureListItemScene.instantiate()
 	_container.add_child(item)
 	item.set_text(text)
 	item.set_texture(texture, texture_layer)

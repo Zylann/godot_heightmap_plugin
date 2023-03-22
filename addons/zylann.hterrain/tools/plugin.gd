@@ -116,7 +116,7 @@ func _enter_tree():
 	var editor_interface := get_editor_interface()
 	var base_control := editor_interface.get_base_control()
 	
-	_panel = HT_EditPanelScene.instance()
+	_panel = HT_EditPanelScene.instantiate()
 	HT_Util.apply_dpi_scale(_panel, dpi_scale)
 	_panel.hide()
 	add_control_to_container(EditorPlugin.CONTAINER_SPATIAL_EDITOR_BOTTOM, _panel)
@@ -219,27 +219,27 @@ func _enter_tree():
 		
 		_toolbar_brush_buttons[mode] = button
 	
-	_generator_dialog = HT_GeneratorDialogScene.instance()
+	_generator_dialog = HT_GeneratorDialogScene.instantiate()
 	_generator_dialog.progress_notified.connect(_terrain_progress_notified)
 	_generator_dialog.set_image_cache(_image_cache)
 	_generator_dialog.set_undo_redo(get_undo_redo())
 	base_control.add_child(_generator_dialog)
 	_generator_dialog.apply_dpi_scale(dpi_scale)
 
-	_import_dialog = HT_ImportDialogScene.instance()
+	_import_dialog = HT_ImportDialogScene.instantiate()
 	_import_dialog.permanent_change_performed.connect(_on_permanent_change_performed)
 	HT_Util.apply_dpi_scale(_import_dialog, dpi_scale)
 	base_control.add_child(_import_dialog)
 
-	_progress_window = HT_ProgressWindowScene.instance()
+	_progress_window = HT_ProgressWindowScene.instantiate()
 	base_control.add_child(_progress_window)
 	
-	_generate_mesh_dialog = HT_GenerateMeshDialogScene.instance()
+	_generate_mesh_dialog = HT_GenerateMeshDialogScene.instantiate()
 	_generate_mesh_dialog.generate_selected.connect(_on_GenerateMeshDialog_generate_selected)
 	HT_Util.apply_dpi_scale(_generate_mesh_dialog, dpi_scale)
 	base_control.add_child(_generate_mesh_dialog)
 	
-	_resize_dialog = HT_ResizeDialogScene.instance()
+	_resize_dialog = HT_ResizeDialogScene.instantiate()
 	_resize_dialog.permanent_change_performed.connect(_on_permanent_change_performed)
 	HT_Util.apply_dpi_scale(_resize_dialog, dpi_scale)
 	base_control.add_child(_resize_dialog)
@@ -249,24 +249,24 @@ func _enter_tree():
 	_globalmap_baker.permanent_change_performed.connect(_on_permanent_change_performed)
 	add_child(_globalmap_baker)
 	
-	_export_image_dialog = HT_ExportImageDialogScene.instance()
+	_export_image_dialog = HT_ExportImageDialogScene.instantiate()
 	HT_Util.apply_dpi_scale(_export_image_dialog, dpi_scale)
 	base_control.add_child(_export_image_dialog)
 	# Need to call deferred because in the specific case where you start the editor
 	# with the plugin enabled, _ready won't be called at this point
 	_export_image_dialog.call_deferred("setup_dialogs", base_control)
 	
-	_about_dialog = HT_AboutDialogScene.instance()
+	_about_dialog = HT_AboutDialogScene.instantiate()
 	HT_Util.apply_dpi_scale(_about_dialog, dpi_scale)
 	base_control.add_child(_about_dialog)
 
-	_texture_set_editor = HT_TextureSetEditorScene.instance()
+	_texture_set_editor = HT_TextureSetEditorScene.instantiate()
 	_texture_set_editor.set_undo_redo(get_undo_redo())
 	HT_Util.apply_dpi_scale(_texture_set_editor, dpi_scale)
 	base_control.add_child(_texture_set_editor)
 	_texture_set_editor.call_deferred("setup_dialogs", base_control)
 
-	_texture_set_import_editor = HT_TextureSetImportEditorScene.instance()
+	_texture_set_import_editor = HT_TextureSetImportEditorScene.instantiate()
 	_texture_set_import_editor.set_undo_redo(get_undo_redo())
 	_texture_set_import_editor.set_editor_file_system(
 		get_editor_interface().get_resource_filesystem())
