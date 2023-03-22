@@ -31,7 +31,7 @@ var _generated_textures := [null, null]
 var _dialog_visible := false
 var _undo_map_ids := {}
 var _image_cache : HT_ImageFileCache = null
-var _undo_redo : UndoRedo
+var _undo_redo_manager : EditorUndoRedoManager
 var _logger := HT_Logger.get_for(self)
 var _viewport_resolution := MAX_VIEWPORT_RESOLUTION
 
@@ -198,8 +198,8 @@ func set_image_cache(image_cache: HT_ImageFileCache):
 	_image_cache = image_cache
 
 
-func set_undo_redo(ur: UndoRedo):
-	_undo_redo = ur
+func set_undo_redo(ur: EditorUndoRedoManager):
+	_undo_redo_manager = ur
 
 
 func _notification(what: int):
@@ -493,13 +493,15 @@ func _on_TextureGenerator_completed():
 	for map_type in _undo_map_ids:
 		redo_map_ids[map_type] = _image_cache.save_image(data.get_image(map_type))
 
+	var undo_redo := _undo_redo_manager.get_history_undo_redo(
+		_undo_redo_manager.get_object_history_id(data))
+
 	data._edit_set_disable_apply_undo(true)
-	_undo_redo.create_action("Generate terrain")
-	_undo_redo.add_do_method(
-		data._edit_apply_maps_from_file_cache.bind(_image_cache, redo_map_ids))
-	_undo_redo.add_undo_method(
+	undo_redo.create_action("Generate terrain")
+	undo_redo.add_do_method(data._edit_apply_maps_from_file_cache.bind(_image_cache, redo_map_ids))
+	undo_redo.add_undo_method(
 		data._edit_apply_maps_from_file_cache.bind(_image_cache, _undo_map_ids))
-	_undo_redo.commit_action()
+	undo_redo.commit_action()
 	data._edit_set_disable_apply_undo(false)
 
 	progress_notified.emit({ "finished": true })

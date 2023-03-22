@@ -68,7 +68,7 @@ const _WRITE_IMPORT_FILES = true
 @onready var _normalmap_flip_checkbox : CheckBox = $Import/HS/VB2/HB/Normal/NormalMapFlipY
 
 var _texture_set : HTerrainTextureSet
-var _undo_redo : UndoRedo
+var _undo_redo_manager : EditorUndoRedoManager
 var _logger = HT_Logger.get_for(self)
 
 # This is normally an `EditorFileDialog`. I can't type-hint this one properly,
@@ -184,8 +184,8 @@ func _notification(what: int):
 
 
 # TODO Is it still necessary for an import tab?
-func set_undo_redo(ur: UndoRedo):
-	_undo_redo = ur
+func set_undo_redo(ur: EditorUndoRedoManager):
+	_undo_redo_manager = ur
 
 
 func set_editor_file_system(efs: EditorFileSystem):
@@ -589,6 +589,11 @@ func _on_NormalMapFlipY_toggled(button_pressed: bool):
 # 			_button.disabled = false
 
 
+func _get_undo_redo_for_texture_set() -> UndoRedo:
+	return _undo_redo_manager.get_history_undo_redo(
+		_undo_redo_manager.get_object_history_id(_texture_set))
+
+
 func _on_ImportButton_pressed():
 	if _texture_set == null:
 		_show_error("No HTerrainTextureSet selected.")
@@ -671,7 +676,7 @@ func _on_ImportButton_pressed():
 
 	# Using UndoRedo is mandatory for Godot to consider the resource as modified...
 	# ...yet if files get deleted, that won't be undoable anyways, but whatever :shrug:
-	var ur := _undo_redo
+	var ur := _get_undo_redo_for_texture_set()
 
 	# Check imported textures
 	if _import_mode == HTerrainTextureSet.MODE_TEXTURES:

@@ -22,7 +22,7 @@ signal detail_list_changed
 
 var _terrain : HTerrain = null
 var _dialog_target := -1
-var _undo_redo : UndoRedo
+var _undo_redo_manager : EditorUndoRedoManager
 var _image_cache : HT_ImageFileCache
 var _logger = HT_Logger.get_for(self)
 
@@ -34,9 +34,9 @@ func set_terrain(terrain):
 	_update_list()
 
 
-func set_undo_redo(ur: UndoRedo):
+func set_undo_redo(ur: EditorUndoRedoManager):
 	assert(ur != null)
-	_undo_redo = ur
+	_undo_redo_manager = ur
 
 
 func set_image_cache(image_cache: HT_ImageFileCache):
@@ -108,7 +108,7 @@ func _on_ConfirmationDialog_confirmed():
 func _add_layer():
 	assert(_terrain != null)
 	assert(_terrain.get_data() != null)
-	assert(_undo_redo != null)
+	assert(_undo_redo_manager != null)
 	var terrain_data : HTerrainData = _terrain.get_data()
 
 	# First, create node and map image	
@@ -122,25 +122,28 @@ func _add_layer():
 	var map_image_cache_id := _image_cache.save_image(map_image)
 	node.layer_index = map_index
 	
+	var undo_redo := _undo_redo_manager.get_history_undo_redo(
+		_undo_redo_manager.get_object_history_id(_terrain))
+	
 	# Then, create an action
-	_undo_redo.create_action("Add Detail Layer {0}".format([map_index]))
+	undo_redo.create_action("Add Detail Layer {0}".format([map_index]))
 	
-	_undo_redo.add_do_method(terrain_data._edit_insert_map_from_image_cache.bind( 
+	undo_redo.add_do_method(terrain_data._edit_insert_map_from_image_cache.bind( 
 		HTerrainData.CHANNEL_DETAIL, map_index, _image_cache, map_image_cache_id))
-	_undo_redo.add_do_method(_terrain.add_child.bind(node))
-	_undo_redo.add_do_property(node, "owner", get_tree().edited_scene_root)
-	_undo_redo.add_do_method(self._update_list)
-	_undo_redo.add_do_reference(node)
+	undo_redo.add_do_method(_terrain.add_child.bind(node))
+	undo_redo.add_do_property(node, "owner", get_tree().edited_scene_root)
+	undo_redo.add_do_method(self._update_list)
+	undo_redo.add_do_reference(node)
 	
-	_undo_redo.add_undo_method(_terrain.remove_child.bind(node))
-	_undo_redo.add_undo_method(
+	undo_redo.add_undo_method(_terrain.remove_child.bind(node))
+	undo_redo.add_undo_method(
 		terrain_data._edit_remove_map.bind(HTerrainData.CHANNEL_DETAIL, map_index))
-	_undo_redo.add_undo_method(self._update_list)
+	undo_redo.add_undo_method(self._update_list)
 	
 	# Yet another instance of this hack, to prevent UndoRedo from running some of the functions,
 	# which we had to run already
 	terrain_data._edit_set_disable_apply_undo(true)
-	_undo_redo.commit_action()
+	undo_redo.commit_action()
 	terrain_data._edit_set_disable_apply_undo(false)
 	
 	#_update_list()
@@ -165,23 +168,26 @@ func _remove_layer(map_index: int):
 		if node.layer_index == map_index:
 			using_nodes.append(node)
 	
-	_undo_redo.create_action("Remove Detail Layer {0}".format([map_index]))
+	var undo_redo := _undo_redo_manager.get_history_undo_redo(
+		_undo_redo_manager.get_object_history_id(_terrain))
+
+	undo_redo.create_action("Remove Detail Layer {0}".format([map_index]))
 	
-	_undo_redo.add_do_method(
+	undo_redo.add_do_method(
 		terrain_data._edit_remove_map.bind(HTerrainData.CHANNEL_DETAIL, map_index))
 	for node in using_nodes:
-		_undo_redo.add_do_method(_terrain.remove_child.bind(node))
-	_undo_redo.add_do_method(self._update_list)
+		undo_redo.add_do_method(_terrain.remove_child.bind(node))
+	undo_redo.add_do_method(self._update_list)
 	
-	_undo_redo.add_undo_method(terrain_data._edit_insert_map_from_image_cache.bind(
+	undo_redo.add_undo_method(terrain_data._edit_insert_map_from_image_cache.bind(
 		HTerrainData.CHANNEL_DETAIL, map_index, _image_cache, image_id))
 	for node in using_nodes:
-		_undo_redo.add_undo_method(_terrain.add_child.bind(node))
-		_undo_redo.add_undo_property(node, "owner", get_tree().edited_scene_root)
-		_undo_redo.add_undo_reference(node)
-	_undo_redo.add_undo_method(self._update_list)
+		undo_redo.add_undo_method(_terrain.add_child.bind(node))
+		undo_redo.add_undo_property(node, "owner", get_tree().edited_scene_root)
+		undo_redo.add_undo_reference(node)
+	undo_redo.add_undo_method(self._update_list)
 	
-	_undo_redo.commit_action()
+	undo_redo.commit_action()
 	
 	#_update_list()
 	detail_list_changed.emit()

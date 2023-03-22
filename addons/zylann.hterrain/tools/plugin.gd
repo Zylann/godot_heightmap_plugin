@@ -16,6 +16,11 @@ const HT_LoadTextureDialog = preload("./load_texture_dialog.gd")
 const HT_GlobalMapBaker = preload("./globalmap_baker.gd")
 const HT_ImageFileCache = preload("../util/image_file_cache.gd")
 const HT_Logger = preload("../util/logger.gd")
+const HT_EditPanel = preload("./panel.gd")
+const HT_GeneratorDialog = preload("./generator/generator_dialog.gd")
+const HT_TextureSetEditor = preload("./texture_editor/set_editor/texture_set_editor.gd")
+const HT_TextureSetImportEditor = \
+	preload("./texture_editor/set_editor/texture_set_import_editor.gd")
 
 const HT_EditPanelScene = preload("./panel.tscn")
 const HT_ProgressWindowScene = preload("./progress_window.tscn")
@@ -47,22 +52,22 @@ const MENU_ABOUT = 9
 var _node : HTerrain = null
 
 # GUI
-var _panel = null
-var _toolbar = null
+var _panel : HT_EditPanel = null
+var _toolbar : Container = null
 var _toolbar_brush_buttons := {}
-var _generator_dialog = null
+var _generator_dialog : HT_GeneratorDialog = null
 # TODO Rename _import_terrain_dialog
 var _import_dialog = null
 var _export_image_dialog = null
 var _progress_window = null
 var _generate_mesh_dialog = null
-var _preview_generator = null
+var _preview_generator : HT_PreviewGenerator = null
 var _resize_dialog = null
 var _about_dialog = null
 var _menu_button : MenuButton
 var _lookdev_menu : PopupMenu
-var _texture_set_editor = null
-var _texture_set_import_editor = null
+var _texture_set_editor : HT_TextureSetEditor = null
+var _texture_set_import_editor : HT_TextureSetImportEditor = null
 
 var _globalmap_baker : HT_GlobalMapBaker = null
 var _terrain_had_data_previous_frame := false
@@ -74,10 +79,10 @@ var _mouse_pressed := false
 #var _pending_paint_action = null
 var _pending_paint_commit := false
 
-var _logger = HT_Logger.get_for(self)
+var _logger := HT_Logger.get_for(self)
 
 
-func get_icon(icon_name: String) -> Texture:
+func get_icon(icon_name: String) -> Texture2D:
 	return HT_EditorUtil.load_texture(
 		"res://addons/zylann.hterrain/tools/icons/icon_" + icon_name + ".svg", _logger)
 

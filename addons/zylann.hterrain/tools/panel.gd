@@ -1,6 +1,8 @@
 @tool
 extends Control
 
+const HT_DetailEditor = preload("./detail_editor/detail_editor.gd")
+
 
 # Emitted when a texture item is selected
 signal texture_selected(index)
@@ -15,7 +17,8 @@ signal detail_list_changed
 @onready var _minimap = $HSplitContainer/HSplitContainer/MinimapContainer/Minimap
 @onready var _brush_editor = $HSplitContainer/BrushEditor
 @onready var _texture_editor = $HSplitContainer/HSplitContainer/HSplitContainer/TextureEditor
-@onready var _detail_editor = $HSplitContainer/HSplitContainer/HSplitContainer/DetailEditor
+@onready var _detail_editor : HT_DetailEditor = \
+	$HSplitContainer/HSplitContainer/HSplitContainer/DetailEditor
 
 
 func setup_dialogs(base_control: Control):
@@ -28,8 +31,8 @@ func set_terrain(terrain):
 	_detail_editor.set_terrain(terrain)
 
 
-func set_undo_redo(ur: UndoRedo):
-	_detail_editor.set_undo_redo(ur)
+func set_undo_redo(undo_manager: EditorUndoRedoManager):
+	_detail_editor.set_undo_redo(undo_manager)
 
 
 func set_image_cache(image_cache):
