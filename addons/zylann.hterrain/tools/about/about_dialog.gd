@@ -25,5 +25,4 @@ func _ready():
 		return
 	var version = plugin_cfg.get_value("plugin", "version", "--.--.--")
 	
-	_about_rich_text_label.bbcode_text = _about_rich_text_label.bbcode_text \
-		.format({"version": version})
+	_about_rich_text_label.text = _about_rich_text_label.text.format({"version": version})
