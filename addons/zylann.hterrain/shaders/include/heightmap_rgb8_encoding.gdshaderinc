@@ -1,36 +1,30 @@
 
-// TODO Small discrepancy in encoding:
-// 8-bit components are normalized using c / 255.0, therefore they can be 1,
-// but the logic below assumes they are normalized with `c / 256.0`.
-// We should test using an extra factor to smooth this out.
-const float FROM_FIXED = 255.0 / 256.0;
-const float TO_FIXED = 256.0 / 255.0;
+const float V2_UNIT_STEPS = 1024.0;
+const float V2_MIN = -8192.0;
+const float V2_MAX = 8191.0;
+const float V2_DF = 255.0 / V2_UNIT_STEPS;
 
-// Decodes height from a normalized 8-bit RGB value.
-// Tuned for heights in -8192.0 .. 8191.0
-float decode_height_from_rgb8_unorm(vec3 c) {
-	// Each component has 8-bit of precision, so 256 possible values.
-	// More components gives us more values decomposed at higher ranges:
-	// c.r + c.g * 256.0 + c.b * 65536.0
-	// Adapting to our use case, we may divide each factor to fit the range and
-	// step we need. Each factor remains a power of two.
-	return c.r * 0.25 + c.g * 64.0 + c.b * 16384.0 - 8192.0;
+float decode_height_from_rgb8_unorm_2(vec3 c) {
+	return (c.r * 0.25 + c.g * 64.0 + c.b * 16384.0) * (4.0 * V2_DF) + V2_MIN;
 }
 
-// Encodes height into a normalized 8-bit RGB value.
-// Tuned for heights in -8192.0 .. 8191.0. Values outside of this range are clamped.
+vec3 encode_height_to_rgb8_unorm_2(float h) {
+	// TODO Check if this has float precision issues
+	// TODO Modulo operator might be a performance/compatibility issue
+	h -= V2_MIN;
+	int i = int(h * V2_UNIT_STEPS);
+	int r = i % 256;
+	int g = (i / 256) % 256;
+	int b = i / 65536;
+	return vec3(float(r), float(g), float(b)) / 255.0;
+}
+
+float decode_height_from_rgb8_unorm(vec3 c) {
+	return decode_height_from_rgb8_unorm_2(c);
+}
+
 vec3 encode_height_to_rgb8_unorm(float h) {
-	h = clamp(h + 8192.0, 0.0, 16384.0);
-	// Extract small component
-	float r = mod(h, 0.25);
-	h -= r;
-	// Extract medium component
-	float g = mod(h, 64.0);
-	h -= g;
-	// Remaining value is big component
-	float b = h;
-	// Normalize
-	return vec3(r, g, b) / vec3(0.25, 64.0, 16384.0);
+	return encode_height_to_rgb8_unorm_2(h);
 }
 
 // TODO Remove for now?
