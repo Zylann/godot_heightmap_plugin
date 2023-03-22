@@ -150,7 +150,7 @@ func _enter_tree():
 	menu.get_popup().add_separator()
 	_lookdev_menu = PopupMenu.new()
 	_lookdev_menu.name = "LookdevMenu"
-	_lookdev_menu.about_to_show.connect(_on_lookdev_menu_about_to_show)
+	_lookdev_menu.about_to_popup.connect(_on_lookdev_menu_about_to_show)
 	_lookdev_menu.id_pressed.connect(_on_lookdev_menu_id_pressed)
 	menu.get_popup().add_child(_lookdev_menu)
 	menu.get_popup().add_submenu_item("Lookdev", _lookdev_menu.name, MENU_LOOKDEV)
