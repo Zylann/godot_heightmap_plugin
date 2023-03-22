@@ -4,8 +4,7 @@
 [ext_resource type="PackedScene" path="res://addons/zylann.hterrain/tools/util/dialog_fitter.tscn" id="2"]
 
 [node name="ExportImageDialog" type="AcceptDialog"]
-size = Vector2i(500, 314)
-visible = true
+size = Vector2i(500, 340)
 min_size = Vector2i(500, 250)
 script = ExtResource("1")
 
@@ -116,7 +115,7 @@ anchors_preset = 0
 offset_left = 8.0
 offset_top = 8.0
 offset_right = 492.0
-offset_bottom = 296.0
+offset_bottom = 322.0
 
 [connection signal="text_changed" from="VB/Grid/OutputPath/HeightmapPathLineEdit" to="." method="_on_HeightmapPathLineEdit_text_changed"]
 [connection signal="pressed" from="VB/Grid/OutputPath/HeightmapPathBrowseButton" to="." method="_on_HeightmapPathBrowseButton_pressed"]

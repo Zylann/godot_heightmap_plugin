@@ -7,7 +7,6 @@
 [node name="TextureSetImportEditor" type="AcceptDialog"]
 title = "Texture Set Import Tool"
 size = Vector2i(652, 623)
-visible = true
 min_size = Vector2i(652, 480)
 script = ExtResource("4")
 
@@ -18,7 +17,7 @@ anchor_bottom = 1.0
 offset_left = 8.0
 offset_top = 8.0
 offset_right = -8.0
-offset_bottom = -49.0
+offset_bottom = -18.0
 
 [node name="HS" type="HSplitContainer" parent="Import"]
 layout_mode = 2
@@ -200,7 +199,7 @@ anchors_preset = 0
 offset_left = 8.0
 offset_top = 8.0
 offset_right = 644.0
-offset_bottom = 574.0
+offset_bottom = 605.0
 
 [connection signal="item_selected" from="Import/HS/VB/SlotsList" to="." method="_on_SlotsList_item_selected"]
 [connection signal="pressed" from="Import/HS/VB/HB/AddSlotButton" to="." method="_on_AddSlotButton_pressed"]

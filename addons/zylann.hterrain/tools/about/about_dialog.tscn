@@ -6,7 +6,6 @@
 
 [node name="AboutDialog" type="AcceptDialog"]
 size = Vector2i(516, 357)
-visible = true
 script = ExtResource("1")
 
 [node name="VB" type="VBoxContainer" parent="."]

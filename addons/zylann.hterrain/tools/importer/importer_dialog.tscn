@@ -7,7 +7,6 @@
 [node name="WindowDialog" type="AcceptDialog"]
 title = "Import maps"
 size = Vector2i(500, 433)
-visible = true
 min_size = Vector2i(500, 380)
 script = ExtResource("1")
 

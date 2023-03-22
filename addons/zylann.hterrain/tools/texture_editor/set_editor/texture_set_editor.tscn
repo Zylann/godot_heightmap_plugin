@@ -20,7 +20,6 @@ shader = ExtResource("2")
 [node name="TextureSetEditor" type="AcceptDialog"]
 title = "TextureSet Editor"
 size = Vector2i(666, 341)
-visible = true
 min_size = Vector2i(652, 320)
 script = ExtResource("1")
 

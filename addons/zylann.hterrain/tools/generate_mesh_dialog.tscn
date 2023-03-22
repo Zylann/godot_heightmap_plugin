@@ -6,7 +6,6 @@
 [node name="GenerateMeshDialog" type="AcceptDialog"]
 title = "Generate full mesh"
 size = Vector2i(448, 234)
-visible = true
 min_size = Vector2i(448, 186)
 script = ExtResource("1")
 
