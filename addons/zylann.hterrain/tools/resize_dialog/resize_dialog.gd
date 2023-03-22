@@ -66,6 +66,10 @@ static func _get_icon(name) -> Texture2D:
 	return load("res://addons/zylann.hterrain/tools/icons/icon_" + name + ".svg")
 
 
+func _init():
+	get_ok_button().hide()
+
+
 func _ready():
 	if HT_Util.is_in_edited_scene(self):
 		return
