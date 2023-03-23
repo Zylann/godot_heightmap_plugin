@@ -148,7 +148,7 @@ func _on_StretchCheckBox_toggled(button_pressed: bool):
 
 
 func _on_ApplyButton_pressed():
-	var stretch = _stretch_checkbox.pressed
+	var stretch = _stretch_checkbox.button_pressed
 	var res = _resolutions[_resolution_dropdown.get_selected_id()]
 	var dir = _anchor_dirs[_selected_anchor]
 	_apply(res, stretch, Vector2(dir[0], dir[1]))

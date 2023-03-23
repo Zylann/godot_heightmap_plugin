@@ -390,7 +390,7 @@ func _update_brush_buttons_availability():
 			button.disabled = false
 		else:
 			var button = _toolbar_brush_buttons[HT_TerrainPainter.MODE_DETAIL]
-			if button.pressed:
+			if button.button_pressed:
 				_select_brush_mode(HT_TerrainPainter.MODE_RAISE)
 			button.disabled = true
 
@@ -728,7 +728,7 @@ func _on_detail_selected(index: int):
 
 
 func _select_brush_mode(mode: int):
-	_toolbar_brush_buttons[mode].pressed = true
+	_toolbar_brush_buttons[mode].button_pressed = true
 	_on_mode_selected(mode)
 
 

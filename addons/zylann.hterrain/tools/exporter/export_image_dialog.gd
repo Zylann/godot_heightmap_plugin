@@ -189,7 +189,7 @@ func _on_CancelButton_pressed():
 func _on_ExportButton_pressed():
 	if _export():
 		hide()
-	if _show_in_explorer_checkbox.pressed:
+	if _show_in_explorer_checkbox.button_pressed:
 		OS.shell_open(_output_path_line_edit.text.strip_edges().get_base_dir())
 
 
