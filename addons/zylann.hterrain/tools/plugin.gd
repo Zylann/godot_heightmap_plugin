@@ -93,8 +93,8 @@ func _enter_tree():
 	var dpi_scale = get_editor_interface().get_editor_scale()
 	_logger.debug(str("DPI scale: ", dpi_scale))
 	
-	add_custom_type("HTerrain", "Spatial", HTerrain, get_icon("heightmap_node"))
-	add_custom_type("HTerrainDetailLayer", "Spatial", HTerrainDetailLayer, 
+	add_custom_type("HTerrain", "Node3D", HTerrain, get_icon("heightmap_node"))
+	add_custom_type("HTerrainDetailLayer", "Node3D", HTerrainDetailLayer, 
 		get_icon("detail_layer_node"))
 	add_custom_type("HTerrainData", "Resource", HTerrainData, get_icon("heightmap_data"))
 	# TODO Proper texture
