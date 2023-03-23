@@ -32,7 +32,10 @@ const _map_types = {
 		filter = true,
 		mipmaps = false,
 		texture_format = Image.FORMAT_RGB8,
-		default_fill = null,
+		# Should have been encode_height_to_rgb8_unorm(0.0), but Godot 4 doesn't take static
+		# function results in constant dictionaries... also beware of not taking this constant
+		# by printing a Color directly, Godot rounds it. Instead print components separately.
+		default_fill = Color(0, 0, 0.50196081399918, 1),
 		default_count = 1,
 		can_be_saved_as_png = false,
 		authored = true,
