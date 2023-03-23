@@ -37,7 +37,7 @@ const _map_types = {
 		# by printing a Color directly, Godot rounds it. Instead print components separately.
 		default_fill = Color(0, 0, 0.50196081399918, 1),
 		default_count = 1,
-		can_be_saved_as_png = false,
+		can_be_saved_as_png = true,
 		authored = true,
 		srgb = false
 	},
@@ -1110,7 +1110,9 @@ func _save_map(dir_path: String, map_type: int, index: int) -> bool:
 	return true
 
 
-static func _try_write_default_import_options(fpath: String, channel: int, logger):
+static func _try_write_default_import_options(
+	fpath: String, channel: int, logger: HT_Logger.HT_LoggerBase):
+	
 	var imp_fpath := fpath + ".import"
 	if FileAccess.file_exists(imp_fpath):
 		# Already exists
@@ -1118,43 +1120,58 @@ static func _try_write_default_import_options(fpath: String, channel: int, logge
 	
 	var map_info = _map_types[channel]
 	var srgb: bool = map_info.srgb
-
-	var defaults = {
-		"remap": {
-			"importer": "texture",
-			"type": "CompressedTexture2D"
-		},
-		"deps": {
-			"source_file": fpath
-		},
-		"params": {
-			# Use lossless compression.
-			# Lossy ruins quality and makes the editor choke on big textures.
-			# TODO I would have used ImageTexture.COMPRESS_LOSSLESS,
-			# but apparently what is saved in the .import file does not match,
-			# and rather corresponds TO THE UI IN THE IMPORT DOCK :facepalm:
-			"compress/mode": 0,
-			
-			"compress/hdr_compression": 0,
-			"compress/normal_map": 0,
-			# No mipmaps
-			"mipmaps/limit": 0,
-			
-			# Most textures aren't color.
-			# Same here, this is mapping something from the import dock UI,
-			# and doesn't have any enum associated, just raw numbers in C++ code...
-			# 0 = "disabled", 1 = "enabled", 2 = "detect"
-			"flags/srgb": 2 if srgb else 0,
-			
-			# No need for this, the meaning of alpha is never transparency
-			"process/fix_alpha_border": false,
-			
-			# Don't try to be smart.
-			# This can actually overwrite the settings with defaults...
-			# https://github.com/godotengine/godot/issues/24220
-			"detect_3d/compress_to": 0,
+	
+	var defaults : Dictionary
+	
+	if channel == CHANNEL_HEIGHT:
+		defaults = {
+			"remap": {
+				# Have the heightmap editable as an image by default
+				"importer": "image",
+				"type": "Image"
+			},
+			"deps": {
+				"source_file": fpath
+			}
 		}
-	}
+	
+	else:
+		defaults = {
+			"remap": {
+				"importer": "texture",
+				"type": "CompressedTexture2D"
+			},
+			"deps": {
+				"source_file": fpath
+			},
+			"params": {
+				# Use lossless compression.
+				# Lossy ruins quality and makes the editor choke on big textures.
+				# TODO I would have used ImageTexture.COMPRESS_LOSSLESS,
+				# but apparently what is saved in the .import file does not match,
+				# and rather corresponds TO THE UI IN THE IMPORT DOCK :facepalm:
+				"compress/mode": 0,
+				
+				"compress/hdr_compression": 0,
+				"compress/normal_map": 0,
+				# No mipmaps
+				"mipmaps/limit": 0,
+				
+				# Most textures aren't color.
+				# Same here, this is mapping something from the import dock UI,
+				# and doesn't have any enum associated, just raw numbers in C++ code...
+				# 0 = "disabled", 1 = "enabled", 2 = "detect"
+				"flags/srgb": 2 if srgb else 0,
+				
+				# No need for this, the meaning of alpha is never transparency
+				"process/fix_alpha_border": false,
+				
+				# Don't try to be smart.
+				# This can actually overwrite the settings with defaults...
+				# https://github.com/godotengine/godot/issues/24220
+				"detect_3d/compress_to": 0,
+			}
+		}
 
 	HT_Util.write_import_file(defaults, imp_fpath, logger)
 
@@ -1175,57 +1192,43 @@ func _load_map(dir: String, map_type: int, index: int) -> bool:
 
 	if _channel_can_be_saved_as_png(map_type):
 		fpath += ".png"
-		# In this particular case, we can use Godot ResourceLoader directly,
-		# if the texture got imported.
-
-		var tex = load(fpath)
-
-		var must_load_image_in_editor := true
-
-		if tex != null and tex is Image:
-			# The texture is imported as Image,
-			# perhaps the user wants it to be accessible from RAM in game.
-			_logger.debug("Map {0} is imported as Image. An ImageTexture will be generated." \
-					.format([get_map_debug_name(map_type, index)]))
-			map.image = tex
-			tex = ImageTexture.create_from_image(map.image)
-			must_load_image_in_editor = false
-
-		map.texture = tex
-
-		if Engine.is_editor_hint():
-			if must_load_image_in_editor:
-				# But in the editor we want textures to be editable,
-				# so we have to automatically load the data also in RAM
-				if map.image == null:
-					map.image = Image.load_from_file(fpath)
-				else:
-					map.image.load(fpath)
-			_ensure_map_format(map.image, map_type, index)
-
 	else:
-		# The heightmap is different.
-		# It has often uses beyond graphics, so we always keep a RAM copy by default.
-
 		fpath += ".res"
-		var im : Image = load(fpath)
+	
+	var tex = load(fpath)
 
-		if im == null:
-			_logger.error("Could not load '{0}'".format([fpath]))
-			return false
+	var must_load_image_in_editor := true
 
-		_resolution = im.get_width()
+	if tex != null and tex is Image:
+		# The texture is imported as Image,
+		# perhaps the user wants it to be accessible from RAM in game.
+		_logger.debug("Map {0} is imported as Image. An ImageTexture will be generated." \
+				.format([get_map_debug_name(map_type, index)]))
+		map.image = tex
+		tex = ImageTexture.create_from_image(map.image)
+		must_load_image_in_editor = false
 
-		map.image = im
+	map.texture = tex
+
+	if Engine.is_editor_hint():
+		if must_load_image_in_editor:
+			# But in the editor we want textures to be editable,
+			# so we have to automatically load the data also in RAM
+			if map.image == null:
+				map.image = Image.load_from_file(fpath)
+			else:
+				map.image.load(fpath)
 		_ensure_map_format(map.image, map_type, index)
-		_upload_channel(map_type, index)
+	
+	if map_type == CHANNEL_HEIGHT:
+		_resolution = map.image.get_width()
 
 	return true
 
 
 func _ensure_map_format(im: Image, map_type: int, index: int):
 	var format := im.get_format()
-	var expected_format = _map_types[map_type].texture_format
+	var expected_format : int = _map_types[map_type].texture_format
 	if format != expected_format:
 		_logger.warn("Map {0} loaded as format {1}, expected {2}. Will be converted." \
 			.format([get_map_debug_name(map_type, index), format, expected_format]))
