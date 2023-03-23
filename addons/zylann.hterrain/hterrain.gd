@@ -1456,7 +1456,7 @@ func set_ground_texture(slot: int, type: int, tex: Texture):
 		"HTerrain.set_ground_texture is obsolete, " +
 		"use HTerrain.get_texture_set().set_texture(slot, type, texture) instead")
 	assert(tex == null or tex is Texture)
-	var shader_param = _get_ground_texture_shader_param_name(type, slot)
+	var shader_param := _get_ground_texture_shader_param_name(type, slot)
 	_material.set_shader_parameter(shader_param, tex)
 
 
@@ -1469,7 +1469,7 @@ func get_ground_texture_array(type: int) -> Texture2DArray:
 	_logger.error(
 		"HTerrain.get_ground_texture_array is obsolete, " +
 		"use HTerrain.get_texture_set().get_texture_array(type) instead")
-	var param_name = _get_ground_texture_array_shader_param_name(type)
+	var param_name := _get_ground_texture_array_shader_param_name(type)
 	return _material.get_shader_parameter(param_name)
 
 
@@ -1478,7 +1478,7 @@ func set_ground_texture_array(type: int, texture_array: Texture2DArray):
 	_logger.error(
 		"HTerrain.set_ground_texture_array is obsolete, " +
 		"use HTerrain.get_texture_set().set_texture_array(type, texarray) instead")
-	var param_name = _get_ground_texture_array_shader_param_name(type)
+	var param_name := _get_ground_texture_array_shader_param_name(type)
 	_material.set_shader_parameter(param_name, texture_array)
 
 
