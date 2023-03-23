@@ -26,7 +26,7 @@ func _init(p_parent: Node3D, p_cell_x: int, p_cell_y: int, p_material: Material)
 	cell_origin_x = p_cell_x
 	cell_origin_y = p_cell_y
 
-	var rs = RenderingServer
+	var rs := RenderingServer
 
 	_mesh_instance = rs.instance_create()
 
@@ -56,7 +56,7 @@ func is_active() -> bool:
 	return _active
 
 
-func set_active(a):
+func set_active(a: bool):
 	_active = a
 
 
