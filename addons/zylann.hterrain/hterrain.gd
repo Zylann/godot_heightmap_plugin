@@ -1470,7 +1470,7 @@ func get_ground_texture_array(type: int) -> Texture2DArray:
 		"HTerrain.get_ground_texture_array is obsolete, " +
 		"use HTerrain.get_texture_set().get_texture_array(type) instead")
 	var param_name = _get_ground_texture_array_shader_param_name(type)
-	return _material.get_shader_param(param_name)
+	return _material.get_shader_parameter(param_name)
 
 
 # @obsolete
