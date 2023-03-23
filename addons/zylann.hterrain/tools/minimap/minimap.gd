@@ -65,7 +65,7 @@ func _gui_input(event: InputEvent):
 		if event.pressed:
 			match event.button_index:
 				MOUSE_BUTTON_RIGHT:
-					_popup_menu.rect_position = get_global_mouse_position()
+					_popup_menu.position = get_screen_position() + event.position
 					_popup_menu.popup()
 				MOUSE_BUTTON_LEFT:
 					# Teleport there?
