@@ -1,5 +1,7 @@
 shader_type canvas_item;
 
+#include "res://addons/zylann.hterrain/shaders/include/heightmap_rgb8_encoding.gdshaderinc"
+
 uniform sampler2D u_src_texture;
 uniform vec4 u_src_rect;
 uniform float u_opacity = 1.0;
@@ -14,6 +16,10 @@ vec2 get_src_uv(vec2 screen_uv) {
 // 	return fract(sin(dot(pos.xy ,vec2(12.9898,78.233))) * 43758.5453);
 // }
 
+float get_height(sampler2D heightmap, vec2 uv) {
+	return decode_height_from_rgb8_unorm(texture(heightmap, uv).rgb);
+}
+
 float erode(sampler2D heightmap, vec2 uv, vec2 pixel_size, float weight) {
 	float r = 3.0;
 	
@@ -21,7 +27,7 @@ float erode(sampler2D heightmap, vec2 uv, vec2 pixel_size, float weight) {
 	// For this to work, filtering must be enabled.
 	vec2 eps = pixel_size / (0.99 * r);
 	
-	float h = texture(heightmap, uv).r;
+	float h = get_height(heightmap, uv);
 	float eh = h;
 	//float dh = h;
 	
@@ -30,7 +36,7 @@ float erode(sampler2D heightmap, vec2 uv, vec2 pixel_size, float weight) {
 		for (float x = -r; x <= r; ++x) {
 			
 			vec2 p = vec2(x, y);
-			float nh = texture(heightmap, uv + p * eps).r;
+			float nh = get_height(heightmap, uv + p * eps);
 			
 			float s = max(length(p) - r, 0);
 			eh = min(eh, nh + s);
@@ -53,5 +59,5 @@ void fragment() {
 	vec2 src_pixel_size = 1.0 / vec2(textureSize(u_src_texture, 0));
 	float ph = erode(u_src_texture, get_src_uv(SCREEN_UV), src_pixel_size, brush_value);
 	//ph += brush_value * 0.35;
-	COLOR = vec4(ph, ph, ph, 1.0);
+	COLOR = vec4(encode_height_to_rgb8_unorm(ph), 1.0);
 }
