@@ -6,14 +6,15 @@
 [sub_resource type="CanvasItemMaterial" id="1"]
 blend_mode = 1
 
-[node name="BrushEditor" type="Control"]
-layout_mode = 3
-anchors_preset = 0
+[node name="BrushEditor" type="HBoxContainer"]
+custom_minimum_size = Vector2(200, 0)
+offset_right = 372.0
+offset_bottom = 167.0
 script = ExtResource("1")
 
 [node name="BrushShapeButton" type="Button" parent="."]
-layout_mode = 0
-anchor_bottom = 1.0
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
 
 [node name="TextureRect" type="TextureRect" parent="BrushShapeButton"]
 material = SubResource("1")
@@ -22,11 +23,10 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 expand_mode = 1
-stretch_mode = 6
+stretch_mode = 5
 
 [node name="GridContainer" type="GridContainer" parent="."]
-layout_mode = 0
-anchor_right = 1.0
+layout_mode = 2
 size_flags_horizontal = 3
 columns = 2
 
