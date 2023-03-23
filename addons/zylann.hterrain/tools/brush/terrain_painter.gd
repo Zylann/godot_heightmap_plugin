@@ -37,7 +37,7 @@ class HT_ModifiedMap:
 
 signal flatten_height_changed
 
-var _painters := []
+var _painters : Array[HT_Painter] = []
 
 var _brush := HT_Brush.new()
 
