@@ -430,8 +430,8 @@ func _make_visible(visible: bool):
 func _get_pointed_cell_position(mouse_position: Vector2, p_camera: Camera3D):# -> Vector2:
 	# Need to do an extra conversion in case the editor viewport is in half-resolution mode
 	var viewport := p_camera.get_viewport()
-	var viewport_container = viewport.get_parent()
-	var screen_pos = mouse_position * viewport.size / viewport_container.size
+	var viewport_container : Control = viewport.get_parent()
+	var screen_pos = mouse_position * Vector2(viewport.size) / viewport_container.size
 	
 	var origin = p_camera.project_ray_origin(screen_pos)
 	var dir = p_camera.project_ray_normal(screen_pos)
