@@ -58,7 +58,7 @@ func set_terrain(terrain: HTerrain):
 		return
 
 	if _terrain != null:
-		_terrain.transform_changed.connect(_on_terrain_transform_changed)
+		_terrain.transform_changed.disconnect(_on_terrain_transform_changed)
 		_mesh_instance.exit_world()
 		#_debug_mesh_instance.exit_world()
 
