@@ -64,7 +64,11 @@ func setup_dialogs(base_control: Node):
 	_load_image_dialog.current_dir = HT_Brush.SHAPES_DIR
 	_load_image_dialog.file_selected.connect(_on_LoadImageDialog_file_selected)
 	_load_image_dialog.files_selected.connect(_on_LoadImageDialog_files_selected)
-	base_control.add_child(_load_image_dialog)
+	#base_control.add_child(_load_image_dialog)
+	# When a dialog opens another dialog, we get this error:
+	# "Transient parent has another exclusive child."
+	# Which is worked around by making the other dialog a child of the first one (I don't know why)
+	add_child(_load_image_dialog)
 
 
 func _exit_tree():
