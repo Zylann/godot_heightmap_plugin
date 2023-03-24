@@ -11,12 +11,15 @@ const HT_Logger = preload("../../util/logger.gd")
 const HT_ImageFileCache = preload("../../util/image_file_cache.gd")
 const HT_Inspector = preload("../inspector/inspector.gd")
 const HT_TerrainPreview = preload("../terrain_preview.gd")
+const HT_ProgressWindow = preload("../progress_window.gd")
+
+const HT_ProgressWindowScene = preload("../progress_window.tscn")
 
 # TODO Power of two is assumed here.
 # I wonder why it doesn't have the off by one terrain textures usually have
 const MAX_VIEWPORT_RESOLUTION = 512
 
-signal progress_notified(info) # { "progress": real, "message": string, "finished": bool }
+#signal progress_notified(info) # { "progress": real, "message": string, "finished": bool }
 
 @onready var _inspector_container : Control = $VBoxContainer/Editor/Settings
 @onready var _inspector : HT_Inspector = $VBoxContainer/Editor/Settings/Inspector
@@ -34,6 +37,7 @@ var _image_cache : HT_ImageFileCache = null
 var _undo_redo_manager : EditorUndoRedoManager
 var _logger := HT_Logger.get_for(self)
 var _viewport_resolution := MAX_VIEWPORT_RESOLUTION
+var _progress_window : HT_ProgressWindow
 
 
 static func get_shader(shader_name: String) -> Shader:
@@ -45,6 +49,9 @@ static func get_shader(shader_name: String) -> Shader:
 func _init():
 	# Godot 4 does not have a plain WindowDialog class... there is Window but it's too unfriendly...
 	get_ok_button().hide()
+	
+	_progress_window = HT_ProgressWindowScene.instantiate()
+	add_child(_progress_window)
 
 
 func _ready():
@@ -467,7 +474,7 @@ func _on_TextureGenerator_output_generated(image: Image, info: Dictionary):
 			Rect2i(0, 0, image.get_width(), image.get_height()), \
 			info.sector * _viewport_resolution)
 
-		progress_notified.emit({
+		_notify_progress({
 			"progress": info.progress,
 			"message": "Calculating sector (" 
 				+ str(info.sector.x) + ", " + str(info.sector.y) + ")"
@@ -504,6 +511,10 @@ func _on_TextureGenerator_completed():
 	undo_redo.commit_action()
 	data._edit_set_disable_apply_undo(false)
 
-	progress_notified.emit({ "finished": true })
+	_notify_progress({ "finished": true })
 	_logger.debug("Done")
+
+
+func _notify_progress(info: Dictionary):
+	_progress_window.handle_progress(info)
 

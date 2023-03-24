@@ -141,28 +141,28 @@ func setup_dialogs(parent: Node):
 	var d = HT_EditorUtil.create_open_image_dialog()
 	d.file_selected.connect(_on_LoadTextureDialog_file_selected)
 	_load_texture_dialog = d
-	parent.add_child(d)
+	add_child(d)
 	
 	d = AcceptDialog.new()
 	d.title = "Import error"
 	_error_popup = d
-	parent.add_child(_error_popup)
+	add_child(_error_popup)
 
 	d = AcceptDialog.new()
 	d.title = "Info"
 	_info_popup = d
-	parent.add_child(_info_popup)
+	add_child(_info_popup)
 	
 	d = ConfirmationDialog.new()
 	d.confirmed.connect(_on_delete_confirmation_popup_confirmed)
 	_delete_confirmation_popup = d
-	parent.add_child(_delete_confirmation_popup)
+	add_child(_delete_confirmation_popup)
 	
 	d = HT_EditorUtil.create_open_dir_dialog()
 	d.title = "Choose import directory"
 	d.dir_selected.connect(_on_OpenDirDialog_dir_selected)
 	_open_dir_dialog = d
-	parent.add_child(_open_dir_dialog)
+	add_child(_open_dir_dialog)
 	
 	_update_ui_from_data()
 

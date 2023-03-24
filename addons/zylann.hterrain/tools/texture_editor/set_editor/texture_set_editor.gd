@@ -57,12 +57,12 @@ func setup_dialogs(parent: Node):
 	var d = HT_EditorUtil.create_open_texture_dialog()
 	d.file_selected.connect(_on_LoadTextureDialog_file_selected)
 	_load_texture_dialog = d
-	parent.add_child(d)
+	add_child(d)
 
 	d = HT_EditorUtil.create_open_texture_array_dialog()
 	d.file_selected.connect(_on_LoadTextureArrayDialog_file_selected)
 	_load_texture_array_dialog = d
-	parent.add_child(d)
+	add_child(d)
 	
 	d = ConfirmationDialog.new()
 	d.confirmed.connect(_on_ModeConfirmationDialog_confirmed)
@@ -72,7 +72,7 @@ func setup_dialogs(parent: Node):
 #	d.get_close_button().connect("pressed", self, "_on_ModeConfirmationDialog_cancelled")
 #	d.get_cancel().connect("pressed", self, "_on_ModeConfirmationDialog_cancelled")
 	_mode_confirmation_dialog = d
-	parent.add_child(d)
+	add_child(d)
 
 
 func _notification(what: int):

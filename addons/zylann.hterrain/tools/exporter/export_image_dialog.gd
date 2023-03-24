@@ -59,7 +59,7 @@ func setup_dialogs(base_control: Control):
 	fd.unresizable = false
 	fd.access = EditorFileDialog.ACCESS_FILESYSTEM
 	fd.file_selected.connect(_on_FileDialog_file_selected)
-	base_control.add_child(fd)
+	add_child(fd)
 	_file_dialog = fd
 	
 	_update_file_extension()

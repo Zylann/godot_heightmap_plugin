@@ -21,6 +21,7 @@ const HT_GeneratorDialog = preload("./generator/generator_dialog.gd")
 const HT_TextureSetEditor = preload("./texture_editor/set_editor/texture_set_editor.gd")
 const HT_TextureSetImportEditor = \
 	preload("./texture_editor/set_editor/texture_set_import_editor.gd")
+const HT_ProgressWindow = preload("./progress_window.gd")
 
 const HT_EditPanelScene = preload("./panel.tscn")
 const HT_ProgressWindowScene = preload("./progress_window.tscn")
@@ -59,7 +60,14 @@ var _generator_dialog : HT_GeneratorDialog = null
 # TODO Rename _import_terrain_dialog
 var _import_dialog = null
 var _export_image_dialog = null
-var _progress_window = null
+
+# This window is only used for operations not triggered by an existing dialog.
+# In Godot it has been solved by automatically reparenting the dialog:
+# https://github.com/godotengine/godot/pull/71209
+# But `get_exclusive_child()` is not exposed. So dialogs triggering a progress
+# dialog may need their own child instance...
+var _progress_window : HT_ProgressWindow = null
+
 var _generate_mesh_dialog = null
 var _preview_generator : HT_PreviewGenerator = null
 var _resize_dialog = null
@@ -72,7 +80,6 @@ var _texture_set_import_editor : HT_TextureSetImportEditor = null
 var _globalmap_baker : HT_GlobalMapBaker = null
 var _terrain_had_data_previous_frame := false
 var _image_cache : HT_ImageFileCache
-
 var _terrain_painter : HT_TerrainPainter = null
 var _brush_decal : HT_BrushDecal = null
 var _mouse_pressed := false
@@ -220,7 +227,6 @@ func _enter_tree():
 		_toolbar_brush_buttons[mode] = button
 	
 	_generator_dialog = HT_GeneratorDialogScene.instantiate()
-	_generator_dialog.progress_notified.connect(_terrain_progress_notified)
 	_generator_dialog.set_image_cache(_image_cache)
 	_generator_dialog.set_undo_redo(get_undo_redo())
 	base_control.add_child(_generator_dialog)
@@ -245,7 +251,7 @@ func _enter_tree():
 	base_control.add_child(_resize_dialog)
 	
 	_globalmap_baker = HT_GlobalMapBaker.new()
-	_globalmap_baker.progress_notified.connect(_terrain_progress_notified)
+	_globalmap_baker.progress_notified.connect(_progress_window.handle_progress)
 	_globalmap_baker.permanent_change_performed.connect(_on_permanent_change_performed)
 	add_child(_globalmap_baker)
 	
@@ -735,23 +741,6 @@ func _select_brush_mode(mode: int):
 static func get_size_from_raw_length(flen: int):
 	var side_len = roundf(sqrt(float(flen/2)))
 	return int(side_len)
-
-
-func _terrain_progress_notified(info: Dictionary):
-	if info.has("finished") and info.finished:
-		_progress_window.hide()
-	
-	else:
-		if not _progress_window.visible:
-			_progress_window.popup_centered()
-		
-		var message = ""
-		if info.has("message"):
-			message = info.message
-		
-		_progress_window.show_progress(info.message, info.progress)
-		# TODO Have builtin modal progress bar
-		# https://github.com/godotengine/godot/issues/17763
 
 
 func _on_GenerateMeshDialog_generate_selected(lod: int):
