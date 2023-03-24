@@ -8,7 +8,7 @@ const HT_QuadTreeLodGeneric = preload("./quad_tree_lod_generic.gd")
 const _supported_os = {
 	"Windows": true,
 	"X11": true,
-	#"OSX": true
+	"OSX": true
 }
 # See https://docs.godotengine.org/en/stable/tutorials/export/feature_tags.html
 const _supported_archs = ["x86_64"]

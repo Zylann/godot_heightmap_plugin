@@ -45,6 +45,9 @@ default_env.tres
 # Windows
 *.bat
 
+# OSX
+*.os
+
 # Misc
 _draft/
 _old/
