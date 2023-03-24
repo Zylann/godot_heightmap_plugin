@@ -60,7 +60,7 @@ const _API_SHADER_PARAMS = {
 		return texture
 	set(tex):
 		texture = tex
-		_material.set_shader_param("u_albedo_alpha", tex)
+		_material.set_shader_parameter("u_albedo_alpha", tex)
 
 
 # How far detail meshes can be seen.
