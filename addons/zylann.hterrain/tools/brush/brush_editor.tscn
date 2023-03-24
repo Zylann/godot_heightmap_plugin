@@ -8,8 +8,8 @@ blend_mode = 1
 
 [node name="BrushEditor" type="HBoxContainer"]
 custom_minimum_size = Vector2(200, 0)
-offset_right = 372.0
-offset_bottom = 167.0
+offset_right = 293.0
+offset_bottom = 211.0
 script = ExtResource("1")
 
 [node name="BrushShapeButton" type="Button" parent="."]
@@ -40,6 +40,7 @@ size_flags_horizontal = 3
 mouse_filter = 0
 
 [node name="Slider" type="HSlider" parent="GridContainer/BrushSizeControl"]
+custom_minimum_size = Vector2(60, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 1
