@@ -229,7 +229,7 @@ func _notification(what: int):
 
 				_preview.set_sea_visible(_inspector.get_value("show_sea"))
 				_preview.set_shadows_enabled(_inspector.get_value("shadows"))
-
+				
 				_update_generator(true)
 
 			else:
@@ -312,7 +312,6 @@ func _update_generator(preview: bool):
 
 #		var offset_px = sector * (VIEWPORT_RESOLUTION - 1) - Vector2(pad_offset_px, pad_offset_px)
 #		var offset_ndc = offset_px / padded_viewport_resolution
-
 		var progress := float(i) / len(sectors)
 		var p := HT_TextureGeneratorPass.new()
 		p.clear = true
@@ -382,7 +381,12 @@ func _on_CancelButton_pressed():
 
 
 func _on_ApplyButton_pressed():
-	hide()
+	# We used to hide the dialog on Apply and then texture generation took place in an offscreen
+	# viewport in multiple tiled stages, with a progress window being shown. But in Godot 4,
+	# it turns out SubViewports never update if they are child of a Window, even if they are set to
+	# UPDATE_ALWAYS...
+	#hide()
+	
 	_apply()
 
 
@@ -462,13 +466,16 @@ func _on_TextureGenerator_output_generated(image: Image, info: Dictionary):
 				_generated_textures[HTerrainData.CHANNEL_NORMAL])
 	else:
 		assert(_terrain != null)
-		var data = _terrain.get_data()
+		var data := _terrain.get_data()
 		assert(data != null)
-		var dst = data.get_image(info.maptype)
+		var dst := data.get_image(info.maptype)
 		assert(dst != null)
 		
 		#assert(image.get_format() == Image.FORMAT_RGB8 or image.get_format() == Image.FORMAT_RGBA8)
-		image.convert(dst.get_format())
+#		print("Tile ", info.sector)
+#		image.save_png(str("debug_generator_tile_", 
+#			info.sector.x, "_", info.sector.y, "_map", info.maptype, ".png"))
+#		image.convert(dst.get_format())
 
 		dst.blit_rect(image, \
 			Rect2i(0, 0, image.get_width(), image.get_height()), \
