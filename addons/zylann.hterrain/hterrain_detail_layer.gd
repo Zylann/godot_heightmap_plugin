@@ -195,7 +195,7 @@ func _enter_tree():
 func _exit_tree():
 	var terrain = _get_terrain()
 	if terrain != null:
-		terrain.transform_changed.connect(_on_terrain_transform_changed)
+		terrain.transform_changed.disconnect(_on_terrain_transform_changed)
 		terrain._internal_remove_detail_layer(self)
 	_update_material()
 	for k in _chunks.keys():
