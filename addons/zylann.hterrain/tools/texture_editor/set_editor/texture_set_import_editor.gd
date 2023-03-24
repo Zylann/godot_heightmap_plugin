@@ -609,9 +609,7 @@ func _on_ImportButton_pressed():
 	if _import_mode == HTerrainTextureSet.MODE_TEXTURES:
 		files_data_result = _generate_packed_images(import_dir, prefix)
 	else:
-		#files_data_result = _generate_save_packed_texture_arrays_files_data(import_dir, prefix)
-		_show_error("Texture arrays are not supported yet")
-		return
+		files_data_result = _generate_packed_texarray_images(import_dir, prefix)
 
 	if not files_data_result.success:
 		_show_error(files_data_result.get_message())
@@ -747,6 +745,7 @@ class HT_PackedImageInfo:
 	var texture_array : TextureLayered
 
 
+# Shared code between the two import modes
 func _generate_packed_images2() -> HT_Result:
 	var resolution : int = _import_settings.resolution
 	var images_infos := []
@@ -840,7 +839,7 @@ func _generate_packed_images(import_dir: String, prefix: String) -> HT_Result:
 	return HT_Result.new(true).with_value(images_infos)
 
 
-static func _assemble_texarray_images(images: Array, resolution: Vector2i) -> Image:
+static func _assemble_texarray_images(images: Array[Image], resolution: Vector2i) -> Image:
 	# Godot expects some kind of grid. Let's be lazy and do a grid with only one row.
 	var atlas := Image.create(resolution.x * len(images), resolution.y, false, Image.FORMAT_RGBA8)
 	for index in len(images):
@@ -862,15 +861,16 @@ func _generate_packed_texarray_images(import_dir: String, prefix: String) -> HT_
 	var resolution : int = _import_settings.resolution
 	
 	var texarray_images_infos := []
+	var slot_count := len(_slots_data)
 	
 	for type in HTerrainTextureSet.TYPE_COUNT:
-		var texarray_images := []
-		texarray_images.resize(len(_slots_data))
+		var texarray_images : Array[Image] = []
+		texarray_images.resize(slot_count)
 		
 		var fully_defaulted_slots := 0
 		
-		for i in len(individual_images_infos):
-			var info : HT_PackedImageInfo = individual_images_infos[i]
+		for i in slot_count:
+			var info : HT_PackedImageInfo = individual_images_infos[type * slot_count + i]
 			if info.type == type:
 				texarray_images[i] = info.image
 			if info.is_default:
