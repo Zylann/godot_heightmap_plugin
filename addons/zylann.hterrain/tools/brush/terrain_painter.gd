@@ -351,7 +351,7 @@ func _paint_smooth(data: HTerrainData, position: Vector2):
 	var p : HT_Painter = _painters[0]
 	
 	p.set_brush_shader(HT_SmoothShader)
-	p.set_brush_shader_param("u_factor", (10.0 / 60.0))
+	p.set_brush_shader_param("u_factor", 1.0)
 	p.set_image(image, texture)
 	p.paint_input(position)
 
