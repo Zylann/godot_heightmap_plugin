@@ -23,7 +23,7 @@ func set_text(text: String):
 
 
 func set_texture(texture: Texture, texture_layer: int):
-	if texture is Texture2DArray:
+	if texture is TextureLayered:
 		var mat = _texture_rect.material
 		if mat == null or not (mat is ShaderMaterial):
 			mat = ShaderMaterial.new()

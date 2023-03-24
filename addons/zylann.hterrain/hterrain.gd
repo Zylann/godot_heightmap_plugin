@@ -1465,7 +1465,7 @@ func _get_ground_texture_array_shader_param_name(type: int) -> String:
 
 
 # @obsolete
-func get_ground_texture_array(type: int) -> Texture2DArray:
+func get_ground_texture_array(type: int) -> TextureLayered:
 	_logger.error(
 		"HTerrain.get_ground_texture_array is obsolete, " +
 		"use HTerrain.get_texture_set().get_texture_array(type) instead")
@@ -1474,7 +1474,7 @@ func get_ground_texture_array(type: int) -> Texture2DArray:
 
 
 # @obsolete
-func set_ground_texture_array(type: int, texture_array: Texture2DArray):
+func set_ground_texture_array(type: int, texture_array: TextureLayered):
 	_logger.error(
 		"HTerrain.set_ground_texture_array is obsolete, " +
 		"use HTerrain.get_texture_set().set_texture_array(type, texarray) instead")

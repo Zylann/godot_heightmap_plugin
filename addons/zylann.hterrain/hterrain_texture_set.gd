@@ -150,14 +150,14 @@ func set_texture(slot_index: int, ground_texture_type: int, texture: Texture2D):
 		emit_changed()
 
 
-func get_texture_array(ground_texture_type: int) -> Texture2DArray:
+func get_texture_array(ground_texture_type: int) -> TextureLayered:
 	if _mode != MODE_TEXTURE_ARRAYS:
 		return null
 	var texs = _textures[ground_texture_type]
 	return texs[0]
 
 
-func set_texture_array(ground_texture_type: int, texarray: Texture2DArray):
+func set_texture_array(ground_texture_type: int, texarray: TextureLayered):
 	assert(_mode == MODE_TEXTURE_ARRAYS)
 	var texs = _textures[ground_texture_type]
 	if texs[0] != texarray:

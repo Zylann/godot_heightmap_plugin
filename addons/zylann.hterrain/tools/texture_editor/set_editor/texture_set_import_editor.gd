@@ -689,7 +689,7 @@ func _on_ImportButton_pressed():
 
 	else:
 		for fd in files_data:
-			var texture_array : Texture2DArray = load(fd.path)
+			var texture_array : TextureLayered = load(fd.path)
 			if texture_array == null:
 				failed_resource_paths.append(fd.path)
 				continue
@@ -744,7 +744,7 @@ class HT_PackedImageInfo:
 	var image : Image
 	var is_default := false
 	var texture : Texture2D
-	var texture_array : Texture2DArray
+	var texture_array : TextureLayered
 
 
 func _generate_packed_images2() -> HT_Result:

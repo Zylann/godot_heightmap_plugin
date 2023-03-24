@@ -368,7 +368,7 @@ func _set_texture_action(slot_index: int, texture: Texture, type: int):
 	ur.commit_action()
 
 
-func _set_texture_array_action(slot_index: int, texture_array: Texture2DArray, type: int):
+func _set_texture_array_action(slot_index: int, texture_array: TextureLayered, type: int):
 	var prev_texture_array = _texture_set.get_texture_array(type)
 
 	var ur := _get_undo_redo_for_texture_set()
