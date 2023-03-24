@@ -632,7 +632,7 @@ func _on_ImportButton_pressed():
 	if _WRITE_IMPORT_FILES:
 		for fd in files_data:
 			var import_fpath = fd.path + ".import"
-			if not HT_Util.write_import_file(fd.import_data, import_fpath, _logger):
+			if not HT_Util.write_import_file(fd.import_file_data, import_fpath, _logger):
 				_show_error("Failed to write file {0}: {1}".format([import_fpath]))
 				return
 
