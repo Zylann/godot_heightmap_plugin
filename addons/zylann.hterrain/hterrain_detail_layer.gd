@@ -375,6 +375,12 @@ func _notification(what: int):
 
 		NOTIFICATION_VISIBILITY_CHANGED:
 			_set_visible(visible)
+			
+		NOTIFICATION_PREDELETE:
+			# Force DirectMeshInstances to be destroyed before the material.
+			# Otherwise it causes RenderingServer errors...
+			_chunks.clear()
+			_multimesh_instance_pool.clear()
 
 
 func _set_visible(v: bool):
