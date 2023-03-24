@@ -36,9 +36,9 @@ const _src_default_color_codes = [
 
 # TODO We may get rid of modes in the future, and only use TextureArrays.
 # It exists for now for backward compatibility, but it makes the API a bit confusing
-var _mode = MODE_TEXTURES
+var _mode := MODE_TEXTURES
 # [type][slot] -> StreamTexture or TextureArray
-var _textures = [[], []]
+var _textures := [[], []]
 
 
 static func get_texture_type_name(tt: int) -> String:
@@ -108,13 +108,12 @@ func get_slots_count() -> int:
 
 	elif _mode == MODE_TEXTURE_ARRAYS:
 		# TODO What if there are two texture arrays of different size?
-		var texarray = _textures[TYPE_ALBEDO_BUMP][0]
+		var texarray : TextureLayered = _textures[TYPE_ALBEDO_BUMP][0]
 		if texarray == null:
-			var count = 0
 			texarray = _textures[TYPE_NORMAL_ROUGHNESS][0]
 			if texarray == null:
 				return 0
-		return texarray.get_depth()
+		return texarray.get_layers()
 
 	else:
 		assert(false)
