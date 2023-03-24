@@ -5,7 +5,9 @@
 [ext_resource type="PackedScene" uid="uid://ng00jipfeucy" path="res://addons/zylann.hterrain/tools/brush/settings_dialog/preview_scratchpad.tscn" id="4"]
 
 [node name="BrushSettingsDialog" type="AcceptDialog"]
-size = Vector2i(492, 342)
+title = "Brush settings"
+size = Vector2i(700, 422)
+min_size = Vector2i(700, 400)
 script = ExtResource("3")
 
 [node name="VB" type="VBoxContainer" parent="."]
@@ -180,8 +182,8 @@ layout_mode = 2
 text = "Scratchpad"
 
 [node name="PreviewScratchpad" parent="VB/HB/VB3" instance=ExtResource("4")]
+custom_minimum_size = Vector2(200, 300)
 layout_mode = 2
-size_flags_vertical = 3
 
 [node name="ClearScratchpad" type="Button" parent="VB/HB/VB3"]
 layout_mode = 2
