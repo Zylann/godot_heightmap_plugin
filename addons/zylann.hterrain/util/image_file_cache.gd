@@ -11,8 +11,11 @@
 # When the application or plugin is closed, the files get cleared.
 
 const HT_Logger = preload("./logger.gd")
+const HT_Errors = preload("./errors.gd")
 
 const CACHE_FILE_SIZE_THRESHOLD = 1048576
+# For debugging
+const USE_THREAD = true
 
 var _cache_dir := ""
 var _next_id := 0
@@ -40,9 +43,11 @@ func _init(cache_dir: String):
 	if not DirAccess.dir_exists_absolute(_cache_dir):
 		var err := DirAccess.make_dir_absolute(_cache_dir)
 		if err != OK:
-			_logger.error("Could not create directory {0}, error {1}".format([_cache_dir, err]))
+			_logger.error("Could not create directory {0}: {1}" \
+				.format([_cache_dir, HT_Errors.get_message(err)]))
 	_save_thread_running = true 
-	_saving_thread.start(_save_thread_func)
+	if USE_THREAD:
+		_saving_thread.start(_save_thread_func)
 
 
 # TODO Cannot cleanup the cache in destructor!
@@ -53,14 +58,16 @@ func _notification(what: int):
 		#clear()
 		_save_thread_running = false
 		_save_semaphore.post()
-		_saving_thread.wait_to_finish()
+		if USE_THREAD:
+			_saving_thread.wait_to_finish()
 
 
 func _create_new_cache_file(fpath: String):
 	var f := FileAccess.open(fpath, FileAccess.WRITE)
 	if f == null:
 		var err = FileAccess.get_open_error()
-		_logger.error("Failed to create new cache file {0}, error {1}".format([fpath, err]))
+		_logger.error("Failed to create new cache file {0}: {1}" \
+			.format([fpath, HT_Errors.get_message(err)]))
 		return
 
 
@@ -104,6 +111,13 @@ func save_image(im: Image) -> int:
 	_save_queue_mutex.unlock()
 	
 	_save_semaphore.post()
+	
+	if not USE_THREAD:
+		var before = Time.get_ticks_msec()
+		while len(_save_queue) > 0:
+			_save_thread_func()
+			if Time.get_ticks_msec() - before > 10_000:
+				_logger.error("Taking to long to empty save queue in non-threaded mode!")
 	
 	return id
 
@@ -151,8 +165,8 @@ func load_image(id: int) -> Image:
 	var f := FileAccess.open(fpath, FileAccess.READ)
 	if f == null:
 		var err := FileAccess.get_open_error()
-		_logger.error("Could not load cached image from {0}, error {1}" \
-			.format([fpath, err]))
+		_logger.error("Could not load cached image from {0}: {1}" \
+			.format([fpath, HT_Errors.get_message(err)]))
 		return null
 	
 	f.seek(info.data_offset)
@@ -180,7 +194,7 @@ func clear():
 	if err != OK:
 		_logger.error("Could not start list_dir_begin in '{0}'".format([_cache_dir]))
 		return
-		
+	
 	# Delete all cache files
 	while true:
 		var fpath := dir.get_next()
@@ -190,30 +204,33 @@ func clear():
 			_logger.debug(str("Deleting ", fpath))
 			err = dir.remove(fpath)
 			if err != OK:
-				_logger.error("Failed to delete cache file '{0}'" \
-					.format([_cache_dir.path_join(fpath)]))
+				_logger.error("Failed to delete cache file '{0}': {1}" \
+					.format([_cache_dir.path_join(fpath), HT_Errors.get_message(err)]))
 
 	_cache_image_info.clear()
 
 
-func _save_thread_func(_unused_userdata):
-	# Threads keep a reference to the function they run.
-	# So if it's a Reference, and that reference owns the thread... we get a cycle.
+func _save_thread_func():
+	# TODO Is this still true in Godot 4?
+	# Threads keep a reference to the object of the function they run.
+	# So if the object is a Reference, and that reference owns the thread... we get a cycle.
 	# We can break the cycle by removing 1 to the count inside the thread.
 	# The thread's reference will never die unexpectedly because we stop and destroy the thread
 	# in the destructor of the reference.
 	# If that workaround explodes one day, another way could be to use an intermediary instance
 	# extending Object, and run a function on that instead
-	unreference()
+	if USE_THREAD:
+		unreference()
 
 	while _save_thread_running:
 		_save_queue_mutex.lock()
 		var to_save := _save_queue.duplicate(false)
 		_save_queue.clear()
 		_save_queue_mutex.unlock()
-		
+
 		if len(to_save) == 0:
-			_save_semaphore.wait()
+			if USE_THREAD:
+				_save_semaphore.wait()
 			continue
 			
 		var f : FileAccess
@@ -223,23 +240,33 @@ func _save_thread_func(_unused_userdata):
 			# Keep re-using the same file if we did not change path.
 			# It makes I/Os faster.
 			if item.path != path:
+				# Close previous file
 				f = null
-				path = ""
+
+				path = item.path
 
 				f = FileAccess.open(path, FileAccess.READ_WRITE)
 				if f == null:
-					var err = FileAccess.get_open_error()
-					call_deferred("_on_error", "Could not open file {0}, error {1}" \
-						.format([path, err]))
+					var err := FileAccess.get_open_error()
+					call_deferred("_on_error", "Could not open file {0}: {1}" \
+						.format([path, HT_Errors.get_message(err)]))
+					path = ""
 					continue
-
-				path = item.path
 			
 			f.seek(item.data_offset)
 			_write_image(f, item.image)
 			# Notify main thread.
 			# The thread does not modify data, only reads it.
 			call_deferred("_on_image_saved", item)
+		
+		# Workaround some weird behavior in Godot 4:
+		# when the next loop runs, `f` IS NOT CLEANED UP. A reference is still held before `var f`
+		# is reached, which means the file is still locked while the thread is waiting on the
+		# semaphore... so I have to explicitely "close" the file here.
+		f = null
+		
+		if not USE_THREAD:
+			break
 
 
 func _on_error(msg: String):
