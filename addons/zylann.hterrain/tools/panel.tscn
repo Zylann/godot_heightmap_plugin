@@ -11,7 +11,7 @@
 custom_minimum_size = Vector2(400, 120)
 layout_mode = 3
 anchors_preset = 0
-offset_right = 881.0
+offset_right = 1012.0
 offset_bottom = 120.0
 script = ExtResource("1")
 
@@ -34,7 +34,7 @@ layout_mode = 2
 [node name="HSplitContainer" type="HSplitContainer" parent="HSplitContainer/HSplitContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-split_offset = 150
+split_offset = 300
 
 [node name="TextureEditor" parent="HSplitContainer/HSplitContainer/HSplitContainer" instance=ExtResource("3")]
 layout_mode = 2
