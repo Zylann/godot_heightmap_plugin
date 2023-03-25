@@ -1161,7 +1161,7 @@ func _update_viewer_position(camera: Camera3D):
 	if camera == null:
 		var viewport := get_viewport()
 		if viewport != null:
-			camera = viewport.get_camera()
+			camera = viewport.get_camera_3d()
 	
 	if camera == null:
 		return
