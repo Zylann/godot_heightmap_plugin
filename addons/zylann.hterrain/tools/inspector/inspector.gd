@@ -431,18 +431,24 @@ func _open_file_dialog(filters: Array, callback: Callable, access: int):
 	_file_dialog.clear_filters()
 	for filter in filters:
 		_file_dialog.add_filter(filter)
-	_file_dialog.popup_hide.connect(call_deferred.bind("_on_file_dialog_close"), CONNECT_ONE_SHOT)
 
+	# Can't just use one-shot signals because the dialog could be closed without choosing a file...
+#	if not _file_dialog.file_selected.is_connected(callback):
+#		_file_dialog.file_selected.connect(callback, Object.CONNECT_ONE_SHOT)
+	_file_dialog.visibility_changed.connect(
+		call_deferred.bind("_on_file_dialog_visibility_changed"), CONNECT_ONE_SHOT)
 	_file_dialog.file_selected.connect(callback)
+	
 	_file_dialog.popup_centered_ratio(0.7)
 
 
-func _on_file_dialog_close():
-	# Disconnect listeners automatically,
-	# so we can re-use the same dialog with different listeners
-	var cons = _file_dialog.get_signal_connection_list("file_selected")
-	for con in cons:
-		_file_dialog.file_selected.disconnect(con.callable)
+func _on_file_dialog_visibility_changed():
+	if _file_dialog.visible == false:
+		# Disconnect listeners automatically,
+		# so we can re-use the same dialog with different listeners
+		var cons = _file_dialog.get_signal_connection_list("file_selected")
+		for con in cons:
+			_file_dialog.file_selected.disconnect(con.callable)
 
 
 func _on_texture_selected(path: String, key):
