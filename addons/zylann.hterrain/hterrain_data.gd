@@ -8,7 +8,6 @@ extends Resource
 const HT_Grid = preload("./util/grid.gd")
 const HT_Util = preload("./util/util.gd")
 const HT_Errors = preload("./util/errors.gd")
-const HT_NativeFactory = preload("./native/factory.gd")
 const HT_Logger = preload("./util/logger.gd")
 const HT_ImageFileCache = preload("./util/image_file_cache.gd")
 const HT_XYZFormat = preload("./util/xyz_format.gd")
@@ -180,7 +179,6 @@ var _maps := [[]]
 var _chunked_vertical_bounds := Image.new()
 
 var _locked := false
-var _image_utils = HT_NativeFactory.get_image_utils()
 
 var _edit_disable_apply_undo := false
 var _logger := HT_Logger.get_for(self)
