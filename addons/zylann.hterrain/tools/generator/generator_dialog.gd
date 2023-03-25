@@ -381,10 +381,10 @@ func _on_CancelButton_pressed():
 
 
 func _on_ApplyButton_pressed():
-	# We used to hide the dialog on Apply and then texture generation took place in an offscreen
-	# viewport in multiple tiled stages, with a progress window being shown. But in Godot 4,
-	# it turns out SubViewports never update if they are child of a Window, even if they are set to
-	# UPDATE_ALWAYS...
+	# We used to hide the dialog when the Apply button is clicked, and then texture generation took
+	# place in an offscreen viewport in multiple tiled stages, with a progress window being shown.
+	# But in Godot 4, it turns out SubViewports never update if they are child of a hidden Window,
+	# even if they are set to UPDATE_ALWAYS...
 	#hide()
 	
 	_apply()
@@ -520,6 +520,8 @@ func _on_TextureGenerator_completed():
 
 	_notify_progress({ "finished": true })
 	_logger.debug("Done")
+	
+	hide()
 
 
 func _notify_progress(info: Dictionary):
