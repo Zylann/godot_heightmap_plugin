@@ -211,14 +211,16 @@ func clear():
 
 
 func _save_thread_func():
-	# TODO Is this still true in Godot 4?
 	# Threads keep a reference to the object of the function they run.
 	# So if the object is a Reference, and that reference owns the thread... we get a cycle.
 	# We can break the cycle by removing 1 to the count inside the thread.
 	# The thread's reference will never die unexpectedly because we stop and destroy the thread
 	# in the destructor of the reference.
 	# If that workaround explodes one day, another way could be to use an intermediary instance
-	# extending Object, and run a function on that instead
+	# extending Object, and run a function on that instead.
+	#
+	# I added this in Godot 3, and it seems to still be relevant in Godot 4...
+	#
 	if USE_THREAD:
 		unreference()
 
