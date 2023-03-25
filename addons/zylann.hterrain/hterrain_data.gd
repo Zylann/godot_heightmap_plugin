@@ -307,6 +307,9 @@ func resize(p_res: int, stretch := true, anchor := Vector2(-1, -1)):
 							# Can't directly resize this format
 							var float_heightmap := convert_heightmap_to_float(im, _logger)
 							float_heightmap.resize(_resolution, _resolution)
+							im = Image.create(
+								float_heightmap.get_width(),
+								float_heightmap.get_height(), im.has_mipmaps(), im.get_format())
 							convert_float_heightmap_to_rgb8(float_heightmap, im)
 						else:
 							im.resize(_resolution, _resolution)
