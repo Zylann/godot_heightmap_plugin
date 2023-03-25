@@ -219,10 +219,17 @@ func _save_thread_func():
 	# If that workaround explodes one day, another way could be to use an intermediary instance
 	# extending Object, and run a function on that instead.
 	#
-	# I added this in Godot 3, and it seems to still be relevant in Godot 4...
+	# I added this in Godot 3, and it seems to still be relevant in Godot 4 because if I don't
+	# do it, objects are leaking.
 	#
-	if USE_THREAD:
-		unreference()
+	# BUT it seems to end up triggering a crash in debug Godot builds due to unrefing RefCounted
+	# with refcount == 0, so I guess it's wrong now?
+	# So basically, either I do it and I risk a crash,
+	# or I don't do it and then it causes a leak... 
+	# TODO Make this shit use `Object`
+	# 
+	# if USE_THREAD:
+	# 	unreference()
 
 	while _save_thread_running:
 		_save_queue_mutex.lock()
