@@ -535,7 +535,7 @@ func _process(delta):
 		# it doesn't need to redraw ("low processor mode", what makes the editor redraw only with
 		# changes). That wasn't the case in Godot 3, but I guess it is now.
 		# That means when we click Apply, the viewport will not update in particular when doing
-		# erosion passes, because the action of clicking Apply doesn't leed to as many redraws as
+		# erosion passes, because the action of clicking Apply doesn't lead to as many redraws as
 		# changing preview parameters in the UI (those cause redraws for different reasons).
 		# So let's poke the renderer by redrawing something...
 		#
