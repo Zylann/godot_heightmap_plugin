@@ -183,7 +183,7 @@ var _locked := false
 var _image_utils = HT_NativeFactory.get_image_utils()
 
 var _edit_disable_apply_undo := false
-var _logger = HT_Logger.get_for(self)
+var _logger := HT_Logger.get_for(self)
 
 
 func _init():
@@ -194,8 +194,8 @@ func _init():
 func _set_default_maps():
 	_maps.resize(CHANNEL_COUNT)
 	for c in CHANNEL_COUNT:
-		var maps = []
-		var n = _map_types[c].default_count
+		var maps := []
+		var n : int = _map_types[c].default_count
 		for i in n:
 			maps.append(HT_Map.new(i))
 		_maps[c] = maps
@@ -323,7 +323,7 @@ func resize(p_res: int, stretch := true, anchor := Vector2(-1, -1)):
 
 	_update_all_vertical_bounds()
 
-	emit_signal("resolution_changed")
+	resolution_changed.emit()
 
 
 # TODO Can't hint it, the return is a nullable Color
@@ -1702,7 +1702,7 @@ static func encode_height_to_rgb8_unorm(h: float) -> Color:
 	return Color(r, g, b, 255.0) / 255.0
 
 
-static func convert_heightmap_to_float(src: Image, logger) -> Image:
+static func convert_heightmap_to_float(src: Image, logger: HT_Logger.HT_LoggerBase) -> Image:
 	var src_format := src.get_format()
 	
 	if src_format == Image.FORMAT_RH:
