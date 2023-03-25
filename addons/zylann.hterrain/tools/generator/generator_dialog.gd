@@ -527,3 +527,20 @@ func _on_TextureGenerator_completed():
 func _notify_progress(info: Dictionary):
 	_progress_window.handle_progress(info)
 
+
+func _process(delta):
+	if _applying:
+		# HACK to workaround a peculiar behavior of Viewports in Godot 4.
+		# Apparently Godot 4 will not update Viewports set to UPDATE_ALWAYS when the editor decides
+		# it doesn't need to redraw ("low processor mode", what makes the editor redraw only with
+		# changes). That wasn't the case in Godot 3, but I guess it is now.
+		# That means when we click Apply, the viewport will not update in particular when doing
+		# erosion passes, because the action of clicking Apply doesn't leed to as many redraws as
+		# changing preview parameters in the UI (those cause redraws for different reasons).
+		# So let's poke the renderer by redrawing something...
+		#
+		# This also piles on top of the workaround in which we keep the window visible when
+		# applying! So the window has one more reason to stay visible...
+		#
+		_preview.queue_redraw()
+
