@@ -127,8 +127,8 @@ func _report_progress():
 
 func _setup_pass(sector: Vector2):
 	# Note: we implicitely take off-by-one pixels into account
-	var origin = sector * _viewport_size
-	var center = origin + 0.5 * _viewport.size
+	var origin := sector * _viewport_size
+	var center := origin + 0.5 * Vector2(_viewport.size)
 	# The heightmap is left empty, so will default to white, which is a height of 1.
 	# The camera must be placed above the terrain to see it.
 	_camera.position = Vector3(center.x, 2.0, center.y)
@@ -138,9 +138,6 @@ func _setup_pass(sector: Vector2):
 func _grab_image(sector: Vector2):
 	var tex := _viewport.get_texture()
 	var src := tex.get_image()
-	# TODO Optimize: In Godot 3 viewports could render flipped, but in Godot 4 it was removed...
-	# so we have to flip on the CPU
-	src.flip_y()
 	
 	assert(_terrain != null)
 	var data := _terrain.get_data()
