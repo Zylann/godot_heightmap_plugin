@@ -471,11 +471,16 @@ func _on_TextureGenerator_output_generated(image: Image, info: Dictionary):
 		var dst := data.get_image(info.maptype)
 		assert(dst != null)
 		
-		#assert(image.get_format() == Image.FORMAT_RGB8 or image.get_format() == Image.FORMAT_RGBA8)
 #		print("Tile ", info.sector)
 #		image.save_png(str("debug_generator_tile_", 
 #			info.sector.x, "_", info.sector.y, "_map", info.maptype, ".png"))
-#		image.convert(dst.get_format())
+		
+		# Converting in case Viewport texture isn't the format we expect for this map.
+		# Note, in Godot 4 it seems the chosen renderer also influences what you get.
+		# Forward+ non-transparent viewport gives RGB8, but Compatibility gives RGBA8.
+		# I don't know if it's expected or is a bug...
+		if image.get_format() != dst.get_format():
+			image.convert(dst.get_format())
 
 		dst.blit_rect(image, \
 			Rect2i(0, 0, image.get_width(), image.get_height()), \
