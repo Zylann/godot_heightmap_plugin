@@ -63,8 +63,10 @@ var _editors := {}
 @onready var _file_dialog = get_node("OpenFileDialog")
 
 
+func _ready():
+	_file_dialog.visibility_changed.connect(
+		call_deferred.bind("_on_file_dialog_visibility_changed"))
 # Test
-#func _ready():
 #	set_prototype({
 #		"seed": {
 #			"type": TYPE_INT,
@@ -435,8 +437,6 @@ func _open_file_dialog(filters: Array, callback: Callable, access: int):
 	# Can't just use one-shot signals because the dialog could be closed without choosing a file...
 #	if not _file_dialog.file_selected.is_connected(callback):
 #		_file_dialog.file_selected.connect(callback, Object.CONNECT_ONE_SHOT)
-	_file_dialog.visibility_changed.connect(
-		call_deferred.bind("_on_file_dialog_visibility_changed"), CONNECT_ONE_SHOT)
 	_file_dialog.file_selected.connect(callback)
 	
 	_file_dialog.popup_centered_ratio(0.7)
