@@ -9,9 +9,10 @@ const HT_Logger = preload("../../util/logger.gd")
 
 const FORMAT_RH = 0
 const FORMAT_R16 = 1
-const FORMAT_PNG8 = 2
-const FORMAT_EXRH = 3
-const FORMAT_COUNT = 4
+const FORMAT_R24 = 2
+const FORMAT_PNG8 = 3
+const FORMAT_EXRH = 4
+const FORMAT_COUNT = 5
 
 @onready var _output_path_line_edit := $VB/Grid/OutputPath/HeightmapPathLineEdit as LineEdit
 @onready var _format_selector := $VB/Grid/FormatSelector as OptionButton
@@ -38,12 +39,14 @@ func _ready():
 	_format_extensions.resize(FORMAT_COUNT)
 	
 	_format_names[FORMAT_RH] = "16-bit RAW float"
-	_format_names[FORMAT_R16] = "16-bit RAW unsigned"
+	_format_names[FORMAT_R16] = "16-bit RAW int unsigned (little endian)"
+	_format_names[FORMAT_R24] = "24-bit RAW int unsigned (little endian)"
 	_format_names[FORMAT_PNG8] = "8-bit PNG"
 	_format_names[FORMAT_EXRH] = "16-bit float greyscale EXR"
 	
 	_format_extensions[FORMAT_RH] = "raw"
 	_format_extensions[FORMAT_R16] = "raw"
+	_format_extensions[FORMAT_R24] = "raw"
 	_format_extensions[FORMAT_PNG8] = "png"
 	_format_extensions[FORMAT_EXRH] = "exr"
 	
@@ -133,11 +136,11 @@ func _export() -> bool:
 			var err := FileAccess.get_open_error()
 			_print_file_error(fpath, err)
 			return false
-		
+
 		if format == FORMAT_RH:
 			float_heightmap.convert(Image.FORMAT_RH)
 			f.store_buffer(float_heightmap.get_data())
-		
+
 		elif format == FORMAT_R16:
 			var hscale := 65535.0 / (height_max - height_min)
 			for y in float_heightmap.get_height():
@@ -150,7 +153,20 @@ func _export() -> bool:
 					if x % 50 == 0:
 						_logger.debug(str(h))
 					f.store_16(h)
-	
+
+		elif format == FORMAT_R24:
+			var hscale := 16777215.0 / (height_max - height_min)
+			for y in float_heightmap.get_height():
+				for x in float_heightmap.get_width():
+					var h := int((float_heightmap.get_pixel(x, y).r - height_min) * hscale)
+					if h < 0:
+						h = 0
+					elif h > 16777215:
+						h = 16777215
+					if x % 50 == 0:
+						_logger.debug(str(h))
+					HT_Util.file_store_24(f, h)
+
 	if save_error == OK:
 		_logger.debug("Exported heightmap as \"{0}\"".format([fpath]))
 		return true

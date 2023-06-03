@@ -77,6 +77,21 @@ static func file_get_24(f: FileAccess) -> int:
 	return res
 
 
+static func file_store_24(f: FileAccess, h: int) -> void:
+	var a : int = h & 0xff
+	var b : int = (h >> 8) & 0xff
+	var c : int = (h >> 16) & 0xff
+
+	if f.big_endian:
+		var tmp : int = a
+		a = c
+		c = tmp
+
+	f.store_8(a)
+	f.store_8(b)
+	f.store_8(c)
+
+
 static func integer_square_root(x: int) -> int:
 	assert(typeof(x) == TYPE_INT)
 	var r := int(roundf(sqrt(x)))
