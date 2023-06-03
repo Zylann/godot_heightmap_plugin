@@ -12,6 +12,12 @@ const HT_Logger = preload("./util/logger.gd")
 const HT_ImageFileCache = preload("./util/image_file_cache.gd")
 const HT_XYZFormat = preload("./util/xyz_format.gd")
 
+enum {
+	BIT_DEPTH_UNDEFINED = 0,
+	BIT_DEPTH_16 = 16,
+	BIT_DEPTH_24 = 24
+}
+
 # Note: indexes matters for saving, don't re-order
 # TODO Rename "CHANNEL" to "MAP", makes more sense and less confusing with RGBA channels
 const CHANNEL_HEIGHT = 0
@@ -1251,7 +1257,7 @@ func _edit_import_maps(input: Dictionary) -> bool:
 	if input.has(CHANNEL_HEIGHT):
 		var params = input[CHANNEL_HEIGHT]
 		if not _import_heightmap(
-			params.path, params.min_height, params.max_height, params.big_endian):
+			params.path, params.min_height, params.max_height, params.big_endian, params.bit_depth):
 			return false
 
 	# TODO Import indexed maps?
@@ -1276,7 +1282,7 @@ static func get_adjusted_map_size(width: int, height: int) -> int:
 	return size_po2
 
 
-func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bool) -> bool:
+func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bool, bit_depth: int) -> bool:
 	var ext := fpath.get_extension().to_lower()
 
 	if ext == "png":
@@ -1349,18 +1355,19 @@ func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bo
 		convert_float_heightmap_to_rgb8(src_image, im)
 
 	elif ext == "raw":
-		# RAW files don't contain size, so we have to deduce it from 16-bit size.
+		# RAW files don't contain size, so we take the user's bit depth import choice.
 		# We also need to bring it back to float in the wanted range.
+
+		if bit_depth != BIT_DEPTH_16 && bit_depth != BIT_DEPTH_24:
+			_logger.debug("Invalid bit depth for .raw file import: {0}. Only 16-bit or 24-bit supported...".format([bit_depth]))
+			return false
 
 		var f := FileAccess.open(fpath, FileAccess.READ)
 		if f == null:
 			return false
 
 		var file_len := f.get_length()
-		var file_res := HT_Util.integer_square_root(file_len / 2)
-		if file_res == -1:
-			# Can't deduce size
-			return false
+		var file_res := HT_Util.integer_square_root(file_len / (bit_depth/8))
 
 		# TODO Need a way to know which endianess our system has!
 		# For now we have to make an assumption...
@@ -1392,18 +1399,30 @@ func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bo
 
 		# Convert to internal format
 		var h := 0.0
-		for y in rh:
-			for x in rw:
-				var gs := float(f.get_16()) / 65535.0
-				h = min_y + hrange * float(gs)
-				# RH, RF
-#				im.set_pixel(x, y, Color(h, 0, 0))
-				# RGB8
-				im.set_pixel(x, y, encode_height_to_rgb8_unorm(h))
-				
-			# Skip next pixels if the file is bigger than the accepted resolution
-			for x in range(rw, file_res):
-				f.get_16()
+		if bit_depth == BIT_DEPTH_24:
+			for y in rh:
+				for x in rw:
+					var gs := float(HT_Util.file_get_24(f)) / 16777215.0
+					h = min_y + hrange * float(gs)
+					# RGB8
+					im.set_pixel(x, y, encode_height_to_rgb8_unorm(h))
+
+				# Skip next pixels if the file is bigger than the accepted resolution
+				for x in range(rw, file_res):
+					HT_Util.file_get_24(f)
+		else:
+			for y in rh:
+				for x in rw:
+					var gs := float(f.get_16()) / 65535.0
+					h = min_y + hrange * float(gs)
+					# RH, RF
+#					im.set_pixel(x, y, Color(h, 0, 0))
+					# RGB8
+					im.set_pixel(x, y, encode_height_to_rgb8_unorm(h))
+
+				# Skip next pixels if the file is bigger than the accepted resolution
+				for x in range(rw, file_res):
+					f.get_16()
 
 	elif ext == "xyz":
 		var f := FileAccess.open(fpath, FileAccess.READ)

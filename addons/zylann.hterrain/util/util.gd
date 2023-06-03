@@ -57,6 +57,26 @@ static func create_wirecube_mesh(color = Color(1,1,1)) -> Mesh:
 	return mesh
 
 
+static func file_get_24(f: FileAccess) -> int:
+	var res : int
+	var a : int = f.get_8()
+	var b : int = f.get_8()
+	var c : int = f.get_8()
+
+	if f.big_endian:
+		var tmp : int = a
+		a = c
+		c = tmp
+
+	res = c
+	res <<= 8
+	res |= b
+	res <<= 8
+	res |= a
+
+	return res
+
+
 static func integer_square_root(x: int) -> int:
 	assert(typeof(x) == TYPE_INT)
 	var r := int(roundf(sqrt(x)))

@@ -16,6 +16,7 @@ class HT_InspectorEditor:
 	var control = null
 	var getter := Callable()
 	var setter := Callable()
+	var item_disabler_setter := Callable()
 	var key_label : Label
 
 
@@ -127,6 +128,12 @@ func set_values(values: Dictionary):
 			editor.setter.call(v)
 
 
+func set_item_disabled(key: String, id:int, disabled:bool):
+	var editor = _editors[key]
+	if editor.item_disabler_setter != null:
+		editor.item_disabler_setter.call(id, disabled)
+
+
 # TODO Rename set_schema
 func set_prototype(proto: Dictionary):
 	clear_prototype()
@@ -188,6 +195,7 @@ func _make_editor(key: String, prop: Dictionary) -> HT_InspectorEditor:
 	var editor : Control = null
 	var getter : Callable
 	var setter : Callable
+	var item_disabler_setter : Callable
 	var extra = null
 	
 	match prop.type:
@@ -207,16 +215,25 @@ func _make_editor(key: String, prop: Dictionary) -> HT_InspectorEditor:
 				var option_button := OptionButton.new()
 				
 				for i in len(prop.enum_items):
-					var item = prop.enum_items[i]
-					option_button.add_item(item)
-				
-				# TODO We assume index, actually
+					var item:Array = prop.enum_items[i]
+					var value:int = item[0]
+					var text:String = item[1]
+					option_button.add_item(text, value)
+
 				getter = option_button.get_selected_id
-				setter = option_button.select
+				setter = func select_id(id: int):
+					var index:int = option_button.get_item_index(id)
+					assert(index >= 0)
+					option_button.select(index)
+				item_disabler_setter = func set_item_disabled(id: int, disabled:bool):
+					var index:int = option_button.get_item_index(id)
+					assert(index >= 0)
+					option_button.set_item_disabled(index, disabled)
+
 				option_button.item_selected.connect(_property_edited.bind(key))
 				
 				editor = option_button
-				
+
 			else:
 				# Numeric value
 				var spinbox := SpinBox.new()
@@ -366,6 +383,7 @@ func _make_editor(key: String, prop: Dictionary) -> HT_InspectorEditor:
 	ed.control = editor
 	ed.getter = getter
 	ed.setter = setter
+	ed.item_disabler_setter = item_disabler_setter
 	
 	return ed
 

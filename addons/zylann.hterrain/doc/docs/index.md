@@ -689,7 +689,7 @@ This window allows you to import several kinds of data, such as heightmap but al
 There are a few things to check before you can successfully import a terrain though:
 
 - The resolution should be power of two + 1, and square. If it isn't, the plugin will attempt to crop it, which might be OK or not if you can deal with map borders that this will produce.
-- If you import a RAW heightmap, it has to be encoded using 16-bit unsigned integer format.
+- If you import a RAW heightmap, it has to be encoded using either 16-bit or 24-bit unsigned integer format. Upon selecting a file via the file chooser dialog, the importer will attempt to deduce the bit depth.
 - If you import a PNG heightmap, Godot can only load it as 8-bit depth, so it is not recommended for high-range terrains because it doesn't have enough height precision.
 
 This feature also can't be undone when executed, as all terrain data will be overwritten with the new one. If anything isn't correct, the tool will warn you before to prevent data loss.
