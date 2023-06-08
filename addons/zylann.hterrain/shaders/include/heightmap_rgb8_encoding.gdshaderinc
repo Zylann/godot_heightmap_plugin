@@ -1,5 +1,5 @@
 
-const float V2_UNIT_STEPS = 100.0;
+const float V2_UNIT_STEPS = 1024.0;
 const float V2_MIN = -8192.0;
 
 float decode_height_from_rgb8_unorm_2(vec3 c) {

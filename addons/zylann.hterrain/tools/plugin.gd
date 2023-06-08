@@ -47,6 +47,7 @@ const MENU_EXPORT_HEIGHTMAP = 6
 const MENU_LOOKDEV = 7
 const MENU_DOCUMENTATION = 8
 const MENU_ABOUT = 9
+const MENU_TEST_AB = 10
 
 
 # TODO Rename _terrain
@@ -144,6 +145,7 @@ func _enter_tree():
 	
 	var menu := MenuButton.new()
 	menu.set_text("Terrain")
+	menu.get_popup().add_item("Test deviation...", MENU_TEST_AB)
 	menu.get_popup().add_item("Import maps...", MENU_IMPORT_MAPS)
 	menu.get_popup().add_item("Generate...", MENU_GENERATE)
 	menu.get_popup().add_item("Resize...", MENU_RESIZE)
@@ -625,10 +627,74 @@ func _terrain_exited_scene():
 	_edit(null)
 
 
+static func _test_a(test_data:Array) -> Array:
+	var biggest_diff:float
+	var smallest_diff:float = 1.0
+	for h in test_data:
+		var h_encoded:Color = HTerrainData.encode_height_to_rgb8_unorm(h)
+		var h_decoded:float = HTerrainData.decode_height_from_rgb8_unorm(h_encoded)
+		var h_diff:float = absf(h - h_decoded)
+		if h_diff > biggest_diff:
+			biggest_diff = snapped(h_diff, 0.000001)
+		if h_diff < smallest_diff:
+			smallest_diff = snapped(h_diff, 0.000001)
+
+	return [smallest_diff, biggest_diff]
+
+
+static func _test_b(test_data:Array) -> Array:
+	var biggest_diff:float
+	var smallest_diff:float = 1.0
+	for h in test_data:
+		var h_encoded:Color = HTerrainData.prev_encode_height_to_rgb8_unorm(h)
+		var h_decoded:float = HTerrainData.prev_decode_height_from_rgb8_unorm(h_encoded)
+		var h_diff:float = absf(h - h_decoded)
+		if h_diff > biggest_diff:
+			biggest_diff = snapped(h_diff, 0.000001)
+		if h_diff < smallest_diff:
+			smallest_diff = snapped(h_diff, 0.000001)
+
+	return [smallest_diff, biggest_diff]
+	
+
 func _menu_item_selected(id: int):
 	_logger.debug(str("Menu item selected ", id))
 	
 	match id:
+		MENU_TEST_AB:
+			var diff_min:float = 1.0
+			var diff_max:float = 0.0
+			var diff_min_2:float = 1.0
+			var diff_max_2:float = 0.0
+
+			var test_data:Array
+			for x in (513*513):
+				test_data.append(snapped(randf_range(-8192.0, 8192.0), 0.000001))
+
+			var begin_time := Time.get_ticks_usec()
+			for x in 50:
+				var res:Array = _test_a(test_data)
+				if res[0] < diff_min:
+					diff_min = res[0]
+				if res[1] > diff_max:
+					diff_max = res[1]
+
+			var delta := (Time.get_ticks_usec() - begin_time) * 0.001
+
+			print("new encoding+decoding: max diff {0}-{1} over {2} msecs".format([diff_min, diff_max, delta]))
+
+			var begin_time_2 := Time.get_ticks_usec()
+			for x in 50:
+				var res:Array = _test_b(test_data)
+				if res[0] < diff_min_2:
+					diff_min_2 = res[0]
+				if res[1] > diff_max_2:
+					diff_max_2 = res[1]
+
+			var delta_2 := (Time.get_ticks_usec() - begin_time_2) * 0.001
+
+			print("previous encoding+decoding: max diff {0}-{1} over {2} msecs".format([diff_min_2, diff_max_2, delta_2]))
+
 		MENU_IMPORT_MAPS:
 			_import_dialog.popup_centered()
 					
