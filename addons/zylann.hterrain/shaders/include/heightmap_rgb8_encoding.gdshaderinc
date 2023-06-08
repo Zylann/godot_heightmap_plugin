@@ -1,22 +1,25 @@
 
-const float V2_UNIT_STEPS = 1024.0;
+const float V2_UNIT_STEPS = 100.0;
 const float V2_MIN = -8192.0;
-const float V2_MAX = 8191.0;
-const float V2_DF = 255.0 / V2_UNIT_STEPS;
 
 float decode_height_from_rgb8_unorm_2(vec3 c) {
-	return (c.r * 0.25 + c.g * 64.0 + c.b * 16384.0) * (4.0 * V2_DF) + V2_MIN;
+	int res = int(c.b * 255.0);
+	res <<= 8;
+	res |= int(c.g * 255.0);
+	res <<= 8;
+	res |= int(c.r * 255.0);
+
+	return (float(res) / V2_UNIT_STEPS) + V2_MIN;
 }
 
 vec3 encode_height_to_rgb8_unorm_2(float h) {
 	// TODO Check if this has float precision issues
-	// TODO Modulo operator might be a performance/compatibility issue
 	h -= V2_MIN;
-	int i = int(h * V2_UNIT_STEPS);
-	int r = i % 256;
-	int g = (i / 256) % 256;
-	int b = i / 65536;
-	return vec3(float(r), float(g), float(b)) / 255.0;
+	int hi = int(h * V2_UNIT_STEPS);
+	float r = float(hi&0xff) / 255.0;
+	float g = float((hi>>8)&0xff) / 255.0;
+	float b = float((hi>>16)&0xff) / 255.0;
+	return vec3(r, g, b);
 }
 
 float decode_height_from_rgb8_unorm(vec3 c) {

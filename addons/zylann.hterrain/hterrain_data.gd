@@ -1700,23 +1700,28 @@ static func get_map_shader_param_name(map_type: int, index: int) -> String:
 #	return null
 
 
-const _V2_UNIT_STEPS = 1024.0
+const _V2_UNIT_STEPS = 100.0
 const _V2_MIN = -8192.0
-const _V2_MAX = 8191.0
-const _V2_DF = 255.0 / _V2_UNIT_STEPS
 
 
 static func decode_height_from_rgb8_unorm(c: Color) -> float:
-	return (c.r * 0.25 + c.g * 64.0 + c.b * 16384.0) * (4.0 * _V2_DF) + _V2_MIN
+	var res:int = int(c.b * 255.0)
+	res <<= 8
+	res |= int(c.g * 255.0)
+	res <<= 8
+	res |= int(c.r * 255.0)
+
+	return (float(res) / _V2_UNIT_STEPS) + _V2_MIN
 
 
 static func encode_height_to_rgb8_unorm(h: float) -> Color:
 	h -= _V2_MIN
-	var i := int(h * _V2_UNIT_STEPS)
-	var r := i % 256
-	var g := (i / 256) % 256
-	var b := i / 65536
-	return Color(r, g, b, 255.0) / 255.0
+	var hi:int = int(h * _V2_UNIT_STEPS)
+	var r := float(hi&0xff) / 255.0
+	var g := float((hi>>8)&0xff) / 255.0
+	var b := float((hi>>16)&0xff) / 255.0
+
+	return Color(r, g, b, 1.0)
 
 
 static func convert_heightmap_to_float(src: Image, logger: HT_Logger.HT_LoggerBase) -> Image:
