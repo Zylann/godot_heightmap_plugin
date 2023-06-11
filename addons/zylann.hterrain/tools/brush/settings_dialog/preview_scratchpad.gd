@@ -16,7 +16,7 @@ var _logger := HT_Logger.get_for(self)
 
 func _ready():
 	reset_image()
-	# Default so it doesnt crash when painting and can be tested
+	# Default so it doesn't crash when painting and can be tested
 	var default_brush_texture = \
 		HT_EditorUtil.load_texture(HT_Brush.DEFAULT_BRUSH_TEXTURE_PATH, _logger)
 	_painter.get_brush().set_shapes([default_brush_texture])

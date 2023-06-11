@@ -126,7 +126,7 @@ func _report_progress():
 
 
 func _setup_pass(sector: Vector2):
-	# Note: we implicitely take off-by-one pixels into account
+	# Note: We implicitly take off-by-one pixels into account.
 	var origin = sector * _viewport_size
 	var center = origin + 0.5 * _viewport.size
 	# The heightmap is left empty, so will default to white, which is a height of 1.

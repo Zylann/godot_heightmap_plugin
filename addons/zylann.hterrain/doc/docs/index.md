@@ -57,7 +57,7 @@ So a cleaner way would be:
 ### Development versions
 
 The latest development version of the plugin can be found on [Github](https://github.com/Zylann/godot_heightmap_plugin).
-It is the most recently developped version, but might also have some bugs.
+It is the most recently developed version, but might also have some bugs.
 
 
 Creating a terrain
@@ -717,7 +717,7 @@ Once you have textured ground, you may want to add small detail objects to it, s
 
 ### Painting details
 
-Grass is supported throught `HTerrainDetailLayer` node. They can be created as children of the `HTerrain` node. Each layer represents one kind of detail, so you may have one layer for grass, and another for flowers, for example.
+Grass is supported through `HTerrainDetailLayer` node. They can be created as children of the `HTerrain` node. Each layer represents one kind of detail, so you may have one layer for grass, and another for flowers, for example.
 
 Detail layers come in two parts:
 
@@ -911,7 +911,7 @@ func test():
 The same goes for the heightmap and grass maps, however at time of writing, there are several issues with editing it in game:
 
 - Normals of the terrain don't automatically update, you have to calculate them yourself by also modifying the normalmap. This is a bit tedious and expensive, however it may be improved in the future. Alternatively you could compute them in shader, but it makes rendering a bit more expensive.
-- The collider won't update either, for the same reason mentionned in the [section about collisions in the editor](#Collisions). You can force it to update by calling `update_collider()` but it can cause a hiccup.
+- The collider won't update either, for the same reason mentioned in the [section about collisions in the editor](#Collisions). You can force it to update by calling `update_collider()` but it can cause a hiccup.
 
 
 ### Procedural generation
@@ -1144,7 +1144,7 @@ If none of the initial checks help and you want to post a new issue, do the foll
 
 ### Terrain not saving / not up to date / not showing
 
-This issue happened a few times and had various causes so if the checks mentionned before don't help:
+This issue happened a few times and had various causes so if the checks mentioned before don't help:
 
 - Check the contents of your terrain's data folder. It must contain a `.hterrain` file and a few textures.
 - If they are present, make sure Godot has imported those textures. If it didn't, unfocus the editor, and focus it back (you should see a short progress bar as it does it)

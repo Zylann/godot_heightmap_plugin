@@ -74,7 +74,7 @@ static func load_bounds(f: File) -> HT_XYZBounds:
 
 
 # Loads points into an image with existing dimensions and format.
-# `f` must be positionned at the beginning of the series of points.
+# `f` must be positioned at the beginning of the series of points.
 # If `bounds` is `null`, it will be computed.
 static func load_heightmap(f: File, dst_image: Image, bounds: HT_XYZBounds):
 	# We are not going to read the entire file directly in memory, because it can be really big.
