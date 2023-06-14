@@ -8,10 +8,12 @@ const HT_Util = preload("../../util/util.gd")
 const HT_Logger = preload("../../util/logger.gd")
 
 const FORMAT_RH = 0
-const FORMAT_R16 = 1
-const FORMAT_PNG8 = 2
-const FORMAT_EXRH = 3
-const FORMAT_COUNT = 4
+const FORMAT_RF = 1
+const FORMAT_R16 = 2
+const FORMAT_PNG8 = 3
+const FORMAT_EXRH = 4
+const FORMAT_EXRF = 5
+const FORMAT_COUNT = 6
 
 @onready var _output_path_line_edit := $VB/Grid/OutputPath/HeightmapPathLineEdit as LineEdit
 @onready var _format_selector := $VB/Grid/FormatSelector as OptionButton
@@ -38,14 +40,18 @@ func _ready():
 	_format_extensions.resize(FORMAT_COUNT)
 	
 	_format_names[FORMAT_RH] = "16-bit RAW float"
+	_format_names[FORMAT_RF] = "32-bit RAW float"
 	_format_names[FORMAT_R16] = "16-bit RAW unsigned"
-	_format_names[FORMAT_PNG8] = "8-bit PNG"
+	_format_names[FORMAT_PNG8] = "8-bit PNG greyscale"
 	_format_names[FORMAT_EXRH] = "16-bit float greyscale EXR"
+	_format_names[FORMAT_EXRF] = "32-bit float greyscale EXR"
 	
 	_format_extensions[FORMAT_RH] = "raw"
+	_format_extensions[FORMAT_RF] = "raw"
 	_format_extensions[FORMAT_R16] = "raw"
 	_format_extensions[FORMAT_PNG8] = "png"
 	_format_extensions[FORMAT_EXRH] = "exr"
+	_format_extensions[FORMAT_EXRF] = "exr"
 	
 	if not HT_Util.is_in_edited_scene(self):
 		for i in len(_format_names):
@@ -126,8 +132,11 @@ func _export() -> bool:
 	elif format == FORMAT_EXRH:
 		float_heightmap.convert(Image.FORMAT_RH)
 		save_error = float_heightmap.save_exr(fpath, true)
-		
-	else:
+
+	elif format == FORMAT_EXRF:
+		save_error = float_heightmap.save_exr(fpath, true)
+	
+	else: # RAW
 		var f := FileAccess.open(fpath, FileAccess.WRITE)
 		if f == null:
 			var err := FileAccess.get_open_error()
@@ -136,6 +145,9 @@ func _export() -> bool:
 		
 		if format == FORMAT_RH:
 			float_heightmap.convert(Image.FORMAT_RH)
+			f.store_buffer(float_heightmap.get_data())
+		
+		elif format == FORMAT_RF:
 			f.store_buffer(float_heightmap.get_data())
 		
 		elif format == FORMAT_R16:

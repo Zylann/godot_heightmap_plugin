@@ -1,16 +1,18 @@
 shader_type canvas_item;
+render_mode blend_disabled;
 
-#include "res://addons/zylann.hterrain/shaders/include/heightmap_rgb8_encoding.gdshaderinc"
+#include "res://addons/zylann.hterrain/shaders/include/heightmap.gdshaderinc"
 
 uniform vec2 u_slope_up = vec2(0, 0);
 uniform float u_slope_factor = 1.0;
 uniform bool u_slope_invert = false;
 uniform float u_weight = 0.5;
 uniform float u_dilation = 0.0;
-uniform sampler2D u_screen_texture : hint_screen_texture;
+//uniform sampler2D u_screen_texture : hint_screen_texture;
+uniform sampler2D u_previous_pass;
 
 float get_height(sampler2D tex, vec2 uv) {
-	return decode_height_from_rgb8_unorm(texture(tex, uv).rgb);
+	return sample_height_from_viewport(tex, uv);
 }
 
 void fragment() {
@@ -21,7 +23,7 @@ void fragment() {
 	vec2 eps = SCREEN_PIXEL_SIZE / (0.99 * r);
 	
 	vec2 uv = SCREEN_UV;
-	float h = get_height(u_screen_texture, uv);
+	float h = get_height(u_previous_pass, uv);
 	float eh = h;
 	float dh = h;
 	
@@ -30,7 +32,7 @@ void fragment() {
 		for (float x = -r; x <= r; ++x) {
 			
 			vec2 p = vec2(float(x), float(y));
-			float nh = get_height(u_screen_texture, uv + p * eps);
+			float nh = get_height(u_previous_pass, uv + p * eps);
 			
 			float s = max(length(p) - r, 0);
 			eh = min(eh, nh + s);
@@ -48,10 +50,10 @@ void fragment() {
 	if (u_slope_factor > 0.0) {
 		vec2 ps = SCREEN_PIXEL_SIZE;
 		
-		float left = get_height(u_screen_texture, uv + vec2(-ps.x, 0.0));
-		float right = get_height(u_screen_texture, uv + vec2(ps.x, 0.0));
-		float top = get_height(u_screen_texture, uv + vec2(0.0, ps.y));
-		float bottom = get_height(u_screen_texture, uv + vec2(0.0, -ps.y));
+		float left = get_height(u_previous_pass, uv + vec2(-ps.x, 0.0));
+		float right = get_height(u_previous_pass, uv + vec2(ps.x, 0.0));
+		float top = get_height(u_previous_pass, uv + vec2(0.0, ps.y));
+		float bottom = get_height(u_previous_pass, uv + vec2(0.0, -ps.y));
 		
 		vec3 normal = normalize(vec3(left - right, ps.x + ps.y, bottom - top));
 		vec3 up = normalize(vec3(u_slope_up.x, 1.0, u_slope_up.y));
@@ -70,5 +72,5 @@ void fragment() {
 	//eh = 0.5 * (eh + texture(SCREEN_TEXTURE, uv + mp * ps * k).r);
 	//eh = mix(h, eh, (1.0 - h) / r);
 	
-	COLOR = vec4(encode_height_to_rgb8_unorm(ph), 1.0);
+	COLOR = encode_height_to_viewport(ph);
 }

@@ -1,7 +1,7 @@
 shader_type canvas_item;
 render_mode blend_disabled;
 
-#include "res://addons/zylann.hterrain/shaders/include/heightmap_rgb8_encoding.gdshaderinc"
+#include "res://addons/zylann.hterrain/shaders/include/heightmap.gdshaderinc"
 
 uniform sampler2D u_src_texture;
 uniform vec4 u_src_rect;
@@ -14,7 +14,7 @@ vec2 get_src_uv(vec2 screen_uv) {
 }
 
 float get_height(sampler2D heightmap, vec2 uv) {
-	return decode_height_from_rgb8_unorm(texture(heightmap, uv).rgb);
+	return sample_heightmap(heightmap, uv);
 }
 
 // TODO Could actually level to whatever height the brush was at the beginning of the stroke?
@@ -41,5 +41,5 @@ void fragment() {
 	// TODO I have no idea if this will check out
 	float src_h = get_height(u_src_texture, get_src_uv(SCREEN_UV));
 	float h = mix(src_h, dst_h, brush_value);
-	COLOR = vec4(encode_height_to_rgb8_unorm(h), 1.0);
+	COLOR = encode_height_to_viewport(h);
 }

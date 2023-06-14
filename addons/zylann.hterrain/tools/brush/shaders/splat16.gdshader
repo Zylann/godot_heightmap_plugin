@@ -1,7 +1,7 @@
 shader_type canvas_item;
 render_mode blend_disabled;
 
-#include "res://addons/zylann.hterrain/shaders/include/heightmap_rgb8_encoding.gdshaderinc"
+#include "res://addons/zylann.hterrain/shaders/include/heightmap.gdshaderinc"
 
 uniform sampler2D u_src_texture;
 uniform vec4 u_src_rect;
@@ -24,7 +24,7 @@ float sum(vec4 v) {
 }
 
 float get_height(sampler2D heightmap, vec2 uv) {
-	return decode_height_from_rgb8_unorm(texture(heightmap, uv).rgb);
+	return sample_heightmap(heightmap, uv);
 }
 
 vec3 get_normal(sampler2D heightmap, vec2 pos) {

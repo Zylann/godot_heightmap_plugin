@@ -4,7 +4,7 @@ shader_type spatial;
 // it should be preferred for high-end graphics cards.
 // For less features but lower-end targets, see the lite version.
 
-#include "include/heightmap_rgb8_encoding.gdshaderinc"
+#include "include/heightmap.gdshaderinc"
 
 uniform sampler2D u_terrain_heightmap;
 uniform sampler2D u_terrain_normalmap;
@@ -165,7 +165,7 @@ void vertex() {
 	UV = cell_coords / vec2(textureSize(u_terrain_heightmap, 0));
 
 	// Height displacement
-	float h = decode_height_from_rgb8_unorm(texture(u_terrain_heightmap, UV).rgb);
+	float h = sample_heightmap(u_terrain_heightmap, UV);
 	VERTEX.y = h;
 	wpos.y = h;
 

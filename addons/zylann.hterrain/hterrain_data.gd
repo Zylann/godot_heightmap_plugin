@@ -30,13 +30,10 @@ const _map_types = {
 		shader_param_name = "u_terrain_heightmap",
 		filter = true,
 		mipmaps = false,
-		texture_format = Image.FORMAT_RGB8,
-		# Should have been encode_height_to_rgb8_unorm(0.0), but Godot 4 doesn't take static
-		# function results in constant dictionaries... also beware of not taking this constant
-		# by printing a Color directly, Godot rounds it. Instead print components separately.
-		default_fill = Color(0, 0, 0.50196081399918, 1),
+		texture_format = Image.FORMAT_RF,
+		default_fill = Color(0, 0, 0, 1),
 		default_count = 1,
-		can_be_saved_as_png = true,
+		can_be_saved_as_png = false,
 		authored = true,
 		srgb = false
 	},
@@ -45,6 +42,7 @@ const _map_types = {
 		shader_param_name = "u_terrain_normalmap",
 		filter = true,
 		mipmaps = false,
+		# TODO RGB8 is a lie, we should use RGBA8 and pack something in A I guess
 		texture_format = Image.FORMAT_RGB8,
 		default_fill = Color(0.5, 0.5, 1.0),
 		default_count = 1,
@@ -310,6 +308,7 @@ func resize(p_res: int, stretch := true, anchor := Vector2(-1, -1)):
 								float_heightmap.get_height(), im.has_mipmaps(), im.get_format())
 							convert_float_heightmap_to_rgb8(float_heightmap, im)
 						else:
+							# Assuming float or single-component fixed-point
 							im.resize(_resolution, _resolution)
 					else:
 						var fill_color = _get_map_default_fill_color(channel, index)
@@ -349,11 +348,14 @@ func get_height_at(x: int, y: int) -> float:
 	# Height data must be loaded in RAM
 	var im := get_image(CHANNEL_HEIGHT)
 	assert(im != null)
-	# RH, RF
-#	var h := HT_Util.get_pixel_clamped(im, x, y).r
-	# RGB8
-	var h := decode_height_from_rgb8_unorm(HT_Util.get_pixel_clamped(im, x, y))
-	return h;
+	match im.get_format():
+		Image.FORMAT_RF:
+			return HT_Util.get_pixel_clamped(im, x, y).r
+		Image.FORMAT_RGB8:
+			return decode_height_from_rgb8_unorm(HT_Util.get_pixel_clamped(im, x, y))
+		_:
+			_logger.error(str("Invalid heigthmap format ", im.get_format()))
+			return 0.0
 
 
 # Gets the height at the given floating-point cell position.
@@ -363,7 +365,8 @@ func get_interpolated_height_at(pos: Vector3) -> float:
 	# Height data must be loaded in RAM
 	var im := get_image(CHANNEL_HEIGHT)
 	assert(im != null)
-	assert(im.get_format() == Image.FORMAT_RGB8)
+	var map_type = _map_types[CHANNEL_HEIGHT]
+	assert(im.get_format() == map_type.texture_format)
 
 	# The function takes a Vector3 for convenience so it's easier to use in 3D scripting
 	var x0 := int(floorf(pos.x))
@@ -371,22 +374,37 @@ func get_interpolated_height_at(pos: Vector3) -> float:
 
 	var xf := pos.x - x0
 	var yf := pos.z - y0
-
-	var c00 := HT_Util.get_pixel_clamped(im, x0, y0)
-	var c10 := HT_Util.get_pixel_clamped(im, x0 + 1, y0)
-	var c01 := HT_Util.get_pixel_clamped(im, x0, y0 + 1)
-	var c11 := HT_Util.get_pixel_clamped(im, x0 + 1, y0 + 1)
 	
-	var h00 := decode_height_from_rgb8_unorm(c00)
-	var h10 := decode_height_from_rgb8_unorm(c10)
-	var h01 := decode_height_from_rgb8_unorm(c01)
-	var h11 := decode_height_from_rgb8_unorm(c11)
+	var h00 : float
+	var h10 : float
+	var h01 : float
+	var h11 : float
+	
+	match im.get_format():
+		Image.FORMAT_RF:
+			h00 = HT_Util.get_pixel_clamped(im, x0, y0).r
+			h10 = HT_Util.get_pixel_clamped(im, x0 + 1, y0).r
+			h01 = HT_Util.get_pixel_clamped(im, x0, y0 + 1).r
+			h11 = HT_Util.get_pixel_clamped(im, x0 + 1, y0 + 1).r
+		
+		Image.FORMAT_RGB8:
+			var c00 := HT_Util.get_pixel_clamped(im, x0, y0)
+			var c10 := HT_Util.get_pixel_clamped(im, x0 + 1, y0)
+			var c01 := HT_Util.get_pixel_clamped(im, x0, y0 + 1)
+			var c11 := HT_Util.get_pixel_clamped(im, x0 + 1, y0 + 1)
+
+			h00 = decode_height_from_rgb8_unorm(c00)
+			h10 = decode_height_from_rgb8_unorm(c10)
+			h01 = decode_height_from_rgb8_unorm(c01)
+			h11 = decode_height_from_rgb8_unorm(c11)
+		
+		_:
+			_logger.error(str("Invalid heightmap format ", im.get_format()))
+			return 0.0
 
 	# Bilinear filter
 	var h := lerpf(lerpf(h00, h10, xf), lerpf(h01, h11, xf), yf)
-
-	return h;
-
+	return h
 
 # Gets all heights within the given rectangle in cells.
 # This height is raw and doesn't account for scaling of the terrain node.
@@ -425,16 +443,20 @@ func get_heights_region(x0: int, y0: int, w: int, h: int) -> PackedFloat32Array:
 				i += 1
 	
 	else:
-		_logger.error("Unknown heightmap format!")
+		_logger.error(str("Unknown heightmap format! ", im.get_format()))
 
 	return heights
 
 
-# Gets all heights.
+# Gets all heights as an array indexed as [x + y * width].
 # This height is raw and doesn't account for scaling of the terrain node.
-# Data is returned as a PackedFloat32Array.
 func get_all_heights() -> PackedFloat32Array:
-	return get_heights_region(0, 0, _resolution, _resolution)
+	var im = get_image(CHANNEL_HEIGHT)
+	assert(im != null)
+	if im.get_format() == Image.FORMAT_RF:
+		return im.get_data().to_float32_array()
+	else:
+		return get_heights_region(0, 0, _resolution, _resolution)
 
 
 # Call this function after you end modifying a map.
@@ -875,9 +897,16 @@ func _update_vertical_bounds(origin_in_cells_x: int, origin_in_cells_y: int, \
 func _compute_vertical_bounds_at(
 	origin_x: int, origin_y: int, size_x: int, size_y: int) -> Vector2:
 	
-	var heights = get_image(CHANNEL_HEIGHT)
+	var heights := get_image(CHANNEL_HEIGHT)
 	assert(heights != null)
-	return _get_heights_range_rgb8(heights, Rect2i(origin_x, origin_y, size_x, size_y))
+	match heights.get_format():
+		Image.FORMAT_RF:
+			return _get_heights_range_f(heights, Rect2i(origin_x, origin_y, size_x, size_y))
+		Image.FORMAT_RGB8:
+			return _get_heights_range_rgb8(heights, Rect2i(origin_x, origin_y, size_x, size_y))
+		_:
+			_logger.error(str("Unknown heightmap format ", heights.get_format()))
+			return Vector2()
 
 
 static func _get_heights_range_rgb8(im: Image, rect: Rect2i) -> Vector2:
@@ -895,6 +924,27 @@ static func _get_heights_range_rgb8(im: Image, rect: Rect2i) -> Vector2:
 	for y in range(min_y, max_y):
 		for x in range(min_x, max_x):
 			var h := decode_height_from_rgb8_unorm(im.get_pixel(x, y))
+			min_height = minf(h, min_height)
+			max_height = maxf(h, max_height)
+
+	return Vector2(min_height, max_height)
+
+
+static func _get_heights_range_f(im: Image, rect: Rect2i) -> Vector2:
+	assert(im.get_format() == Image.FORMAT_RF)
+	
+	rect = rect.intersection(Rect2i(0, 0, im.get_width(), im.get_height()))
+	var min_x := rect.position.x
+	var min_y := rect.position.y
+	var max_x := min_x + rect.size.x
+	var max_y := min_y + rect.size.y
+	
+	var min_height := im.get_pixel(min_x, min_y).r
+	var max_height := min_height
+
+	for y in range(min_y, max_y):
+		for x in range(min_x, max_x):
+			var h := im.get_pixel(x, y).r
 			min_height = minf(h, min_height)
 			max_height = maxf(h, max_height)
 
@@ -1095,9 +1145,17 @@ func _save_map(dir_path: String, map_type: int, index: int) -> bool:
 
 	var fpath := dir_path.path_join(_get_map_filename(map_type, index))
 
+	return _save_map_image(fpath, map_type, im)
+
+
+func _save_map_image(fpath: String, map_type: int, im: Image) -> bool:
 	if _channel_can_be_saved_as_png(map_type):
 		fpath += ".png"
-		im.save_png(fpath)
+		var err := im.save_png(fpath)
+		if err != OK:
+			_logger.error("Could not save '{0}', error {1}" \
+				.format([fpath, HT_Errors.get_message(err)]))
+			return false
 		_try_write_default_import_options(fpath, map_type, _logger)
 
 	else:
@@ -1197,8 +1255,23 @@ func _load_map(dir: String, map_type: int, index: int) -> bool:
 		fpath += ".res"
 	
 	var tex = load(fpath)
-
+	
 	var must_load_image_in_editor := true
+	
+	# Short-term compatibility with RGB8 encoding from the godot4 branch
+	if Engine.is_editor_hint() and tex == null and map_type == CHANNEL_HEIGHT:
+		var legacy_fpath := fpath.get_basename() + ".png"
+		var temp = load(legacy_fpath)
+		if temp != null:
+			if temp is Texture2D:
+				temp = temp.get_image()
+			if temp is Image:
+				if temp.get_format() == Image.FORMAT_RGB8:
+					_logger.warn(str(
+						"Found a heightmap using legacy RGB8 format. It will be converted to RF. ",
+						"You may want to remove the old file: {0}").format([fpath]))
+					tex = convert_heightmap_to_float(temp, _logger)
+					_save_map_image(fpath.get_basename(), map_type, tex)
 
 	if tex != null and tex is Image:
 		# The texture is imported as Image,
@@ -1308,14 +1381,21 @@ func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bo
 		_logger.debug("Converting to internal format...")
 
 		# Convert to internal format with range scaling
-		for y in width:
-			for x in height:
-				var gs := src_image.get_pixel(x, y).r
-				var h := min_y + hrange * gs
-				# RH, RF
-#				im.set_pixel(x, y, Color(h, 0, 0))
-				# RGB8
-				im.set_pixel(x, y, encode_height_to_rgb8_unorm(h))
+		match im.get_format():
+			Image.FORMAT_RF:
+				for y in width:
+					for x in height:
+						var gs := src_image.get_pixel(x, y).r
+						var h := min_y + hrange * gs
+						im.set_pixel(x, y, Color(h, h, h))
+			Image.FORMAT_RGB8:
+				for y in width:
+					for x in height:
+						var gs := src_image.get_pixel(x, y).r
+						var h := min_y + hrange * gs
+						im.set_pixel(x, y, encode_height_to_rgb8_unorm(h))
+			_:
+				_logger.error(str("Invalid heightmap format ", im.get_format()))
 	
 	elif ext == "exr":
 		var src_image := Image.load_from_file(fpath)
@@ -1337,16 +1417,20 @@ func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bo
 
 		_logger.debug("Converting to internal format...")
 		
-		# RH, RF
-		# See https://github.com/Zylann/godot_heightmap_plugin/issues/34
-		# Godot can load EXR but it always makes them have at least 3-channels.
-		# Heightmaps need only one, so we have to get rid of 2.
-#		var height_format = _map_types[CHANNEL_HEIGHT].texture_format
-#		src_image.convert(height_format)
-#		im.blit_rect(src_image, Rect2i(0, 0, res, res), Vector2i())
-
-		# RGB8
-		convert_float_heightmap_to_rgb8(src_image, im)
+		match im.get_format():
+			Image.FORMAT_RF:
+				# See https://github.com/Zylann/godot_heightmap_plugin/issues/34
+				# Godot can load EXR but it always makes them have at least 3-channels.
+				# Heightmaps need only one, so we have to get rid of 2.
+				var height_format = _map_types[CHANNEL_HEIGHT].texture_format
+				src_image.convert(height_format)
+				im.blit_rect(src_image, Rect2i(0, 0, res, res), Vector2i())
+			
+			Image.FORMAT_RGB8:
+				convert_float_heightmap_to_rgb8(src_image, im)
+				
+			_:
+				_logger.error(str("Invalid heightmap format ", im.get_format()))
 
 	elif ext == "raw":
 		# RAW files don't contain size, so we have to deduce it from 16-bit size.
@@ -1396,10 +1480,14 @@ func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bo
 			for x in rw:
 				var gs := float(f.get_16()) / 65535.0
 				h = min_y + hrange * float(gs)
-				# RH, RF
-#				im.set_pixel(x, y, Color(h, 0, 0))
-				# RGB8
-				im.set_pixel(x, y, encode_height_to_rgb8_unorm(h))
+				match im.get_format():
+					Image.FORMAT_RF:
+						im.set_pixel(x, y, Color(h, 0, 0))
+					Image.FORMAT_RGB8:
+						im.set_pixel(x, y, encode_height_to_rgb8_unorm(h))
+					_:
+						_logger.error(str("Invalid heightmap format ", im.get_format()))
+						return false
 				
 			# Skip next pixels if the file is bigger than the accepted resolution
 			for x in range(rw, file_res):
@@ -1435,7 +1523,13 @@ func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bo
 		# and we are using Z to map the Y axis of the heightmap image.
 		float_heightmap.flip_y()
 		
-		convert_float_heightmap_to_rgb8(float_heightmap, im)
+		match im.get_format():
+			Image.FORMAT_RF:
+				im.blit_rect(float_heightmap, Rect2i(0, 0, res, res), Vector2i())
+			Image.FORMAT_RGB8:
+				convert_float_heightmap_to_rgb8(float_heightmap, im)
+			_:
+				_logger.error(str("Invalid heightmap format ", im.get_format()))
 
 		# Note: when importing maps with non-compliant sizes and flipping,
 		# the result might not be aligned to global coordinates.
@@ -1537,18 +1631,16 @@ class HT_CellRaycastContext:
 
 	static func _intersect_cell(heightmap: Image, cx: int, cz: int,
 		begin_pos: Vector3, dir: Vector3, decode_func : Callable):
-			
-		assert(heightmap.get_format() == Image.FORMAT_RGB8)
 		
 		var c00 := HT_Util.get_pixel_clamped(heightmap, cx,     cz)
 		var c10 := HT_Util.get_pixel_clamped(heightmap, cx + 1, cz)
 		var c01 := HT_Util.get_pixel_clamped(heightmap, cx,     cz + 1)
 		var c11 := HT_Util.get_pixel_clamped(heightmap, cx + 1, cz + 1)
 		
-		var h00 := decode_func.call(c00)
-		var h10 := decode_func.call(c10)
-		var h01 := decode_func.call(c01)
-		var h11 := decode_func.call(c11)
+		var h00 : float = decode_func.call(c00)
+		var h10 : float = decode_func.call(c10)
+		var h01 : float = decode_func.call(c01)
+		var h11 : float = decode_func.call(c11)
 
 		var p00 := Vector3(cx,     h00, cz)
 		var p10 := Vector3(cx + 1, h10, cz)
@@ -1613,7 +1705,16 @@ func cell_raycast(ray_origin: Vector3, ray_direction: Vector3, max_distance: flo
 	ctx.heightmap = heightmap
 	ctx.cell_param_2d_to_3d = max_distance / max_distance_2d
 	ctx.broad_param_2d_to_3d = ctx.cell_param_2d_to_3d * VERTICAL_BOUNDS_CHUNK_SIZE
-	ctx.decode_height_func = decode_height_from_rgb8_unorm
+	
+	match heightmap.get_format():
+		Image.FORMAT_RF:
+			ctx.decode_height_func = decode_height_from_f
+		Image.FORMAT_RGB8:
+			ctx.decode_height_func = decode_height_from_rgb8_unorm
+		_:
+			_logger.error(str("Invalid heightmap format ", heightmap.get_format()))
+			return null
+
 	#ctx.dbg = dbg
 
 	# Broad phase through cached vertical bound chunks
@@ -1681,11 +1782,18 @@ static func get_map_shader_param_name(map_type: int, index: int) -> String:
 #	return null
 
 
+static func decode_height_from_f(c: Color) -> float:
+	return c.r
+
+
 const _V2_UNIT_STEPS = 1024.0
 const _V2_MIN = -8192.0
 const _V2_MAX = 8191.0
 const _V2_DF = 255.0 / _V2_UNIT_STEPS
 
+# This RGB8 encoding implementation is specific to this plugin.
+# It was used in the port to Godot 4.0 for a time, until it was found float
+# textures could be used.
 
 static func decode_height_from_rgb8_unorm(c: Color) -> float:
 	return (c.r * 0.25 + c.g * 64.0 + c.b * 16384.0) * (4.0 * _V2_DF) + _V2_MIN

@@ -1,14 +1,14 @@
 shader_type spatial;
 render_mode unshaded;//, depth_test_disable;
 
-#include "res://addons/zylann.hterrain/shaders/include/heightmap_rgb8_encoding.gdshaderinc"
+#include "res://addons/zylann.hterrain/shaders/include/heightmap.gdshaderinc"
 
 uniform sampler2D u_terrain_heightmap;
 uniform mat4 u_terrain_inverse_transform;
 uniform mat3 u_terrain_normal_basis;
 
 float get_height(sampler2D heightmap, vec2 uv) {
-	return decode_height_from_rgb8_unorm(texture(heightmap, uv).rgb);
+	return sample_heightmap(heightmap, uv);
 }
 
 void vertex() {

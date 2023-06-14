@@ -1,6 +1,8 @@
 shader_type canvas_item;
+// Required only because we use all 4 channels to encode floats into RGBA8
+render_mode blend_disabled;
 
-#include "res://addons/zylann.hterrain/shaders/include/heightmap_rgb8_encoding.gdshaderinc"
+#include "res://addons/zylann.hterrain/shaders/include/heightmap.gdshaderinc"
 
 uniform vec2 u_offset;
 uniform float u_scale = 0.02;
@@ -189,7 +191,7 @@ float get_height(vec2 pos) {
 	// Additive heightmap
 	{
 		vec2 uv = pos / u_terrain_size;
-		float ah = decode_height_from_rgb8_unorm(texture(u_additive_heightmap, uv).rgb);
+		float ah = sample_heightmap(u_additive_heightmap, uv);
 		h += u_additive_heightmap_factor * ah;
 	}
 	
@@ -205,5 +207,5 @@ void fragment() {
 
 	float h = get_height(uv_tile * u_tile_size);
 	
-	COLOR = vec4(encode_height_to_rgb8_unorm(h), 1.0);
+	COLOR = encode_height_to_viewport(h);
 }

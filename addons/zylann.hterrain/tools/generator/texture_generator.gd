@@ -17,11 +17,20 @@ signal output_generated(image, metadata)
 # Emitted when all passes are complete
 signal completed
 
+class HT_TextureGeneratorViewport:
+	var viewport : SubViewport
+	var ci : TextureRect
+
 var _passes := []
 var _resolution := Vector2i(512, 512)
 var _output_padding := [0, 0, 0, 0]
-var _viewport : SubViewport = null
-var _ci : TextureRect = null
+
+# Since Godot 4.0, we use ping-pong viewports because `hint_screen_texture` always returns `1.0`
+# for transparent pixels, which is wrong, but sadly appears to be intented...
+# https://github.com/godotengine/godot/issues/78207
+var _viewports : Array[HT_TextureGeneratorViewport] = [null, null]
+var _viewport_index := 0
+
 var _dummy_texture : Texture2D
 var _running := false
 var _rerun := false
@@ -37,24 +46,29 @@ var _logger = HT_Logger.get_for(self)
 
 
 func _ready():
-	assert(_viewport == null)
-	assert(_ci == null)
-
-	_viewport = SubViewport.new()
-	# We render with 2D shaders, but we don't want the parent world to interfere
-	_viewport.own_world_3d = true
-	_viewport.world_3d = World3D.new()
-	_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
-	add_child(_viewport)
-	
 	_dummy_texture = load(DUMMY_TEXTURE_PATH)
 	if _dummy_texture == null:
 		_logger.error(str("Failed to load dummy texture ", DUMMY_TEXTURE_PATH))
+	
+	for viewport_index in len(_viewports):
+		var viewport = SubViewport.new()
+		# We render with 2D shaders, but we don't want the parent world to interfere
+		viewport.own_world_3d = true
+		viewport.world_3d = World3D.new()
+		viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+		# Require RGBA8 so we can pack heightmap floats into pixels
+		viewport.transparent_bg = true
+		add_child(viewport)
 
-	_ci = TextureRect.new()
-	_ci.stretch_mode = TextureRect.STRETCH_SCALE
-	_ci.texture = _dummy_texture
-	_viewport.add_child(_ci)
+		var ci := TextureRect.new()
+		ci.stretch_mode = TextureRect.STRETCH_SCALE
+		ci.texture = _dummy_texture
+		viewport.add_child(ci)
+		
+		var vp := HT_TextureGeneratorViewport.new()
+		vp.viewport = viewport
+		vp.ci = ci
+		_viewports[viewport_index] = vp
 	
 	_shader_material = ShaderMaterial.new()
 	
@@ -110,8 +124,9 @@ func run():
 		_rerun = true
 		return
 	
-	assert(_viewport != null)
-	assert(_ci != null)
+	for vp in _viewports:
+		assert(vp.viewport != null)
+		assert(vp.ci != null)
 	
 	# Copy passes
 	var passes := []
@@ -133,12 +148,28 @@ func run():
 #	_uv_offset = Vector2( \
 #		float(largest_padding) / padded_size.x,
 #		float(largest_padding) / padded_size.y)
+	
+	for vp in _viewports:
+		vp.ci.size = padded_size
+		vp.viewport.size = padded_size
+	
+	# First viewport index doesn't matter.
+	# Maybe one issue of resetting it to zero would be that the previous run 
+	# could have ended with the same viewport that will be sent as a texture as 
+	# one of the uniforms of the shader material, which causes an error in the 
+	# renderer because it's not allowed to use a viewport texture while 
+	# rendering on the same viewport
+#	_viewport_index = 0
 
-	_ci.size = padded_size
-
-	_viewport.size = padded_size
-	_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ONCE
+	var first_vp := _viewports[_viewport_index]
+	first_vp.viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ONCE
+	# I don't trust `UPDATE_ONCE`, it also doesn't reset so we never know if it actually works...
+	# https://github.com/godotengine/godot/issues/33351
+	first_vp.viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	
+	for vp in _viewports:
+		if vp != first_vp:
+			vp.viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 
 	_running_pass_index = 0
 	_running_iteration = 0
@@ -151,10 +182,13 @@ func _process(delta: float):
 	if not is_processing():
 		return
 	
+	var prev_vpi := 0 if _viewport_index == 1 else 1
+	var prev_vp := _viewports[prev_vpi]
+	
 	if _running_pass_index > 0:
 		var prev_pass : HT_TextureGeneratorPass = _running_passes[_running_pass_index - 1]
 		if prev_pass.output:
-			_create_output_image(prev_pass.metadata)
+			_create_output_image(prev_pass.metadata, prev_vp)
 	
 	if _running_pass_index >= len(_running_passes):
 		_running = false
@@ -168,14 +202,22 @@ func _process(delta: float):
 			_rerun = false
 			run()
 		else:
-			_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+			# Done
+			for vp in _viewports:
+				vp.viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 			set_process(false)
 			return
 	
 	var p : HT_TextureGeneratorPass = _running_passes[_running_pass_index]
 	
+	var vp := _viewports[_viewport_index]
+	vp.viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	prev_vp.viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	
 	if _running_iteration == 0:
-		_setup_pass(p)
+		_setup_pass(p, vp)
+	
+	_setup_iteration(vp, prev_vp)
 	
 	_report_progress(_running_passes, _running_pass_index, _running_iteration)
 	# Wait one frame for render, and this for EVERY iteration and every pass,
@@ -186,27 +228,31 @@ func _process(delta: float):
 		_running_iteration = 0
 		_running_pass_index += 1
 	
+	# Swap viewport for next pass
+	_viewport_index = (_viewport_index + 1) % 2
+	
 	# The viewport should render after the tree was processed
 
 
-func _setup_pass(p: HT_TextureGeneratorPass):
+# Called at the beginning of each pass
+func _setup_pass(p: HT_TextureGeneratorPass, vp: HT_TextureGeneratorViewport):
 	if p.texture != null:
-		_ci.texture = p.texture
+		vp.ci.texture = p.texture
 	else:
-		_ci.texture = _dummy_texture
+		vp.ci.texture = _dummy_texture
 
 	if p.shader != null:
 		if _shader_material == null:
 			_shader_material = ShaderMaterial.new()
 		_shader_material.shader = p.shader
 		
-		_ci.material = _shader_material
+		vp.ci.material = _shader_material
 		
 		if p.params != null:
 			for param_name in p.params:
 				_shader_material.set_shader_parameter(param_name, p.params[param_name])
 		
-		var vp_size_f := Vector2(_viewport.size)
+		var vp_size_f := Vector2(vp.viewport.size)
 		var res_f := Vector2(_resolution)
 		var scale_ndc := vp_size_f / res_f
 		var pad_offset_ndc := ((vp_size_f - res_f) / 2.0) / vp_size_f
@@ -219,20 +265,28 @@ func _setup_pass(p: HT_TextureGeneratorPass):
 		
 		if p.params == null or not p.params.has("u_uv_scale"):
 			_shader_material.set_shader_parameter("u_uv_scale", scale_ndc)
-			
+		
 		if p.params == null or not p.params.has("u_uv_offset"):
 			_shader_material.set_shader_parameter("u_uv_offset", offset_ndc)
-		
+			
 	else:
-		_ci.material = null
+		vp.ci.material = null
 
 	if p.clear:
-		_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ONCE
+		vp.viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ONCE
 
 
-func _create_output_image(metadata):
-	var tex := _viewport.get_texture()
+# Called for every iteration of every pass
+func _setup_iteration(vp: HT_TextureGeneratorViewport, prev_vp: HT_TextureGeneratorViewport):
+	assert(vp != prev_vp)
+	if _shader_material != null:
+		_shader_material.set_shader_parameter("u_previous_pass", prev_vp.viewport.get_texture())
+
+
+func _create_output_image(metadata, vp: HT_TextureGeneratorViewport):
+	var tex := vp.viewport.get_texture()
 	var src := tex.get_image()
+#	src.save_png(str("ddd_tgen_output", metadata.maptype, ".png"))
 	
 	# Pick the center of the image
 	var subrect := Rect2i( \

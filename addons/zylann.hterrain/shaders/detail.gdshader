@@ -1,7 +1,7 @@
 shader_type spatial;
 render_mode cull_disabled;
 
-#include "include/heightmap_rgb8_encoding.gdshaderinc"
+#include "include/heightmap.gdshaderinc"
 
 uniform sampler2D u_terrain_heightmap;
 uniform sampler2D u_terrain_detailmap;
@@ -45,7 +45,7 @@ vec3 get_ambient_wind_displacement(vec2 uv, float hash) {
 }
 
 float get_height(sampler2D heightmap, vec2 uv) {
-	return decode_height_from_rgb8_unorm(texture(heightmap, uv).rgb);
+	return sample_heightmap(heightmap, uv);
 }
 
 void vertex() {

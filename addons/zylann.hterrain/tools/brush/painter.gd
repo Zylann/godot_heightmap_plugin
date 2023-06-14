@@ -14,6 +14,7 @@ extends Node
 const HT_Logger = preload("../../util/logger.gd")
 const HT_Util = preload("../../util/util.gd")
 const HT_NoBlendShader = preload("./no_blend.gdshader")
+const HT_NoBlendRFShader = preload("./no_blend_rf.gdshader")
 
 const UNDO_CHUNK_SIZE = 64
 
@@ -71,6 +72,7 @@ var _brush_opacity := 1.0
 var _brush_texture : Texture
 var _last_brush_position := Vector2()
 var _brush_material := ShaderMaterial.new()
+var _no_blend_material : ShaderMaterial
 var _image : Image
 var _texture : ImageTexture
 var _cmd_paint := false
@@ -88,17 +90,18 @@ func _init():
 	_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 	_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ONCE
 	#_viewport.hdr = false
+	# Require 4 components (RGBA)
 	_viewport.transparent_bg = true
 	# Apparently HDR doesn't work if this is set to 2D... so let's waste a depth buffer :/
 	#_viewport.usage = Viewport.USAGE_2D
 	#_viewport.keep_3d_linear
 	
 	# There is no "blend_disabled" option on standard CanvasItemMaterial...
-	var no_blend_material := ShaderMaterial.new()
-	no_blend_material.shader = HT_NoBlendShader
+	_no_blend_material = ShaderMaterial.new()
+	_no_blend_material.shader = HT_NoBlendShader
 	_viewport_bg_sprite = Sprite2D.new()
 	_viewport_bg_sprite.centered = false
-	_viewport_bg_sprite.material = no_blend_material
+	_viewport_bg_sprite.material = _no_blend_material
 	_viewport.add_child(_viewport_bg_sprite)
 	
 	_viewport_brush_sprite = Sprite2D.new()
@@ -122,11 +125,18 @@ func set_image(image: Image, texture: ImageTexture):
 	_viewport_bg_sprite.texture = _texture
 	_brush_material.set_shader_parameter(SHADER_PARAM_SRC_TEXTURE, _texture)
 	if image != null:
+		if image.get_format() == Image.FORMAT_RF:
+			# In case of RF all shaders must encode their fragment outputs in RGBA8,
+			# including the unmodified background, as Godot 4.0 does not support RF viewports
+			_no_blend_material.shader = HT_NoBlendRFShader
+		else:
+			_no_blend_material.shader = HT_NoBlendShader
 		# TODO HDR is required in order to paint heightmaps.
 		# Seems Godot 4.0 does not support it, so we have to wait for Godot 4.1...
 		#_viewport.hdr = image.get_format() in _hdr_formats
-		if image.get_format() in _hdr_formats:
-			push_error("Godot 4.0 does not support HDR viewports for GPU-editing heightmaps!")
+		if (image.get_format() in _hdr_formats) and image.get_format() != Image.FORMAT_RF:
+			push_error("Godot 4.0 does not support HDR viewports for GPU-editing heightmaps! " +
+				"Only RF is supported using a bit packing hack.")
 	#print("PAINTER VIEWPORT HDR: ", _viewport.hdr)
 
 
@@ -261,8 +271,16 @@ func _process(delta: float):
 		_pending_paint_render = false
 	
 		#print("Paint result at frame ", Engine.get_frames_drawn())
-		var data := _viewport.get_texture().get_image()
-		data.convert(_image.get_format())
+		var viewport_image := _viewport.get_texture().get_image()
+		
+		if _image.get_format() == Image.FORMAT_RF:
+			# Reinterpret RGBA8 as RF. This assumes painting shaders encode the output properly.
+			assert(viewport_image.get_format() == Image.FORMAT_RGBA8)
+			viewport_image = Image.create_from_data(
+				viewport_image.get_width(), viewport_image.get_height(), false, Image.FORMAT_RF, 
+				viewport_image.get_data())
+		else:
+			viewport_image.convert(_image.get_format())
 		
 		var brush_pos := _last_brush_position
 		
@@ -276,8 +294,8 @@ func _process(delta: float):
 		
 		if src_w != 0 and src_h != 0:
 			_mark_modified_chunks(dst_x, dst_y, src_w, src_h)
-			HT_Util.update_texture_partial(
-				_texture, data, Rect2i(src_x, src_y, src_w, src_h), Vector2i(dst_x, dst_y))
+			HT_Util.update_texture_partial(_texture, viewport_image,
+				Rect2i(src_x, src_y, src_w, src_h), Vector2i(dst_x, dst_y))
 			texture_region_changed.emit(Rect2(dst_x, dst_y, src_w, src_h))
 	
 	# Input is handled just before process, so we still have to wait till next frame

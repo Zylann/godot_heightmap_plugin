@@ -3,7 +3,7 @@ shader_type spatial;
 // This is a shader with less textures, in case the main one doesn't run on your GPU.
 // It's mostly a big copy/paste, because Godot doesn't support #include or #ifdef...
 
-#include "include/heightmap_rgb8_encoding.gdshaderinc"
+#include "include/heightmap.gdshaderinc"
 
 uniform sampler2D u_terrain_heightmap;
 uniform sampler2D u_terrain_normalmap;
@@ -115,7 +115,7 @@ void vertex() {
 	UV = cell_coords / vec2(textureSize(u_terrain_heightmap, 0));
 	
 	// Height displacement
-	float h = decode_height_from_rgb8_unorm(texture(u_terrain_heightmap, UV).rgb);
+	float h = sample_heightmap(u_terrain_heightmap, UV);
 	VERTEX.y = h;
 
 	v_ground_uv = vec3(cell_coords.x, h * MODEL_MATRIX[1][1], cell_coords.y) / u_ground_uv_scale;
