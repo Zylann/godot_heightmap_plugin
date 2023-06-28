@@ -770,7 +770,7 @@ A list of `uniform` parameters are recognized, some of which are required for he
 
 Parameter name                      | Type             | Format  | Description
 ------------------------------------|------------------|---------|--------------
-`u_terrain_heightmap`               | `sampler2D`      | `RH`    | The heightmap, a half-precision float texture which can be sampled in the red channel. Like the other following maps, you have to access it using cell coordinates, which can be computed as seen in the built-in shader.
+`u_terrain_heightmap`               | `sampler2D`      | `RH`    | The heightmap, a 32-bit float texture which can be sampled in the red channel. Like the other following maps, you have to access it using cell coordinates, which can be computed as seen in the built-in shader.
 `u_terrain_normalmap`               | `sampler2D`      | `RGB8`  | The precalculated normalmap of the terrain, which you can use instead of computing it from the heightmap
 `u_terrain_colormap`                | `sampler2D`      | `RGBA8` | The color map, which is the one modified by the color brush. The alpha channel is used for holes.
 `u_terrain_splatmap`                | `sampler2D`      | `RGBA8` | The classic 4-component splatmap, where each channel determines the weight of a given texture. The sum of each channel across all splatmaps must be 1.0.
