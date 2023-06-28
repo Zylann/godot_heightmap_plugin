@@ -138,6 +138,10 @@ greater_max_value = 4000.0
 layout_mode = 2
 text = "Random rotation"
 
+[node name="ShapeCycling" type="CheckBox" parent="VB/HB/VB2/Settings"]
+layout_mode = 2
+text = "Shape cycling"
+
 [node name="HSeparator" type="HSeparator" parent="VB/HB/VB2/Settings"]
 visible = false
 layout_mode = 2
@@ -203,4 +207,5 @@ text = "Clear"
 [connection signal="value_changed" from="VB/HB/VB2/Settings/FrequencyTime" to="." method="_on_FrequencyTime_value_changed"]
 [connection signal="value_changed" from="VB/HB/VB2/Settings/FrequencyDistance" to="." method="_on_FrequencyDistance_value_changed"]
 [connection signal="toggled" from="VB/HB/VB2/Settings/RandomRotation" to="." method="_on_RandomRotation_toggled"]
+[connection signal="toggled" from="VB/HB/VB2/Settings/ShapeCycling" to="." method="_on_shape_cycling_toggled"]
 [connection signal="pressed" from="VB/HB/VB3/ClearScratchpad" to="." method="_on_ClearScratchpad_pressed"]

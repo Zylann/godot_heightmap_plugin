@@ -17,6 +17,7 @@ const MAX_SIZE = 4000
 
 signal size_changed(new_size)
 signal shapes_changed
+signal shape_index_changed
 
 var _size := 32
 var _opacity := 1.0
@@ -31,6 +32,7 @@ var _frequency_time_ms := 0
 var _shapes : Array[Texture2D] = []
 
 var _shape_index := 0
+var _shape_cycling_enabled := false
 var _prev_position := Vector2(-999, -999)
 var _prev_time_ms := 0
 
@@ -124,6 +126,25 @@ func get_shape(i: int) -> Texture2D:
 	return _shapes[i]
 
 
+func get_shape_index() -> int:
+	return _shape_index
+
+
+func set_shape_index(i: int):
+	assert(i >= 0)
+	assert(i < len(_shapes))
+	_shape_index = i
+	shape_index_changed.emit()
+
+
+func set_shape_cycling_enabled(enable: bool):
+	_shape_cycling_enabled = enable
+
+
+func is_shape_cycling_enabled() -> bool:
+	return _shape_cycling_enabled
+
+
 static func load_shape_from_image_file(fpath: String, logger, retries := 1) -> Texture2D:
 	var im := Image.new()
 	var err := im.load(fpath)
@@ -180,9 +201,10 @@ func configure_paint_input(painters: Array[HT_Painter], position: Vector2, press
 		
 		#painter.paint_input(position)
 
-	_shape_index += 1
-	if _shape_index >= len(_shapes):
-		_shape_index = 0
+	if _shape_cycling_enabled:
+		_shape_index += 1
+		if _shape_index >= len(_shapes):
+			_shape_index = 0
 	
 	return true
 

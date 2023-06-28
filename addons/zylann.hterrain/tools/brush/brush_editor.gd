@@ -101,6 +101,7 @@ func set_terrain_painter(terrain_painter: HT_TerrainPainter):
 	if _terrain_painter != null:
 		_terrain_painter.flatten_height_changed.disconnect(_on_flatten_height_changed)
 		_terrain_painter.get_brush().shapes_changed.disconnect(_on_brush_shapes_changed)
+		_terrain_painter.get_brush().shape_index_changed.disconnect(_on_brush_shape_index_changed)
 	
 	_terrain_painter = terrain_painter
 
@@ -130,10 +131,11 @@ func set_terrain_painter(terrain_painter: HT_TerrainPainter):
 		var default_shape_fpath := HT_Brush.DEFAULT_BRUSH_TEXTURE_PATH
 		var default_shape := HT_Brush.load_shape_from_image_file(default_shape_fpath, _logger)
 		brush.set_shapes([default_shape])
-		_shape_texture_rect.texture = brush.get_shape(0)
+		_update_shape_preview()
 		
 		_terrain_painter.flatten_height_changed.connect(_on_flatten_height_changed)
 		brush.shapes_changed.connect(_on_brush_shapes_changed)
+		brush.shape_index_changed.connect(_on_brush_shape_index_changed)
 
 
 func _on_flatten_height_changed():
@@ -142,7 +144,17 @@ func _on_flatten_height_changed():
 
 
 func _on_brush_shapes_changed():
-	_shape_texture_rect.texture = _terrain_painter.get_brush().get_shape(0)
+	_update_shape_preview()
+
+
+func _on_brush_shape_index_changed():
+	_update_shape_preview()
+
+
+func _update_shape_preview():
+	var brush := _terrain_painter.get_brush()
+	var i := brush.get_shape_index()
+	_shape_texture_rect.texture = brush.get_shape(i)
 
 
 func set_display_mode(mode: int):

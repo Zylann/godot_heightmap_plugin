@@ -22,6 +22,7 @@ const HT_Scratchpad = preload("./preview_scratchpad.gd")
 @onready var _frequency_distance_slider : HT_SpinSlider = $VB/HB/VB2/Settings/FrequencyDistance
 @onready var _frequency_time_slider : HT_SpinSlider = $VB/HB/VB2/Settings/FrequencyTime
 @onready var _random_rotation_checkbox : CheckBox = $VB/HB/VB2/Settings/RandomRotation
+@onready var _shape_cycling_checkbox : CheckBox = $VB/HB/VB2/Settings/ShapeCycling
 
 var _brush : HT_Brush
 # This is a `EditorFileDialog`,
@@ -196,6 +197,7 @@ func _update_controls_from_brush():
 	_frequency_time_slider.set_value(
 		1000.0 / maxf(0.1, float(brush.get_frequency_time_ms())), false)
 	_random_rotation_checkbox.button_pressed = brush.is_random_rotation_enabled()
+	_shape_cycling_checkbox.button_pressed = brush.is_shape_cycling_enabled()
 
 
 func _on_ClearScratchpad_pressed():
@@ -246,6 +248,11 @@ func _on_RandomRotation_toggled(button_pressed: bool):
 		brush.set_random_rotation_enabled(button_pressed)
 
 
+func _on_shape_cycling_toggled(button_pressed: bool):
+	for brush in _get_brushes():
+		brush.set_shape_cycling_enabled(button_pressed)
+
+
 func _get_brushes() -> Array[HT_Brush]:
 	if _brush != null:
 		# We edit both the preview brush and the terrain brush
@@ -257,6 +264,7 @@ func _get_brushes() -> Array[HT_Brush]:
 
 func _on_ShapeList_item_selected(index):
 	_update_shape_list_buttons()
+	_brush.set_shape_index(index)
 
 
 func _update_shape_list_buttons():
@@ -268,3 +276,4 @@ func _update_shape_list_buttons():
 
 func _on_shape_list_empty_clicked(at_position, mouse_button_index):
 	_update_shape_list_buttons()
+
