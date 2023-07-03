@@ -264,7 +264,8 @@ func _get_brushes() -> Array[HT_Brush]:
 
 func _on_ShapeList_item_selected(index):
 	_update_shape_list_buttons()
-	_brush.set_shape_index(index)
+	for brush in _get_brushes():
+		brush.set_shape_index(index)
 
 
 func _update_shape_list_buttons():
