@@ -8,7 +8,7 @@ const HT_Logger = preload("../util/logger.gd")
 var _logger = HT_Logger.get_for(self)
 
 
-func _generate(res: Resource, size: Vector2i) -> Texture2D:
+func _generate(res: Resource, size: Vector2i, metadata: Dictionary) -> Texture2D:
 	if res == null or not (res is HTerrainData):
 		return null
 	var normalmap = res.get_image(HTerrainData.CHANNEL_NORMAL)
@@ -17,7 +17,7 @@ func _generate(res: Resource, size: Vector2i) -> Texture2D:
 	return _generate_internal(normalmap, size)
 
 
-func _generate_from_path(path: String, size: Vector2i) -> Texture2D:
+func _generate_from_path(path: String, size: Vector2i, metadata: Dictionary) -> Texture2D:
 	if not path.ends_with("." + HTerrainData.META_EXTENSION):
 		return null
 	var data_dir := path.get_base_dir()
