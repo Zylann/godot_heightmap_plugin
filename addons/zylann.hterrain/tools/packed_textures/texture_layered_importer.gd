@@ -275,7 +275,7 @@ static func _save_tex(
 
 		match p_compress_mode:
 			COMPRESS_LOSSLESS:
-				# We save each mip as PNG so we dont need to do that.
+				# We save each mip as PNG so we don't need to do that.
 				# The engine code does it anyways :shrug: (see below why...)
 #				var image = p_images[i].duplicate()
 #				if p_mipmaps:

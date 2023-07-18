@@ -203,7 +203,7 @@ var _lookdev_material : ShaderMaterial
 
 func _init():
 	_logger.debug("Create HeightMap")
-	# This sets up the defaults. They may be overriden shortly after by the scene loader.
+	# This sets up the defaults. They may be overridden shortly after by the scene loader.
 
 	_lodder.set_callbacks( \
 		funcref(self, "_cb_make_chunk"), \
@@ -960,7 +960,7 @@ func _update_material_params():
 		res.x = _data.get_resolution()
 		res.y = res.x
 
-	# Set all parameters from the terrain sytem.
+	# Set all parameters from the terrain system.
 
 	if is_inside_tree():
 		var gt = get_internal_transform()

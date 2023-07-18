@@ -263,7 +263,7 @@ func set_texture_set(texture_set: HTerrainTextureSet):
 				if src_data.has("a"):
 					slot.texture_paths[src_types[1]] = src_data["a"]
 
-	# TODO If the set doesnt have a file, use terrain path by default?
+	# TODO If the set doesn't have a file, use terrain path by default?
 	if texture_set.resource_path != "":
 		var dir = texture_set.resource_path.get_base_dir()
 		_import_directory_line_edit.text = dir

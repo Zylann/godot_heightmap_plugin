@@ -111,7 +111,7 @@ func _update_normal_material():
 
 # Need to check if it has changed, otherwise Godot's update spinner
 # indicates that the editor keeps redrawing every frame,
-# which is not intented and consumes more power
+# which is not intended and consumes more power.
 static func _set_if_changed(sm: ShaderMaterial, param: String, v):
 	if sm.get_shader_param(param) != v:
 		sm.set_shader_param(param, v)
