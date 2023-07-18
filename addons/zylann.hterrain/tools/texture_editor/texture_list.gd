@@ -5,7 +5,7 @@
 # and items cannot have individual shaders.
 # I could create new textures just for that but it would be expensive.
 
-tool
+@tool
 extends ScrollContainer
 
 const HT_TextureListItemScene = preload("./texture_list_item.tscn")
@@ -14,7 +14,7 @@ const HT_TextureListItem = preload("./texture_list_item.gd")
 signal item_selected(index)
 signal item_activated(index)
 
-onready var _container = $Container
+@onready var _container : Container = $Container
 
 
 var _selected_item := -1
@@ -32,8 +32,8 @@ var _selected_item := -1
 
 
 # Note: the texture can be a TextureArray, which does not inherit Texture
-func add_item(text: String, texture: Resource, texture_layer: int = 0):
-	var item = HT_TextureListItemScene.instance()
+func add_item(text: String, texture: Texture, texture_layer: int = 0):
+	var item : HT_TextureListItem = HT_TextureListItemScene.instantiate()
 	_container.add_child(item)
 	item.set_text(text)
 	item.set_texture(texture, texture_layer)
@@ -43,8 +43,8 @@ func get_item_count() -> int:
 	return _container.get_child_count()
 
 
-func set_item_texture(index: int, tex: Resource, layer: int = 0):
-	var child = _container.get_child(index)
+func set_item_texture(index: int, tex: Texture, layer: int = 0):
+	var child : HT_TextureListItem = _container.get_child(index)
 	child.set_texture(tex, layer)
 
 
@@ -66,11 +66,11 @@ func _on_item_selected(item: HT_TextureListItem):
 		var child = _container.get_child(i)
 		if child is HT_TextureListItem and child != item:
 			child.set_selected(false, false)
-	emit_signal("item_selected", _selected_item)
+	item_selected.emit(_selected_item)
 
 
 func _on_item_activated(item: HT_TextureListItem):
-	emit_signal("item_activated", item.get_index())
+	item_activated.emit(item.get_index())
 
 
 func _draw():

@@ -1,3 +1,4 @@
+@tool
 extends Node
 
 const HT_Painter = preload("./painter.gd")
@@ -6,16 +7,16 @@ const HTerrainData = preload("../../hterrain_data.gd")
 const HT_Logger = preload("../../util/logger.gd")
 const HT_Brush = preload("./brush.gd")
 
-const HT_RaiseShader = preload("./shaders/raise.shader")
-const HT_SmoothShader = preload("./shaders/smooth.shader")
-const HT_LevelShader = preload("./shaders/level.shader")
-const HT_FlattenShader = preload("./shaders/flatten.shader")
-const HT_ErodeShader = preload("./shaders/erode.shader")
-const HT_Splat4Shader = preload("./shaders/splat4.shader")
-const HT_Splat16Shader = preload("./shaders/splat16.shader")
-const HT_SplatIndexedShader = preload("./shaders/splat_indexed.shader")
-const HT_ColorShader = preload("./shaders/color.shader")
-const HT_AlphaShader = preload("./shaders/alpha.shader")
+const HT_RaiseShader = preload("./shaders/raise.gdshader")
+const HT_SmoothShader = preload("./shaders/smooth.gdshader")
+const HT_LevelShader = preload("./shaders/level.gdshader")
+const HT_FlattenShader = preload("./shaders/flatten.gdshader")
+const HT_ErodeShader = preload("./shaders/erode.gdshader")
+const HT_Splat4Shader = preload("./shaders/splat4.gdshader")
+const HT_Splat16Shader = preload("./shaders/splat16.gdshader")
+const HT_SplatIndexedShader = preload("./shaders/splat_indexed.gdshader")
+const HT_ColorShader = preload("./shaders/color.gdshader")
+const HT_AlphaShader = preload("./shaders/alpha.gdshader")
 
 const MODE_RAISE = 0
 const MODE_LOWER = 1
@@ -36,7 +37,7 @@ class HT_ModifiedMap:
 
 signal flatten_height_changed
 
-var _painters := []
+var _painters : Array[HT_Painter] = []
 
 var _brush := HT_Brush.new()
 
@@ -57,11 +58,11 @@ var _logger = HT_Logger.get_for(self)
 
 func _init():
 	for i in 4:
-		var p = HT_Painter.new()
+		var p := HT_Painter.new()
 		# The name is just for debugging
 		p.set_name(str("Painter", i))
 		#p.set_brush_size(_brush_size)
-		p.connect("texture_region_changed", self, "_on_painter_texture_region_changed", [i])
+		p.texture_region_changed.connect(_on_painter_texture_region_changed.bind(i))
 		add_child(p)
 		_painters.append(p)
 
@@ -80,7 +81,7 @@ func set_brush_size(s: int):
 #		p.set_brush_size(_brush_size)
 
 
-func set_brush_texture(texture: Texture):
+func set_brush_texture(texture: Texture2D):
 	_brush.set_shapes([texture])
 #	for p in _painters:
 #		p.set_brush_texture(texture)
@@ -98,7 +99,7 @@ func set_flatten_height(h: float):
 	if h == _flatten_height:
 		return
 	_flatten_height = h
-	emit_signal("flatten_height_changed")
+	flatten_height_changed.emit()
 
 
 func get_flatten_height() -> float:
@@ -122,7 +123,7 @@ func get_mask_flag() -> bool:
 
 
 func set_detail_density(d: float):
-	_detail_density = clamp(d, 0.0, 1.0)
+	_detail_density = clampf(d, 0.0, 1.0)
 
 
 func get_detail_density() -> float:
@@ -243,7 +244,7 @@ func set_terrain(terrain: HTerrain):
 # Returns `true` if any change was performed.
 func paint_input(position: Vector2, pressure: float) -> bool:
 	assert(_terrain.get_data() != null)
-	var data = _terrain.get_data()
+	var data := _terrain.get_data()
 	assert(not data.is_locked())
 	
 	if not _brush.configure_paint_input(_painters, position, pressure):
@@ -305,7 +306,7 @@ func paint_input(position: Vector2, pressure: float) -> bool:
 
 
 func _on_painter_texture_region_changed(rect: Rect2, painter_index: int):
-	var data = _terrain.get_data()
+	var data := _terrain.get_data()
 	if data == null:
 		return
 	for mm in _modified_maps:
@@ -316,10 +317,10 @@ func _on_painter_texture_region_changed(rect: Rect2, painter_index: int):
 
 
 func _paint_height(data: HTerrainData, position: Vector2, factor: float):
-	var image = data.get_image(HTerrainData.CHANNEL_HEIGHT)
-	var texture = data.get_texture(HTerrainData.CHANNEL_HEIGHT, 0, true)
+	var image := data.get_image(HTerrainData.CHANNEL_HEIGHT)
+	var texture := data.get_texture(HTerrainData.CHANNEL_HEIGHT, 0, true)
 	
-	var mm = HT_ModifiedMap.new()
+	var mm := HT_ModifiedMap.new()
 	mm.map_type = HTerrainData.CHANNEL_HEIGHT
 	mm.map_index = 0
 	mm.painter_index = 0
@@ -338,10 +339,10 @@ func _paint_height(data: HTerrainData, position: Vector2, factor: float):
 
 
 func _paint_smooth(data: HTerrainData, position: Vector2):
-	var image = data.get_image(HTerrainData.CHANNEL_HEIGHT)
-	var texture = data.get_texture(HTerrainData.CHANNEL_HEIGHT, 0, true)
+	var image := data.get_image(HTerrainData.CHANNEL_HEIGHT)
+	var texture := data.get_texture(HTerrainData.CHANNEL_HEIGHT, 0, true)
 	
-	var mm = HT_ModifiedMap.new()
+	var mm := HT_ModifiedMap.new()
 	mm.map_type = HTerrainData.CHANNEL_HEIGHT
 	mm.map_index = 0
 	mm.painter_index = 0
@@ -350,16 +351,16 @@ func _paint_smooth(data: HTerrainData, position: Vector2):
 	var p : HT_Painter = _painters[0]
 	
 	p.set_brush_shader(HT_SmoothShader)
-	p.set_brush_shader_param("u_factor", (10.0 / 60.0))
+	p.set_brush_shader_param("u_factor", 1.0)
 	p.set_image(image, texture)
 	p.paint_input(position)
 
 
 func _paint_flatten(data: HTerrainData, position: Vector2):
-	var image = data.get_image(HTerrainData.CHANNEL_HEIGHT)
-	var texture = data.get_texture(HTerrainData.CHANNEL_HEIGHT, 0, true)
+	var image := data.get_image(HTerrainData.CHANNEL_HEIGHT)
+	var texture := data.get_texture(HTerrainData.CHANNEL_HEIGHT, 0, true)
 	
-	var mm = HT_ModifiedMap.new()
+	var mm := HT_ModifiedMap.new()
 	mm.map_type = HTerrainData.CHANNEL_HEIGHT
 	mm.map_index = 0
 	mm.painter_index = 0
@@ -374,10 +375,10 @@ func _paint_flatten(data: HTerrainData, position: Vector2):
 
 
 func _paint_level(data: HTerrainData, position: Vector2):
-	var image = data.get_image(HTerrainData.CHANNEL_HEIGHT)
-	var texture = data.get_texture(HTerrainData.CHANNEL_HEIGHT, 0, true)
+	var image := data.get_image(HTerrainData.CHANNEL_HEIGHT)
+	var texture := data.get_texture(HTerrainData.CHANNEL_HEIGHT, 0, true)
 	
-	var mm = HT_ModifiedMap.new()
+	var mm := HT_ModifiedMap.new()
 	mm.map_type = HTerrainData.CHANNEL_HEIGHT
 	mm.map_index = 0
 	mm.painter_index = 0
@@ -392,10 +393,10 @@ func _paint_level(data: HTerrainData, position: Vector2):
 
 
 func _paint_erode(data: HTerrainData, position: Vector2):
-	var image = data.get_image(HTerrainData.CHANNEL_HEIGHT)
-	var texture = data.get_texture(HTerrainData.CHANNEL_HEIGHT, 0, true)
+	var image := data.get_image(HTerrainData.CHANNEL_HEIGHT)
+	var texture := data.get_texture(HTerrainData.CHANNEL_HEIGHT, 0, true)
 	
-	var mm = HT_ModifiedMap.new()
+	var mm := HT_ModifiedMap.new()
 	mm.map_type = HTerrainData.CHANNEL_HEIGHT
 	mm.map_index = 0
 	mm.painter_index = 0
@@ -409,18 +410,18 @@ func _paint_erode(data: HTerrainData, position: Vector2):
 
 
 func _paint_splat4(data: HTerrainData, position: Vector2):
-	var image = data.get_image(HTerrainData.CHANNEL_SPLAT)
-	var texture = data.get_texture(HTerrainData.CHANNEL_SPLAT, 0, true)
-	var heightmap_texture = data.get_texture(HTerrainData.CHANNEL_HEIGHT, 0)
+	var image := data.get_image(HTerrainData.CHANNEL_SPLAT)
+	var texture := data.get_texture(HTerrainData.CHANNEL_SPLAT, 0, true)
+	var heightmap_texture := data.get_texture(HTerrainData.CHANNEL_HEIGHT, 0)
 	
-	var mm = HT_ModifiedMap.new()
+	var mm := HT_ModifiedMap.new()
 	mm.map_type = HTerrainData.CHANNEL_SPLAT
 	mm.map_index = 0
 	mm.painter_index = 0
 	_modified_maps = [mm]
 
 	var p : HT_Painter = _painters[0]
-	var splat = Color(0.0, 0.0, 0.0, 0.0)
+	var splat := Color(0.0, 0.0, 0.0, 0.0)
 	splat[_texture_index] = 1.0;
 	p.set_brush_shader(HT_Splat4Shader)
 	p.set_brush_shader_param("u_splat", splat)
@@ -430,20 +431,20 @@ func _paint_splat4(data: HTerrainData, position: Vector2):
 
 
 func _paint_splat_indexed(data: HTerrainData, position: Vector2):
-	var map_types = [
+	var map_types := [
 		HTerrainData.CHANNEL_SPLAT_INDEX, 
 		HTerrainData.CHANNEL_SPLAT_WEIGHT
 	]
 	_modified_maps = []
 
-	var textures = []
+	var textures := []
 	for mode in 2:
 		textures.append(data.get_texture(map_types[mode], 0, true))
 
 	for mode in 2:
-		var image = data.get_image(map_types[mode])
+		var image := data.get_image(map_types[mode])
 		
-		var mm = HT_ModifiedMap.new()
+		var mm := HT_ModifiedMap.new()
 		mm.map_type = map_types[mode]
 		mm.map_index = 0
 		mm.painter_index = mode
@@ -474,7 +475,7 @@ func _paint_splat16(data: HTerrainData, position: Vector2):
 	for i in 4:
 		textures.append(data.get_texture(HTerrainData.CHANNEL_SPLAT, i, true))
 
-	var heightmap_texture = data.get_texture(HTerrainData.CHANNEL_HEIGHT, 0)
+	var heightmap_texture := data.get_texture(HTerrainData.CHANNEL_HEIGHT, 0)
 
 	for i in 4:
 		var image : Image = data.get_image(HTerrainData.CHANNEL_SPLAT, i)
@@ -488,7 +489,7 @@ func _paint_splat16(data: HTerrainData, position: Vector2):
 
 		var p : HT_Painter = _painters[i]
 
-		var other_splatmaps = []
+		var other_splatmaps := []
 		for tex in textures:
 			if tex != texture:
 				other_splatmaps.append(tex)

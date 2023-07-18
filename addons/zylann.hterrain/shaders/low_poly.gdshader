@@ -2,9 +2,11 @@ shader_type spatial;
 
 // This is a very simple shader for a low-poly coloured visual, without textures
 
+#include "include/heightmap.gdshaderinc"
+
 uniform sampler2D u_terrain_heightmap;
 uniform sampler2D u_terrain_normalmap;
-// I had to remove `hint_albedo` from colormap because it makes sRGB conversion kick in,
+// I had to remove `hint_albedo` from colormap in Godot 3 because it makes sRGB conversion kick in,
 // which snowballs to black when doing GPU painting on that texture...
 uniform sampler2D u_terrain_colormap;// : hint_albedo;
 uniform mat4 u_terrain_inverse_transform;
@@ -22,7 +24,7 @@ vec3 unpack_normal(vec4 rgba) {
 }
 
 void vertex() {
-	vec2 cell_coords = (u_terrain_inverse_transform * WORLD_MATRIX * vec4(VERTEX, 1)).xz;
+	vec2 cell_coords = (u_terrain_inverse_transform * MODEL_MATRIX * vec4(VERTEX, 1)).xz;
 	// Must add a half-offset so that we sample the center of pixels,
 	// otherwise bilinear filtering of the textures will give us mixed results (#183)
 	cell_coords += vec2(0.5);
@@ -31,7 +33,7 @@ void vertex() {
 	UV = cell_coords / vec2(textureSize(u_terrain_heightmap, 0));
 	
 	// Height displacement
-	float h = texture(u_terrain_heightmap, UV).r;
+	float h = sample_heightmap(u_terrain_heightmap, UV);
 	VERTEX.y = h;
 	
 	// Putting this in vertex saves 2 fetches from the fragment shader,
@@ -56,6 +58,6 @@ void fragment() {
 	
 	ALBEDO = v_tint.rgb;
 	ROUGHNESS = 1.0;
-	NORMAL = normalize(cross(dFdx(VERTEX), dFdy(VERTEX)));
+	NORMAL = normalize(cross(dFdy(VERTEX), dFdx(VERTEX)));
 }
 

@@ -4,20 +4,22 @@ shader_type spatial;
 // This shader uses a texture array with multiple splatmaps, allowing up to 16 textures.
 // Only the 4 textures having highest blending weight are sampled.
 
+#include "include/heightmap.gdshaderinc"
+
 uniform sampler2D u_terrain_heightmap;
 uniform sampler2D u_terrain_normalmap;
-// I had to remove `hint_albedo` from colormap because it makes sRGB conversion kick in,
+// I had to remove source_color` from colormap in Godot 3 because it makes sRGB conversion kick in,
 // which snowballs to black when doing GPU painting on that texture...
 uniform sampler2D u_terrain_colormap;
 uniform sampler2D u_terrain_splatmap;
 uniform sampler2D u_terrain_splatmap_1;
 uniform sampler2D u_terrain_splatmap_2;
 uniform sampler2D u_terrain_splatmap_3;
-uniform sampler2D u_terrain_globalmap : hint_albedo;
+uniform sampler2D u_terrain_globalmap : source_color;
 uniform mat4 u_terrain_inverse_transform;
 uniform mat3 u_terrain_normal_basis;
 
-uniform sampler2DArray u_ground_albedo_bump_array : hint_albedo;
+uniform sampler2DArray u_ground_albedo_bump_array : source_color;
 uniform sampler2DArray u_ground_normal_roughness_array;
 
 uniform float u_ground_uv_scale = 20.0;
@@ -214,7 +216,7 @@ vec4 texture_array_antitile(sampler2DArray albedo_tex, sampler2DArray normal_tex
 }
 
 void vertex() {
-	vec4 wpos = WORLD_MATRIX * vec4(VERTEX, 1);
+	vec4 wpos = MODEL_MATRIX * vec4(VERTEX, 1);
 	vec2 cell_coords = (u_terrain_inverse_transform * wpos).xz;
 	// Must add a half-offset so that we sample the center of pixels,
 	// otherwise bilinear filtering of the textures will give us mixed results (#183)
@@ -224,11 +226,11 @@ void vertex() {
 	UV = cell_coords / vec2(textureSize(u_terrain_heightmap, 0));
 
 	// Height displacement
-	float h = texture(u_terrain_heightmap, UV).r;
+	float h = sample_heightmap(u_terrain_heightmap, UV);
 	VERTEX.y = h;
 	wpos.y = h;
 
-	vec3 base_ground_uv = vec3(cell_coords.x, h * WORLD_MATRIX[1][1], cell_coords.y);
+	vec3 base_ground_uv = vec3(cell_coords.x, h * MODEL_MATRIX[1][1], cell_coords.y);
 	v_ground_uv = base_ground_uv / u_ground_uv_scale;
 
 	// Putting this in vertex saves a fetch from the fragment shader,
@@ -242,7 +244,7 @@ void vertex() {
 	// Need to use u_terrain_normal_basis to handle scaling.
 	NORMAL = u_terrain_normal_basis * unpack_normal(texture(u_terrain_normalmap, UV));
 
-	v_distance_to_camera = distance(wpos.xyz, CAMERA_MATRIX[3].xyz);
+	v_distance_to_camera = distance(wpos.xyz, CAMERA_POSITION_WORLD);
 }
 
 void fragment() {
@@ -367,5 +369,5 @@ void fragment() {
 //		ALBEDO = vec3(1.0, 0.0, 0.0);
 //	}
 
-	NORMAL = (INV_CAMERA_MATRIX * (vec4(normal, 0.0))).xyz;
+	NORMAL = (VIEW_MATRIX * (vec4(normal, 0.0))).xyz;
 }

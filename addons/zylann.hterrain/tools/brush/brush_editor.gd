@@ -1,4 +1,4 @@
-tool
+@tool
 extends Control
 
 const HT_TerrainPainter = preload("./terrain_painter.gd")
@@ -6,47 +6,47 @@ const HT_Brush = preload("./brush.gd")
 const HT_Errors = preload("../../util/errors.gd")
 #const NativeFactory = preload("../../native/factory.gd")
 const HT_Logger = preload("../../util/logger.gd")
+const HT_IntervalSlider = preload("../util/interval_slider.gd")
 
 const HT_BrushSettingsDialogScene = preload("./settings_dialog/brush_settings_dialog.tscn")
 const HT_BrushSettingsDialog = preload("./settings_dialog/brush_settings_dialog.gd")
 
 
-onready var _size_slider := $GridContainer/BrushSizeControl/Slider as Slider
-onready var _size_value_label := $GridContainer/BrushSizeControl/Label as Label
+@onready var _size_slider : Slider = $GridContainer/BrushSizeControl/Slider
+@onready var _size_value_label : Label = $GridContainer/BrushSizeControl/Label
 #onready var _size_label = _params_container.get_node("BrushSizeLabel")
 
-onready var _opacity_slider = $GridContainer/BrushOpacityControl/Slider
-onready var _opacity_value_label = $GridContainer/BrushOpacityControl/Label
-onready var _opacity_control = $GridContainer/BrushOpacityControl
-onready var _opacity_label = $GridContainer/BrushOpacityLabel
+@onready var _opacity_slider : Slider = $GridContainer/BrushOpacityControl/Slider
+@onready var _opacity_value_label : Label = $GridContainer/BrushOpacityControl/Label
+@onready var _opacity_control : Control = $GridContainer/BrushOpacityControl
+@onready var _opacity_label : Label = $GridContainer/BrushOpacityLabel
 
-onready var _flatten_height_container = $GridContainer/HB
-onready var _flatten_height_box = $GridContainer/HB/FlattenHeightControl
-onready var _flatten_height_label = $GridContainer/FlattenHeightLabel
-onready var _flatten_height_pick_button = $GridContainer/HB/FlattenHeightPickButton
+@onready var _flatten_height_container : Control = $GridContainer/HB
+@onready var _flatten_height_box : SpinBox = $GridContainer/HB/FlattenHeightControl
+@onready var _flatten_height_label : Label = $GridContainer/FlattenHeightLabel
+@onready var _flatten_height_pick_button : Button = $GridContainer/HB/FlattenHeightPickButton
 
-onready var _color_picker = $GridContainer/ColorPickerButton
-onready var _color_label = $GridContainer/ColorLabel
+@onready var _color_picker : ColorPickerButton = $GridContainer/ColorPickerButton
+@onready var _color_label : Label = $GridContainer/ColorLabel
 
-onready var _density_slider = $GridContainer/DensitySlider
-onready var _density_label = $GridContainer/DensityLabel
+@onready var _density_slider : Slider = $GridContainer/DensitySlider
+@onready var _density_label : Label = $GridContainer/DensityLabel
 
-onready var _holes_label = $GridContainer/HoleLabel
-onready var _holes_checkbox = $GridContainer/HoleCheckbox
+@onready var _holes_label : Label = $GridContainer/HoleLabel
+@onready var _holes_checkbox : CheckBox = $GridContainer/HoleCheckbox
 
-onready var _slope_limit_label = $GridContainer/SlopeLimitLabel
-onready var _slope_limit_control = $GridContainer/SlopeLimit
+@onready var _slope_limit_label : Label = $GridContainer/SlopeLimitLabel
+@onready var _slope_limit_control : HT_IntervalSlider = $GridContainer/SlopeLimit
 
-onready var _shape_texture_rect = get_node("BrushShapeButton/TextureRect")
+@onready var _shape_texture_rect : TextureRect = get_node("BrushShapeButton/TextureRect")
 
 var _terrain_painter : HT_TerrainPainter
-var _load_image_dialog = null
-var _brush_settings_dialog = null
+var _brush_settings_dialog : HT_BrushSettingsDialog = null
 var _logger = HT_Logger.get_for(self)
 
 # TODO This is an ugly workaround for https://github.com/godotengine/godot/issues/19479
-onready var _temp_node = get_node("Temp")
-onready var _grid_container = get_node("GridContainer")
+@onready var _temp_node = get_node("Temp")
+@onready var _grid_container = get_node("GridContainer")
 func _set_visibility_of(node: Control, v: bool):
 	node.get_parent().remove_child(node)
 	if v:
@@ -57,13 +57,13 @@ func _set_visibility_of(node: Control, v: bool):
 
 
 func _ready():
-	_size_slider.connect("value_changed", self, "_on_size_slider_value_changed")
-	_opacity_slider.connect("value_changed", self, "_on_opacity_slider_value_changed")
-	_flatten_height_box.connect("value_changed", self, "_on_flatten_height_box_value_changed")
-	_color_picker.connect("color_changed", self, "_on_color_picker_color_changed")
-	_density_slider.connect("value_changed", self, "_on_density_slider_changed")
-	_holes_checkbox.connect("toggled", self, "_on_holes_checkbox_toggled")
-	_slope_limit_control.connect("changed", self, "_on_slope_limit_changed")
+	_size_slider.value_changed.connect(_on_size_slider_value_changed)
+	_opacity_slider.value_changed.connect(_on_opacity_slider_value_changed)
+	_flatten_height_box.value_changed.connect(_on_flatten_height_box_value_changed)
+	_color_picker.color_changed.connect(_on_color_picker_color_changed)
+	_density_slider.value_changed.connect(_on_density_slider_changed)
+	_holes_checkbox.toggled.connect(_on_holes_checkbox_toggled)
+	_slope_limit_control.changed.connect(_on_slope_limit_changed)
 	
 	_size_slider.max_value = HT_Brush.MAX_SIZE_FOR_SLIDERS
 	#if NativeFactory.is_native_available():
@@ -72,9 +72,9 @@ func _ready():
 	#	_size_slider.max_value = 50
 
 
-func setup_dialogs(base_control: Control):
+func setup_dialogs(base_control: Node):
 	assert(_brush_settings_dialog == null)
-	_brush_settings_dialog = HT_BrushSettingsDialogScene.instance()
+	_brush_settings_dialog = HT_BrushSettingsDialogScene.instantiate()
 	base_control.add_child(_brush_settings_dialog)
 	
 	# That dialog has sub-dialogs
@@ -99,8 +99,9 @@ func _exit_tree():
 
 func set_terrain_painter(terrain_painter: HT_TerrainPainter):
 	if _terrain_painter != null:
-		_terrain_painter.disconnect("flatten_height_changed", self, "_on_flatten_height_changed")
-		_terrain_painter.get_brush().disconnect("shapes_changed", self, "_on_brush_shapes_changed")
+		_terrain_painter.flatten_height_changed.disconnect(_on_flatten_height_changed)
+		_terrain_painter.get_brush().shapes_changed.disconnect(_on_brush_shapes_changed)
+		_terrain_painter.get_brush().shape_index_changed.disconnect(_on_brush_shape_index_changed)
 	
 	_terrain_painter = terrain_painter
 
@@ -117,10 +118,10 @@ func set_terrain_painter(terrain_painter: HT_TerrainPainter):
 		_flatten_height_box.value = _terrain_painter.get_flatten_height()
 		_color_picker.get_picker().color = _terrain_painter.get_color()
 		_density_slider.value = _terrain_painter.get_detail_density()
-		_holes_checkbox.pressed = not _terrain_painter.get_mask_flag()
+		_holes_checkbox.button_pressed = not _terrain_painter.get_mask_flag()
 		
-		var low = rad2deg(_terrain_painter.get_slope_limit_low_angle())
-		var high = rad2deg(_terrain_painter.get_slope_limit_high_angle())
+		var low := rad_to_deg(_terrain_painter.get_slope_limit_low_angle())
+		var high := rad_to_deg(_terrain_painter.get_slope_limit_high_angle())
 		_slope_limit_control.set_values(low, high)
 
 		set_display_mode(_terrain_painter.get_mode())
@@ -130,19 +131,30 @@ func set_terrain_painter(terrain_painter: HT_TerrainPainter):
 		var default_shape_fpath := HT_Brush.DEFAULT_BRUSH_TEXTURE_PATH
 		var default_shape := HT_Brush.load_shape_from_image_file(default_shape_fpath, _logger)
 		brush.set_shapes([default_shape])
-		_shape_texture_rect.texture = brush.get_shape(0)
+		_update_shape_preview()
 		
-		_terrain_painter.connect("flatten_height_changed", self, "_on_flatten_height_changed")
-		brush.connect("shapes_changed", self, "_on_brush_shapes_changed")
+		_terrain_painter.flatten_height_changed.connect(_on_flatten_height_changed)
+		brush.shapes_changed.connect(_on_brush_shapes_changed)
+		brush.shape_index_changed.connect(_on_brush_shape_index_changed)
 
 
 func _on_flatten_height_changed():
 	_flatten_height_box.value = _terrain_painter.get_flatten_height()
-	_flatten_height_pick_button.pressed = false
+	_flatten_height_pick_button.button_pressed = false
 
 
 func _on_brush_shapes_changed():
-	_shape_texture_rect.texture = _terrain_painter.get_brush().get_shape(0)
+	_update_shape_preview()
+
+
+func _on_brush_shape_index_changed():
+	_update_shape_preview()
+
+
+func _update_shape_preview():
+	var brush := _terrain_painter.get_brush()
+	var i := brush.get_shape_index()
+	_shape_texture_rect.texture = brush.get_shape(i)
 
 
 func set_display_mode(mode: int):
@@ -151,7 +163,8 @@ func set_display_mode(mode: int):
 	var show_density := mode == HT_TerrainPainter.MODE_DETAIL
 	var show_opacity := mode != HT_TerrainPainter.MODE_MASK
 	var show_holes := mode == HT_TerrainPainter.MODE_MASK
-	var show_slope_limit := mode == HT_TerrainPainter.MODE_SPLAT or mode == HT_TerrainPainter.MODE_DETAIL
+	var show_slope_limit := \
+		mode == HT_TerrainPainter.MODE_SPLAT or mode == HT_TerrainPainter.MODE_DETAIL
 
 	_set_visibility_of(_opacity_label, show_opacity)
 	_set_visibility_of(_opacity_control, show_opacity)
@@ -171,7 +184,7 @@ func set_display_mode(mode: int):
 	_set_visibility_of(_slope_limit_label, show_slope_limit)
 	_set_visibility_of(_slope_limit_control, show_slope_limit)
 
-	_flatten_height_pick_button.pressed = false
+	_flatten_height_pick_button.button_pressed = false
 
 
 func _on_size_slider_value_changed(v: float):
@@ -216,6 +229,6 @@ func _on_FlattenHeightPickButton_pressed():
 
 
 func _on_slope_limit_changed():
-	var low = deg2rad(_slope_limit_control.get_low_value())
-	var high = deg2rad(_slope_limit_control.get_high_value())
+	var low = deg_to_rad(_slope_limit_control.get_low_value())
+	var high = deg_to_rad(_slope_limit_control.get_high_value())
 	_terrain_painter.set_slope_limit_angles(low, high)

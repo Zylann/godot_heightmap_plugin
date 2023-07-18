@@ -3,7 +3,7 @@ shader_type spatial;
 // This shader uses a texture array with multiple splatmaps, allowing up to 16 textures.
 // Only the 4 textures having highest blending weight are sampled.
 
-// I had to remove `hint_albedo` from colormap because it makes sRGB conversion kick in,
+// I had to remove source_color` from colormap in Godot 3 because it makes sRGB conversion kick in,
 // which snowballs to black when doing GPU painting on that texture...
 uniform sampler2D u_terrain_colormap;
 uniform sampler2D u_terrain_splatmap;
@@ -11,7 +11,7 @@ uniform sampler2D u_terrain_splatmap_1;
 uniform sampler2D u_terrain_splatmap_2;
 uniform sampler2D u_terrain_splatmap_3;
 
-uniform sampler2DArray u_ground_albedo_bump_array : hint_albedo;
+uniform sampler2DArray u_ground_albedo_bump_array : source_color;
 
 uniform float u_ground_uv_scale = 20.0;
 uniform bool u_depth_blending = true;
@@ -116,7 +116,7 @@ void get_splat_weights(vec2 uv, out vec4 out_high_indices, out vec4 out_high_wei
 }
 
 void vertex() {
-	vec4 wpos = WORLD_MATRIX * vec4(VERTEX, 1);
+	vec4 wpos = MODEL_MATRIX * vec4(VERTEX, 1);
 	vec2 cell_coords = wpos.xz;
 	// Must add a half-offset so that we sample the center of pixels,
 	// otherwise bilinear filtering of the textures will give us mixed results (#183)

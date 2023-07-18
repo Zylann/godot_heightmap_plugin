@@ -1,6 +1,6 @@
 [gd_resource type="ShaderMaterial" load_steps=2 format=2]
 
-[ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/display_alpha.shader" type="Shader" id=1]
+[ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/display_alpha.gdshader" type="Shader" id=1]
 
 [resource]
 

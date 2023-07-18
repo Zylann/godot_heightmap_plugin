@@ -1,4 +1,4 @@
-tool
+@tool
 
 # Brush properties (shape, transform, timing and opacity).
 # Other attributes like color, height or texture index are tool-specific,
@@ -6,6 +6,7 @@ tool
 # This is separate from Painter because it could apply to multiple Painters at once.
 
 const HT_Errors = preload("../../util/errors.gd")
+const HT_Painter = preload("./painter.gd")
 
 const SHAPES_DIR = "addons/zylann.hterrain/tools/brush/shapes"
 const DEFAULT_BRUSH_TEXTURE_PATH = SHAPES_DIR + "/round2.exr"
@@ -16,6 +17,7 @@ const MAX_SIZE = 4000
 
 signal size_changed(new_size)
 signal shapes_changed
+signal shape_index_changed
 
 var _size := 32
 var _opacity := 1.0
@@ -26,10 +28,11 @@ var _pressure_over_opacity := 0.5
 # TODO Rename stamp_*?
 var _frequency_distance := 0.0
 var _frequency_time_ms := 0
-# Array of greyscale Textures
-var _shapes := []
+# Array of greyscale textures
+var _shapes : Array[Texture2D] = []
 
 var _shape_index := 0
+var _shape_cycling_enabled := false
 var _prev_position := Vector2(-999, -999)
 var _prev_time_ms := 0
 
@@ -39,7 +42,7 @@ func set_size(size: int):
 		size = 1
 	if size != _size:
 		_size = size
-		emit_signal("size_changed", _size)
+		size_changed.emit(_size)
 
 
 func get_size() -> int:
@@ -47,7 +50,7 @@ func get_size() -> int:
 
 
 func set_opacity(opacity: float):
-	_opacity = clamp(opacity, 0.0, 1.0)
+	_opacity = clampf(opacity, 0.0, 1.0)
 
 
 func get_opacity() -> float:
@@ -71,7 +74,7 @@ func is_pressure_enabled() -> bool:
 
 
 func set_pressure_over_scale(amount: float):
-	_pressure_over_scale = clamp(amount, 0.0, 1.0)
+	_pressure_over_scale = clampf(amount, 0.0, 1.0)
 
 
 func get_pressure_over_scale() -> float:
@@ -79,7 +82,7 @@ func get_pressure_over_scale() -> float:
 
 
 func set_pressure_over_opacity(amount: float):
-	_pressure_over_opacity = clamp(amount, 0.0, 1.0)
+	_pressure_over_opacity = clampf(amount, 0.0, 1.0)
 
 
 func get_pressure_over_opacity() -> float:
@@ -87,7 +90,7 @@ func get_pressure_over_opacity() -> float:
 
 
 func set_frequency_distance(d: float):
-	_frequency_distance = max(d, 0.0)
+	_frequency_distance = maxf(d, 0.0)
 
 
 func get_frequency_distance() -> float:
@@ -104,26 +107,45 @@ func get_frequency_time_ms() -> int:
 	return _frequency_time_ms
 
 
-func set_shapes(shapes: Array):
+func set_shapes(shapes: Array[Texture2D]):
 	assert(len(shapes) >= 1)
 	for s in shapes:
 		assert(s != null)
-		assert(s is Texture)
+		assert(s is Texture2D)
 	_shapes = shapes.duplicate(false)
 	if _shape_index >= len(_shapes):
 		_shape_index = len(_shapes) - 1
-	emit_signal("shapes_changed")
+	shapes_changed.emit()
 
 
-func get_shapes() -> Array:
+func get_shapes() -> Array[Texture2D]:
 	return _shapes.duplicate(false)
 
 
-func get_shape(i: int) -> Texture:
+func get_shape(i: int) -> Texture2D:
 	return _shapes[i]
 
 
-static func load_shape_from_image_file(fpath: String, logger, retries = 1) -> Texture:
+func get_shape_index() -> int:
+	return _shape_index
+
+
+func set_shape_index(i: int):
+	assert(i >= 0)
+	assert(i < len(_shapes))
+	_shape_index = i
+	shape_index_changed.emit()
+
+
+func set_shape_cycling_enabled(enable: bool):
+	_shape_cycling_enabled = enable
+
+
+func is_shape_cycling_enabled() -> bool:
+	return _shape_cycling_enabled
+
+
+static func load_shape_from_image_file(fpath: String, logger, retries := 1) -> Texture2D:
 	var im := Image.new()
 	var err := im.load(fpath)
 	if err != OK:
@@ -139,14 +161,13 @@ static func load_shape_from_image_file(fpath: String, logger, retries = 1) -> Te
 			logger.error("Could not load image at '{0}', error {1}" \
 				.format([fpath, HT_Errors.get_message(err)]))
 			return null
-	var tex := ImageTexture.new()
-	tex.create_from_image(im, Texture.FLAG_FILTER)
+	var tex := ImageTexture.create_from_image(im)
 	return tex
 
-	
+
 # Call this while handling mouse or pen input.
 # If it returns false, painting should not run.
-func configure_paint_input(painters: Array, position: Vector2, pressure: float) -> bool:
+func configure_paint_input(painters: Array[HT_Painter], position: Vector2, pressure: float) -> bool:
 	assert(len(_shapes) != 0)
 	
 	# DEBUG
@@ -154,15 +175,17 @@ func configure_paint_input(painters: Array, position: Vector2, pressure: float) 
 	
 	if position.distance_to(_prev_position) < _frequency_distance:
 		return false
-	var now = OS.get_ticks_msec()
+	var now := Time.get_ticks_msec()
 	if (now - _prev_time_ms) < _frequency_time_ms:
 		return false
 	_prev_position = position
 	_prev_time_ms = now
 	
-	for painter in painters:
+	for painter_index in len(painters):
+		var painter : HT_Painter = painters[painter_index]
+		
 		if _random_rotation:
-			painter.set_brush_rotation(rand_range(-PI, PI))
+			painter.set_brush_rotation(randf_range(-PI, PI))
 		else:
 			painter.set_brush_rotation(0.0)
 
@@ -170,17 +193,18 @@ func configure_paint_input(painters: Array, position: Vector2, pressure: float) 
 		painter.set_brush_size(_size)
 		
 		if _pressure_enabled:
-			painter.set_brush_scale(lerp(1.0, pressure, _pressure_over_scale))
-			painter.set_brush_opacity(_opacity * lerp(1.0, pressure, _pressure_over_opacity))
+			painter.set_brush_scale(lerpf(1.0, pressure, _pressure_over_scale))
+			painter.set_brush_opacity(_opacity * lerpf(1.0, pressure, _pressure_over_opacity))
 		else:
 			painter.set_brush_scale(1.0)
 			painter.set_brush_opacity(_opacity)
 		
 		#painter.paint_input(position)
 
-	_shape_index += 1
-	if _shape_index >= len(_shapes):
-		_shape_index = 0
+	if _shape_cycling_enabled:
+		_shape_index += 1
+		if _shape_index >= len(_shapes):
+			_shape_index = 0
 	
 	return true
 

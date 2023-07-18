@@ -1,3 +1,4 @@
+@tool
 
 class HT_LoggerBase:
 	var _context := ""
@@ -16,8 +17,8 @@ class HT_LoggerBase:
 
 
 class HT_LoggerVerbose extends HT_LoggerBase:
-	func _init(p_context: String).(p_context):
-		pass
+	func _init(p_context: String):
+		super(p_context)
 		
 	func debug(msg: String):
 		print(_context, ": ", msg)
@@ -25,7 +26,8 @@ class HT_LoggerVerbose extends HT_LoggerBase:
 
 static func get_for(owner: Object) -> HT_LoggerBase:
 	# Note: don't store the owner. If it's a Reference, it could create a cycle
-	var context = owner.get_script().resource_path.get_file()
+	var script : Script = owner.get_script()
+	var context := script.resource_path.get_file()
 	if OS.is_stdout_verbose():
 		return HT_LoggerVerbose.new(context)
 	return HT_LoggerBase.new(context)

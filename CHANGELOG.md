@@ -5,14 +5,20 @@ This is a high-level changelog for each released versions of the plugin.
 For a more detailed list of past and incoming changes, see the commit history.
 
 
-1.6.2 (dev)
-------------
+1.7
+------
 
+This version requires Godot 4.1.
+
+- Ported the plugin to Godot 4.1
+- Heightmaps now use 32-bit floats instead of 16-bit floats
+- Changed some APIs to use `Vector2i`
 - Added `cast_shadow` setting to `HTerrain`
 - Added `cast_shadow` setting to `HTerrainDetailLayer`
 - Added slope limit slider to detail density painting
 - Exposed `roughness` in detail layer shader (but reflections may be off due to the normals hack)
 - Allow decimal values in `min_height` and `max_height` when importing a heightmap
+- Changed shape list in brush settings so it can be used as a regular palette when cycling is off
 - Fixed terrain not functional when using a 32-bit version of Godot (The GDNative library is only maintained for 64-bit)
 - Fixed TextureSet editor logging errors when selecting slots with textures using color codes instead of image files
 - Fixed texture list becoming empty when selecting another terrain sharing the same TextureSet

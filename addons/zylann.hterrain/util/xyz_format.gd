@@ -1,4 +1,4 @@
-tool
+@tool
 
 # XYZ files are text files containing a list of 3D points.
 # They can be found in GIS software as an export format for heightmaps.
@@ -25,15 +25,15 @@ class HT_XYZBounds:
 # Despite that, I still use it here because it doesn't seem to cause issues and is faster.
 # If it becomes an issue, we'll have to switch to `split` and casting to `float`.
 
-static func load_bounds(f: File) -> HT_XYZBounds:
+static func load_bounds(f: FileAccess) -> HT_XYZBounds:
 	# It is faster to get line and split floats than using CSV functions
 	var line := f.get_line()
-	var floats = line.split_floats(" ")
+	var floats := line.split_floats(" ")
 	
 	# We only care about X and Y, it makes less operations to do in the loop.
 	# Z is the height and will remain as-is at the end.
-	var min_pos_x : float = floats[0]
-	var min_pos_y : float = floats[1]
+	var min_pos_x := floats[0]
+	var min_pos_y := floats[1]
 
 	var max_pos_x := min_pos_x
 	var max_pos_y := min_pos_y
@@ -51,14 +51,14 @@ static func load_bounds(f: File) -> HT_XYZBounds:
 
 		floats = line.split_floats(" ")
 
-		var pos_x = floats[0]
-		var pos_y = floats[1]
+		var pos_x := floats[0]
+		var pos_y := floats[1]
 		
-		min_pos_x = min(min_pos_x, pos_x)
-		min_pos_y = min(min_pos_y, pos_y)
+		min_pos_x = minf(min_pos_x, pos_x)
+		min_pos_y = minf(min_pos_y, pos_y)
 
-		max_pos_x = max(max_pos_x, pos_x)
-		max_pos_y = max(max_pos_y, pos_y)
+		max_pos_x = maxf(max_pos_x, pos_x)
+		max_pos_y = maxf(max_pos_y, pos_y)
 
 		line_count += 1
 
@@ -76,7 +76,7 @@ static func load_bounds(f: File) -> HT_XYZBounds:
 # Loads points into an image with existing dimensions and format.
 # `f` must be positioned at the beginning of the series of points.
 # If `bounds` is `null`, it will be computed.
-static func load_heightmap(f: File, dst_image: Image, bounds: HT_XYZBounds):
+static func load_heightmap(f: FileAccess, dst_image: Image, bounds: HT_XYZBounds):
 	# We are not going to read the entire file directly in memory, because it can be really big.
 	# Instead we'll parse it directly and the only thing we retain in memory is the heightmap.
 	# This can be really slow on big files. If we can assume the file is square and points
@@ -94,8 +94,6 @@ static func load_heightmap(f: File, dst_image: Image, bounds: HT_XYZBounds):
 	var min_pos_y := bounds.min_y
 	var line_count := bounds.line_count
 
-	dst_image.lock()
-	
 	for i in line_count:
 		var line := f.get_line()
 		var floats := line.split_floats(" ")
@@ -108,6 +106,4 @@ static func load_heightmap(f: File, dst_image: Image, bounds: HT_XYZBounds):
 		# `Rect2i` would be better but is only available in Godot 4.
 		if x >= 0 and y >= 0 and x < dst_image.get_width() and y < dst_image.get_height():
 			dst_image.set_pixel(x, y, Color(floats[2], 0, 0))
-	
-	dst_image.unlock()
 

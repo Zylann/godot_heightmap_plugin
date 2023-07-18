@@ -1,13 +1,12 @@
 shader_type canvas_item;
 render_mode blend_disabled;
 
+#include "res://addons/zylann.hterrain/shaders/include/heightmap.gdshaderinc"
+
 uniform sampler2D u_src_texture;
 uniform vec4 u_src_rect;
 uniform float u_opacity = 1.0;
-uniform vec4 u_splat = vec4(1.0, 0.0, 0.0, 0.0);
-uniform sampler2D u_other_splatmap_1;
-uniform sampler2D u_other_splatmap_2;
-uniform sampler2D u_other_splatmap_3;
+uniform vec4 u_color = vec4(1.0);
 uniform sampler2D u_heightmap;
 uniform float u_normal_min_y = 0.0;
 uniform float u_normal_max_y = 1.0;
@@ -17,16 +16,16 @@ vec2 get_src_uv(vec2 screen_uv) {
 	return uv;
 }
 
-float sum(vec4 v) {
-	return v.x + v.y + v.z + v.w;
+float get_height(sampler2D heightmap, vec2 uv) {
+	return sample_heightmap(heightmap, uv);
 }
 
 vec3 get_normal(sampler2D heightmap, vec2 pos) {
 	vec2 ps = vec2(1.0) / vec2(textureSize(heightmap, 0));
-	float hnx = texture(heightmap, pos + vec2(-ps.x, 0.0)).r;
-	float hpx = texture(heightmap, pos + vec2(ps.x, 0.0)).r;
-	float hny = texture(heightmap, pos + vec2(0.0, -ps.y)).r;
-	float hpy = texture(heightmap, pos + vec2(0.0, ps.y)).r;
+	float hnx = get_height(heightmap, pos + vec2(-ps.x, 0.0));
+	float hpx = get_height(heightmap, pos + vec2(ps.x, 0.0));
+	float hny = get_height(heightmap, pos + vec2(0.0, -ps.y));
+	float hpy = get_height(heightmap, pos + vec2(0.0, ps.y));
 	return normalize(vec3(hnx - hpx, 2.0, hpy - hny));
 }
 
@@ -56,20 +55,14 @@ void fragment() {
 	vec3 normal = get_normal(u_heightmap, src_uv);
 	brush_value = apply_slope_limit(brush_value, normal, u_normal_min_y, u_normal_max_y);
 
-	// It is assumed 3 other renders are done the same with the other 3
-	vec4 src0 = texture(u_src_texture, src_uv);
-	vec4 src1 = texture(u_other_splatmap_1, src_uv);
-	vec4 src2 = texture(u_other_splatmap_2, src_uv);
-	vec4 src3 = texture(u_other_splatmap_3, src_uv);
-	float t = brush_value;
-	vec4 s0 = mix(src0, u_splat, t);
-	vec4 s1 = mix(src1, vec4(0.0), t);
-	vec4 s2 = mix(src2, vec4(0.0), t);
-	vec4 s3 = mix(src3, vec4(0.0), t);
-	float sum = sum(s0) + sum(s1) + sum(s2) + sum(s3);
-	s0 /= sum;
-	s1 /= sum;
-	s2 /= sum;
-	s3 /= sum;
-	COLOR = s0;
+	vec4 src = texture(u_src_texture, src_uv);
+
+	// Despite hints, albedo textures render darker.
+	// Trying to undo sRGB does not work because of 8-bit precision loss
+	// that would occur either in texture, or on the source image.
+	// So it's not possible to use viewports to paint albedo...
+	//src.rgb = pow(src.rgb, vec3(0.4545));
+
+	vec4 col = vec4(mix(src.rgb, u_color.rgb, brush_value), src.a);
+	COLOR = col;
 }

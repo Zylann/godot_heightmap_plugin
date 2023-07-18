@@ -1,4 +1,4 @@
-tool
+@tool
 extends Control
 
 const HT_PreviewPainter = preload("./preview_painter.gd")
@@ -7,14 +7,19 @@ const HT_PreviewPainter = preload("./preview_painter.gd")
 const HT_Brush = preload("../brush.gd")
 const HT_Logger = preload("../../../util/logger.gd")
 const HT_EditorUtil = preload("../../util/editor_util.gd")
+const HT_Util = preload("../../../util/util.gd")
 
-onready var _texture_rect : TextureRect = $TextureRect
-onready var _painter : HT_PreviewPainter = $Painter
+@onready var _texture_rect : TextureRect = $TextureRect
+@onready var _painter : HT_PreviewPainter = $Painter
 
 var _logger := HT_Logger.get_for(self)
 
 
 func _ready():
+	if HT_Util.is_in_edited_scene(self):
+		# If it runs in the edited scene,
+		# saving the scene would also save the ImageTexture in it...
+		return
 	reset_image()
 	# Default so it doesn't crash when painting and can be tested
 	var default_brush_texture = \
@@ -23,11 +28,17 @@ func _ready():
 
 
 func reset_image():
-	var image = Image.new()
-	image.create(_texture_rect.rect_size.x, _texture_rect.rect_size.y, false, Image.FORMAT_RGB8)
+	var image = Image.create(_texture_rect.size.x, _texture_rect.size.y, false, Image.FORMAT_RGB8)
 	image.fill(Color(1,1,1))
-	var texture = ImageTexture.new()
-	texture.create_from_image(image)
+	
+	# TEST
+#	var fnl = FastNoiseLite.new()
+#	for y in image.get_height():
+#		for x in image.get_width():
+#			var g = 0.5 + 0.5 * fnl.get_noise_2d(x, y)
+#			image.set_pixel(x, y, Color(g, g, g, 1.0))
+	
+	var texture = ImageTexture.create_from_image(image)
 	_texture_rect.texture = texture
 	_painter.set_image_texture(image, texture)
 
@@ -38,12 +49,12 @@ func get_painter() -> HT_PreviewPainter:
 
 func _gui_input(event):
 	if event is InputEventMouseMotion:
-		if Input.is_mouse_button_pressed(BUTTON_LEFT):
+		if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 			_painter.paint_input(event.position, event.pressure)
-		update()
+		queue_redraw()
 	
 	elif event is InputEventMouseButton:
-		if event.button_index == BUTTON_LEFT:
+		if event.button_index == MOUSE_BUTTON_LEFT:
 			if event.pressed:
 				# TODO `pressure` is not available on button events
 				# So I have to assume zero... which means clicks do not paint anything?

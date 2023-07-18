@@ -1,209 +1,162 @@
-[gd_scene load_steps=4 format=2]
+[gd_scene load_steps=4 format=3 uid="uid://d2rt3wj8xkhp2"]
 
-[ext_resource path="res://addons/zylann.hterrain/tools/util/spin_slider.tscn" type="PackedScene" id=2]
-[ext_resource path="res://addons/zylann.hterrain/tools/brush/settings_dialog/brush_settings_dialog.gd" type="Script" id=3]
-[ext_resource path="res://addons/zylann.hterrain/tools/brush/settings_dialog/preview_scratchpad.tscn" type="PackedScene" id=4]
+[ext_resource type="PackedScene" path="res://addons/zylann.hterrain/tools/util/spin_slider.tscn" id="2"]
+[ext_resource type="Script" path="res://addons/zylann.hterrain/tools/brush/settings_dialog/brush_settings_dialog.gd" id="3"]
+[ext_resource type="PackedScene" uid="uid://ng00jipfeucy" path="res://addons/zylann.hterrain/tools/brush/settings_dialog/preview_scratchpad.tscn" id="4"]
 
 [node name="BrushSettingsDialog" type="AcceptDialog"]
-visible = true
-margin_left = 46.0
-margin_top = 65.0
-margin_right = 746.0
-margin_bottom = 465.0
-rect_min_size = Vector2( 700, 400 )
-window_title = "Brush settings"
-resizable = true
-script = ExtResource( 3 )
-__meta__ = {
-"_edit_use_anchors_": false
-}
+title = "Brush settings"
+size = Vector2i(700, 422)
+min_size = Vector2i(700, 400)
+script = ExtResource("3")
 
 [node name="VB" type="VBoxContainer" parent="."]
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-margin_left = 8.0
-margin_top = 8.0
-margin_right = -8.0
-margin_bottom = -36.0
-__meta__ = {
-"_edit_use_anchors_": false
-}
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -49.0
 
 [node name="HB" type="HBoxContainer" parent="VB"]
-margin_right = 684.0
-margin_bottom = 356.0
+layout_mode = 2
 size_flags_vertical = 3
-custom_constants/separation = 8
 
 [node name="VB" type="VBoxContainer" parent="VB/HB"]
-margin_right = 120.0
-margin_bottom = 356.0
+layout_mode = 2
 size_flags_vertical = 3
 
 [node name="Label" type="Label" parent="VB/HB/VB"]
-margin_right = 120.0
-margin_bottom = 14.0
+layout_mode = 2
 text = "Shapes"
 
 [node name="ShapeList" type="ItemList" parent="VB/HB/VB"]
-margin_top = 18.0
-margin_right = 120.0
-margin_bottom = 308.0
-rect_min_size = Vector2( 120, 0 )
+layout_mode = 2
 size_flags_vertical = 3
-fixed_icon_size = Vector2( 100, 100 )
+fixed_icon_size = Vector2i(100, 100)
 
 [node name="ChangeShape" type="Button" parent="VB/HB/VB"]
-margin_top = 312.0
-margin_right = 120.0
-margin_bottom = 332.0
+layout_mode = 2
 disabled = true
 text = "Change..."
 
 [node name="HBoxContainer" type="HBoxContainer" parent="VB/HB/VB"]
-margin_top = 336.0
-margin_right = 120.0
-margin_bottom = 356.0
+layout_mode = 2
 
 [node name="AddShape" type="Button" parent="VB/HB/VB/HBoxContainer"]
-margin_right = 49.0
-margin_bottom = 20.0
+layout_mode = 2
 text = "Add..."
 
 [node name="RemoveShape" type="Button" parent="VB/HB/VB/HBoxContainer"]
-margin_left = 53.0
-margin_right = 117.0
-margin_bottom = 20.0
+layout_mode = 2
 disabled = true
 text = "Remove"
 
 [node name="VB2" type="VBoxContainer" parent="VB/HB"]
-margin_left = 128.0
-margin_right = 476.0
-margin_bottom = 356.0
+layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="Label" type="Label" parent="VB/HB/VB2"]
-margin_right = 348.0
-margin_bottom = 14.0
+layout_mode = 2
 
 [node name="Settings" type="VBoxContainer" parent="VB/HB/VB2"]
-margin_top = 18.0
-margin_right = 348.0
-margin_bottom = 262.0
+layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="Size" parent="VB/HB/VB2/Settings" instance=ExtResource( 2 )]
-anchor_right = 0.0
-anchor_bottom = 0.0
-margin_right = 348.0
-margin_bottom = 28.0
+[node name="Size" parent="VB/HB/VB2/Settings" instance=ExtResource("2")]
+custom_minimum_size = Vector2(32, 28)
+layout_mode = 2
 size_flags_horizontal = 3
-_value = 32.0
-_min_value = 2.0
-_max_value = 500.0
-_prefix = "Size:"
-_suffix = "px"
-_rounded = true
-_centered = false
-_allow_greater = true
-_greater_max_value = 4000.0
+value = 32.0
+min_value = 2.0
+max_value = 500.0
+prefix = "Size:"
+suffix = "px"
+rounded = true
+centered = true
+allow_greater = true
+greater_max_value = 4000.0
 
-[node name="Opacity" parent="VB/HB/VB2/Settings" instance=ExtResource( 2 )]
-anchor_right = 0.0
-anchor_bottom = 0.0
-margin_top = 32.0
-margin_right = 348.0
-margin_bottom = 60.0
+[node name="Opacity" parent="VB/HB/VB2/Settings" instance=ExtResource("2")]
+custom_minimum_size = Vector2(32, 28)
+layout_mode = 2
 size_flags_horizontal = 3
-_value = 100.0
-_prefix = "Opacity"
-_suffix = "%"
-_rounded = true
-_centered = false
+value = 100.0
+max_value = 100.0
+prefix = "Opacity"
+suffix = "%"
+rounded = true
+centered = true
+greater_max_value = 10000.0
 
 [node name="PressureEnabled" type="CheckBox" parent="VB/HB/VB2/Settings"]
-margin_top = 64.0
-margin_right = 348.0
-margin_bottom = 88.0
+layout_mode = 2
 text = "Enable pressure (pen tablets)"
 
-[node name="PressureOverSize" parent="VB/HB/VB2/Settings" instance=ExtResource( 2 )]
-anchor_right = 0.0
-anchor_bottom = 0.0
-margin_top = 92.0
-margin_right = 348.0
-margin_bottom = 120.0
-_value = 50.0
-_prefix = "Pressure affects size:"
-_suffix = "%"
-_centered = false
+[node name="PressureOverSize" parent="VB/HB/VB2/Settings" instance=ExtResource("2")]
+custom_minimum_size = Vector2(32, 28)
+layout_mode = 2
+value = 50.0
+max_value = 100.0
+prefix = "Pressure affects size:"
+suffix = "%"
+centered = true
+greater_max_value = 10000.0
 
-[node name="PressureOverOpacity" parent="VB/HB/VB2/Settings" instance=ExtResource( 2 )]
-anchor_right = 0.0
-anchor_bottom = 0.0
-margin_top = 124.0
-margin_right = 348.0
-margin_bottom = 152.0
-_value = 50.0
-_prefix = "Pressure affects opacity:"
-_suffix = "%"
-_centered = false
+[node name="PressureOverOpacity" parent="VB/HB/VB2/Settings" instance=ExtResource("2")]
+custom_minimum_size = Vector2(32, 28)
+layout_mode = 2
+value = 50.0
+max_value = 100.0
+prefix = "Pressure affects opacity:"
+suffix = "%"
+centered = true
+greater_max_value = 10000.0
 
-[node name="FrequencyTime" parent="VB/HB/VB2/Settings" instance=ExtResource( 2 )]
-anchor_right = 0.0
-anchor_bottom = 0.0
-margin_top = 156.0
-margin_right = 348.0
-margin_bottom = 184.0
-_value = 60.0
-_min_value = 1.0
-_max_value = 60.0
-_prefix = "Frequency time:"
-_suffix = "fps"
-_centered = false
+[node name="FrequencyTime" parent="VB/HB/VB2/Settings" instance=ExtResource("2")]
+custom_minimum_size = Vector2(32, 28)
+layout_mode = 2
+value = 60.0
+min_value = 1.0
+max_value = 60.0
+prefix = "Frequency time:"
+suffix = "fps"
+centered = true
+greater_max_value = 10000.0
 
-[node name="FrequencyDistance" parent="VB/HB/VB2/Settings" instance=ExtResource( 2 )]
-anchor_right = 0.0
-anchor_bottom = 0.0
-margin_top = 188.0
-margin_right = 348.0
-margin_bottom = 216.0
-_prefix = "Frequency distance:"
-_suffix = "px"
-_centered = false
-_greater_max_value = 4000.0
+[node name="FrequencyDistance" parent="VB/HB/VB2/Settings" instance=ExtResource("2")]
+custom_minimum_size = Vector2(32, 28)
+layout_mode = 2
+max_value = 100.0
+prefix = "Frequency distance:"
+suffix = "px"
+centered = true
+greater_max_value = 4000.0
 
 [node name="RandomRotation" type="CheckBox" parent="VB/HB/VB2/Settings"]
-margin_top = 220.0
-margin_right = 348.0
-margin_bottom = 244.0
+layout_mode = 2
 text = "Random rotation"
+
+[node name="ShapeCycling" type="CheckBox" parent="VB/HB/VB2/Settings"]
+layout_mode = 2
+text = "Shape cycling"
 
 [node name="HSeparator" type="HSeparator" parent="VB/HB/VB2/Settings"]
 visible = false
-margin_top = 124.0
-margin_right = 292.0
-margin_bottom = 128.0
+layout_mode = 2
 
 [node name="SizeLimitHB" type="HBoxContainer" parent="VB/HB/VB2/Settings"]
 visible = false
-margin_top = 124.0
-margin_right = 142.0
-margin_bottom = 152.0
+layout_mode = 2
 
 [node name="Label" type="Label" parent="VB/HB/VB2/Settings/SizeLimitHB"]
-margin_top = 7.0
-margin_right = 64.0
-margin_bottom = 21.0
-hint_tooltip = "This allows to change the upper limit of the brush size slider. Bear in mind high values can slow down the editor."
+layout_mode = 2
 mouse_filter = 0
 text = "Size limit:"
 
 [node name="SizeLimit" type="SpinBox" parent="VB/HB/VB2/Settings/SizeLimitHB"]
-margin_left = 68.0
-margin_right = 142.0
-margin_bottom = 28.0
+layout_mode = 2
 size_flags_horizontal = 3
 min_value = 1.0
 max_value = 1000.0
@@ -211,52 +164,38 @@ value = 200.0
 
 [node name="HSeparator2" type="HSeparator" parent="VB/HB/VB2/Settings"]
 visible = false
-margin_top = 188.0
-margin_right = 292.0
-margin_bottom = 192.0
+layout_mode = 2
 
 [node name="HB" type="HBoxContainer" parent="VB/HB/VB2/Settings"]
 visible = false
-margin_top = 248.0
-margin_right = 292.0
-margin_bottom = 268.0
+layout_mode = 2
 
 [node name="Button" type="Button" parent="VB/HB/VB2/Settings/HB"]
-margin_right = 99.0
-margin_bottom = 20.0
+layout_mode = 2
 text = "Load preset..."
 
 [node name="Button2" type="Button" parent="VB/HB/VB2/Settings/HB"]
-margin_left = 103.0
-margin_right = 201.0
-margin_bottom = 20.0
+layout_mode = 2
 text = "Save preset..."
 
 [node name="VB3" type="VBoxContainer" parent="VB/HB"]
-margin_left = 484.0
-margin_right = 684.0
-margin_bottom = 356.0
+layout_mode = 2
 
 [node name="Label" type="Label" parent="VB/HB/VB3"]
-margin_right = 200.0
-margin_bottom = 14.0
+layout_mode = 2
 text = "Scratchpad"
 
-[node name="PreviewScratchpad" parent="VB/HB/VB3" instance=ExtResource( 4 )]
-margin_top = 18.0
-margin_right = 200.0
-margin_bottom = 318.0
-rect_min_size = Vector2( 200, 300 )
+[node name="PreviewScratchpad" parent="VB/HB/VB3" instance=ExtResource("4")]
+custom_minimum_size = Vector2(200, 300)
+layout_mode = 2
 
 [node name="ClearScratchpad" type="Button" parent="VB/HB/VB3"]
-margin_top = 322.0
-margin_right = 200.0
-margin_bottom = 342.0
+layout_mode = 2
 text = "Clear"
 
+[connection signal="empty_clicked" from="VB/HB/VB/ShapeList" to="." method="_on_shape_list_empty_clicked"]
 [connection signal="item_activated" from="VB/HB/VB/ShapeList" to="." method="_on_ShapeList_item_activated"]
 [connection signal="item_selected" from="VB/HB/VB/ShapeList" to="." method="_on_ShapeList_item_selected"]
-[connection signal="nothing_selected" from="VB/HB/VB/ShapeList" to="." method="_on_ShapeList_nothing_selected"]
 [connection signal="pressed" from="VB/HB/VB/ChangeShape" to="." method="_on_ChangeShape_pressed"]
 [connection signal="pressed" from="VB/HB/VB/HBoxContainer/AddShape" to="." method="_on_AddShape_pressed"]
 [connection signal="pressed" from="VB/HB/VB/HBoxContainer/RemoveShape" to="." method="_on_RemoveShape_pressed"]
@@ -268,4 +207,5 @@ text = "Clear"
 [connection signal="value_changed" from="VB/HB/VB2/Settings/FrequencyTime" to="." method="_on_FrequencyTime_value_changed"]
 [connection signal="value_changed" from="VB/HB/VB2/Settings/FrequencyDistance" to="." method="_on_FrequencyDistance_value_changed"]
 [connection signal="toggled" from="VB/HB/VB2/Settings/RandomRotation" to="." method="_on_RandomRotation_toggled"]
+[connection signal="toggled" from="VB/HB/VB2/Settings/ShapeCycling" to="." method="_on_shape_cycling_toggled"]
 [connection signal="pressed" from="VB/HB/VB3/ClearScratchpad" to="." method="_on_ClearScratchpad_pressed"]

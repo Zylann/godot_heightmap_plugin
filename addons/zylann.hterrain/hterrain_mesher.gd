@@ -1,6 +1,7 @@
-tool
+@tool
 
 #const HT_Logger = preload("./util/logger.gd")
+const HTerrainData = preload("./hterrain_data.gd")
 
 const SEAM_LEFT = 1
 const SEAM_RIGHT = 2
@@ -32,13 +33,12 @@ func configure(chunk_size_x: int, chunk_size_y: int, lod_count: int):
 	_chunk_size_y = chunk_size_y
 
 	# TODO Will reduce the size of this cache, but need index buffer swap feature
-	for seams in range(SEAM_CONFIG_COUNT):
-		
-		var slot = []
+	for seams in SEAM_CONFIG_COUNT:
+		var slot := []
 		slot.resize(lod_count)
 		_mesh_cache[seams] = slot
 		
-		for lod in range(lod_count):
+		for lod in lod_count:
 			slot[lod] = make_flat_chunk(_chunk_size_x, _chunk_size_y, 1 << lod, seams)
 
 
@@ -47,24 +47,23 @@ func get_chunk(lod: int, seams: int) -> Mesh:
 
 
 static func make_flat_chunk(quad_count_x: int, quad_count_y: int, stride: int, seams: int) -> Mesh:
-
-	var positions = PoolVector3Array()
+	var positions = PackedVector3Array()
 	positions.resize((quad_count_x + 1) * (quad_count_y + 1))
 
 	var i = 0
-	for y in range(quad_count_y + 1):
-		for x in range(quad_count_x + 1):
+	for y in quad_count_y + 1:
+		for x in quad_count_x + 1:
 			positions[i] = Vector3(x * stride, 0, y * stride)
 			i += 1
 		
-	var indices = make_indices(quad_count_x, quad_count_y, seams)
+	var indices := make_indices(quad_count_x, quad_count_y, seams)
 
-	var arrays = []
+	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX);
 	arrays[Mesh.ARRAY_VERTEX] = positions
 	arrays[Mesh.ARRAY_INDEX] = indices
 
-	var mesh = ArrayMesh.new()
+	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 
 	return mesh
@@ -72,9 +71,8 @@ static func make_flat_chunk(quad_count_x: int, quad_count_y: int, stride: int, s
 
 # size: chunk size in quads (there are N+1 vertices)
 # seams: Bitfield for which seams are present
-static func make_indices(chunk_size_x: int, chunk_size_y: int, seams: int) -> PoolIntArray:
-
-	var output_indices := PoolIntArray()
+static func make_indices(chunk_size_x: int, chunk_size_y: int, seams: int) -> PackedInt32Array:
+	var output_indices := PackedInt32Array()
 
 	if seams != 0:
 		# LOD seams can't be made properly on uneven chunk sizes
@@ -105,9 +103,8 @@ static func make_indices(chunk_size_x: int, chunk_size_y: int, seams: int) -> Po
 	# Regular triangles
 	var ii := reg_origin_x + reg_origin_y * (chunk_size_x + 1)
 
-	for y in range(reg_size_y):
-		for x in range(reg_size_x):
-			
+	for y in reg_size_y:
+		for x in reg_size_x:
 			var i00 := ii
 			var i10 := ii + 1
 			var i01 := ii + chunk_size_x + 1
@@ -124,7 +121,6 @@ static func make_indices(chunk_size_x: int, chunk_size_y: int, seams: int) -> Po
 			var flip = ((x + reg_origin_x) + (y + reg_origin_y) % 2) % 2 != 0
 
 			if flip:
-
 				output_indices.push_back( i00 )
 				output_indices.push_back( i10 )
 				output_indices.push_back( i01 )
@@ -161,8 +157,7 @@ static func make_indices(chunk_size_x: int, chunk_size_y: int, seams: int) -> Po
 		var i := 0
 		var n := chunk_size_y / 2
 
-		for j in range(n):
-
+		for j in n:
 			var i0 := i
 			var i1 := i + 1
 			var i3 := i + chunk_size_x + 2
@@ -200,7 +195,7 @@ static func make_indices(chunk_size_x: int, chunk_size_y: int, seams: int) -> Po
 		var i := chunk_size_x - 1
 		var n := chunk_size_y / 2
 
-		for j in range(n):
+		for j in n:
 
 			var i0 := i
 			var i1 := i + 1
@@ -236,7 +231,7 @@ static func make_indices(chunk_size_x: int, chunk_size_y: int, seams: int) -> Po
 		var i := 0;
 		var n := chunk_size_x / 2;
 		
-		for j in range(n):
+		for j in n:
 
 			var i0 := i
 			var i2 := i + 2
@@ -272,7 +267,7 @@ static func make_indices(chunk_size_x: int, chunk_size_y: int, seams: int) -> Po
 		var i := (chunk_size_y - 1) * (chunk_size_x + 1)
 		var n := chunk_size_x / 2
 
-		for j in range(n):
+		for j in n:
 
 			var i0 := i
 			var i1 := i + 1
@@ -318,21 +313,33 @@ static func make_heightmap_mesh(heightmap: Image, stride: int, scale: Vector3,
 	assert(size_x >= 2)
 	assert(size_z >= 2)
 	
-	var positions := PoolVector3Array()
+	var positions := PackedVector3Array()
 	positions.resize(size_x * size_z)
 	
-	heightmap.lock()
-
 	var i := 0
-	for mz in size_z:
-		for mx in size_x:
-			var x = mx * stride
-			var z = mz * stride
-			var y := heightmap.get_pixel(x, z).r
-			positions[i] = Vector3(x, y, z) * scale
-			i += 1
 	
-	heightmap.unlock()
+	if heightmap.get_format() == Image.FORMAT_RH or heightmap.get_format() == Image.FORMAT_RF:
+		for mz in size_z:
+			for mx in size_x:
+				var x := mx * stride
+				var z := mz * stride
+				var y := heightmap.get_pixel(x, z).r
+				positions[i] = Vector3(x, y, z) * scale
+				i += 1
+
+	elif heightmap.get_format() == Image.FORMAT_RGB8:
+		for mz in size_z:
+			for mx in size_x:
+				var x := mx * stride
+				var z := mz * stride
+				var c := heightmap.get_pixel(x, z)
+				var y := HTerrainData.decode_height_from_rgb8_unorm(c)
+				positions[i] = Vector3(x, y, z) * scale
+				i += 1
+				
+	else:
+		logger.error("Unknown heightmap format!")
+		return null
 	
 	var indices := make_indices(size_x - 1, size_z - 1, 0)
 

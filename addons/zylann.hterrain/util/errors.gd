@@ -1,4 +1,4 @@
-tool
+@tool
 
 # Taken from https://docs.godotengine.org/en/3.0/classes/class_@globalscope.html#enum-globalscope-error
 const _names = {
@@ -23,12 +23,15 @@ const _names = {
 	ERR_FILE_EOF: "File End of file (EOF) error",
 	ERR_CANT_OPEN: "Can't open error",
 	ERR_CANT_CREATE: "Can't create error",
-	ERR_PARSE_ERROR: "Parse error",
 	ERR_QUERY_FAILED: "Query failed error",
 	ERR_ALREADY_IN_USE: "Already in use error",
 	ERR_LOCKED: "Locked error",
 	ERR_TIMEOUT: "Timeout error",
+	ERR_CANT_CONNECT: "Can't connect",
+	ERR_CANT_RESOLVE: "Can't resolve",
+	ERR_CONNECTION_ERROR: "Connection error",
 	ERR_CANT_ACQUIRE_RESOURCE: "Can't acquire resource error",
+	ERR_CANT_FORK: "Can't fork",
 	ERR_INVALID_DATA: "Invalid data error",
 	ERR_INVALID_PARAMETER: "Invalid parameter error",
 	ERR_ALREADY_EXISTS: "Already exists error",
@@ -40,11 +43,16 @@ const _names = {
 	ERR_LINK_FAILED: "Linking failed error",
 	ERR_SCRIPT_FAILED: "Script failed error",
 	ERR_CYCLIC_LINK: "Cycling link (import cycle) error",
+	ERR_INVALID_DECLARATION: "Invalid declaration",
+	ERR_DUPLICATE_SYMBOL: "Duplicate symbol",
+	ERR_PARSE_ERROR: "Parse error",
 	ERR_BUSY: "Busy error",
+	ERR_SKIP: "Skip error",
 	ERR_HELP: "Help error",
-	ERR_BUG: "Bug error"
+	ERR_BUG: "Bug error",
+	ERR_PRINTER_ON_FIRE: "The printer is on fire"
 }
 
-static func get_message(err_code):
+static func get_message(err_code: int):
 	return str("[", err_code, "]: ", _names[err_code])
 

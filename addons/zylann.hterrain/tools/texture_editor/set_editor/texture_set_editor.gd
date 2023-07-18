@@ -1,44 +1,48 @@
-tool
-extends Control
+@tool
+extends AcceptDialog
 
 const HTerrainTextureSet = preload("../../../hterrain_texture_set.gd")
 const HT_EditorUtil = preload("../../util/editor_util.gd")
 const HT_Util = preload("../../../util/util.gd")
 const HT_Logger = preload("../../../util/logger.gd")
 
-const HT_ColorShader = preload("../display_color.shader")
-const HT_ColorSliceShader = preload("../display_color_slice.shader")
-const HT_AlphaShader = preload("../display_alpha.shader")
-const HT_AlphaSliceShader = preload("../display_alpha_slice.shader")
+const HT_ColorShader = preload("../display_color.gdshader")
+const HT_ColorSliceShader = preload("../display_color_slice.gdshader")
+const HT_AlphaShader = preload("../display_alpha.gdshader")
+const HT_AlphaSliceShader = preload("../display_alpha_slice.gdshader")
 # TODO Can't preload because it causes the plugin to fail loading if assets aren't imported
 #const HT_EmptyTexture = preload("../../icons/empty.png")
 const EMPTY_TEXTURE_PATH = "res://addons/zylann.hterrain/tools/icons/empty.png"
 
 signal import_selected
 
-onready var _slots_list = $VB/HS/VB/SlotsList
-onready var _albedo_preview = $VB/HS/VB2/GC/AlbedoPreview
-onready var _bump_preview = $VB/HS/VB2/GC/BumpPreview
-onready var _normal_preview = $VB/HS/VB2/GC/NormalPreview
-onready var _roughness_preview = $VB/HS/VB2/GC/RoughnessPreview
-onready var _load_albedo_button = $VB/HS/VB2/GC/LoadAlbedo
-onready var _load_normal_button = $VB/HS/VB2/GC/LoadNormal
-onready var _clear_albedo_button = $VB/HS/VB2/GC/ClearAlbedo
-onready var _clear_normal_button = $VB/HS/VB2/GC/ClearNormal
-onready var _mode_selector = $VB/HS/VB2/GC2/ModeSelector
-onready var _add_slot_button = $VB/HS/VB/HB/AddSlot
-onready var _remove_slot_button = $VB/HS/VB/HB/RemoveSlot
+@onready var _slots_list : ItemList = $VB/HS/VB/SlotsList
+@onready var _albedo_preview : TextureRect = $VB/HS/VB2/GC/AlbedoPreview
+@onready var _bump_preview : TextureRect = $VB/HS/VB2/GC/BumpPreview
+@onready var _normal_preview : TextureRect = $VB/HS/VB2/GC/NormalPreview
+@onready var _roughness_preview : TextureRect = $VB/HS/VB2/GC/RoughnessPreview
+@onready var _load_albedo_button : Button = $VB/HS/VB2/GC/LoadAlbedo
+@onready var _load_normal_button : Button = $VB/HS/VB2/GC/LoadNormal
+@onready var _clear_albedo_button : Button = $VB/HS/VB2/GC/ClearAlbedo
+@onready var _clear_normal_button : Button = $VB/HS/VB2/GC/ClearNormal
+@onready var _mode_selector : OptionButton = $VB/HS/VB2/GC2/ModeSelector
+@onready var _add_slot_button : Button = $VB/HS/VB/HB/AddSlot
+@onready var _remove_slot_button : Button = $VB/HS/VB/HB/RemoveSlot
 
 var _texture_set : HTerrainTextureSet
-var _undo_redo : UndoRedo
+var _undo_redo_manager : EditorUndoRedoManager
 
 var _mode_confirmation_dialog : ConfirmationDialog
 var _delete_slot_confirmation_dialog : ConfirmationDialog
-var _load_texture_dialog : WindowDialog
-var _load_texture_array_dialog : WindowDialog
+var _load_texture_dialog : ConfirmationDialog
+var _load_texture_array_dialog : ConfirmationDialog
 var _load_texture_type := -1
 
 var _logger = HT_Logger.get_for(self)
+
+
+func _init():
+	get_ok_button().hide()
 
 
 func _ready():
@@ -51,24 +55,24 @@ func _ready():
 
 func setup_dialogs(parent: Node):
 	var d = HT_EditorUtil.create_open_texture_dialog()
-	d.connect("file_selected", self, "_on_LoadTextureDialog_file_selected")
+	d.file_selected.connect(_on_LoadTextureDialog_file_selected)
 	_load_texture_dialog = d
-	parent.add_child(d)
+	add_child(d)
 
 	d = HT_EditorUtil.create_open_texture_array_dialog()
-	d.connect("file_selected", self, "_on_LoadTextureArrayDialog_file_selected")
+	d.file_selected.connect(_on_LoadTextureArrayDialog_file_selected)
 	_load_texture_array_dialog = d
-	parent.add_child(d)
+	add_child(d)
 	
 	d = ConfirmationDialog.new()
-	d.connect("confirmed", self, "_on_ModeConfirmationDialog_confirmed")
+	d.confirmed.connect(_on_ModeConfirmationDialog_confirmed)
 	# This is ridiculous.
 	# See https://github.com/godotengine/godot/issues/17460
 #	d.connect("modal_closed", self, "_on_ModeConfirmationDialog_cancelled")
 #	d.get_close_button().connect("pressed", self, "_on_ModeConfirmationDialog_cancelled")
 #	d.get_cancel().connect("pressed", self, "_on_ModeConfirmationDialog_cancelled")
 	_mode_confirmation_dialog = d
-	parent.add_child(d)
+	add_child(d)
 
 
 func _notification(what: int):
@@ -84,12 +88,13 @@ func _notification(what: int):
 			_load_texture_array_dialog.queue_free()
 	
 	if what == NOTIFICATION_VISIBILITY_CHANGED:
-		if not is_visible_in_tree():
+		if not visible:
+			# Cleanup referenced resources
 			set_texture_set(null)
 
 
-func set_undo_redo(ur: UndoRedo):
-	_undo_redo = ur
+func set_undo_redo(ur: EditorUndoRedoManager):
+	_undo_redo_manager = ur
 
 
 func set_texture_set(texture_set: HTerrainTextureSet):
@@ -97,12 +102,12 @@ func set_texture_set(texture_set: HTerrainTextureSet):
 		return
 	
 	if _texture_set != null:
-		_texture_set.disconnect("changed", self, "_on_texture_set_changed")
+		_texture_set.changed.disconnect(_on_texture_set_changed)
 
 	_texture_set = texture_set
 	
 	if _texture_set != null:
-		_texture_set.connect("changed", self, "_on_texture_set_changed")
+		_texture_set.changed.connect(_on_texture_set_changed)
 		_update_ui_from_data()
 
 
@@ -136,7 +141,7 @@ func _update_ui_from_data():
 	_add_slot_button.disabled = slots_count >= max_slots
 	_remove_slot_button.disabled = slots_count == 0
 
-	var buttons = [
+	var buttons := [
 		_load_albedo_button, 
 		_load_normal_button, 
 		_clear_albedo_button, 
@@ -150,7 +155,7 @@ func _update_ui_from_data():
 		_load_normal_button.text = "Load..."
 		
 		for b in buttons:
-			b.disabled = slots_count == 0
+			b.disabled = (slots_count == 0)
 		
 	else:
 		_add_slot_button.visible = false
@@ -178,28 +183,28 @@ func select_slot(slot_index: int):
 
 
 func _clear_previews():
-	var empty_texture = load(EMPTY_TEXTURE_PATH)
+	var empty_texture : Texture2D = load(EMPTY_TEXTURE_PATH)
 	if empty_texture == null:
-		_logger.error("Failed to load empty texture ", EMPTY_TEXTURE_PATH)
+		_logger.error(str("Failed to load empty texture ", EMPTY_TEXTURE_PATH))
 	
 	_albedo_preview.texture = empty_texture
 	_bump_preview.texture = empty_texture
 	_normal_preview.texture = empty_texture
 	_roughness_preview.texture = empty_texture
 	
-	_albedo_preview.hint_tooltip = _get_resource_path_or_empty(null)
-	_bump_preview.hint_tooltip = _get_resource_path_or_empty(null)
-	_normal_preview.hint_tooltip = _get_resource_path_or_empty(null)
-	_roughness_preview.hint_tooltip = _get_resource_path_or_empty(null)
+	_albedo_preview.tooltip_text = _get_resource_path_or_empty(null)
+	_bump_preview.tooltip_text = _get_resource_path_or_empty(null)
+	_normal_preview.tooltip_text = _get_resource_path_or_empty(null)
+	_roughness_preview.tooltip_text = _get_resource_path_or_empty(null)
 
 
 func _select_slot(slot_index: int):
 	assert(slot_index >= 0)
 	assert(slot_index < _texture_set.get_slots_count())
 
-	var empty_texture = load(EMPTY_TEXTURE_PATH)
+	var empty_texture : Texture2D = load(EMPTY_TEXTURE_PATH)
 	if empty_texture == null:
-		_logger.error("Failed to load empty texture ", EMPTY_TEXTURE_PATH)
+		_logger.error(str("Failed to load empty texture ", EMPTY_TEXTURE_PATH))
 	
 	if _texture_set.get_mode() == HTerrainTextureSet.MODE_TEXTURES:
 		var albedo_tex := \
@@ -212,20 +217,20 @@ func _select_slot(slot_index: int):
 		_normal_preview.texture = normal_tex if normal_tex != null else empty_texture
 		_roughness_preview.texture = normal_tex if normal_tex != null else empty_texture
 		
-		_albedo_preview.hint_tooltip = _get_resource_path_or_empty(albedo_tex)
-		_bump_preview.hint_tooltip = _get_resource_path_or_empty(albedo_tex)
-		_normal_preview.hint_tooltip = _get_resource_path_or_empty(normal_tex)
-		_roughness_preview.hint_tooltip = _get_resource_path_or_empty(normal_tex)
+		_albedo_preview.tooltip_text = _get_resource_path_or_empty(albedo_tex)
+		_bump_preview.tooltip_text = _get_resource_path_or_empty(albedo_tex)
+		_normal_preview.tooltip_text = _get_resource_path_or_empty(normal_tex)
+		_roughness_preview.tooltip_text = _get_resource_path_or_empty(normal_tex)
 
 		_albedo_preview.material.shader = HT_ColorShader
 		_bump_preview.material.shader = HT_AlphaShader
 		_normal_preview.material.shader = HT_ColorShader
 		_roughness_preview.material.shader = HT_AlphaShader
 		
-		_albedo_preview.material.set_shader_param("u_texture_array", null)
-		_bump_preview.material.set_shader_param("u_texture_array", null)
-		_normal_preview.material.set_shader_param("u_texture_array", null)
-		_roughness_preview.material.set_shader_param("u_texture_array", null)
+		_albedo_preview.material.set_shader_parameter("u_texture_array", null)
+		_bump_preview.material.set_shader_parameter("u_texture_array", null)
+		_normal_preview.material.set_shader_parameter("u_texture_array", null)
+		_roughness_preview.material.set_shader_parameter("u_texture_array", null)
 	
 	else:
 		var albedo_tex := _texture_set.get_texture_array(HTerrainTextureSet.TYPE_ALBEDO_BUMP)
@@ -236,10 +241,10 @@ func _select_slot(slot_index: int):
 		_normal_preview.texture = empty_texture
 		_roughness_preview.texture = empty_texture
 		
-		_albedo_preview.hint_tooltip = _get_resource_path_or_empty(albedo_tex)
-		_bump_preview.hint_tooltip = _get_resource_path_or_empty(albedo_tex)
-		_normal_preview.hint_tooltip = _get_resource_path_or_empty(normal_tex)
-		_roughness_preview.hint_tooltip = _get_resource_path_or_empty(normal_tex)
+		_albedo_preview.tooltip_text = _get_resource_path_or_empty(albedo_tex)
+		_bump_preview.tooltip_text = _get_resource_path_or_empty(albedo_tex)
+		_normal_preview.tooltip_text = _get_resource_path_or_empty(normal_tex)
+		_roughness_preview.tooltip_text = _get_resource_path_or_empty(normal_tex)
 		
 		_albedo_preview.material.shader = HT_ColorSliceShader
 		_bump_preview.material.shader = HT_AlphaSliceShader
@@ -248,15 +253,15 @@ func _select_slot(slot_index: int):
 		_roughness_preview.material.shader = \
 			HT_AlphaSliceShader if normal_tex != null else HT_AlphaShader
 		
-		_albedo_preview.material.set_shader_param("u_texture_array", albedo_tex)
-		_bump_preview.material.set_shader_param("u_texture_array", albedo_tex)
-		_normal_preview.material.set_shader_param("u_texture_array", normal_tex)
-		_roughness_preview.material.set_shader_param("u_texture_array", normal_tex)
+		_albedo_preview.material.set_shader_parameter("u_texture_array", albedo_tex)
+		_bump_preview.material.set_shader_parameter("u_texture_array", albedo_tex)
+		_normal_preview.material.set_shader_parameter("u_texture_array", normal_tex)
+		_roughness_preview.material.set_shader_parameter("u_texture_array", normal_tex)
 	
-	_albedo_preview.material.set_shader_param("u_index", slot_index)
-	_bump_preview.material.set_shader_param("u_index", slot_index)
-	_normal_preview.material.set_shader_param("u_index", slot_index)
-	_roughness_preview.material.set_shader_param("u_index", slot_index)
+	_albedo_preview.material.set_shader_parameter("u_index", slot_index)
+	_bump_preview.material.set_shader_parameter("u_index", slot_index)
+	_normal_preview.material.set_shader_parameter("u_index", slot_index)
+	_roughness_preview.material.set_shader_parameter("u_index", slot_index)
 	
 	_slots_list.select(slot_index)
 
@@ -268,20 +273,26 @@ static func _get_resource_path_or_empty(res: Resource) -> String:
 
 
 func _on_ImportButton_pressed():
-	emit_signal("import_selected")
+	import_selected.emit()
 
 
 func _on_CloseButton_pressed():
 	hide()
 
 
+func _get_undo_redo_for_texture_set() -> UndoRedo:
+	return _undo_redo_manager.get_history_undo_redo(
+		_undo_redo_manager.get_object_history_id(_texture_set))
+
+
 func _on_AddSlot_pressed():
 	assert(_texture_set.get_mode() == HTerrainTextureSet.MODE_TEXTURES)
 	var slot_index = _texture_set.get_slots_count()
-	_undo_redo.create_action("HTerrainTextureSet: add slot")
-	_undo_redo.add_do_method(_texture_set, "insert_slot", -1)
-	_undo_redo.add_undo_method(_texture_set, "remove_slot", slot_index)
-	_undo_redo.commit_action()
+	var ur := _get_undo_redo_for_texture_set()
+	ur.create_action("HTerrainTextureSet: add slot")
+	ur.add_do_method(_texture_set.insert_slot.bind(-1))
+	ur.add_undo_method(_texture_set.remove_slot.bind(slot_index))
+	ur.commit_action()
 
 
 func _on_RemoveSlot_pressed():
@@ -291,22 +302,24 @@ func _on_RemoveSlot_pressed():
 	var textures = []
 	for type in HTerrainTextureSet.TYPE_COUNT:
 		textures.append(_texture_set.get_texture(slot_index, type))
+
+	var ur := _get_undo_redo_for_texture_set()
 	
-	_undo_redo.create_action("HTerrainTextureSet: remove slot")
+	ur.create_action("HTerrainTextureSet: remove slot")
 
-	_undo_redo.add_do_method(_texture_set, "remove_slot", slot_index)
+	ur.add_do_method(_texture_set.remove_slot.bind(slot_index))
 
-	_undo_redo.add_undo_method(_texture_set, "insert_slot", slot_index)
+	ur.add_undo_method(_texture_set.insert_slot.bind(slot_index))
 	for type in len(textures):
 		var texture = textures[type]
 		# TODO This branch only exists because of a flaw in UndoRedo
 		# See https://github.com/godotengine/godot/issues/36895
 		if texture == null:
-			_undo_redo.add_undo_method(_texture_set, "set_texture_null", slot_index, type)
+			ur.add_undo_method(_texture_set.set_texture_null.bind(slot_index, type))
 		else:
-			_undo_redo.add_undo_method(_texture_set, "set_texture", slot_index, type, texture)
+			ur.add_undo_method(_texture_set.set_texture.bind(slot_index, type, texture))
 
-	_undo_redo.commit_action()
+	ur.commit_action()
 
 
 func _on_SlotsList_item_selected(index: int):
@@ -331,52 +344,56 @@ func _on_LoadNormal_pressed():
 
 func _set_texture_action(slot_index: int, texture: Texture, type: int):
 	var prev_texture = _texture_set.get_texture(slot_index, type)
+
+	var ur := _get_undo_redo_for_texture_set()
 	
-	_undo_redo.create_action("HTerrainTextureSet: load texture")
+	ur.create_action("HTerrainTextureSet: load texture")
 	
 	# TODO This branch only exists because of a flaw in UndoRedo
 	# See https://github.com/godotengine/godot/issues/36895
 	if texture == null:
-		_undo_redo.add_do_method(_texture_set, "set_texture_null", slot_index, type)
+		ur.add_do_method(_texture_set.set_texture_null.bind(slot_index, type))
 	else:
-		_undo_redo.add_do_method(_texture_set, "set_texture", slot_index, type, texture)
-	_undo_redo.add_do_method(self, "_select_slot", slot_index)
+		ur.add_do_method(_texture_set.set_texture.bind(slot_index, type, texture))
+	ur.add_do_method(self._select_slot.bind(slot_index))
 	
 	# TODO This branch only exists because of a flaw in UndoRedo
 	# See https://github.com/godotengine/godot/issues/36895
 	if prev_texture == null:
-		_undo_redo.add_undo_method(_texture_set, "set_texture_null", slot_index, type)
+		ur.add_undo_method(_texture_set.set_texture_null.bind(slot_index, type))
 	else:
-		_undo_redo.add_undo_method(_texture_set, "set_texture", slot_index, type, prev_texture)
-	_undo_redo.add_undo_method(self, "_select_slot", slot_index)
+		ur.add_undo_method(_texture_set.set_texture.bind(slot_index, type, prev_texture))
+	ur.add_undo_method(self._select_slot.bind(slot_index))
 	
-	_undo_redo.commit_action()
+	ur.commit_action()
 
 
-func _set_texture_array_action(slot_index: int, texture_array: TextureArray, type: int):
+func _set_texture_array_action(slot_index: int, texture_array: TextureLayered, type: int):
 	var prev_texture_array = _texture_set.get_texture_array(type)
+
+	var ur := _get_undo_redo_for_texture_set()
 	
-	_undo_redo.create_action("HTerrainTextureSet: load texture array")
+	ur.create_action("HTerrainTextureSet: load texture array")
 	
 	# TODO This branch only exists because of a flaw in UndoRedo
 	# See https://github.com/godotengine/godot/issues/36895
 	if texture_array == null:
-		_undo_redo.add_do_method(_texture_set, "set_texture_array_null", type)
+		ur.add_do_method(_texture_set.set_texture_array_null.bind(type))
 		# Can't select a slot after this because there won't be any after the array is removed
 	else:
-		_undo_redo.add_do_method(_texture_set, "set_texture_array", type, texture_array)
-		_undo_redo.add_do_method(self, "_select_slot", slot_index)
+		ur.add_do_method(_texture_set.set_texture_array.bind(type, texture_array))
+		ur.add_do_method(self._select_slot.bind(slot_index))
 	
 	# TODO This branch only exists because of a flaw in UndoRedo
 	# See https://github.com/godotengine/godot/issues/36895
 	if prev_texture_array == null:
-		_undo_redo.add_undo_method(_texture_set, "set_texture_array_null", type)
+		ur.add_undo_method(_texture_set.set_texture_array_null.bind(type))
 		# Can't select a slot after this because there won't be any after the array is removed
 	else:
-		_undo_redo.add_undo_method(_texture_set, "set_texture_array", type, prev_texture_array)
-		_undo_redo.add_undo_method(self, "_select_slot", slot_index)
+		ur.add_undo_method(_texture_set.set_texture_array.bind(type, prev_texture_array))
+		ur.add_undo_method(self._select_slot.bind(slot_index))
 	
-	_undo_redo.commit_action()
+	ur.commit_action()
 
 
 func _on_LoadTextureDialog_file_selected(fpath: String):
@@ -447,16 +464,16 @@ func _on_ModeConfirmationDialog_confirmed():
 
 func _switch_mode_action():
 	var mode := _texture_set.get_mode()
-	var ur := _undo_redo
+	var ur := _get_undo_redo_for_texture_set()
 	
 	if mode == HTerrainTextureSet.MODE_TEXTURES:
 		ur.create_action("HTerrainTextureSet: switch to TextureArrays")
-		ur.add_do_method(_texture_set, "set_mode", HTerrainTextureSet.MODE_TEXTURE_ARRAYS)
+		ur.add_do_method(_texture_set.set_mode.bind(HTerrainTextureSet.MODE_TEXTURE_ARRAYS))
 		backup_for_undo(_texture_set, ur)
 	
 	else:
 		ur.create_action("HTerrainTextureSet: switch to Textures")
-		ur.add_do_method(_texture_set, "set_mode", HTerrainTextureSet.MODE_TEXTURES)
+		ur.add_do_method(_texture_set.set_mode.bind(HTerrainTextureSet.MODE_TEXTURES))
 		backup_for_undo(_texture_set, ur)
 	
 	ur.commit_action()
@@ -465,8 +482,8 @@ func _switch_mode_action():
 static func backup_for_undo(texture_set: HTerrainTextureSet, ur: UndoRedo):
 	var mode := texture_set.get_mode()
 
-	ur.add_undo_method(texture_set, "clear")
-	ur.add_undo_method(texture_set, "set_mode", mode)
+	ur.add_undo_method(texture_set.clear)
+	ur.add_undo_method(texture_set.set_mode.bind(mode))
 	
 	if mode == HTerrainTextureSet.MODE_TEXTURES:
 		# Backup slots
@@ -481,14 +498,14 @@ static func backup_for_undo(texture_set: HTerrainTextureSet, ur: UndoRedo):
 		for type in len(type_textures):
 			var textures = type_textures[type]
 			for slot_index in len(textures):
-				ur.add_undo_method(texture_set, "insert_slot", slot_index)
+				ur.add_undo_method(texture_set.insert_slot.bind(slot_index))
 				var texture = textures[slot_index]
 				# TODO This branch only exists because of a flaw in UndoRedo
 				# See https://github.com/godotengine/godot/issues/36895
 				if texture == null:
-					ur.add_undo_method(texture_set, "set_texture_null", slot_index, type)
+					ur.add_undo_method(texture_set.set_texture_null.bind(slot_index, type))
 				else:
-					ur.add_undo_method(texture_set, "set_texture", slot_index, type, texture)
+					ur.add_undo_method(texture_set.set_texture.bind(slot_index, type, texture))
 	
 	else:
 		# Backup slots
@@ -501,9 +518,9 @@ static func backup_for_undo(texture_set: HTerrainTextureSet, ur: UndoRedo):
 			# TODO This branch only exists because of a flaw in UndoRedo
 			# See https://github.com/godotengine/godot/issues/36895
 			if texture_array == null:
-				ur.add_undo_method(texture_set, "set_texture_array_null", type)
+				ur.add_undo_method(texture_set.set_texture_array_null.bind(type))
 			else:
-				ur.add_undo_method(texture_set, "set_texture_array", type, texture_array)
+				ur.add_undo_method(texture_set.set_texture_array.bind(type, texture_array))
 
 
 #func _on_ModeConfirmationDialog_cancelled():

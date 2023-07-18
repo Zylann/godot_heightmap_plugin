@@ -1,68 +1,56 @@
-[gd_scene load_steps=7 format=2]
+[gd_scene load_steps=7 format=3 uid="uid://dtdgawtpwfaft"]
 
-[ext_resource path="res://addons/zylann.hterrain/tools/panel.gd" type="Script" id=1]
-[ext_resource path="res://addons/zylann.hterrain/tools/brush/brush_editor.tscn" type="PackedScene" id=2]
-[ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/texture_editor.tscn" type="PackedScene" id=3]
-[ext_resource path="res://addons/zylann.hterrain/tools/detail_editor/detail_editor.tscn" type="PackedScene" id=4]
-[ext_resource path="res://addons/zylann.hterrain/tools/minimap/minimap.tscn" type="PackedScene" id=5]
-[ext_resource path="res://addons/zylann.hterrain/tools/minimap/ratio_container.gd" type="Script" id=6]
+[ext_resource type="Script" path="res://addons/zylann.hterrain/tools/panel.gd" id="1"]
+[ext_resource type="PackedScene" uid="uid://bd42ig216p216" path="res://addons/zylann.hterrain/tools/brush/brush_editor.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://addons/zylann.hterrain/tools/texture_editor/texture_editor.tscn" id="3"]
+[ext_resource type="PackedScene" uid="uid://do3c3jse5p7hx" path="res://addons/zylann.hterrain/tools/detail_editor/detail_editor.tscn" id="4"]
+[ext_resource type="PackedScene" uid="uid://cba6k3hrwhrke" path="res://addons/zylann.hterrain/tools/minimap/minimap.tscn" id="5"]
+[ext_resource type="Script" path="res://addons/zylann.hterrain/tools/minimap/ratio_container.gd" id="6"]
 
 [node name="Panel" type="Control"]
-margin_right = 881.0
-margin_bottom = 120.0
-rect_min_size = Vector2( 400, 120 )
-script = ExtResource( 1 )
-__meta__ = {
-"_edit_use_anchors_": false
-}
+custom_minimum_size = Vector2(400, 120)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1012.0
+offset_bottom = 120.0
+script = ExtResource("1")
 
 [node name="HSplitContainer" type="HSplitContainer" parent="."]
+layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
-margin_left = 4.0
-margin_top = 4.0
-margin_right = -6.0
-margin_bottom = -4.0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = -6.0
+offset_bottom = -4.0
 split_offset = 60
-__meta__ = {
-"_edit_use_anchors_": false
-}
 
-[node name="BrushEditor" parent="HSplitContainer" instance=ExtResource( 2 )]
-margin_right = 260.0
-margin_bottom = 112.0
+[node name="BrushEditor" parent="HSplitContainer" instance=ExtResource("2")]
+layout_mode = 2
 
 [node name="HSplitContainer" type="HSplitContainer" parent="HSplitContainer"]
-margin_left = 272.0
-margin_right = 871.0
-margin_bottom = 112.0
+layout_mode = 2
 
 [node name="HSplitContainer" type="HSplitContainer" parent="HSplitContainer/HSplitContainer"]
-margin_right = 487.0
-margin_bottom = 112.0
+layout_mode = 2
 size_flags_horizontal = 3
-split_offset = 150
+split_offset = 300
 
-[node name="TextureEditor" parent="HSplitContainer/HSplitContainer/HSplitContainer" instance=ExtResource( 3 )]
-margin_right = 250.0
-margin_bottom = 112.0
+[node name="TextureEditor" parent="HSplitContainer/HSplitContainer/HSplitContainer" instance=ExtResource("3")]
+layout_mode = 2
 size_flags_horizontal = 1
 
-[node name="DetailEditor" parent="HSplitContainer/HSplitContainer/HSplitContainer" instance=ExtResource( 4 )]
-margin_left = 262.0
-margin_right = 487.0
-margin_bottom = 112.0
+[node name="DetailEditor" parent="HSplitContainer/HSplitContainer/HSplitContainer" instance=ExtResource("4")]
+layout_mode = 2
 
 [node name="MinimapContainer" type="Container" parent="HSplitContainer/HSplitContainer"]
-margin_left = 499.0
-margin_right = 599.0
-margin_bottom = 112.0
-rect_min_size = Vector2( 100, 0 )
-script = ExtResource( 6 )
-ratio = 1.0
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+script = ExtResource("6")
 
-[node name="Minimap" parent="HSplitContainer/HSplitContainer/MinimapContainer" instance=ExtResource( 5 )]
-margin_bottom = 100.0
+[node name="Minimap" parent="HSplitContainer/HSplitContainer/MinimapContainer" instance=ExtResource("5")]
+layout_mode = 2
+
 [connection signal="edit_pressed" from="HSplitContainer/HSplitContainer/HSplitContainer/TextureEditor" to="." method="_on_TextureEditor_edit_pressed"]
 [connection signal="import_pressed" from="HSplitContainer/HSplitContainer/HSplitContainer/TextureEditor" to="." method="_on_TextureEditor_import_pressed"]
 [connection signal="texture_selected" from="HSplitContainer/HSplitContainer/HSplitContainer/TextureEditor" to="." method="_on_TextureEditor_texture_selected"]

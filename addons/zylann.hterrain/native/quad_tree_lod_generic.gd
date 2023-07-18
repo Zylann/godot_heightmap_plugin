@@ -1,10 +1,14 @@
-tool
+@tool
 # Independent quad tree designed to handle LOD
 
 class HT_QTLQuad:
+	# Optional array of 4 HT_QTLQuad
 	var children = null
+	
+	# TODO Use Vector2i
 	var origin_x : int = 0
 	var origin_y : int = 0
+	
 	var data = null
 
 	func _init():
@@ -17,7 +21,7 @@ class HT_QTLQuad:
 	func clear_children():
 		children = null
 	
-	func has_children():
+	func has_children() -> bool:
 		return children != null
 
 
@@ -26,12 +30,12 @@ var _max_depth : int = 0
 var _base_size : int = 16
 var _split_scale : float = 2.0
 
-var _make_func : FuncRef = null
-var _recycle_func : FuncRef = null
-var _vertical_bounds_func : FuncRef = null
+var _make_func : Callable
+var _recycle_func : Callable
+var _vertical_bounds_func : Callable
 
 
-func set_callbacks(make_cb: FuncRef, recycle_cb: FuncRef, vbounds_cb: FuncRef):
+func set_callbacks(make_cb: Callable, recycle_cb: Callable, vbounds_cb: Callable):
 	_make_func = make_cb
 	_recycle_func = recycle_cb
 	_vertical_bounds_func = vbounds_cb
@@ -70,7 +74,7 @@ func set_split_scale(p_split_scale: float):
 
 	# Split scale must be greater than a threshold,
 	# otherwise lods will decimate too fast and it will look messy
-	_split_scale = clamp(p_split_scale, MIN, MAX)
+	_split_scale = clampf(p_split_scale, MIN, MAX)
 
 
 func get_split_scale() -> float:
@@ -98,8 +102,8 @@ func _update(quad: HT_QTLQuad, lod: int, view_pos: Vector3):
 	var world_center := \
 		chunk_size * (Vector3(quad.origin_x, 0, quad.origin_y) + Vector3(0.5, 0, 0.5))
 	
-	if _vertical_bounds_func != null:
-		var vbounds = _vertical_bounds_func.call_func(quad.origin_x, quad.origin_y, lod)
+	if _vertical_bounds_func.is_valid():
+		var vbounds : Vector2 = _vertical_bounds_func.call(quad.origin_x, quad.origin_y, lod)
 		world_center.y = (vbounds.x + vbounds.y) / 2.0
 	
 	var split_distance := _base_size * lod_factor * _split_scale
@@ -132,7 +136,7 @@ func _update(quad: HT_QTLQuad, lod: int, view_pos: Vector3):
 		if no_split_child and world_center.distance_to(view_pos) > split_distance:
 			# Join
 			for i in 4:
-				var child = quad.children[i]
+				var child : HT_QTLQuad = quad.children[i]
 				_recycle_chunk(child.data, child.origin_x, child.origin_y, lod - 1)
 			quad.clear_children()
 			quad.data = _make_chunk(lod, quad.origin_x, quad.origin_y)
@@ -152,14 +156,14 @@ func _join_all_recursively(quad: HT_QTLQuad, lod: int):
 
 func _make_chunk(lod: int, origin_x: int, origin_y: int):
 	var chunk = null
-	if _make_func != null:
-		chunk = _make_func.call_func(origin_x, origin_y, lod)
+	if _make_func.is_valid():
+		chunk = _make_func.call(origin_x, origin_y, lod)
 	return chunk
 
 
 func _recycle_chunk(chunk, origin_x: int, origin_y: int, lod: int):
-	if _recycle_func != null:
-		_recycle_func.call_func(chunk, origin_x, origin_y, lod)
+	if _recycle_func.is_valid():
+		_recycle_func.call(chunk, origin_x, origin_y, lod)
 
 
 func debug_draw_tree(ci: CanvasItem):

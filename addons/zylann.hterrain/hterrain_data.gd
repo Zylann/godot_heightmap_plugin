@@ -2,13 +2,12 @@
 # Holds data of the terrain.
 # This is mostly a set of textures using specific formats, some precalculated, and metadata.
 
-tool
+@tool
 extends Resource
 
 const HT_Grid = preload("./util/grid.gd")
 const HT_Util = preload("./util/util.gd")
 const HT_Errors = preload("./util/errors.gd")
-const HT_NativeFactory = preload("./native/factory.gd")
 const HT_Logger = preload("./util/logger.gd")
 const HT_ImageFileCache = preload("./util/image_file_cache.gd")
 const HT_XYZFormat = preload("./util/xyz_format.gd")
@@ -29,9 +28,10 @@ const _map_types = {
 	CHANNEL_HEIGHT: {
 		name = "height",
 		shader_param_name = "u_terrain_heightmap",
-		texture_flags = Texture.FLAG_FILTER,
-		texture_format = Image.FORMAT_RH,
-		default_fill = null,
+		filter = true,
+		mipmaps = false,
+		texture_format = Image.FORMAT_RF,
+		default_fill = Color(0, 0, 0, 1),
 		default_count = 1,
 		can_be_saved_as_png = false,
 		authored = true,
@@ -40,7 +40,9 @@ const _map_types = {
 	CHANNEL_NORMAL: {
 		name = "normal",
 		shader_param_name = "u_terrain_normalmap",
-		texture_flags = Texture.FLAG_FILTER,
+		filter = true,
+		mipmaps = false,
+		# TODO RGB8 is a lie, we should use RGBA8 and pack something in A I guess
 		texture_format = Image.FORMAT_RGB8,
 		default_fill = Color(0.5, 0.5, 1.0),
 		default_count = 1,
@@ -56,7 +58,8 @@ const _map_types = {
 			"u_terrain_splatmap_2",
 			"u_terrain_splatmap_3"
 		],
-		texture_flags = Texture.FLAG_FILTER,
+		filter = true,
+		mipmaps = false,
 		texture_format = Image.FORMAT_RGBA8,
 		default_fill = [Color(1, 0, 0, 0), Color(0, 0, 0, 0)],
 		default_count = 1,
@@ -67,7 +70,8 @@ const _map_types = {
 	CHANNEL_COLOR: {
 		name = "color",
 		shader_param_name = "u_terrain_colormap",
-		texture_flags = Texture.FLAG_FILTER,
+		filter = true,
+		mipmaps = false,
 		texture_format = Image.FORMAT_RGBA8,
 		default_fill = Color(1, 1, 1, 1),
 		default_count = 1,
@@ -78,7 +82,8 @@ const _map_types = {
 	CHANNEL_DETAIL: {
 		name = "detail",
 		shader_param_name = "u_terrain_detailmap",
-		texture_flags = Texture.FLAG_FILTER,
+		filter = true,
+		mipmaps = false,
 		texture_format = Image.FORMAT_R8,
 		default_fill = Color(0, 0, 0),
 		default_count = 0,
@@ -89,7 +94,8 @@ const _map_types = {
 	CHANNEL_GLOBAL_ALBEDO: {
 		name = "global_albedo",
 		shader_param_name = "u_terrain_globalmap",
-		texture_flags = Texture.FLAG_FILTER | Texture.FLAG_MIPMAPS,
+		filter = true,
+		mipmaps = true,
 		texture_format = Image.FORMAT_RGB8,
 		default_fill = null,
 		default_count = 0,
@@ -100,7 +106,8 @@ const _map_types = {
 	CHANNEL_SPLAT_INDEX: {
 		name = "splat_index",
 		shader_param_name = "u_terrain_splat_index_map",
-		texture_flags = 0,
+		filter = false,
+		mipmaps = false,
 		texture_format = Image.FORMAT_RGB8,
 		default_fill = Color(0, 0, 0),
 		default_count = 0,
@@ -111,7 +118,8 @@ const _map_types = {
 	CHANNEL_SPLAT_WEIGHT: {
 		name = "splat_weight",
 		shader_param_name = "u_terrain_splat_weight_map",
-		texture_flags = Texture.FLAG_FILTER,
+		filter = true,
+		mipmaps = false,
 		texture_format = Image.FORMAT_RG8,
 		default_fill = Color(1, 0, 0),
 		default_count = 0,
@@ -123,7 +131,7 @@ const _map_types = {
 
 # Resolution is a power of two + 1
 const MAX_RESOLUTION = 4097
-const MIN_RESOLUTION = 65 # must be higher than largest minimum chunk size
+const MIN_RESOLUTION = 65 # must be higher than largest chunk size
 const DEFAULT_RESOLUTION = 513
 const SUPPORTED_RESOLUTIONS = [65, 129, 257, 513, 1025, 2049, 4097]
 
@@ -144,7 +152,7 @@ signal map_changed(type, index)
 # A map is a texture covering the terrain.
 # The usage of a map depends on its type (heightmap, normalmap, splatmap...).
 class HT_Map:
-	var texture: Texture
+	var texture: Texture2D
 	# Reference used in case we need the data CPU-side
 	var image: Image
 	# ID used for saving, because when adding/removing maps,
@@ -169,10 +177,9 @@ var _maps := [[]]
 var _chunked_vertical_bounds := Image.new()
 
 var _locked := false
-var _image_utils = HT_NativeFactory.get_image_utils()
 
 var _edit_disable_apply_undo := false
-var _logger = HT_Logger.get_for(self)
+var _logger := HT_Logger.get_for(self)
 
 
 func _init():
@@ -183,9 +190,9 @@ func _init():
 func _set_default_maps():
 	_maps.resize(CHANNEL_COUNT)
 	for c in CHANNEL_COUNT:
-		var maps = []
-		var n = _map_types[c].default_count
-		for i in range(n):
+		var maps := []
+		var n : int = _map_types[c].default_count
+		for i in n:
 			maps.append(HT_Map.new(i))
 		_maps[c] = maps
 
@@ -257,7 +264,7 @@ func resize(p_res: int, stretch := true, anchor := Vector2(-1, -1)):
 	if p_res == get_resolution():
 		return
 
-	p_res = HT_Util.clamp_int(p_res, MIN_RESOLUTION, MAX_RESOLUTION)
+	p_res = clampi(p_res, MIN_RESOLUTION, MAX_RESOLUTION)
 
 	# Power of two is important for LOD.
 	# Also, grid data is off by one,
@@ -268,43 +275,52 @@ func resize(p_res: int, stretch := true, anchor := Vector2(-1, -1)):
 
 	_resolution = p_res;
 
-	for channel in range(CHANNEL_COUNT):
-		var maps := _maps[channel] as Array
+	for channel in CHANNEL_COUNT:
+		var maps : Array = _maps[channel]
 
 		for index in len(maps):
 			_logger.debug(str("Resizing ", get_map_debug_name(channel, index), "..."))
 
-			var map := maps[index] as HT_Map
+			var map : HT_Map = maps[index]
 			var im := map.image
 
 			if im == null:
 				_logger.debug("Image not in memory, creating it")
-				im = Image.new()
-				im.create(_resolution, _resolution, false, get_channel_format(channel))
+				im = Image.create(_resolution, _resolution, false, get_channel_format(channel))
 
 				var fill_color = _get_map_default_fill_color(channel, index)
 				if fill_color != null:
 					_logger.debug(str("Fill with ", fill_color))
 					im.fill(fill_color)
 
-				map.image = im
-
 			else:
 				if stretch and not _map_types[channel].authored:
-					im.create(_resolution, _resolution, false, get_channel_format(channel))
+					# Create a blank new image, it will be automatically computed later
+					im = Image.create(_resolution, _resolution, false, get_channel_format(channel))
 				else:
 					if stretch:
-						im.resize(_resolution, _resolution)
+						if im.get_format() == Image.FORMAT_RGB8:
+							# Can't directly resize this format
+							var float_heightmap := convert_heightmap_to_float(im, _logger)
+							float_heightmap.resize(_resolution, _resolution)
+							im = Image.create(
+								float_heightmap.get_width(),
+								float_heightmap.get_height(), im.has_mipmaps(), im.get_format())
+							convert_float_heightmap_to_rgb8(float_heightmap, im)
+						else:
+							# Assuming float or single-component fixed-point
+							im.resize(_resolution, _resolution)
 					else:
 						var fill_color = _get_map_default_fill_color(channel, index)
-						map.image = HT_Util.get_cropped_image(im, _resolution, _resolution, \
+						im = HT_Util.get_cropped_image(im, _resolution, _resolution, \
 							fill_color, anchor)
 
+			map.image = im
 			map.modified = true
 
 	_update_all_vertical_bounds()
 
-	emit_signal("resolution_changed")
+	resolution_changed.emit()
 
 
 # TODO Can't hint it, the return is a nullable Color
@@ -330,13 +346,16 @@ static func _get_map_default_fill_color(map_type: int, map_index: int):
 # This function is relatively slow due to locking, so don't use it to fetch large areas.
 func get_height_at(x: int, y: int) -> float:
 	# Height data must be loaded in RAM
-	var im = get_image(CHANNEL_HEIGHT)
+	var im := get_image(CHANNEL_HEIGHT)
 	assert(im != null)
-
-	im.lock();
-	var h = HT_Util.get_pixel_clamped(im, x, y).r;
-	im.unlock();
-	return h;
+	match im.get_format():
+		Image.FORMAT_RF:
+			return HT_Util.get_pixel_clamped(im, x, y).r
+		Image.FORMAT_RGB8:
+			return decode_height_from_rgb8_unorm(HT_Util.get_pixel_clamped(im, x, y))
+		_:
+			_logger.error(str("Invalid heigthmap format ", im.get_format()))
+			return 0.0
 
 
 # Gets the height at the given floating-point cell position.
@@ -346,66 +365,98 @@ func get_interpolated_height_at(pos: Vector3) -> float:
 	# Height data must be loaded in RAM
 	var im := get_image(CHANNEL_HEIGHT)
 	assert(im != null)
+	var map_type = _map_types[CHANNEL_HEIGHT]
+	assert(im.get_format() == map_type.texture_format)
 
 	# The function takes a Vector3 for convenience so it's easier to use in 3D scripting
-	var x0 := int(floor(pos.x))
-	var y0 := int(floor(pos.z))
+	var x0 := int(floorf(pos.x))
+	var y0 := int(floorf(pos.z))
 
 	var xf := pos.x - x0
 	var yf := pos.z - y0
+	
+	var h00 : float
+	var h10 : float
+	var h01 : float
+	var h11 : float
+	
+	match im.get_format():
+		Image.FORMAT_RF:
+			h00 = HT_Util.get_pixel_clamped(im, x0, y0).r
+			h10 = HT_Util.get_pixel_clamped(im, x0 + 1, y0).r
+			h01 = HT_Util.get_pixel_clamped(im, x0, y0 + 1).r
+			h11 = HT_Util.get_pixel_clamped(im, x0 + 1, y0 + 1).r
+		
+		Image.FORMAT_RGB8:
+			var c00 := HT_Util.get_pixel_clamped(im, x0, y0)
+			var c10 := HT_Util.get_pixel_clamped(im, x0 + 1, y0)
+			var c01 := HT_Util.get_pixel_clamped(im, x0, y0 + 1)
+			var c11 := HT_Util.get_pixel_clamped(im, x0 + 1, y0 + 1)
 
-	im.lock()
-	var h00 = HT_Util.get_pixel_clamped(im, x0, y0).r
-	var h10 = HT_Util.get_pixel_clamped(im, x0 + 1, y0).r
-	var h01 = HT_Util.get_pixel_clamped(im, x0, y0 + 1).r
-	var h11 = HT_Util.get_pixel_clamped(im, x0 + 1, y0 + 1).r
-	im.unlock()
+			h00 = decode_height_from_rgb8_unorm(c00)
+			h10 = decode_height_from_rgb8_unorm(c10)
+			h01 = decode_height_from_rgb8_unorm(c01)
+			h11 = decode_height_from_rgb8_unorm(c11)
+		
+		_:
+			_logger.error(str("Invalid heightmap format ", im.get_format()))
+			return 0.0
 
 	# Bilinear filter
-	var h = lerp(lerp(h00, h10, xf), lerp(h01, h11, xf), yf)
-
-	return h;
-
+	var h := lerpf(lerpf(h00, h10, xf), lerpf(h01, h11, xf), yf)
+	return h
 
 # Gets all heights within the given rectangle in cells.
 # This height is raw and doesn't account for scaling of the terrain node.
-# Data is returned as a PoolRealArray.
-func get_heights_region(x0: int, y0: int, w: int, h: int) -> PoolRealArray:
+# Data is returned as a PackedFloat32Array.
+func get_heights_region(x0: int, y0: int, w: int, h: int) -> PackedFloat32Array:
 	var im = get_image(CHANNEL_HEIGHT)
 	assert(im != null)
 	
-	var min_x := HT_Util.clamp_int(x0, 0, im.get_width())
-	var min_y := HT_Util.clamp_int(y0, 0, im.get_height())
-	var max_x := HT_Util.clamp_int(x0 + w, 0, im.get_width() + 1)
-	var max_y := HT_Util.clamp_int(y0 + h, 0, im.get_height() + 1)
+	var min_x := clampi(x0, 0, im.get_width())
+	var min_y := clampi(y0, 0, im.get_height())
+	var max_x := clampi(x0 + w, 0, im.get_width() + 1)
+	var max_y := clampi(y0 + h, 0, im.get_height() + 1)
 
-	var heights := PoolRealArray()
+	var heights := PackedFloat32Array()
 
-	var area = (max_x - min_x) * (max_y - min_y)
+	var area := (max_x - min_x) * (max_y - min_y)
 	if area == 0:
 		_logger.debug("Empty heights region!")
 		return heights
 
 	heights.resize(area)
 
-	im.lock()
-
 	var i := 0
-	for y in range(min_y, max_y):
-		for x in range(min_x, max_x):
-			heights[i] = im.get_pixel(x, y).r
-			i += 1
-
-	im.unlock()
+	
+	if im.get_format() == Image.FORMAT_RF or im.get_format() == Image.FORMAT_RH:
+		for y in range(min_y, max_y):
+			for x in range(min_x, max_x):
+				heights[i] = im.get_pixel(x, y).r
+				i += 1
+				
+	elif im.get_format() == Image.FORMAT_RGB8:
+		for y in range(min_y, max_y):
+			for x in range(min_x, max_x):
+				var c := im.get_pixel(x, y)
+				heights[i] = decode_height_from_rgb8_unorm(c)
+				i += 1
+	
+	else:
+		_logger.error(str("Unknown heightmap format! ", im.get_format()))
 
 	return heights
 
 
-# Gets all heights.
+# Gets all heights as an array indexed as [x + y * width].
 # This height is raw and doesn't account for scaling of the terrain node.
-# Data is returned as a PoolRealArray.
-func get_all_heights() -> PoolRealArray:
-	return get_heights_region(0, 0, _resolution, _resolution)
+func get_all_heights() -> PackedFloat32Array:
+	var im = get_image(CHANNEL_HEIGHT)
+	assert(im != null)
+	if im.get_format() == Image.FORMAT_RF:
+		return im.get_data().to_float32_array()
+	else:
+		return get_heights_region(0, 0, _resolution, _resolution)
 
 
 # Call this function after you end modifying a map.
@@ -453,8 +504,8 @@ func notify_region_change(
 	
 	_maps[p_map_type][p_index].modified = true
 
-	emit_signal("region_changed", min_x, min_y, size_x, size_y, p_map_type)
-	emit_signal("changed")
+	region_changed.emit(min_x, min_y, size_x, size_y, p_map_type)
+	changed.emit()
 
 
 func notify_full_change():
@@ -515,8 +566,8 @@ func _edit_apply_undo(undo_data: Dictionary, image_cache: HT_ImageFileCache):
 	
 			if _map_types[map_type].authored:
 				#_logger.debug(str("Apply undo chunk ", cpos, " to ", Vector2(min_x, min_y)))
-				var src_rect := Rect2(0, 0, data.get_width(), data.get_height())
-				dst_image.blit_rect(data, src_rect, Vector2(min_x, min_y))
+				var src_rect := Rect2i(0, 0, data.get_width(), data.get_height())
+				dst_image.blit_rect(data, src_rect, Vector2i(min_x, min_y))
 			else:
 				_logger.error(
 					str("Channel ", map_type, " is a calculated channel!, no undo on this one"))
@@ -547,18 +598,18 @@ func _edit_apply_undo(undo_data: Dictionary, image_cache: HT_ImageFileCache):
 
 # TODO Support map indexes
 # Used for undoing full-terrain changes
-func _edit_apply_maps_from_file_cache(image_file_cache, map_ids: Dictionary):
+func _edit_apply_maps_from_file_cache(image_file_cache: HT_ImageFileCache, map_ids: Dictionary):
 	if _edit_disable_apply_undo:
 		return
 	for map_type in map_ids:
 		var id = map_ids[map_type]
-		var src_im = image_file_cache.load_image(id)
+		var src_im := image_file_cache.load_image(id)
 		if src_im == null:
 			continue
 		var index := 0
 		var dst_im := get_image(map_type, index)
-		var rect = Rect2(0, 0, src_im.get_height(), src_im.get_height())
-		dst_im.blit_rect(src_im, rect, Vector2())
+		var rect := Rect2i(0, 0, src_im.get_height(), src_im.get_height())
+		dst_im.blit_rect(src_im, rect, Vector2i())
 		notify_region_change(rect, map_type, index)
 
 
@@ -588,9 +639,7 @@ func _upload_region(channel: int, index: int, min_x: int, min_y: int, size_x: in
 	if size_x <= 0 or size_y <= 0:
 		return
 
-	var flags = _map_types[channel].texture_flags
-
-	var texture = map.texture
+	var texture := map.texture
 
 	if texture == null or not (texture is ImageTexture):
 		# The texture doesn't exist yet in an editable format
@@ -603,51 +652,27 @@ func _upload_region(channel: int, index: int, min_x: int, min_y: int, size_x: in
 				"_upload_region was used but the texture is not created yet. ",\
 				"The map ", channel, "[", index, "] will be uploaded entirely."))
 
-		texture = ImageTexture.new()
-		texture.create_from_image(image, flags)
-
-		map.texture = texture
+		map.texture = ImageTexture.create_from_image(image)
 
 		# Need to notify because other systems may want to grab the new texture object
-		emit_signal("map_changed", channel, index)
+		map_changed.emit(channel, index)
 
-	elif texture.get_size() != image.get_size():
+	# TODO Unfortunately Texture2D.get_size() wasn't updated to use Vector2i in Godot 4
+	elif Vector2i(texture.get_size()) != image.get_size():
 		_logger.debug(str(
 			"_upload_region was used but the image size is different. ",\
 			"The map ", channel, "[", index, "] will be reuploaded entirely."))
-		texture.create_from_image(image, flags)
+
+		map.texture = ImageTexture.create_from_image(image)
+
+		# Since Godot 4, need to notify because other systems may want to grab the new texture
+		# object. In Godot 3 it wasn't necessary because we were able to resize a texture without
+		# having to recreate it from scratch...
+		map_changed.emit(channel, index)
 
 	else:
-		if VisualServer.has_method("texture_set_data_partial"):
-			VisualServer.texture_set_data_partial( \
-				texture.get_rid(), image, \
-				min_x, min_y, \
-				size_x, size_y, \
-				min_x, min_y, \
-				0, 0)
-		else:
-			# Godot 3.0.6 and earlier...
-			# It is slow.
-
-			#               ..ooo@@@XXX%%%xx..
-			#            .oo@@XXX%x%xxx..     ` .
-			#          .o@XX%%xx..               ` .
-			#        o@X%..                  ..ooooooo
-			#      .@X%x.                 ..o@@^^   ^^@@o
-			#    .ooo@@@@@@ooo..      ..o@@^          @X%
-			#    o@@^^^     ^^^@@@ooo.oo@@^             %
-			#   xzI    -*--      ^^^o^^        --*-     %
-			#   @@@o     ooooooo^@@^o^@X^@oooooo     .X%x
-			#  I@@@@@@@@@XX%%xx  ( o@o )X%x@ROMBASED@@@X%x
-			#  I@@@@XX%%xx  oo@@@@X% @@X%x   ^^^@@@@@@@X%x
-			#   @X%xx     o@@@@@@@X% @@XX%%x  )    ^^@X%x
-			#    ^   xx o@@@@@@@@Xx  ^ @XX%%x    xxx
-			#          o@@^^^ooo I^^ I^o ooo   .  x
-			#          oo @^ IX      I   ^X  @^ oo
-			#          IX     U  .        V     IX
-			#           V     .           .     V
-			#
-			texture.create_from_image(image, flags)
+		HT_Util.update_texture_partial(texture, image, 
+			Rect2i(min_x, min_y, size_x, size_y), Vector2i(min_x, min_y))
 
 	#_logger.debug(str("Channel updated ", channel))
 
@@ -680,14 +705,13 @@ func _edit_add_map(map_type: int) -> int:
 		_maps.append([])
 	var maps = _maps[map_type]
 	var map = HT_Map.new(_get_free_id(map_type))
-	map.image = Image.new()
-	map.image.create(_resolution, _resolution, false, get_channel_format(map_type))
+	map.image = Image.create(_resolution, _resolution, false, get_channel_format(map_type))
 	var index = len(maps)
 	var default_color = _get_map_default_fill_color(map_type, index)
 	if default_color != null:
 		map.image.fill(default_color)
 	maps.append(map)
-	emit_signal("map_added", map_type, index)
+	map_added.emit(map_type, index)
 	return index
 
 
@@ -699,18 +723,18 @@ func _edit_insert_map_from_image_cache(map_type: int, index: int, image_cache, i
 	while map_type >= len(_maps):
 		_maps.append([])
 	var maps = _maps[map_type]
-	var map = HT_Map.new(_get_free_id(map_type))
+	var map := HT_Map.new(_get_free_id(map_type))
 	map.image = image_cache.load_image(image_id)
 	maps.insert(index, map)
-	emit_signal("map_added", map_type, index)
+	map_added.emit(map_type, index)
 
 
 func _edit_remove_map(map_type: int, index: int):
 	# TODO Check minimum and maximum instances of a given map
 	_logger.debug(str("Removing map ", get_channel_name(map_type), " at index ", index))
-	var maps = _maps[map_type]
-	maps.remove(index)
-	emit_signal("map_removed", map_type, index)
+	var maps : Array = _maps[map_type]
+	maps.remove_at(index)
+	map_removed.emit(map_type, index)
 
 
 func _get_free_id(map_type: int) -> int:
@@ -735,6 +759,8 @@ func get_image(map_type: int, index := 0) -> Image:
 
 
 func get_texture(map_type: int, index := 0, writable := false) -> Texture:
+	# TODO Split into `get_texture` and `get_writable_texture`?
+	
 	var maps : Array = _maps[map_type]
 	var map : HT_Map = maps[index]
 
@@ -780,14 +806,12 @@ func get_point_aabb(cell_x: int, cell_y: int) -> Vector2:
 	if cy >= _chunked_vertical_bounds.get_height():
 		cy = _chunked_vertical_bounds.get_height() - 1
 
-	_chunked_vertical_bounds.lock()
 	var b := _chunked_vertical_bounds.get_pixel(cx, cy)
-	_chunked_vertical_bounds.unlock()
 	return Vector2(b.r, b.g)
 
 
-func get_region_aabb(origin_in_cells_x: int, origin_in_cells_y: int, \
-					 size_in_cells_x: int, size_in_cells_y: int) -> AABB:
+func get_region_aabb(origin_in_cells_x: int, origin_in_cells_y: int,
+	size_in_cells_x: int, size_in_cells_y: int) -> AABB:
 
 	assert(typeof(origin_in_cells_x) == TYPE_INT)
 	assert(typeof(origin_in_cells_y) == TYPE_INT)
@@ -804,23 +828,19 @@ func get_region_aabb(origin_in_cells_x: int, origin_in_cells_y: int, \
 	var cmax_x := (origin_in_cells_x + size_in_cells_x - 1) / VERTICAL_BOUNDS_CHUNK_SIZE + 1
 	var cmax_y := (origin_in_cells_y + size_in_cells_y - 1) / VERTICAL_BOUNDS_CHUNK_SIZE + 1
 
-	cmin_x = HT_Util.clamp_int(cmin_x, 0, _chunked_vertical_bounds.get_width() - 1)
-	cmin_y = HT_Util.clamp_int(cmin_y, 0, _chunked_vertical_bounds.get_height() - 1)
-	cmax_x = HT_Util.clamp_int(cmax_x, 0, _chunked_vertical_bounds.get_width())
-	cmax_y = HT_Util.clamp_int(cmax_y, 0, _chunked_vertical_bounds.get_height())
+	cmin_x = clampi(cmin_x, 0, _chunked_vertical_bounds.get_width() - 1)
+	cmin_y = clampi(cmin_y, 0, _chunked_vertical_bounds.get_height() - 1)
+	cmax_x = clampi(cmax_x, 0, _chunked_vertical_bounds.get_width())
+	cmax_y = clampi(cmax_y, 0, _chunked_vertical_bounds.get_height())
 
-	_chunked_vertical_bounds.lock()
-	
 	var min_height := _chunked_vertical_bounds.get_pixel(cmin_x, cmin_y).r
 	var max_height = min_height
 
 	for y in range(cmin_y, cmax_y):
 		for x in range(cmin_x, cmax_x):
 			var b = _chunked_vertical_bounds.get_pixel(x, y)
-			min_height = min(b.r, min_height)
-			max_height = max(b.g, max_height)
-	
-	_chunked_vertical_bounds.unlock()
+			min_height = minf(b.r, min_height)
+			max_height = maxf(b.g, max_height)
 
 	var aabb = AABB()
 	aabb.position = Vector3(origin_in_cells_x, min_height, origin_in_cells_y)
@@ -833,7 +853,7 @@ func _update_all_vertical_bounds():
 	var csize_x := _resolution / VERTICAL_BOUNDS_CHUNK_SIZE
 	var csize_y := _resolution / VERTICAL_BOUNDS_CHUNK_SIZE
 	_logger.debug(str("Updating all vertical bounds... (", csize_x , "x", csize_y, " chunks)"))
-	_chunked_vertical_bounds.create(csize_x, csize_y, false, Image.FORMAT_RGF)
+	_chunked_vertical_bounds = Image.create(csize_x, csize_y, false, Image.FORMAT_RGF)
 	_update_vertical_bounds(0, 0, _resolution - 1, _resolution - 1)
 
 
@@ -855,18 +875,16 @@ func _update_vertical_bounds(origin_in_cells_x: int, origin_in_cells_y: int, \
 	var cmax_x := (origin_in_cells_x + size_in_cells_x - 1) / VERTICAL_BOUNDS_CHUNK_SIZE + 1
 	var cmax_y := (origin_in_cells_y + size_in_cells_y - 1) / VERTICAL_BOUNDS_CHUNK_SIZE + 1
 
-	cmin_x = HT_Util.clamp_int(cmin_x, 0, _chunked_vertical_bounds.get_width() - 1)
-	cmin_y = HT_Util.clamp_int(cmin_y, 0, _chunked_vertical_bounds.get_height() - 1)
-	cmax_x = HT_Util.clamp_int(cmax_x, 0, _chunked_vertical_bounds.get_width())
-	cmax_y = HT_Util.clamp_int(cmax_y, 0, _chunked_vertical_bounds.get_height())
+	cmin_x = clampi(cmin_x, 0, _chunked_vertical_bounds.get_width() - 1)
+	cmin_y = clampi(cmin_y, 0, _chunked_vertical_bounds.get_height() - 1)
+	cmax_x = clampi(cmax_x, 0, _chunked_vertical_bounds.get_width())
+	cmax_y = clampi(cmax_y, 0, _chunked_vertical_bounds.get_height())
 
 	# Note: chunks in _chunked_vertical_bounds share their edge cells and
 	# have an actual size of chunk size + 1.
 	var chunk_size_x := VERTICAL_BOUNDS_CHUNK_SIZE + 1
 	var chunk_size_y := VERTICAL_BOUNDS_CHUNK_SIZE + 1
 	
-	_chunked_vertical_bounds.lock()
-
 	for y in range(cmin_y, cmax_y):
 		var pmin_y := y * VERTICAL_BOUNDS_CHUNK_SIZE
 
@@ -875,32 +893,81 @@ func _update_vertical_bounds(origin_in_cells_x: int, origin_in_cells_y: int, \
 			var b = _compute_vertical_bounds_at(pmin_x, pmin_y, chunk_size_x, chunk_size_y)
 			_chunked_vertical_bounds.set_pixel(x, y, Color(b.x, b.y, 0))
 
-	_chunked_vertical_bounds.unlock()
-
 
 func _compute_vertical_bounds_at(
 	origin_x: int, origin_y: int, size_x: int, size_y: int) -> Vector2:
 	
-	var heights = get_image(CHANNEL_HEIGHT)
+	var heights := get_image(CHANNEL_HEIGHT)
 	assert(heights != null)
-	return _image_utils.get_red_range(heights, Rect2(origin_x, origin_y, size_x, size_y))
+	match heights.get_format():
+		Image.FORMAT_RF:
+			return _get_heights_range_f(heights, Rect2i(origin_x, origin_y, size_x, size_y))
+		Image.FORMAT_RGB8:
+			return _get_heights_range_rgb8(heights, Rect2i(origin_x, origin_y, size_x, size_y))
+		_:
+			_logger.error(str("Unknown heightmap format ", heights.get_format()))
+			return Vector2()
 
 
-func save_data(data_dir: String):
+static func _get_heights_range_rgb8(im: Image, rect: Rect2i) -> Vector2:
+	assert(im.get_format() == Image.FORMAT_RGB8)
+	
+	rect = rect.intersection(Rect2i(0, 0, im.get_width(), im.get_height()))
+	var min_x := rect.position.x
+	var min_y := rect.position.y
+	var max_x := min_x + rect.size.x
+	var max_y := min_y + rect.size.y
+	
+	var min_height := decode_height_from_rgb8_unorm(im.get_pixel(min_x, min_y))
+	var max_height := min_height
+
+	for y in range(min_y, max_y):
+		for x in range(min_x, max_x):
+			var h := decode_height_from_rgb8_unorm(im.get_pixel(x, y))
+			min_height = minf(h, min_height)
+			max_height = maxf(h, max_height)
+
+	return Vector2(min_height, max_height)
+
+
+static func _get_heights_range_f(im: Image, rect: Rect2i) -> Vector2:
+	assert(im.get_format() == Image.FORMAT_RF)
+	
+	rect = rect.intersection(Rect2i(0, 0, im.get_width(), im.get_height()))
+	var min_x := rect.position.x
+	var min_y := rect.position.y
+	var max_x := min_x + rect.size.x
+	var max_y := min_y + rect.size.y
+	
+	var min_height := im.get_pixel(min_x, min_y).r
+	var max_height := min_height
+
+	for y in range(min_y, max_y):
+		for x in range(min_x, max_x):
+			var h := im.get_pixel(x, y).r
+			min_height = minf(h, min_height)
+			max_height = maxf(h, max_height)
+
+	return Vector2(min_height, max_height)
+
+
+func save_data(data_dir: String) -> bool:
 	_logger.debug("Saving terrain data...")
 	
 	_locked = true
 
-	_save_metadata(data_dir.plus_file(META_FILENAME))
+	_save_metadata(data_dir.path_join(META_FILENAME))
 
 	var map_count = _get_total_map_count()
 
-	var pi = 0
-	for map_type in range(CHANNEL_COUNT):
-		var maps = _maps[map_type]
+	var all_succeeded = true
 
-		for index in range(len(maps)):
-			var map = _maps[map_type][index]
+	var pi = 0
+	for map_type in CHANNEL_COUNT:
+		var maps : Array = _maps[map_type]
+
+		for index in len(maps):
+			var map : HT_Map = maps[index]
 			if not map.modified:
 				_logger.debug(str(
 					"Skipping non-modified ", get_map_debug_name(map_type, index)))
@@ -909,7 +976,7 @@ func save_data(data_dir: String):
 			_logger.debug(str("Saving map ", get_map_debug_name(map_type, index),
 				" as ", _get_map_filename(map_type, index), "..."))
 
-			_save_map(data_dir, map_type, index)
+			all_succeeded = all_succeeded and _save_map(data_dir, map_type, index)
 
 			map.modified = false
 			pi += 1
@@ -918,6 +985,8 @@ func save_data(data_dir: String):
 
 	# TODO In editor, trigger reimport on generated assets
 	_locked = false
+
+	return all_succeeded
 
 
 func _is_any_map_modified() -> bool:
@@ -936,36 +1005,34 @@ func _get_total_map_count() -> int:
 
 
 func _load_metadata(path: String):
-	var f = File.new()
-	var err = f.open(path, File.READ)
-	assert(err == OK)
+	var f = FileAccess.open(path, FileAccess.READ)
+	assert(f != null)
 	var text = f.get_as_text()
-	f.close()
-	var res = JSON.parse(text)
-	assert(res.error == OK)
-	_deserialize_metadata(res.result)
+	f = null # close file
+	var json = JSON.new()
+	assert(json.parse(text) == OK)
+	_deserialize_metadata(json.data)
 
 
 func _save_metadata(path: String):
-	var f = File.new()
 	var d = _serialize_metadata()
-	var text = JSON.print(d, "\t", true)
-	var err = f.open(path, File.WRITE)
+	var text = JSON.stringify(d, "\t", true)
+	var f = FileAccess.open(path, FileAccess.WRITE)
+	var err = f.get_error()
 	assert(err == OK)
 	f.store_string(text)
-	f.close()
 
 
 func _serialize_metadata() -> Dictionary:
-	var data = []
+	var data := []
 	data.resize(len(_maps))
 
 	for i in range(len(_maps)):
 		var maps = _maps[i]
-		var maps_data = []
+		var maps_data := []
 
 		for j in range(len(maps)):
-			var map = maps[j]
+			var map : HT_Map = maps[j]
 			maps_data.append({ "id": map.id })
 
 		data[i] = maps_data
@@ -991,14 +1058,14 @@ func _deserialize_metadata(dict: Dictionary) -> bool:
 	var data = dict["maps"]
 	assert(len(data) <= len(_maps))
 
-	for i in range(len(data)):
+	for i in len(data):
 		var maps = _maps[i]
 
 		var maps_data = data[i]
 		if len(maps) != len(maps_data):
 			maps.resize(len(maps_data))
 
-		for j in range(len(maps)):
+		for j in len(maps):
 			var map = maps[j]
 			# Cast because the data comes from json, where every number is double
 			var id := int(maps_data[j].id)
@@ -1014,7 +1081,7 @@ func _deserialize_metadata(dict: Dictionary) -> bool:
 func load_data(dir_path: String):
 	_locked = true
 
-	_load_metadata(dir_path.plus_file(META_FILENAME))
+	_load_metadata(dir_path.path_join(META_FILENAME))
 
 	_logger.debug("Loading terrain data...")
 
@@ -1023,17 +1090,17 @@ func load_data(dir_path: String):
 
 	# Note: if we loaded all maps at once before uploading them to VRAM,
 	# it would take a lot more RAM than if we load them one by one
-	for map_type in range(len(_maps)):
+	for map_type in len(_maps):
 		var maps = _maps[map_type]
 
-		for index in range(len(maps)):
+		for index in len(maps):
 			_logger.debug(str("Loading map ", get_map_debug_name(map_type, index),
 				" from ", _get_map_filename(map_type, index), "..."))
 
 			_load_map(dir_path, map_type, index)
 
 			# A map that was just loaded is considered not modified yet
-			_maps[map_type][index].modified = false
+			maps[index].modified = false
 
 			pi += 1
 
@@ -1043,7 +1110,7 @@ func load_data(dir_path: String):
 	_logger.debug("Notify resolution change...")
 
 	_locked = false
-	emit_signal("resolution_changed")
+	resolution_changed.emit()
 
 
 func get_data_dir() -> String:
@@ -1054,98 +1121,125 @@ func get_data_dir() -> String:
 
 
 func _save_map(dir_path: String, map_type: int, index: int) -> bool:
-	var map = _maps[map_type][index]
-	var im = map.image
+	var map : HT_Map = _maps[map_type][index]
+	var im := map.image
 	if im == null:
-		var tex = map.texture
+		var tex := map.texture
 		if tex != null:
-			_logger.debug(str("Image not found for map ", map_type, 
-				", downloading from VRAM"))
-			im = tex.get_data()
+			_logger.debug(str("Image not found for map ", map_type, ", downloading from VRAM"))
+			im = tex.get_image()
 		else:
 			_logger.debug(str("No data in map ", map_type, "[", index, "]"))
 			# This data doesn't have such map
 			return true
 
-	var dir = Directory.new()
-	if not dir.dir_exists(dir_path):
-		dir.make_dir(dir_path)
+	# The function says "absolute" but in reality it accepts paths like `res://x`,
+	# which from a user standpoint are not absolute. Also, `FileAccess.file_exists` exists but
+	# isn't named "absolute" :shrug:
+	if not DirAccess.dir_exists_absolute(dir_path):
+		var err := DirAccess.make_dir_absolute(dir_path)
+		if err != OK:
+			_logger.error("Could not create directory '{0}', error {1}" \
+				.format([dir_path, HT_Errors.get_message(err)]))
+		return false
 
-	var fpath = dir_path.plus_file(_get_map_filename(map_type, index))
+	var fpath := dir_path.path_join(_get_map_filename(map_type, index))
 
+	return _save_map_image(fpath, map_type, im)
+
+
+func _save_map_image(fpath: String, map_type: int, im: Image) -> bool:
 	if _channel_can_be_saved_as_png(map_type):
 		fpath += ".png"
-		im.save_png(fpath)
-		_try_write_default_import_options(fpath, map_type, _logger)
-
-	else:
-		fpath += ".res"
-		var err = ResourceSaver.save(fpath, im)
+		var err := im.save_png(fpath)
 		if err != OK:
 			_logger.error("Could not save '{0}', error {1}" \
 				.format([fpath, HT_Errors.get_message(err)]))
 			return false
-		_try_delete_0_8_0_heightmap(fpath.get_basename(), _logger)
+		_try_write_default_import_options(fpath, map_type, _logger)
+
+	else:
+		fpath += ".res"
+		var err := ResourceSaver.save(im, fpath)
+		if err != OK:
+			_logger.error("Could not save '{0}', error {1}" \
+				.format([fpath, HT_Errors.get_message(err)]))
+			return false
 
 	return true
 
 
-static func _try_write_default_import_options(fpath: String, channel: int, logger):
-	var imp_fpath = fpath + ".import"
-	var f := File.new()
-	if f.file_exists(imp_fpath):
+static func _try_write_default_import_options(
+	fpath: String, channel: int, logger: HT_Logger.HT_LoggerBase):
+	
+	var imp_fpath := fpath + ".import"
+	if FileAccess.file_exists(imp_fpath):
 		# Already exists
 		return
 	
 	var map_info = _map_types[channel]
-	var texture_flags: int = map_info.texture_flags
-	var filter := (texture_flags & Texture.FLAG_FILTER) != 0
 	var srgb: bool = map_info.srgb
-
-	var defaults = {
-		"remap": {
-			"importer": "texture",
-			"type": "StreamTexture"
-		},
-		"deps": {
-			"source_file": fpath
-		},
-		"params": {
-			# Don't compress. It ruins quality and makes the editor choke on big textures.
-			# TODO I would have used ImageTexture.COMPRESS_LOSSLESS,
-			# but apparently what is saved in the .import file does not match,
-			# and rather corresponds TO THE UI IN THE IMPORT DOCK :facepalm:
-			"compress/mode": 0,
-			
-			"compress/hdr_mode": 0,
-			"compress/normal_map": 0,
-			"flags/mipmaps": false,
-			"flags/filter": filter,
-			
-			# Most textures aren't color.
-			# Same here, this is mapping something from the import dock UI,
-			# and doesn't have any enum associated, just raw numbers in C++ code...
-			# 0 = "disabled", 1 = "enabled", 2 = "detect"
-			"flags/srgb": 2 if srgb else 0,
-			
-			# No need for this, the meaning of alpha is never transparency
-			"process/fix_alpha_border": false,
-			
-			# Don't try to be smart.
-			# This can actually overwrite the settings with defaults...
-			# https://github.com/godotengine/godot/issues/24220
-			"detect_3d": false,
+	
+	var defaults : Dictionary
+	
+	if channel == CHANNEL_HEIGHT:
+		defaults = {
+			"remap": {
+				# Have the heightmap editable as an image by default
+				"importer": "image",
+				"type": "Image"
+			},
+			"deps": {
+				"source_file": fpath
+			}
 		}
-	}
+	
+	else:
+		defaults = {
+			"remap": {
+				"importer": "texture",
+				"type": "CompressedTexture2D"
+			},
+			"deps": {
+				"source_file": fpath
+			},
+			"params": {
+				# Use lossless compression.
+				# Lossy ruins quality and makes the editor choke on big textures.
+				# TODO I would have used ImageTexture.COMPRESS_LOSSLESS,
+				# but apparently what is saved in the .import file does not match,
+				# and rather corresponds TO THE UI IN THE IMPORT DOCK :facepalm:
+				"compress/mode": 0,
+				
+				"compress/hdr_compression": 0,
+				"compress/normal_map": 0,
+				# No mipmaps
+				"mipmaps/limit": 0,
+				
+				# Most textures aren't color.
+				# Same here, this is mapping something from the import dock UI,
+				# and doesn't have any enum associated, just raw numbers in C++ code...
+				# 0 = "disabled", 1 = "enabled", 2 = "detect"
+				"flags/srgb": 2 if srgb else 0,
+				
+				# No need for this, the meaning of alpha is never transparency
+				"process/fix_alpha_border": false,
+				
+				# Don't try to be smart.
+				# This can actually overwrite the settings with defaults...
+				# https://github.com/godotengine/godot/issues/24220
+				"detect_3d/compress_to": 0,
+			}
+		}
 
 	HT_Util.write_import_file(defaults, imp_fpath, logger)
 
 
 func _load_map(dir: String, map_type: int, index: int) -> bool:
-	var fpath = dir.plus_file(_get_map_filename(map_type, index))
+	var fpath := dir.path_join(_get_map_filename(map_type, index))
 
 	# Maps must be configured before being loaded
-	var map = _maps[map_type][index]
+	var map : HT_Map = _maps[map_type][index]
 	# while len(_maps) <= map_type:
 	# 	_maps.append([])
 	# while len(_maps[map_type]) <= index:
@@ -1157,105 +1251,62 @@ func _load_map(dir: String, map_type: int, index: int) -> bool:
 
 	if _channel_can_be_saved_as_png(map_type):
 		fpath += ".png"
-		# In this particular case, we can use Godot ResourceLoader directly,
-		# if the texture got imported.
-
-		var tex = load(fpath)
-
-		var must_load_image_in_editor := true
-
-		if tex != null and tex is Image:
-			# The texture is imported as Image,
-			# perhaps the user wants it to be accessible from RAM in game.
-			_logger.debug("Map {0} is imported as Image. An ImageTexture will be generated." \
-					.format([get_map_debug_name(map_type, index)]))
-			map.image = tex
-			tex = ImageTexture.new()
-			var map_type_info = _map_types[map_type]
-			tex.create_from_image(map.image, map_type_info.texture_flags)
-			must_load_image_in_editor = false
-
-		map.texture = tex
-
-		if Engine.editor_hint:
-			if must_load_image_in_editor:
-				# But in the editor we want textures to be editable,
-				# so we have to automatically load the data also in RAM
-				if map.image == null:
-					map.image = Image.new()
-				map.image.load(fpath)
-			_ensure_map_format(map.image, map_type, index)
-
 	else:
-		# The heightmap is different.
-		# It has often uses beyond graphics, so we always keep a RAM copy by default.
+		fpath += ".res"
+	
+	var tex = load(fpath)
+	
+	var must_load_image_in_editor := true
+	
+	# Short-term compatibility with RGB8 encoding from the godot4 branch
+	if Engine.is_editor_hint() and tex == null and map_type == CHANNEL_HEIGHT:
+		var legacy_fpath := fpath.get_basename() + ".png"
+		var temp = load(legacy_fpath)
+		if temp != null:
+			if temp is Texture2D:
+				temp = temp.get_image()
+			if temp is Image:
+				if temp.get_format() == Image.FORMAT_RGB8:
+					_logger.warn(str(
+						"Found a heightmap using legacy RGB8 format. It will be converted to RF. ",
+						"You may want to remove the old file: {0}").format([fpath]))
+					tex = convert_heightmap_to_float(temp, _logger)
+					_save_map_image(fpath.get_basename(), map_type, tex)
 
-		var im = _try_load_0_8_0_heightmap(fpath, map_type, map.image, _logger)
-		if typeof(im) == TYPE_BOOL:
-			return false
-		if im == null:
-			fpath += ".res"
-			im = load(fpath)
-		if im == null:
-			_logger.error("Could not load '{0}'".format([fpath]))
-			return false
+	if tex != null and tex is Image:
+		# The texture is imported as Image,
+		# perhaps the user wants it to be accessible from RAM in game.
+		_logger.debug("Map {0} is imported as Image. An ImageTexture will be generated." \
+				.format([get_map_debug_name(map_type, index)]))
+		map.image = tex
+		tex = ImageTexture.create_from_image(map.image)
+		must_load_image_in_editor = false
 
-		_resolution = im.get_width()
+	map.texture = tex
 
-		map.image = im
+	if Engine.is_editor_hint():
+		if must_load_image_in_editor:
+			# But in the editor we want textures to be editable,
+			# so we have to automatically load the data also in RAM
+			if map.image == null:
+				map.image = Image.load_from_file(fpath)
+			else:
+				map.image.load(fpath)
 		_ensure_map_format(map.image, map_type, index)
-		_upload_channel(map_type, index)
+	
+	if map_type == CHANNEL_HEIGHT:
+		_resolution = map.image.get_width()
 
 	return true
 
 
 func _ensure_map_format(im: Image, map_type: int, index: int):
-	var format = im.get_format()
-	var expected_format = _map_types[map_type].texture_format
+	var format := im.get_format()
+	var expected_format : int = _map_types[map_type].texture_format
 	if format != expected_format:
 		_logger.warn("Map {0} loaded as format {1}, expected {2}. Will be converted." \
 			.format([get_map_debug_name(map_type, index), format, expected_format]))
 		im.convert(expected_format)
-
-
-# Legacy
-# TODO Drop after a few versions
-static func _try_load_0_8_0_heightmap(fpath: String, channel: int, existing_image: Image, logger):
-	fpath += ".bin"
-	var f = File.new()
-	if not f.file_exists(fpath):
-		return null
-	var err = f.open(fpath, File.READ)
-	if err != OK:
-		logger.error("Could not open '{0}' for reading, error {1}" \
-			.format([fpath, HT_Errors.get_message(err)]))
-		return false
-
-	var width = f.get_32()
-	var height = f.get_32()
-	var pixel_size = f.get_32()
-	var data_size = width * height * pixel_size
-	var data = f.get_buffer(data_size)
-	if data.size() != data_size:
-		logger.error("Unexpected end of buffer, expected size {0}, got {1}" \
-			.format([data_size, data.size()]))
-		return false
-
-	var im = existing_image
-	if im == null:
-		im = Image.new()
-	im.create_from_data(width, height, false, get_channel_format(channel), data)
-	return im
-
-
-static func _try_delete_0_8_0_heightmap(fpath: String, logger):
-	fpath += ".bin"
-	var d = Directory.new()
-	if d.file_exists(fpath):
-		var err = d.remove(fpath)
-		if err != OK:
-			logger.error("Could not erase file '{0}', error {1}" \
-				.format([fpath, HT_Errors.get_message(err)]))
 
 
 # Imports images into the terrain data by converting them to the internal format.
@@ -1293,8 +1344,8 @@ func _edit_import_maps(input: Dictionary) -> bool:
 static func get_adjusted_map_size(width: int, height: int) -> int:
 	var width_po2 = HT_Util.next_power_of_two(width - 1) + 1
 	var height_po2 = HT_Util.next_power_of_two(height - 1) + 1
-	var size_po2 = HT_Util.min_int(width_po2, height_po2)
-	size_po2 = HT_Util.clamp_int(size_po2, MIN_RESOLUTION, MAX_RESOLUTION)
+	var size_po2 = mini(width_po2, height_po2)
+	size_po2 = clampi(size_po2, MIN_RESOLUTION, MAX_RESOLUTION)
 	return size_po2
 
 
@@ -1305,9 +1356,9 @@ func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bo
 		# Godot can only load 8-bit PNG,
 		# so we have to bring it back to float in the wanted range
 
-		var src_image := Image.new()
-		var err := src_image.load(fpath)
-		if err != OK:
+		var src_image := Image.load_from_file(fpath)
+		# TODO No way to access the error code?
+		if src_image == null:
 			return false
 
 		var res := get_adjusted_map_size(src_image.get_width(), src_image.get_height())
@@ -1324,28 +1375,32 @@ func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bo
 
 		var hrange := max_y - min_y
 
-		var width = HT_Util.min_int(im.get_width(), src_image.get_width())
-		var height = HT_Util.min_int(im.get_height(), src_image.get_height())
+		var width := mini(im.get_width(), src_image.get_width())
+		var height := mini(im.get_height(), src_image.get_height())
 
 		_logger.debug("Converting to internal format...")
 
-		im.lock()
-		src_image.lock()
-
-		# Convert to internal format (from RGBA8 to RH16) with range scaling
-		for y in range(0, width):
-			for x in range(0, height):
-				var gs := src_image.get_pixel(x, y).r
-				var h := min_y + hrange * gs
-				im.set_pixel(x, y, Color(h, 0, 0))
-
-		src_image.unlock()
-		im.unlock()
+		# Convert to internal format with range scaling
+		match im.get_format():
+			Image.FORMAT_RF:
+				for y in width:
+					for x in height:
+						var gs := src_image.get_pixel(x, y).r
+						var h := min_y + hrange * gs
+						im.set_pixel(x, y, Color(h, h, h))
+			Image.FORMAT_RGB8:
+				for y in width:
+					for x in height:
+						var gs := src_image.get_pixel(x, y).r
+						var h := min_y + hrange * gs
+						im.set_pixel(x, y, encode_height_to_rgb8_unorm(h))
+			_:
+				_logger.error(str("Invalid heightmap format ", im.get_format()))
 	
 	elif ext == "exr":
-		var src_image := Image.new()
-		var err := src_image.load(fpath)
-		if err != OK:
+		var src_image := Image.load_from_file(fpath)
+		# TODO No way to access the error code?
+		if src_image == null:
 			return false
 
 		var res := get_adjusted_map_size(src_image.get_width(), src_image.get_height())
@@ -1362,25 +1417,31 @@ func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bo
 
 		_logger.debug("Converting to internal format...")
 		
-		# See https://github.com/Zylann/godot_heightmap_plugin/issues/34
-		# Godot can load EXR but it always makes them have at least 3-channels.
-		# Heightmaps need only one, so we have to get rid of 2.
-		var height_format = _map_types[CHANNEL_HEIGHT].texture_format
-		src_image.convert(height_format)
-		
-		im.blit_rect(src_image, Rect2(0, 0, res, res), Vector2())
+		match im.get_format():
+			Image.FORMAT_RF:
+				# See https://github.com/Zylann/godot_heightmap_plugin/issues/34
+				# Godot can load EXR but it always makes them have at least 3-channels.
+				# Heightmaps need only one, so we have to get rid of 2.
+				var height_format = _map_types[CHANNEL_HEIGHT].texture_format
+				src_image.convert(height_format)
+				im.blit_rect(src_image, Rect2i(0, 0, res, res), Vector2i())
+			
+			Image.FORMAT_RGB8:
+				convert_float_heightmap_to_rgb8(src_image, im)
+				
+			_:
+				_logger.error(str("Invalid heightmap format ", im.get_format()))
 
 	elif ext == "raw":
 		# RAW files don't contain size, so we have to deduce it from 16-bit size.
 		# We also need to bring it back to float in the wanted range.
 
-		var f := File.new()
-		var err := f.open(fpath, File.READ)
-		if err != OK:
+		var f := FileAccess.open(fpath, FileAccess.READ)
+		if f == null:
 			return false
 
-		var file_len = f.get_len()
-		var file_res = HT_Util.integer_square_root(file_len / 2)
+		var file_len := f.get_length()
+		var file_res := HT_Util.integer_square_root(file_len / 2)
 		if file_res == -1:
 			# Can't deduce size
 			return false
@@ -1391,7 +1452,7 @@ func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bo
 		# The editor officially runs on desktop architectures, which are
 		# generally little-endian.
 		if big_endian:
-			f.endian_swap = true
+			f.big_endian = true
 
 		var res := get_adjusted_map_size(file_res, file_res)
 
@@ -1410,28 +1471,31 @@ func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bo
 
 		_logger.debug("Converting to internal format...")
 
-		im.lock()
+		var rw := mini(res, file_res)
+		var rh := mini(res, file_res)
 
-		var rw := HT_Util.min_int(res, file_res)
-		var rh := HT_Util.min_int(res, file_res)
-
-		# Convert to internal format (from bytes to RH16)
+		# Convert to internal format
 		var h := 0.0
-		for y in range(0, rh):
-			for x in range(0, rw):
+		for y in rh:
+			for x in rw:
 				var gs := float(f.get_16()) / 65535.0
 				h = min_y + hrange * float(gs)
-				im.set_pixel(x, y, Color(h, 0, 0))
+				match im.get_format():
+					Image.FORMAT_RF:
+						im.set_pixel(x, y, Color(h, 0, 0))
+					Image.FORMAT_RGB8:
+						im.set_pixel(x, y, encode_height_to_rgb8_unorm(h))
+					_:
+						_logger.error(str("Invalid heightmap format ", im.get_format()))
+						return false
+				
 			# Skip next pixels if the file is bigger than the accepted resolution
 			for x in range(rw, file_res):
 				f.get_16()
 
-		im.unlock()
-
 	elif ext == "xyz":
-		var f := File.new()
-		var err := f.open(fpath, File.READ)
-		if err != OK:
+		var f := FileAccess.open(fpath, FileAccess.READ)
+		if f == null:
 			return false
 
 		var bounds := HT_XYZFormat.load_bounds(f)
@@ -1452,11 +1516,20 @@ func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bo
 
 		_logger.debug(str("Parsing XYZ file (this can take a while)..."))
 		f.seek(0)
-		HT_XYZFormat.load_heightmap(f, im, bounds)
+		var float_heightmap := Image.create(im.get_width(), im.get_height(), false, Image.FORMAT_RF)
+		HT_XYZFormat.load_heightmap(f, float_heightmap, bounds)
 
 		# Flipping because in Godot, for X to mean "east"/"right", Z must be backward,
 		# and we are using Z to map the Y axis of the heightmap image.
-		im.flip_y()
+		float_heightmap.flip_y()
+		
+		match im.get_format():
+			Image.FORMAT_RF:
+				im.blit_rect(float_heightmap, Rect2i(0, 0, res, res), Vector2i())
+			Image.FORMAT_RGB8:
+				convert_float_heightmap_to_rgb8(float_heightmap, im)
+			_:
+				_logger.error(str("Invalid heightmap format ", im.get_format()))
 
 		# Note: when importing maps with non-compliant sizes and flipping,
 		# the result might not be aligned to global coordinates.
@@ -1478,19 +1551,19 @@ func _import_map(map_type: int, path: String) -> bool:
 	# Heightmap requires special treatment
 	assert(map_type != CHANNEL_HEIGHT)
 
-	var im = Image.new()
-	var err = im.load(path)
-	if err != OK:
+	var im := Image.load_from_file(path)
+	# TODO No way to get the error code?
+	if im == null:
 		return false
 
-	var res = get_resolution()
+	var res := get_resolution()
 	if im.get_width() != res or im.get_height() != res:
 		im.crop(res, res)
 
 	if im.get_format() != get_channel_format(map_type):
 		im.convert(get_channel_format(map_type))
 
-	var map = _maps[map_type][0]
+	var map : HT_Map = _maps[map_type][0]
 	map.image = im
 
 	notify_region_change(Rect2(0, 0, im.get_width(), im.get_height()), map_type)
@@ -1515,9 +1588,10 @@ class HT_CellRaycastContext:
 	var vertical_bounds : Image
 	var hit = null # Vector3
 	var heightmap : Image
-	var cell_cb_funcref : FuncRef
 	var broad_param_2d_to_3d := 1.0
 	var cell_param_2d_to_3d := 1.0
+	# TODO Can't call static functions of the enclosing class.....................
+	var decode_height_func : Callable
 	#var dbg
 	
 	func broad_cb(cx: int, cz: int, enter_param: float, exit_param: float) -> bool:
@@ -1540,7 +1614,7 @@ class HT_CellRaycastContext:
 		_cell_begin_pos_y = begin.y
 		_cell_begin_pos_2d = cell_ray_origin_2d
 		var rhit = HT_Util.grid_raytrace_2d(
-			cell_ray_origin_2d, dir_2d, cell_cb_funcref, distance_in_chunk_2d)
+			cell_ray_origin_2d, dir_2d, cell_cb, distance_in_chunk_2d)
 		return rhit != null
 	
 	func cell_cb(cx: int, cz: int, enter_param: float, exit_param: float) -> bool:
@@ -1550,25 +1624,31 @@ class HT_CellRaycastContext:
 		var enter_y := _cell_begin_pos_y + dir.y * enter_param * cell_param_2d_to_3d
 		var exit_y := _cell_begin_pos_y + dir.y * exit_param * cell_param_2d_to_3d
 
-		hit = _intersect_cell(heightmap, cx, cz, Vector3(enter_pos.x, enter_y, enter_pos.y), dir)
+		hit = _intersect_cell(heightmap, cx, cz, Vector3(enter_pos.x, enter_y, enter_pos.y), dir,
+			decode_height_func)
 
 		return hit != null
 
 	static func _intersect_cell(heightmap: Image, cx: int, cz: int,
-		begin_pos: Vector3, dir: Vector3):
-
-		var h00 := HT_Util.get_pixel_clamped(heightmap, cx,     cz).r
-		var h10 := HT_Util.get_pixel_clamped(heightmap, cx + 1, cz).r
-		var h01 := HT_Util.get_pixel_clamped(heightmap, cx,     cz + 1).r
-		var h11 := HT_Util.get_pixel_clamped(heightmap, cx + 1, cz + 1).r
+		begin_pos: Vector3, dir: Vector3, decode_func : Callable):
+		
+		var c00 := HT_Util.get_pixel_clamped(heightmap, cx,     cz)
+		var c10 := HT_Util.get_pixel_clamped(heightmap, cx + 1, cz)
+		var c01 := HT_Util.get_pixel_clamped(heightmap, cx,     cz + 1)
+		var c11 := HT_Util.get_pixel_clamped(heightmap, cx + 1, cz + 1)
+		
+		var h00 : float = decode_func.call(c00)
+		var h10 : float = decode_func.call(c10)
+		var h01 : float = decode_func.call(c01)
+		var h11 : float = decode_func.call(c11)
 
 		var p00 := Vector3(cx,     h00, cz)
 		var p10 := Vector3(cx + 1, h10, cz)
 		var p01 := Vector3(cx,     h01, cz + 1)
 		var p11 := Vector3(cx + 1, h11, cz + 1)
 
-		var th0 = Geometry.ray_intersects_triangle(begin_pos, dir, p00, p10, p11)
-		var th1 = Geometry.ray_intersects_triangle(begin_pos, dir, p00, p11, p01)
+		var th0 = Geometry3D.ray_intersects_triangle(begin_pos, dir, p00, p10, p11)
+		var th1 = Geometry3D.ray_intersects_triangle(begin_pos, dir, p00, p11, p01)
 
 		if th0 != null:
 			return th0
@@ -1623,24 +1703,26 @@ func cell_raycast(ray_origin: Vector3, ray_direction: Vector3, max_distance: flo
 	ctx.dir_2d = ray_direction_2d
 	ctx.vertical_bounds = _chunked_vertical_bounds
 	ctx.heightmap = heightmap
-	# We are lucky FuncRef does not keep a strong reference to the object
-	ctx.cell_cb_funcref = funcref(ctx, "cell_cb")
 	ctx.cell_param_2d_to_3d = max_distance / max_distance_2d
 	ctx.broad_param_2d_to_3d = ctx.cell_param_2d_to_3d * VERTICAL_BOUNDS_CHUNK_SIZE
-	#ctx.dbg = dbg
+	
+	match heightmap.get_format():
+		Image.FORMAT_RF:
+			ctx.decode_height_func = decode_height_from_f
+		Image.FORMAT_RGB8:
+			ctx.decode_height_func = decode_height_from_rgb8_unorm
+		_:
+			_logger.error(str("Invalid heightmap format ", heightmap.get_format()))
+			return null
 
-	heightmap.lock()
-	_chunked_vertical_bounds.lock()
+	#ctx.dbg = dbg
 
 	# Broad phase through cached vertical bound chunks
 	var broad_ray_origin = clipped_segment_2d[0] / VERTICAL_BOUNDS_CHUNK_SIZE
 	var broad_max_distance = \
 		clipped_segment_2d[0].distance_to(clipped_segment_2d[1]) / VERTICAL_BOUNDS_CHUNK_SIZE
-	var hit_bp = HT_Util.grid_raytrace_2d(broad_ray_origin, ray_direction_2d, 
-		funcref(ctx, "broad_cb"), broad_max_distance)
-
-	heightmap.unlock()
-	_chunked_vertical_bounds.unlock()
+	var hit_bp = HT_Util.grid_raytrace_2d(broad_ray_origin, ray_direction_2d, ctx.broad_cb, 
+		broad_max_distance)
 
 	if hit_bp == null:
 		# No hit
@@ -1698,4 +1780,64 @@ static func get_map_shader_param_name(map_type: int, index: int) -> String:
 #				if pn[i] == p_name:
 #					return [map_type, i]
 #	return null
+
+
+static func decode_height_from_f(c: Color) -> float:
+	return c.r
+
+
+const _V2_UNIT_STEPS = 1024.0
+const _V2_MIN = -8192.0
+const _V2_MAX = 8191.0
+const _V2_DF = 255.0 / _V2_UNIT_STEPS
+
+# This RGB8 encoding implementation is specific to this plugin.
+# It was used in the port to Godot 4.0 for a time, until it was found float
+# textures could be used.
+
+static func decode_height_from_rgb8_unorm(c: Color) -> float:
+	return (c.r * 0.25 + c.g * 64.0 + c.b * 16384.0) * (4.0 * _V2_DF) + _V2_MIN
+
+
+static func encode_height_to_rgb8_unorm(h: float) -> Color:
+	h -= _V2_MIN
+	var i := int(h * _V2_UNIT_STEPS)
+	var r := i % 256
+	var g := (i / 256) % 256
+	var b := i / 65536
+	return Color(r, g, b, 255.0) / 255.0
+
+
+static func convert_heightmap_to_float(src: Image, logger: HT_Logger.HT_LoggerBase) -> Image:
+	var src_format := src.get_format()
+	
+	if src_format == Image.FORMAT_RH:
+		var im : Image = src.duplicate()
+		im.convert(Image.FORMAT_RF)
+		return im
+
+	if src_format == Image.FORMAT_RF:
+		return src.duplicate() as Image
+	
+	if src_format == Image.FORMAT_RGB8:
+		var im := Image.create(src.get_width(), src.get_height(), false, Image.FORMAT_RF)
+		for y in src.get_height():
+			for x in src.get_width():
+				var c := src.get_pixel(x, y)
+				var h := decode_height_from_rgb8_unorm(c)
+				im.set_pixel(x, y, Color(h, h, h, 1.0))
+		return im
+	
+	logger.error("Unknown source heightmap format!")
+	return null
+
+
+static func convert_float_heightmap_to_rgb8(src: Image, dst: Image):
+	assert(dst.get_format() == Image.FORMAT_RGB8)
+	assert(dst.get_size() == src.get_size())
+	
+	for y in src.get_height():
+		for x in src.get_width():
+			var h = src.get_pixel(x, y).r
+			dst.set_pixel(x, y, encode_height_to_rgb8_unorm(h))
 

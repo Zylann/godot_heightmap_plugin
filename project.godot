@@ -6,46 +6,38 @@
 ;   [section] ; section goes between []
 ;   param=value ; assign values to parameters
 
-config_version=4
-
-_global_script_classes=[ {
-"base": "ResourceFormatLoader",
-"class": "HTerrainDataLoader",
-"language": "GDScript",
-"path": "res://addons/zylann.hterrain/hterrain_resource_loader.gd"
-}, {
-"base": "ResourceFormatSaver",
-"class": "HTerrainDataSaver",
-"language": "GDScript",
-"path": "res://addons/zylann.hterrain/hterrain_resource_saver.gd"
-} ]
-_global_script_class_icons={
-"HTerrainDataLoader": "",
-"HTerrainDataSaver": ""
-}
+config_version=5
 
 [application]
 
 config/name="Heightmap Terrain"
+config/features=PackedStringArray("4.1")
+config/icon="res://icon.png"
 name="Heightmap GDNative"
 icon="res://icon.png"
 
+[debug]
+
+gdscript/warnings/unused_variable=false
+
 [display]
 
+window/size/width=800
+window/vsync/use_vsync=false
 stretch/mode="viewport"
-
-[editor_plugins]
-
-enabled=PoolStringArray( "zylann.hterrain" )
 
 [gdnative]
 
-singletons=[  ]
+singletons=[]
 
 [memory]
 
 multithread/thread_rid_pool_prealloc=60
 
+[physics]
+
+common/physics_interpolation=true
+
 [rendering]
 
-viewport/default_clear_color=Color( 0.407806, 0.628906, 0.618542, 1 )
+viewport/default_clear_color=Color(0.407806, 0.628906, 0.618542, 1)

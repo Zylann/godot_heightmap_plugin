@@ -1,24 +1,15 @@
-[gd_scene load_steps=2 format=2]
+[gd_scene load_steps=2 format=3 uid="uid://dfjip6c4olemn"]
 
-[ext_resource path="res://addons/zylann.hterrain/tools/inspector/inspector.gd" type="Script" id=1]
+[ext_resource type="Script" path="res://addons/zylann.hterrain/tools/inspector/inspector.gd" id="1"]
 
 [node name="Inspector" type="VBoxContainer"]
-margin_right = 348.0
-margin_bottom = 383.0
-script = ExtResource( 1 )
+script = ExtResource("1")
 
 [node name="GridContainer" type="GridContainer" parent="."]
-margin_right = 348.0
-custom_constants/vseparation = 4
-custom_constants/hseparation = 8
+layout_mode = 2
 columns = 2
 
 [node name="OpenFileDialog" type="FileDialog" parent="."]
-margin_left = 261.0
-margin_top = 150.0
-margin_right = 710.0
-margin_bottom = 426.0
-rect_min_size = Vector2( 400, 300 )
-window_title = "Open a File"
-resizable = true
-mode = 0
+title = "Open a File"
+ok_button_text = "Open"
+file_mode = 0

@@ -3,7 +3,7 @@
 # It generates controls for a provided list of properties,
 # which is easier to maintain than placing them by hand and connecting things in the editor.
 
-tool
+@tool
 extends Control
 
 const USAGE_FILE = "file"
@@ -14,8 +14,8 @@ signal property_changed(key, value)
 # Used for most simple types
 class HT_InspectorEditor:
 	var control = null
-	var getter = null
-	var setter = null
+	var getter := Callable()
+	var setter := Callable()
 	var key_label : Label
 
 
@@ -35,7 +35,7 @@ class HT_InspectorResourceEditor extends HT_InspectorEditor:
 class HT_InspectorVectorEditor extends HT_InspectorEditor:
 	signal value_changed(v)
 	
-	var value = Vector2()
+	var value := Vector2()
 	var xed = null
 	var yed = null
 	
@@ -49,7 +49,7 @@ class HT_InspectorVectorEditor extends HT_InspectorEditor:
 	
 	func _component_changed(v, i):
 		value[i] = v
-		emit_signal("value_changed", value)		
+		value_changed.emit(value)		
 
 
 # TODO Rename _schema
@@ -59,12 +59,14 @@ var _edit_signal := true
 var _editors := {}
 
 # Had to separate the container because otherwise I can't open dialogs properly...
-onready var _grid_container = get_node("GridContainer")
-onready var _file_dialog = get_node("OpenFileDialog")
+@onready var _grid_container = get_node("GridContainer")
+@onready var _file_dialog = get_node("OpenFileDialog")
 
 
+func _ready():
+	_file_dialog.visibility_changed.connect(
+		call_deferred.bind("_on_file_dialog_visibility_changed"))
 # Test
-#func _ready():
 #	set_prototype({
 #		"seed": {
 #			"type": TYPE_INT,
@@ -103,20 +105,20 @@ func clear_prototype():
 
 func get_value(key: String):
 	var editor = _editors[key]
-	return editor.getter.call_func()
+	return editor.getter.call()
 
 
 func get_values():
 	var values = {}
 	for key in _editors:
 		var editor = _editors[key]
-		values[key] = editor.getter.call_func()
+		values[key] = editor.getter.call()
 	return values
 
 
 func set_value(key: String, value):
 	var editor = _editors[key]
-	editor.setter.call_func(value)
+	editor.setter.call(value)
 
 
 func set_values(values: Dictionary):
@@ -124,7 +126,7 @@ func set_values(values: Dictionary):
 		if _editors.has(key):
 			var editor = _editors[key]
 			var v = values[key]
-			editor.setter.call_func(v)
+			editor.setter.call(v)
 
 
 # TODO Rename set_schema
@@ -138,11 +140,11 @@ func set_prototype(proto: Dictionary):
 		label.text = str(key).capitalize()
 		_grid_container.add_child(label)
 		
-		var editor = _make_editor(key, prop)
+		var editor := _make_editor(key, prop)
 		editor.key_label = label
 		
 		if prop.has("default_value"):
-			editor.setter.call_func(prop.default_value)
+			editor.setter.call(prop.default_value)
 
 		_editors[key] = editor
 		
@@ -157,7 +159,7 @@ func set_prototype(proto: Dictionary):
 func trigger_all_modified():
 	for key in _prototype:
 		var value = _editors[key].getter.call_func()
-		emit_signal("property_changed", key, value)
+		property_changed.emit(key, value)
 
 
 func set_property_enabled(prop_name: String, enabled: bool):
@@ -182,52 +184,52 @@ func set_property_enabled(prop_name: String, enabled: bool):
 	ed.key_label.modulate = col
 
 
-func _make_editor(key: String, prop: Dictionary):
-	var ed = null
+func _make_editor(key: String, prop: Dictionary) -> HT_InspectorEditor:
+	var ed : HT_InspectorEditor = null
 	
-	var editor = null
-	var getter = null
-	var setter = null
+	var editor : Control = null
+	var getter : Callable
+	var setter : Callable
 	var extra = null
 	
 	match prop.type:
 		TYPE_INT, \
-		TYPE_REAL:
+		TYPE_FLOAT:
 			var pre = null
 			if prop.has("randomizable") and prop.randomizable:
 				editor = HBoxContainer.new()
 				pre = Button.new()
-				pre.connect("pressed", self, "_randomize_property_pressed", [key])
+				pre.pressed.connect(_randomize_property_pressed.bind(key))
 				pre.text = "Randomize"
 				editor.add_child(pre)
 			
 			if prop.type == TYPE_INT and prop.has("usage") and prop.usage == USAGE_ENUM:
 				# Enumerated value
 				assert(prop.has("enum_items"))
-				var option_button = OptionButton.new()
+				var option_button := OptionButton.new()
 				
 				for i in len(prop.enum_items):
 					var item = prop.enum_items[i]
 					option_button.add_item(item)
 				
 				# TODO We assume index, actually
-				getter = funcref(option_button, "get_selected_id")
-				setter = funcref(option_button, "select")
-				option_button.connect("item_selected", self, "_property_edited", [key])
+				getter = option_button.get_selected_id
+				setter = option_button.select
+				option_button.item_selected.connect(_property_edited.bind(key))
 				
 				editor = option_button
 				
 			else:
 				# Numeric value
-				var spinbox = SpinBox.new()
+				var spinbox := SpinBox.new()
 				# Spinboxes have shit UX when not expanded...
-				spinbox.rect_min_size = Vector2(120, 16) 
+				spinbox.custom_minimum_size = Vector2(120, 16) 
 				_setup_range_control(spinbox, prop)
-				spinbox.connect("value_changed", self, "_property_edited", [key])
+				spinbox.value_changed.connect(_property_edited.bind(key))
 				
 				# TODO In case the type is INT, the getter should return an integer!
-				getter = funcref(spinbox, "get_value")
-				setter = funcref(spinbox, "set_value")
+				getter = spinbox.get_value
+				setter = spinbox.set_value
 				
 				var show_slider = prop.has("range") \
 					and not (prop.has("slidable") \
@@ -236,9 +238,9 @@ func _make_editor(key: String, prop: Dictionary):
 				if show_slider:
 					if editor == null:
 						editor = HBoxContainer.new()
-					var slider = HSlider.new()
+					var slider := HSlider.new()
 					# Need to give some size because otherwise the slider is hard to click...
-					slider.rect_min_size = Vector2(32, 16)
+					slider.custom_minimum_size = Vector2(32, 16)
 					_setup_range_control(slider, prop)
 					slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 					spinbox.share(slider)
@@ -255,7 +257,7 @@ func _make_editor(key: String, prop: Dictionary):
 			if prop.has("usage") and prop.usage == USAGE_FILE:
 				editor = HBoxContainer.new()
 				
-				var line_edit = LineEdit.new()
+				var line_edit := LineEdit.new()
 				line_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				editor.add_child(line_edit)
 				
@@ -263,78 +265,78 @@ func _make_editor(key: String, prop: Dictionary):
 				if prop.has("exts"):
 					exts = prop.exts
 				
-				var load_button = Button.new()
+				var load_button := Button.new()
 				load_button.text = "..."
-				load_button.connect("pressed", self, "_on_ask_load_file", [key, exts])
+				load_button.pressed.connect(_on_ask_load_file.bind(key, exts))
 				editor.add_child(load_button)
 				
-				line_edit.connect("text_entered", self, "_property_edited", [key])
-				getter = funcref(line_edit, "get_text")
-				setter = funcref(line_edit, "set_text")
+				line_edit.text_submitted.connect(_property_edited.bind(key))
+				getter = line_edit.get_text
+				setter = line_edit.set_text
 				
 			else:
 				editor = LineEdit.new()
-				editor.connect("text_entered", self, "_property_edited", [key])
-				getter = funcref(editor, "get_text")
-				setter = funcref(editor, "set_text")
+				editor.text_submitted.connect(_property_edited.bind(key))
+				getter = editor.get_text
+				setter = editor.set_text
 		
 		TYPE_COLOR:
 			editor = ColorPickerButton.new()
-			editor.connect("color_changed", self, "_property_edited", [key])
-			getter = funcref(editor, "get_pick_color")
-			setter = funcref(editor, "set_pick_color")
+			editor.color_changed.connect(_property_edited.bind(key))
+			getter = editor.get_pick_color
+			setter = editor.set_pick_color
 			
 		TYPE_BOOL:
 			editor = CheckBox.new()
-			editor.connect("toggled", self, "_property_edited", [key])
-			getter = funcref(editor, "is_pressed")
-			setter = funcref(editor, "set_pressed")
+			editor.toggled.connect(_property_edited.bind(key))
+			getter = editor.is_pressed
+			setter = editor.set_pressed
 		
 		TYPE_OBJECT:
 			# TODO How do I even check inheritance if I work on the class themselves, not instances?
 			if prop.object_type == Resource:
 				editor = HBoxContainer.new()
 				
-				var label = Label.new()
+				var label := Label.new()
 				label.text = "null"
 				label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				label.clip_text = true
-				label.align = Label.ALIGN_RIGHT
+				label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 				editor.add_child(label)
 				
-				var load_button = Button.new()
+				var load_button := Button.new()
 				load_button.text = "Load..."
-				load_button.connect("pressed", self, "_on_ask_load_texture", [key])
+				load_button.pressed.connect(_on_ask_load_texture.bind(key))
 				editor.add_child(load_button)
 
-				var clear_button = Button.new()
+				var clear_button := Button.new()
 				clear_button.text = "Clear"
-				clear_button.connect("pressed", self, "_on_ask_clear_texture", [key])
+				clear_button.pressed.connect(_on_ask_clear_texture.bind(key))
 				editor.add_child(clear_button)
 				
 				ed = HT_InspectorResourceEditor.new()
 				ed.label = label
-				getter = funcref(ed, "get_value")
-				setter = funcref(ed, "set_value")
+				getter = ed.get_value
+				setter = ed.set_value
 		
 		TYPE_VECTOR2:
 			editor = HBoxContainer.new()
 
 			ed = HT_InspectorVectorEditor.new()
 
-			var xlabel = Label.new()
+			var xlabel := Label.new()
 			xlabel.text = "x"
 			editor.add_child(xlabel)
-			var xed = SpinBox.new()
+			var xed := SpinBox.new()
 			xed.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			xed.step = 0.01
 			xed.min_value = -10000
 			xed.max_value = 10000
 			# TODO This will fire twice (for each coordinate), hmmm...
-			xed.connect("value_changed", ed, "_component_changed", [0])
+			xed.value_changed.connect(ed._component_changed.bind(0))
 			editor.add_child(xed)
 			
-			var ylabel = Label.new()
+			var ylabel := Label.new()
 			ylabel.text = "y"
 			editor.add_child(ylabel)
 			var yed = SpinBox.new()
@@ -342,20 +344,20 @@ func _make_editor(key: String, prop: Dictionary):
 			yed.step = 0.01
 			yed.min_value = -10000
 			yed.max_value = 10000
-			yed.connect("value_changed", ed, "_component_changed", [1])
+			yed.value_changed.connect(ed._component_changed.bind(1))
 			editor.add_child(yed)
 			
 			ed.xed = xed
 			ed.yed = yed
-			ed.connect("value_changed", self, "_property_edited", [key])
-			getter = funcref(ed, "get_value")
-			setter = funcref(ed, "set_value")
+			ed.value_changed.connect(_property_edited.bind(key))
+			getter = ed.get_value
+			setter = ed.set_value
 		
 		_:
 			editor = Label.new()
 			editor.text = "<not editable>"
-			getter = funcref(self, "_dummy_getter")
-			setter = funcref(self, "_dummy_setter")
+			getter = _dummy_getter
+			setter = _dummy_setter
 	
 	if not(editor is CheckButton):
 		editor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -370,7 +372,7 @@ func _make_editor(key: String, prop: Dictionary):
 	return ed
 
 
-static func _setup_range_control(range_control, prop):
+static func _setup_range_control(range_control: Range, prop):
 	if prop.type == TYPE_INT:
 		range_control.step = 1
 		range_control.rounded = true
@@ -389,7 +391,7 @@ static func _setup_range_control(range_control, prop):
 
 func _property_edited(value, key):
 	if _edit_signal:
-		emit_signal("property_changed", key, value)
+		property_changed.emit(key, value)
 
 
 func _randomize_property_pressed(key):
@@ -403,13 +405,13 @@ func _randomize_property_pressed(key):
 				v = randi() % (prop.range.max - prop.range.min) + prop.range.min
 			else:
 				v = randi() - 0x7fffffff
-		TYPE_REAL:
+		TYPE_FLOAT:
 			if prop.has("range"):
-				v = rand_range(prop.range.min, prop.range.max)
+				v = randf_range(prop.range.min, prop.range.max)
 			else:
-				v = randf()			
+				v = randf()
 	
-	_editors[key].setter.call_func(v)
+	_editors[key].setter.call(v)
 
 
 func _dummy_getter():
@@ -422,52 +424,56 @@ func _dummy_setter(v):
 
 
 func _on_ask_load_texture(key):
-	_open_file_dialog(["*.png ; PNG files"], "_on_texture_selected", [key], 
+	_open_file_dialog(["*.png ; PNG files"], _on_texture_selected.bind(key), 
 		FileDialog.ACCESS_RESOURCES)
 
 
-func _open_file_dialog(filters, callback, binds, access):
+func _open_file_dialog(filters: Array, callback: Callable, access: int):
 	_file_dialog.access = access
 	_file_dialog.clear_filters()
 	for filter in filters:
 		_file_dialog.add_filter(filter)
-	_file_dialog.connect("popup_hide", self, "call_deferred", ["_on_file_dialog_close"], 
-		CONNECT_ONESHOT)
-	_file_dialog.connect("file_selected", self, callback, binds)
+
+	# Can't just use one-shot signals because the dialog could be closed without choosing a file...
+#	if not _file_dialog.file_selected.is_connected(callback):
+#		_file_dialog.file_selected.connect(callback, Object.CONNECT_ONE_SHOT)
+	_file_dialog.file_selected.connect(callback)
+	
 	_file_dialog.popup_centered_ratio(0.7)
 
 
-func _on_file_dialog_close():
-	# Disconnect listeners automatically,
-	# so we can re-use the same dialog with different listeners
-	var cons = _file_dialog.get_signal_connection_list("file_selected")
-	for con in cons:
-		_file_dialog.disconnect("file_selected", con.target, con.method)
+func _on_file_dialog_visibility_changed():
+	if _file_dialog.visible == false:
+		# Disconnect listeners automatically,
+		# so we can re-use the same dialog with different listeners
+		var cons = _file_dialog.get_signal_connection_list("file_selected")
+		for con in cons:
+			_file_dialog.file_selected.disconnect(con.callable)
 
 
-func _on_texture_selected(path, key):
+func _on_texture_selected(path: String, key):
 	var tex = load(path)
 	if tex == null:
 		return
 	var ed = _editors[key]
-	ed.setter.call_func(tex)
+	ed.setter.call(tex)
 	_property_edited(tex, key)
 
 
 func _on_ask_clear_texture(key):
 	var ed = _editors[key]
-	ed.setter.call_func(null)
+	ed.setter.call(null)
 	_property_edited(null, key)
 
 
 func _on_ask_load_file(key, exts):
-	var filters = []
+	var filters := []
 	for ext in exts:
 		filters.append(str("*.", ext, " ; ", ext.to_upper(), " files"))
-	_open_file_dialog(filters, "_on_file_selected", [key], FileDialog.ACCESS_FILESYSTEM)
+	_open_file_dialog(filters, _on_file_selected.bind(key), FileDialog.ACCESS_FILESYSTEM)
 
 
 func _on_file_selected(path, key):
 	var ed = _editors[key]
-	ed.setter.call_func(path)
+	ed.setter.call(path)
 	_property_edited(path, key)

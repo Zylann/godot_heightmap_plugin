@@ -1,6 +1,8 @@
 shader_type canvas_item;
 render_mode blend_disabled;
 
+#include "res://addons/zylann.hterrain/shaders/include/heightmap.gdshaderinc"
+
 uniform sampler2D u_src_texture;
 uniform vec4 u_src_rect;
 uniform float u_opacity = 1.0;
@@ -15,12 +17,16 @@ vec2 get_src_uv(vec2 screen_uv) {
 	return uv;
 }
 
+float get_height(sampler2D heightmap, vec2 uv) {
+	return sample_heightmap(heightmap, uv);
+}
+
 vec3 get_normal(sampler2D heightmap, vec2 pos) {
 	vec2 ps = vec2(1.0) / vec2(textureSize(heightmap, 0));
-	float hnx = texture(heightmap, pos + vec2(-ps.x, 0.0)).r;
-	float hpx = texture(heightmap, pos + vec2(ps.x, 0.0)).r;
-	float hny = texture(heightmap, pos + vec2(0.0, -ps.y)).r;
-	float hpy = texture(heightmap, pos + vec2(0.0, ps.y)).r;
+	float hnx = get_height(heightmap, pos + vec2(-ps.x, 0.0));
+	float hpx = get_height(heightmap, pos + vec2(ps.x, 0.0));
+	float hny = get_height(heightmap, pos + vec2(0.0, -ps.y));
+	float hpy = get_height(heightmap, pos + vec2(0.0, ps.y));
 	return normalize(vec3(hnx - hpx, 2.0, hpy - hny));
 }
 
