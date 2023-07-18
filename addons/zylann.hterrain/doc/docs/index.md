@@ -22,7 +22,9 @@ This written doc should be the most up to date and precise information, but vide
 
 ### How to install
 
-You will need to use Godot 3.1 or later. It is best to use latest stable 3.x version (Godot 4 is not supported yet).
+You will need to use Godot 4.1 or later.
+
+To get the last version that supported Godot 3.x, checkout the `godot3` branch in the Git repository.
 
 #### Automatically
 
@@ -127,13 +129,14 @@ As you sculpt, the plugin automatically recomputes normals of the terrain, and s
 You can enable or disable collisions by checking the `Collisions enabled` property in the inspector.
 
 Heightmap-based terrains usually implement collisions directly using the heightmap, which saves a lot of computations compared to a classic mesh collider.
-This plugin depends on the **Bullet Physics** integration in Godot, which does have a height-field collider. **Godot Physics** does not support it until version 3.4, so if you use an older version, you may want to make sure Bullet is enabled in your project settings:
 
 ![Screenshot of the option to choose physics engines in project settings](images/choose_bullet_physics.png)
 
 Some editor tools rely on colliders to work, such as snapping to ground or plugins like Scatter or other prop placement utilities. To make sure the collider is up to date, you can force it to update after sculpting with the `Terrain -> Update Editor Collider` menu:
 
 ![Screenshot of the menu to update the collider](images/update_editor_collider.png)
+
+Note: if you use Godot 3.3, you need to make sure to use the Bullet physics engine in your project settings.
 
 
 #### Known issues
