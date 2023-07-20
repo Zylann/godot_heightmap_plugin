@@ -1010,7 +1010,10 @@ func _load_metadata(path: String):
 	var text = f.get_as_text()
 	f = null # close file
 	var json = JSON.new()
-	assert(json.parse(text) == OK)
+	var json_err := json.parse(text)
+	# Careful, `assert` is stripped in release exports, including its argument expression...
+	# See https://github.com/godotengine/godot-proposals/issues/502
+	assert(json_err == OK)
 	_deserialize_metadata(json.data)
 
 
