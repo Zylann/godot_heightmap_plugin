@@ -5,6 +5,12 @@ This is a high-level changelog for each released versions of the plugin.
 For a more detailed list of past and incoming changes, see the commit history.
 
 
+1.7.2
+------
+
+- Fixed error when removing a texture from a TextureSet
+
+
 1.7.1
 ------
 

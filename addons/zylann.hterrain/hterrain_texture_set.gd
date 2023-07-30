@@ -214,7 +214,7 @@ func remove_slot(i: int):
 	if i == -1:
 		i = get_slots_count() - 1
 	for type in TYPE_COUNT:
-		_textures[type].remove(i)
+		_textures[type].remove_at(i)
 	emit_changed()
 
 
