@@ -448,6 +448,43 @@ func get_heights_region(x0: int, y0: int, w: int, h: int) -> PackedFloat32Array:
 	return heights
 
 
+# Checks that all images stored in maps have the correct format.
+# May be called in case someone uses `copy_from()` to update images and uses wrong formats.
+func check_images():
+	var errors := PackedStringArray()
+	
+	for map_type in _maps.size():
+		var map_list : Array = _maps[map_type]
+
+		for map_index in map_list.size():
+			var map : HT_Map = map_list[map_index]
+			var im := map.image
+
+			if im == null:
+				continue
+			
+			if im.get_width() != im.get_height():
+				errors.append(
+					str("Terrain image ", get_map_debug_name(map_type, map_index), 
+					" is not square (", im.get_width(), "x", im.get_height(), "). ",
+					"Did you modify it directly?"))
+
+			elif im.get_width() != get_resolution():
+				errors.append(
+					str("Terrain image ", get_map_debug_name(map_type, map_index), 
+					" resolution (", im.get_width(), ") does not match the expected ",
+					"resolution (", get_resolution(), "). Did you modify it directly?"))
+
+			var expected_format : int = _map_types[map_type].texture_format
+			if im.get_format() != expected_format:
+				errors.append(
+					str("Terrain image ", get_map_debug_name(map_type, map_index), 
+					" has an unexpected format (expected ", expected_format, ", found ", 
+					im.get_format(), "). Did you modify it directly?"))
+	
+	assert(errors.size() == 0, " ".join(errors))
+
+
 # Gets all heights as an array indexed as [x + y * width].
 # This height is raw and doesn't account for scaling of the terrain node.
 func get_all_heights() -> PackedFloat32Array:

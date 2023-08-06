@@ -5,6 +5,12 @@ This is a high-level changelog for each released versions of the plugin.
 For a more detailed list of past and incoming changes, see the commit history.
 
 
+1.7.3 (dev)
+--------------
+
+- Added more explicit image format check before `update_collider` is called
+
+
 1.7.2
 ------
 
