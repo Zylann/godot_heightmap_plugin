@@ -10,6 +10,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 
 - Added more explicit image format check before `update_collider` is called
 - Used absolute path in shader #includes, so forking doesn't fail to find them by default
+- Added 32-bit support for importing raw files
 
 
 1.7.2
