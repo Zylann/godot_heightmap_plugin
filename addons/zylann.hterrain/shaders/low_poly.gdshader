@@ -2,7 +2,7 @@ shader_type spatial;
 
 // This is a very simple shader for a low-poly coloured visual, without textures
 
-#include "include/heightmap.gdshaderinc"
+#include "res://addons/zylann.hterrain/shaders/include/heightmap.gdshaderinc"
 
 uniform sampler2D u_terrain_heightmap;
 uniform sampler2D u_terrain_normalmap;

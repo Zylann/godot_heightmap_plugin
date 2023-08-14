@@ -1,7 +1,7 @@
 shader_type spatial;
 render_mode cull_disabled;
 
-#include "include/heightmap.gdshaderinc"
+#include "res://addons/zylann.hterrain/shaders/include/heightmap.gdshaderinc"
 
 uniform sampler2D u_terrain_heightmap;
 uniform sampler2D u_terrain_detailmap;

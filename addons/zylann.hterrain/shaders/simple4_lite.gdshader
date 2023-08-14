@@ -3,7 +3,7 @@ shader_type spatial;
 // This is a shader with less textures, in case the main one doesn't run on your GPU.
 // It's mostly a big copy/paste, because Godot doesn't support #include or #ifdef...
 
-#include "include/heightmap.gdshaderinc"
+#include "res://addons/zylann.hterrain/shaders/include/heightmap.gdshaderinc"
 
 uniform sampler2D u_terrain_heightmap;
 uniform sampler2D u_terrain_normalmap;

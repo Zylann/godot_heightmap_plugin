@@ -4,7 +4,7 @@ shader_type spatial;
 // it should be preferred for high-end graphics cards.
 // For less features but lower-end targets, see the lite version.
 
-#include "include/heightmap.gdshaderinc"
+#include "res://addons/zylann.hterrain/shaders/include/heightmap.gdshaderinc"
 
 uniform sampler2D u_terrain_heightmap;
 uniform sampler2D u_terrain_normalmap;
