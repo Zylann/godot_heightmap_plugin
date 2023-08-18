@@ -894,7 +894,7 @@ For example, this code will tint the ground red at a specific position (in pixel
 ```gdscript
 const HTerrainData = preload("res://addons/zylann.hterrain/hterrain_data.gd")
 
-onready var _terrain = $Path/To/Terrain
+@onready var _terrain = $Path/To/Terrain
 
 func test():
     # Get the image
@@ -903,9 +903,7 @@ func test():
 
     # Modify the image
     var position = Vector2(42, 36)
-    colormap.lock()
     colormap.set_pixel(position, Color(1, 0, 0))
-    colormap.unlock()
 
     # Notify the terrain of our change
     data.notify_region_changed(Rect2(position.x, position.y, 1, 1), HTerrainData.CHANNEL_COLOR)
@@ -944,17 +942,13 @@ func _ready():
     var terrain_data = HTerrainData.new()
     terrain_data.resize(513)
     
-    var noise = OpenSimplexNoise.new()
+    var noise = FastNoiseLite.new()
     var noise_multiplier = 50.0
 
     # Get access to terrain maps
     var heightmap: Image = terrain_data.get_image(HTerrainData.CHANNEL_HEIGHT)
     var normalmap: Image = terrain_data.get_image(HTerrainData.CHANNEL_NORMAL)
     var splatmap: Image = terrain_data.get_image(HTerrainData.CHANNEL_SPLAT)
-    
-    heightmap.lock()
-    normalmap.lock()
-    splatmap.lock()
     
     # Generate terrain maps
     # Note: this is an example with some arbitrary formulas,
@@ -983,10 +977,6 @@ func _ready():
             heightmap.set_pixel(x, z, Color(h, 0, 0))
             normalmap.set_pixel(x, z, HTerrainData.encode_normal(normal))
             splatmap.set_pixel(x, z, splat)
-    
-    heightmap.unlock()
-    normalmap.unlock()
-    splatmap.unlock()
     
     # Commit modifications so they get uploaded to the graphics card
     var modified_region = Rect2(Vector2(), heightmap.get_size())
