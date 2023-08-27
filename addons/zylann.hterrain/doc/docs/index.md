@@ -1007,6 +1007,26 @@ func _ready():
 ```
 
 
+### Reload while the game is running
+
+If your want to reload a terrain without restarting the game, you can do the following with a script:
+
+```gdscript
+# Reload terrain data from files, disregarding cached resources
+terrain.data.reload()
+
+# Update the collider, as it won't update automatically
+terrain.update_collider()
+```
+
+So the following workflow is possible:
+
+- While the game runs, do some changes to the terrain in the editor
+- Save the scene containing the terrain
+- Optional: tab in/out of Godot to make sure terrain textures get re-imported (if you don't do it, only the heightmap will update and shading might look wrong in changed areas)
+- Press a hotkey in the game calling the code that reloads the terrain.
+
+
 Export
 ----------
 
