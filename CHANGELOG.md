@@ -10,6 +10,8 @@ For a more detailed list of past and incoming changes, see the commit history.
 
 - Added more explicit image format check before `update_collider` is called
 - Used absolute path in shader #includes, so forking doesn't fail to find them by default
+- Added `HTerrainData.reload` function to allow reloading a terrain while the game is running (after saving in the editor)
+- Update properties in the inspector when a custom shader is modified
 
 
 1.7.2

@@ -249,14 +249,18 @@ func _get_property_list() -> Array:
 	# Dynamic properties coming from the shader
 	var props := []
 	if _material != null:
-		var shader_params = RenderingServer.get_shader_parameter_list(_material.shader.get_rid())
+		var shader_params = _material.shader.get_shader_uniform_list(true)
 		for p in shader_params:
 			if _API_SHADER_PARAMS.has(p.name):
 				continue
 			var cp := {}
 			for k in p:
 				cp[k] = p[k]
-			cp.name = str("shader_params/", p.name)
+			# See HTerrain._get_property_list for more information about this
+			if cp.usage == PROPERTY_USAGE_GROUP:
+				cp.hint_string = "shader_params/"
+			else:
+				cp.name = str("shader_params/", p.name)
 			props.append(cp)
 	return props
 
