@@ -81,10 +81,17 @@ const _API_SHADER_PARAMS = {
 @export var custom_shader : Shader:
 	get:
 		return custom_shader
+
 	set(shader):
 		if custom_shader == shader:
 			return
+
+		if custom_shader != null:
+			if Engine.is_editor_hint():
+				custom_shader.changed.disconnect(_on_custom_shader_changed)
+
 		custom_shader = shader
+		
 		if custom_shader == null:
 			_material.shader = load(DEFAULT_SHADER_PATH)
 		else:
@@ -94,6 +101,10 @@ const _API_SHADER_PARAMS = {
 				# Ability to fork default shader
 				if shader.code == "":
 					shader.code = _default_shader.code
+				
+				custom_shader.changed.connect(_on_custom_shader_changed)
+		
+				notify_property_list_changed()
 
 
 # Density modifier, to make more or less detail meshes appear overall.
@@ -690,6 +701,10 @@ func set_cast_shadow(option: int):
 # Compat
 func get_cast_shadow() -> int:
 	return cast_shadow
+
+
+func _on_custom_shader_changed():
+	notify_property_list_changed()
 
 
 static func _generate_multimesh(resolution: int, density: float, mesh: Mesh, multimesh: MultiMesh):

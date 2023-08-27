@@ -961,6 +961,7 @@ func set_custom_shader(shader: Shader):
 
 func _on_custom_shader_changed():
 	_material_params_need_update = true
+	notify_property_list_changed()
 
 
 func _update_material_params():
