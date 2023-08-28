@@ -12,6 +12,12 @@ const HT_Logger = preload("./util/logger.gd")
 const HT_ImageFileCache = preload("./util/image_file_cache.gd")
 const HT_XYZFormat = preload("./util/xyz_format.gd")
 
+enum {
+	BIT_DEPTH_UNDEFINED = 0,
+	BIT_DEPTH_16 = 16,
+	BIT_DEPTH_32 = 32
+}
+
 # Note: indexes matters for saving, don't re-order
 # TODO Rename "CHANNEL" to "MAP", makes more sense and less confusing with RGBA channels
 const CHANNEL_HEIGHT = 0
@@ -1393,7 +1399,7 @@ func _edit_import_maps(input: Dictionary) -> bool:
 	if input.has(CHANNEL_HEIGHT):
 		var params = input[CHANNEL_HEIGHT]
 		if not _import_heightmap(
-			params.path, params.min_height, params.max_height, params.big_endian):
+			params.path, params.min_height, params.max_height, params.big_endian, params.bit_depth):
 			return false
 
 	# TODO Import indexed maps?
@@ -1418,7 +1424,7 @@ static func get_adjusted_map_size(width: int, height: int) -> int:
 	return size_po2
 
 
-func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bool) -> bool:
+func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bool, bit_depth: int) -> bool:
 	var ext := fpath.get_extension().to_lower()
 
 	if ext == "png":
@@ -1502,7 +1508,7 @@ func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bo
 				_logger.error(str("Invalid heightmap format ", im.get_format()))
 
 	elif ext == "raw":
-		# RAW files don't contain size, so we have to deduce it from 16-bit size.
+		# RAW files don't contain size, so we take the user's bit depth import choice.
 		# We also need to bring it back to float in the wanted range.
 
 		var f := FileAccess.open(fpath, FileAccess.READ)
@@ -1510,7 +1516,7 @@ func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bo
 			return false
 
 		var file_len := f.get_length()
-		var file_res := HT_Util.integer_square_root(file_len / 2)
+		var file_res := HT_Util.integer_square_root(file_len / (bit_depth/8))
 		if file_res == -1:
 			# Can't deduce size
 			return false
@@ -1545,22 +1551,40 @@ func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bo
 
 		# Convert to internal format
 		var h := 0.0
-		for y in rh:
-			for x in rw:
-				var gs := float(f.get_16()) / 65535.0
-				h = min_y + hrange * float(gs)
-				match im.get_format():
-					Image.FORMAT_RF:
-						im.set_pixel(x, y, Color(h, 0, 0))
-					Image.FORMAT_RGB8:
-						im.set_pixel(x, y, encode_height_to_rgb8_unorm(h))
-					_:
-						_logger.error(str("Invalid heightmap format ", im.get_format()))
-						return false
-				
-			# Skip next pixels if the file is bigger than the accepted resolution
-			for x in range(rw, file_res):
-				f.get_16()
+		if bit_depth == BIT_DEPTH_32:
+			for y in rh:
+				for x in rw:
+					var gs := float(f.get_32()) / 4294967295.0
+					h = min_y + hrange * float(gs)
+					match im.get_format():
+						Image.FORMAT_RF:
+							im.set_pixel(x, y, Color(h, 0, 0))
+						Image.FORMAT_RGB8:
+							im.set_pixel(x, y, encode_height_to_rgb8_unorm(h))
+						_:
+							_logger.error(str("Invalid heightmap format ", im.get_format()))
+							return false
+
+				# Skip next pixels if the file is bigger than the accepted resolution
+				for x in range(rw, file_res):
+					f.get_32()
+		else:
+			for y in rh:
+				for x in rw:
+					var gs := float(f.get_16()) / 65535.0
+					h = min_y + hrange * float(gs)
+					match im.get_format():
+						Image.FORMAT_RF:
+							im.set_pixel(x, y, Color(h, 0, 0))
+						Image.FORMAT_RGB8:
+							im.set_pixel(x, y, encode_height_to_rgb8_unorm(h))
+						_:
+							_logger.error(str("Invalid heightmap format ", im.get_format()))
+							return false
+
+				# Skip next pixels if the file is bigger than the accepted resolution
+				for x in range(rw, file_res):
+					f.get_16()
 
 	elif ext == "xyz":
 		var f := FileAccess.open(fpath, FileAccess.READ)

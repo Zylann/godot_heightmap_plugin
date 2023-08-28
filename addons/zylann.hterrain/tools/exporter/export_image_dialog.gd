@@ -10,10 +10,11 @@ const HT_Logger = preload("../../util/logger.gd")
 const FORMAT_RH = 0
 const FORMAT_RF = 1
 const FORMAT_R16 = 2
-const FORMAT_PNG8 = 3
-const FORMAT_EXRH = 4
-const FORMAT_EXRF = 5
-const FORMAT_COUNT = 6
+const FORMAT_R32 = 3
+const FORMAT_PNG8 = 4
+const FORMAT_EXRH = 5
+const FORMAT_EXRF = 6
+const FORMAT_COUNT = 7
 
 @onready var _output_path_line_edit := $VB/Grid/OutputPath/HeightmapPathLineEdit as LineEdit
 @onready var _format_selector := $VB/Grid/FormatSelector as OptionButton
@@ -41,7 +42,8 @@ func _ready():
 	
 	_format_names[FORMAT_RH] = "16-bit RAW float"
 	_format_names[FORMAT_RF] = "32-bit RAW float"
-	_format_names[FORMAT_R16] = "16-bit RAW unsigned"
+	_format_names[FORMAT_R16] = "16-bit RAW int unsigned (little endian)"
+	_format_names[FORMAT_R32] = "32-bit RAW int unsigned (little endian)"
 	_format_names[FORMAT_PNG8] = "8-bit PNG greyscale"
 	_format_names[FORMAT_EXRH] = "16-bit float greyscale EXR"
 	_format_names[FORMAT_EXRF] = "32-bit float greyscale EXR"
@@ -49,6 +51,7 @@ func _ready():
 	_format_extensions[FORMAT_RH] = "raw"
 	_format_extensions[FORMAT_RF] = "raw"
 	_format_extensions[FORMAT_R16] = "raw"
+	_format_extensions[FORMAT_R32] = "raw"
 	_format_extensions[FORMAT_PNG8] = "png"
 	_format_extensions[FORMAT_EXRH] = "exr"
 	_format_extensions[FORMAT_EXRF] = "exr"
@@ -142,7 +145,7 @@ func _export() -> bool:
 			var err := FileAccess.get_open_error()
 			_print_file_error(fpath, err)
 			return false
-		
+
 		if format == FORMAT_RH:
 			float_heightmap.convert(Image.FORMAT_RH)
 			f.store_buffer(float_heightmap.get_data())
@@ -155,14 +158,15 @@ func _export() -> bool:
 			for y in float_heightmap.get_height():
 				for x in float_heightmap.get_width():
 					var h := int((float_heightmap.get_pixel(x, y).r - height_min) * hscale)
-					if h < 0:
-						h = 0
-					elif h > 65535:
-						h = 65535
-					if x % 50 == 0:
-						_logger.debug(str(h))
-					f.store_16(h)
-	
+						f.store_16(clampi(h, 0, 65535))
+
+		elif format == FORMAT_R32:
+			var hscale := 4294967295.0 / (height_max - height_min)
+			for y in float_heightmap.get_height():
+				for x in float_heightmap.get_width():
+					var h := int((float_heightmap.get_pixel(x, y).r - height_min) * hscale)
+					f.store_32(clampi(h, 0, 4294967295))
+
 	if save_error == OK:
 		_logger.debug("Exported heightmap as \"{0}\"".format([fpath]))
 		return true
