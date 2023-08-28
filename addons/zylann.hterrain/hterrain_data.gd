@@ -1124,7 +1124,10 @@ func _deserialize_metadata(dict: Dictionary) -> bool:
 	return true
 
 
-func load_data(dir_path: String):
+func load_data(dir_path: String, 
+	# Same as default in ResourceLoader.load()
+	resource_loader_cache_mode := ResourceLoader.CACHE_MODE_REUSE):
+	
 	_locked = true
 
 	_load_metadata(dir_path.path_join(META_FILENAME))
@@ -1133,7 +1136,7 @@ func load_data(dir_path: String):
 
 	var channel_instance_sum = _get_total_map_count()
 	var pi = 0
-
+	
 	# Note: if we loaded all maps at once before uploading them to VRAM,
 	# it would take a lot more RAM than if we load them one by one
 	for map_type in len(_maps):
@@ -1143,7 +1146,7 @@ func load_data(dir_path: String):
 			_logger.debug(str("Loading map ", get_map_debug_name(map_type, index),
 				" from ", _get_map_filename(map_type, index), "..."))
 
-			_load_map(dir_path, map_type, index)
+			_load_map(dir_path, map_type, index, resource_loader_cache_mode)
 
 			# A map that was just loaded is considered not modified yet
 			maps[index].modified = false
@@ -1157,6 +1160,26 @@ func load_data(dir_path: String):
 
 	_locked = false
 	resolution_changed.emit()
+
+
+# Reloads the entire terrain from files, disregarding cached resources.
+# This could be useful to reload a terrain while playing the game. You can do some edits in the
+# editor, save the terrain and then reload in-game.
+func reload():
+	_logger.debug("Reloading terrain data...")
+	var dir_path := resource_path.get_base_dir()
+	load_data(dir_path, ResourceLoader.CACHE_MODE_IGNORE)
+	_logger.debug("Reloading terrain data done")
+	
+	# Debug
+#	var heightmap := get_image(CHANNEL_HEIGHT, 0)
+#	var im = Image.create(heightmap.get_width(), heightmap.get_height(), false, Image.FORMAT_RGB8)
+#	for y in heightmap.get_height():
+#		for x in heightmap.get_width():
+#			var h := heightmap.get_pixel(x, y).r * 0.1
+#			var g := h - floorf(h)
+#			im.set_pixel(x, y, Color(g, g, g, 1.0))
+#	im.save_png("local_tests/debug_data/reloaded_heightmap.png")
 
 
 func get_data_dir() -> String:
@@ -1281,7 +1304,7 @@ static func _try_write_default_import_options(
 	HT_Util.write_import_file(defaults, imp_fpath, logger)
 
 
-func _load_map(dir: String, map_type: int, index: int) -> bool:
+func _load_map(dir: String, map_type: int, index: int, resource_loader_cache_mode : int) -> bool:
 	var fpath := dir.path_join(_get_map_filename(map_type, index))
 
 	# Maps must be configured before being loaded
@@ -1300,14 +1323,14 @@ func _load_map(dir: String, map_type: int, index: int) -> bool:
 	else:
 		fpath += ".res"
 	
-	var tex = load(fpath)
+	var tex = ResourceLoader.load(fpath, "", resource_loader_cache_mode)
 	
 	var must_load_image_in_editor := true
 	
 	# Short-term compatibility with RGB8 encoding from the godot4 branch
 	if Engine.is_editor_hint() and tex == null and map_type == CHANNEL_HEIGHT:
 		var legacy_fpath := fpath.get_basename() + ".png"
-		var temp = load(legacy_fpath)
+		var temp = ResourceLoader.load(legacy_fpath, "", resource_loader_cache_mode)
 		if temp != null:
 			if temp is Texture2D:
 				temp = temp.get_image()
@@ -1327,7 +1350,8 @@ func _load_map(dir: String, map_type: int, index: int) -> bool:
 		map.image = tex
 		tex = ImageTexture.create_from_image(map.image)
 		must_load_image_in_editor = false
-
+	
+	var texture_changed : bool = (tex != map.texture)
 	map.texture = tex
 
 	if Engine.is_editor_hint():
@@ -1342,6 +1366,11 @@ func _load_map(dir: String, map_type: int, index: int) -> bool:
 	
 	if map_type == CHANNEL_HEIGHT:
 		_resolution = map.image.get_width()
+
+	# Initially added to support reloading of an existing terrain (otherwise it's pointless to emit
+	# during scene loading when the resource isn't assigned yet)
+	if texture_changed:
+		map_changed.emit(map_type, index)
 
 	return true
 

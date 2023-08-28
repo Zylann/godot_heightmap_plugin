@@ -81,10 +81,17 @@ const _API_SHADER_PARAMS = {
 @export var custom_shader : Shader:
 	get:
 		return custom_shader
+
 	set(shader):
 		if custom_shader == shader:
 			return
+
+		if custom_shader != null:
+			if Engine.is_editor_hint():
+				custom_shader.changed.disconnect(_on_custom_shader_changed)
+
 		custom_shader = shader
+		
 		if custom_shader == null:
 			_material.shader = load(DEFAULT_SHADER_PATH)
 		else:
@@ -94,6 +101,10 @@ const _API_SHADER_PARAMS = {
 				# Ability to fork default shader
 				if shader.code == "":
 					shader.code = _default_shader.code
+				
+				custom_shader.changed.connect(_on_custom_shader_changed)
+		
+				notify_property_list_changed()
 
 
 # Density modifier, to make more or less detail meshes appear overall.
@@ -238,14 +249,18 @@ func _get_property_list() -> Array:
 	# Dynamic properties coming from the shader
 	var props := []
 	if _material != null:
-		var shader_params = RenderingServer.get_shader_parameter_list(_material.shader.get_rid())
+		var shader_params = _material.shader.get_shader_uniform_list(true)
 		for p in shader_params:
 			if _API_SHADER_PARAMS.has(p.name):
 				continue
 			var cp := {}
 			for k in p:
 				cp[k] = p[k]
-			cp.name = str("shader_params/", p.name)
+			# See HTerrain._get_property_list for more information about this
+			if cp.usage == PROPERTY_USAGE_GROUP:
+				cp.hint_string = "shader_params/"
+			else:
+				cp.name = str("shader_params/", p.name)
 			props.append(cp)
 	return props
 
@@ -690,6 +705,10 @@ func set_cast_shadow(option: int):
 # Compat
 func get_cast_shadow() -> int:
 	return cast_shadow
+
+
+func _on_custom_shader_changed():
+	notify_property_list_changed()
 
 
 static func _generate_multimesh(resolution: int, density: float, mesh: Mesh, multimesh: MultiMesh):

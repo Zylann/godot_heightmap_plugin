@@ -894,7 +894,7 @@ For example, this code will tint the ground red at a specific position (in pixel
 ```gdscript
 const HTerrainData = preload("res://addons/zylann.hterrain/hterrain_data.gd")
 
-onready var _terrain = $Path/To/Terrain
+@onready var _terrain = $Path/To/Terrain
 
 func test():
     # Get the image
@@ -903,9 +903,7 @@ func test():
 
     # Modify the image
     var position = Vector2(42, 36)
-    colormap.lock()
     colormap.set_pixel(position, Color(1, 0, 0))
-    colormap.unlock()
 
     # Notify the terrain of our change
     data.notify_region_changed(Rect2(position.x, position.y, 1, 1), HTerrainData.CHANNEL_COLOR)
@@ -944,17 +942,13 @@ func _ready():
     var terrain_data = HTerrainData.new()
     terrain_data.resize(513)
     
-    var noise = OpenSimplexNoise.new()
+    var noise = FastNoiseLite.new()
     var noise_multiplier = 50.0
 
     # Get access to terrain maps
     var heightmap: Image = terrain_data.get_image(HTerrainData.CHANNEL_HEIGHT)
     var normalmap: Image = terrain_data.get_image(HTerrainData.CHANNEL_NORMAL)
     var splatmap: Image = terrain_data.get_image(HTerrainData.CHANNEL_SPLAT)
-    
-    heightmap.lock()
-    normalmap.lock()
-    splatmap.lock()
     
     # Generate terrain maps
     # Note: this is an example with some arbitrary formulas,
@@ -984,10 +978,6 @@ func _ready():
             normalmap.set_pixel(x, z, HTerrainData.encode_normal(normal))
             splatmap.set_pixel(x, z, splat)
     
-    heightmap.unlock()
-    normalmap.unlock()
-    splatmap.unlock()
-    
     # Commit modifications so they get uploaded to the graphics card
     var modified_region = Rect2(Vector2(), heightmap.get_size())
     terrain_data.notify_region_change(modified_region, HTerrainData.CHANNEL_HEIGHT)
@@ -1015,6 +1005,26 @@ func _ready():
     # No need to call this, but you may need to if you edit the terrain later on
     #terrain.update_collider()
 ```
+
+
+### Reload while the game is running
+
+If your want to reload a terrain without restarting the game, you can do the following with a script:
+
+```gdscript
+# Reload terrain data from files, disregarding cached resources
+terrain.data.reload()
+
+# Update the collider, as it won't update automatically
+terrain.update_collider()
+```
+
+So the following workflow is possible:
+
+- While the game runs, do some changes to the terrain in the editor
+- Save the scene containing the terrain
+- Optional: tab in/out of Godot to make sure terrain textures get re-imported (if you don't do it, only the heightmap will update and shading might look wrong in changed areas)
+- Press a hotkey in the game calling the code that reloads the terrain.
 
 
 Export
