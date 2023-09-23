@@ -13,6 +13,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Added `HTerrainData.reload` function to allow reloading a terrain while the game is running (after saving in the editor)
 - Update properties in the inspector when a custom shader is modified
 - Added support for importing and exporting 32-bit raw files
+- Fixed brush cursor looked off-center when using tiny brush sizes
 
 
 1.7.2
