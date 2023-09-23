@@ -209,16 +209,21 @@ func _make_editor(key: String, prop: Dictionary) -> HT_InspectorEditor:
 				var option_button := OptionButton.new()
 				
 				for i in len(prop.enum_items):
-					var item = prop.enum_items[i]
-					option_button.add_item(item)
-				
-				# TODO We assume index, actually
+					var item:Array = prop.enum_items[i]
+					var value:int = item[0]
+					var text:String = item[1]
+					option_button.add_item(text, value)
+
 				getter = option_button.get_selected_id
-				setter = option_button.select
+				setter = func select_id(id: int):
+					var index:int = option_button.get_item_index(id)
+					assert(index >= 0)
+					option_button.select(index)
+
 				option_button.item_selected.connect(_property_edited.bind(key))
 				
 				editor = option_button
-				
+
 			else:
 				# Numeric value
 				var spinbox := SpinBox.new()
