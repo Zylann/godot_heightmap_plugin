@@ -158,7 +158,7 @@ func _export() -> bool:
 			for y in float_heightmap.get_height():
 				for x in float_heightmap.get_width():
 					var h := int((float_heightmap.get_pixel(x, y).r - height_min) * hscale)
-						f.store_16(clampi(h, 0, 65535))
+					f.store_16(clampi(h, 0, 65535))
 
 		elif format == FORMAT_R32:
 			var hscale := 4294967295.0 / (height_max - height_min)
