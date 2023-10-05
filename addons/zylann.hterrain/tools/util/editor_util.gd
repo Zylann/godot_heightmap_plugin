@@ -74,7 +74,7 @@ static func _add_texture_filters(file_dialog):
 	# Godot
 	file_dialog.add_filter("*.ctex ; CompressedTexture files")
 	# Packed textures
-	file_dialog.add_filter("*.packed_tex ; HTerrainPackedTexture files")
+	# file_dialog.add_filter("*.packed_tex ; HTerrainPackedTexture files")
 
 
 static func _add_texture_array_filters(file_dialog):
@@ -82,7 +82,7 @@ static func _add_texture_array_filters(file_dialog):
 	# Godot
 	file_dialog.add_filter("*.ctexarray ; TextureArray files")
 	# Packed textures
-	file_dialog.add_filter("*.packed_texarr ; HTerrainPackedTextureArray files")
+	# file_dialog.add_filter("*.packed_texarr ; HTerrainPackedTextureArray files")
 
 
 # Tries to load a texture with the ResourceLoader, and if it fails, attempts
