@@ -433,7 +433,7 @@ func _on_ClearNormal_pressed():
 
 
 func _on_ModeSelector_item_selected(index: int):
-	var id = _mode_selector.get_selected_id()
+	var id := _mode_selector.get_selected_id()
 	if id == _texture_set.get_mode():
 		return
 	
@@ -446,13 +446,13 @@ func _on_ModeSelector_item_selected(index: int):
 		
 	else:
 		if _texture_set.get_mode() == HTerrainTextureSet.MODE_TEXTURES:
-			_mode_confirmation_dialog.window_title = "Switch to TextureArrays"
+			_mode_confirmation_dialog.title = "Switch to TextureArrays"
 			_mode_confirmation_dialog.dialog_text = \
 				"This will unload all textures currently setup. Do you want to continue?"
 			_mode_confirmation_dialog.popup_centered()
 		
 		else:
-			_mode_confirmation_dialog.window_title = "Switch to Textures"
+			_mode_confirmation_dialog.title = "Switch to Textures"
 			_mode_confirmation_dialog.dialog_text = \
 				"This will unload all textures currently setup. Do you want to continue?"
 			_mode_confirmation_dialog.popup_centered()

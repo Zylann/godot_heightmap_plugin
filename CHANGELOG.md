@@ -14,6 +14,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Update properties in the inspector when a custom shader is modified
 - Added support for importing and exporting 32-bit raw files
 - Fixed brush cursor looked off-center at close range when using tiny brush sizes
+- Fixed error when trying to change `TextureSet` mode while it has textures in it
 
 
 1.7.2
