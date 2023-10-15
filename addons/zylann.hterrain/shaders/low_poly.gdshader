@@ -12,6 +12,8 @@ uniform sampler2D u_terrain_colormap;// : hint_albedo;
 uniform mat4 u_terrain_inverse_transform;
 uniform mat3 u_terrain_normal_basis;
 
+uniform float u_specular = 0.5;
+
 varying flat vec4 v_tint;
 
 
@@ -59,5 +61,6 @@ void fragment() {
 	ALBEDO = v_tint.rgb;
 	ROUGHNESS = 1.0;
 	NORMAL = normalize(cross(dFdy(VERTEX), dFdx(VERTEX)));
+	SPECULAR = u_specular;
 }
 

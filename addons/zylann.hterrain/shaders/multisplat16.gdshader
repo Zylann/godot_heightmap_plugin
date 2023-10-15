@@ -27,6 +27,7 @@ uniform bool u_depth_blending = true;
 uniform float u_globalmap_blend_start;
 uniform float u_globalmap_blend_distance;
 uniform bool u_tile_reduction = false;
+uniform float u_specular = 0.5;
 
 varying float v_hole;
 varying vec3 v_tint;
@@ -370,4 +371,5 @@ void fragment() {
 //	}
 
 	NORMAL = (VIEW_MATRIX * (vec4(normal, 0.0))).xyz;
+	SPECULAR = u_specular;
 }
