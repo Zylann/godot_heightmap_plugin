@@ -280,7 +280,7 @@ func _set(key: StringName, v):
 
 
 func get_shader_param(param_name: String):
-	return _material.get_shader_parameter(param_name)
+	return HT_Util.get_shader_material_parameter(_material, param_name)
 
 
 func set_shader_param(param_name: String, v):

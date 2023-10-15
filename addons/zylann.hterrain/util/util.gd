@@ -547,3 +547,16 @@ static func update_texture_partial(
 	fuck.blit_rect(im, src_rect, dst_pos)
 	tex.update(fuck)
 
+
+# Should be used because if `set_shader_parameter` has never been called, `get_shader_parameter` 
+# will return null even if the shader's corresponding uniform has a default value.
+# See https://github.com/godotengine/godot/issues/44454
+static func get_shader_material_parameter(material: ShaderMaterial, param_name: StringName):
+	var v = material.get_shader_parameter(param_name)
+	if v == null:
+		var shader : Shader = material.shader
+		if shader != null:
+			v = RenderingServer.shader_get_parameter_default(shader.get_rid(), param_name)
+	return v
+
+
