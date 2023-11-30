@@ -154,7 +154,7 @@ signal transform_changed(global_transform)
 
 @export_range(2, 5) var lod_scale := 2.0:
 	get:
-		return lod_scale
+		return _lodder.get_split_scale()
 	set(value):
 		_lodder.set_split_scale(value)
 

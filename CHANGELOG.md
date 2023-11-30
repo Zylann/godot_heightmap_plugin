@@ -17,6 +17,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Fixed brush cursor looked off-center at close range when using tiny brush sizes
 - Fixed error when trying to change `TextureSet` mode while it has textures in it
 - Fixed shader parameters not displaying the right value in the inspector until they are set by the user at least once
+- Fixed `lod_scale` property getter was always returning 2 instead of the last set value
 
 
 1.7.2
