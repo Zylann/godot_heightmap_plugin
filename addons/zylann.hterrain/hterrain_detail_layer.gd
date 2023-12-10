@@ -645,6 +645,9 @@ func _add_debug_cube(terrain: Node3D, aabb: AABB):
 		var mat := StandardMaterial3D.new()
 		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		_debug_wirecube_mesh.surface_set_material(0, mat)
+	
+	# Flat terrain makes cubes invisible
+	aabb.size.y = maxf(aabb.size.y, 1.0)
 
 	var debug_cube := HT_DirectMeshInstance.new()
 	debug_cube.set_mesh(_debug_wirecube_mesh)
