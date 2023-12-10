@@ -163,12 +163,12 @@ const _API_SHADER_PARAMS = {
 var _material: ShaderMaterial = null
 var _default_shader: Shader = null
 
-# Vector2 => DirectMultiMeshInstance
+# Vector2 => HT_DirectMultiMeshInstance
 var _chunks := {}
 
 var _multimesh: MultiMesh
 var _multimesh_need_regen = true
-var _multimesh_instance_pool := []
+var _multimesh_instance_pool : Array[HT_DirectMultiMeshInstance] = []
 var _ambient_wind_time := 0.0
 #var _auto_pick_index_on_enter_tree := Engine.is_editor_hint()
 var _debug_wirecube_mesh: Mesh = null
@@ -355,7 +355,7 @@ func get_render_layer_mask() -> int:
 
 func _get_used_mesh() -> Mesh:
 	if instance_mesh == null:
-		var mesh = load(DEFAULT_MESH_PATH) as Mesh
+		var mesh := load(DEFAULT_MESH_PATH) as Mesh
 		if mesh == null:
 			_logger.error(str("Failed to load default mesh: ", DEFAULT_MESH_PATH))
 		return mesh
@@ -400,13 +400,13 @@ func _notification(what: int):
 
 func _set_visible(v: bool):
 	for k in _chunks:
-		var chunk = _chunks[k]
+		var chunk : HT_DirectMultiMeshInstance = _chunks[k]
 		chunk.set_visible(v)
 
 
 func _set_world(w: World3D):
 	for k in _chunks:
-		var chunk = _chunks[k]
+		var chunk : HT_DirectMultiMeshInstance = _chunks[k]
 		chunk.set_world(w)
 
 
@@ -422,8 +422,8 @@ func _on_terrain_transform_changed(gt: Transform3D):
 
 	# Update AABBs and transforms, because scale might have changed
 	for k in _chunks:
-		var mmi = _chunks[k]
-		var aabb = _get_chunk_aabb(terrain, Vector3(k.x * CHUNK_SIZE, 0, k.y * CHUNK_SIZE))
+		var mmi : HT_DirectMultiMeshInstance = _chunks[k]
+		var aabb := _get_chunk_aabb(terrain, Vector3(k.x * CHUNK_SIZE, 0, k.y * CHUNK_SIZE))
 		# Nullify XZ translation because that's done by transform already
 		aabb.position.x = 0
 		aabb.position.z = 0
@@ -443,7 +443,7 @@ func process(delta: float, viewer_pos: Vector3):
 		# Crash workaround for Godot 3.1
 		# See https://github.com/godotengine/godot/issues/32500
 		for k in _chunks:
-			var mmi = _chunks[k]
+			var mmi : HT_DirectMultiMeshInstance = _chunks[k]
 			mmi.set_multimesh(_multimesh)
 
 	# Detail layers are unaffected by ground map_scale
@@ -451,24 +451,25 @@ func process(delta: float, viewer_pos: Vector3):
 		terrain.get_internal_transform_unscaled()
 	var local_viewer_pos := terrain_transform_without_map_scale.affine_inverse() * viewer_pos
 
-	var viewer_cx = local_viewer_pos.x / CHUNK_SIZE
-	var viewer_cz = local_viewer_pos.z / CHUNK_SIZE
+	var viewer_cx := local_viewer_pos.x / CHUNK_SIZE
+	var viewer_cz := local_viewer_pos.z / CHUNK_SIZE
 
-	var cr = int(view_distance) / CHUNK_SIZE + 1
+	var cr := int(view_distance) / CHUNK_SIZE + 1
 
-	var cmin_x = viewer_cx - cr
-	var cmin_z = viewer_cz - cr
-	var cmax_x = viewer_cx + cr
-	var cmax_z = viewer_cz + cr
+	var cmin_x := viewer_cx - cr
+	var cmin_z := viewer_cz - cr
+	var cmax_x := viewer_cx + cr
+	var cmax_z := viewer_cz + cr
 
-	var map_res = terrain.get_data().get_resolution()
-	var map_scale = terrain.map_scale
+	var terrain_data : HTerrainData = terrain.get_data()
+	var map_res := terrain_data.get_resolution()
+	var map_scale : Vector3 = terrain.map_scale
 
-	var terrain_size_x = map_res * map_scale.x
-	var terrain_size_z = map_res * map_scale.z
+	var terrain_size_x := map_res * map_scale.x
+	var terrain_size_z := map_res * map_scale.z
 
-	var terrain_chunks_x = terrain_size_x / CHUNK_SIZE
-	var terrain_chunks_z = terrain_size_z / CHUNK_SIZE
+	var terrain_chunks_x := terrain_size_x / CHUNK_SIZE
+	var terrain_chunks_z := terrain_size_z / CHUNK_SIZE
 
 	cmin_x = clampi(cmin_x, 0, terrain_chunks_x)
 	cmin_z = clampi(cmin_z, 0, terrain_chunks_z)
@@ -482,22 +483,22 @@ func process(delta: float, viewer_pos: Vector3):
 	for cz in range(cmin_z, cmax_z):
 		for cx in range(cmin_x, cmax_x):
 
-			var cpos2d = Vector2(cx, cz)
+			var cpos2d := Vector2(cx, cz)
 			if _chunks.has(cpos2d):
 				continue
 
-			var aabb = _get_chunk_aabb(terrain, Vector3(cx, 0, cz) * CHUNK_SIZE)
-			var d = (aabb.position + 0.5 * aabb.size).distance_to(local_viewer_pos)
+			var aabb := _get_chunk_aabb(terrain, Vector3(cx, 0, cz) * CHUNK_SIZE)
+			var d := (aabb.position + 0.5 * aabb.size).distance_to(local_viewer_pos)
 
 			if d < view_distance:
 				_load_chunk(terrain_transform_without_map_scale, cx, cz, aabb)
 
-	var to_recycle = []
+	var to_recycle : Array[Vector2] = []
 
 	for k in _chunks:
 		var chunk = _chunks[k]
-		var aabb = _get_chunk_aabb(terrain, Vector3(k.x, 0, k.y) * CHUNK_SIZE)
-		var d = (aabb.position + 0.5 * aabb.size).distance_to(local_viewer_pos)
+		var aabb := _get_chunk_aabb(terrain, Vector3(k.x, 0, k.y) * CHUNK_SIZE)
+		var d := (aabb.position + 0.5 * aabb.size).distance_to(local_viewer_pos)
 		if d > view_distance:
 			to_recycle.append(k)
 
@@ -514,7 +515,7 @@ func process(delta: float, viewer_pos: Vector3):
 
 # Gets local-space AABB of a detail chunk.
 # This only apply map_scale in Y, because details are not affected by X and Z map scale.
-func _get_chunk_aabb(terrain, lpos: Vector3):
+func _get_chunk_aabb(terrain, lpos: Vector3) -> AABB:
 	var terrain_scale = terrain.map_scale
 	var terrain_data = terrain.get_data()
 	var origin_cells_x := int(lpos.x / terrain_scale.x)
@@ -543,7 +544,7 @@ func _load_chunk(terrain_transform_without_map_scale: Transform3D, cx: int, cz: 
 	aabb.position.x = 0
 	aabb.position.z = 0
 
-	var mmi = null
+	var mmi : HT_DirectMultiMeshInstance = null
 	if len(_multimesh_instance_pool) != 0:
 		mmi = _multimesh_instance_pool[-1]
 		_multimesh_instance_pool.pop_back()
@@ -565,14 +566,14 @@ func _load_chunk(terrain_transform_without_map_scale: Transform3D, cx: int, cz: 
 
 
 func _recycle_chunk(cpos2d: Vector2):
-	var mmi = _chunks[cpos2d]
+	var mmi : HT_DirectMultiMeshInstance = _chunks[cpos2d]
 	_chunks.erase(cpos2d)
 	mmi.set_visible(false)
 	_multimesh_instance_pool.append(mmi)
 
 
 func _get_ambient_wind_params() -> Vector2:
-	var aw = 0.0
+	var aw := 0.0
 	var terrain = _get_terrain()
 	if terrain != null:
 		aw = terrain.ambient_wind
@@ -584,13 +585,13 @@ func _update_material():
 	# Sets API shader properties. Custom properties are assumed to be set already
 	_logger.debug("Updating detail layer material")
 
-	var terrain_data = null
+	var terrain_data : HTerrainData = null
 	var terrain = _get_terrain()
-	var it = Transform3D()
-	var normal_basis = Basis()
+	var it := Transform3D()
+	var normal_basis := Basis()
 
 	if terrain != null:
-		var gt = terrain.get_internal_transform()
+		var gt : Transform3D = terrain.get_internal_transform()
 		it = gt.affine_inverse()
 		terrain_data = terrain.get_data()
 		# This is needed to properly transform normals if the terrain is scaled.
@@ -598,7 +599,7 @@ func _update_material():
 		#normal_basis = gt.basis.inverse().transposed()
 		normal_basis = Basis().scaled(terrain.map_scale).inverse().transposed()
 
-	var mat = _material
+	var mat := _material
 
 	mat.set_shader_parameter("u_terrain_inverse_transform", it)
 	mat.set_shader_parameter("u_terrain_normal_basis", normal_basis)
@@ -606,10 +607,10 @@ func _update_material():
 	mat.set_shader_parameter("u_view_distance", view_distance)
 	mat.set_shader_parameter("u_ambient_wind", _get_ambient_wind_params())
 
-	var heightmap_texture = null
-	var normalmap_texture = null
-	var detailmap_texture = null
-	var globalmap_texture = null
+	var heightmap_texture : Texture = null
+	var normalmap_texture : Texture = null
+	var detailmap_texture : Texture = null
+	var globalmap_texture : Texture = null
 
 	if terrain_data != null:
 		if terrain_data.is_locked():
