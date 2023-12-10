@@ -59,7 +59,13 @@ void vertex() {
 	v_map_uv = map_uv;
 
 	//float density = 0.5 + 0.5 * sin(4.0*TIME); // test
-	float density = texture(u_terrain_detailmap, map_uv).r;
+	float density = 0.0;
+	// Force density to be 0 outside of bounds. This can be necessary when terrain is scaled,
+	// as detail chunks will keep their size and may partially overlap outside bounds at the edges
+	// of the terrain.
+	if (map_uv.x >= 0.0 && map_uv.y >= 0.0 && map_uv.x < 1.0 && map_uv.y < 1.0) {
+		density = texture(u_terrain_detailmap, map_uv).r;
+	}
 	float hash = get_hash(obj_pos.xz);
 	
 	if (density > hash) {

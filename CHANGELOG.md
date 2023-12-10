@@ -19,6 +19,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Fixed shader parameters not displaying the right value in the inspector until they are set by the user at least once
 - Fixed `lod_scale` property getter was always returning 2 instead of the last set value
 - Fixed LOD chunks sometimes overlapping when the heightmap is modified (issue #411)
+- Fixed detail layers were rendering repeating instances outside the terrain when `map_scale` is not 1.0
 
 
 1.7.2

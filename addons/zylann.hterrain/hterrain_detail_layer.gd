@@ -474,6 +474,9 @@ func process(delta: float, viewer_pos: Vector3):
 	cmin_x = clampi(cmin_x, 0, terrain_chunks_x)
 	cmin_z = clampi(cmin_z, 0, terrain_chunks_z)
 
+	cmax_x = clampi(cmax_x, 0, terrain_chunks_x + 1)
+	cmax_z = clampi(cmax_z, 0, terrain_chunks_z + 1)
+
 	if DEBUG and visible:
 		_debug_cubes.clear()
 		for cz in range(cmin_z, cmax_z):
