@@ -18,6 +18,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Fixed error when trying to change `TextureSet` mode while it has textures in it
 - Fixed shader parameters not displaying the right value in the inspector until they are set by the user at least once
 - Fixed `lod_scale` property getter was always returning 2 instead of the last set value
+- Fixed LOD chunks sometimes overlapping when the heightmap is modified (issue #411)
 
 
 1.7.2

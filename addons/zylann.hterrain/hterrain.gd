@@ -1279,7 +1279,7 @@ func _process(delta: float):
 		var u: HT_PendingChunkUpdate = _pending_chunk_updates[i]
 		var chunk := _get_chunk_at(u.pos_x, u.pos_y, u.lod)
 		assert(chunk != null)
-		_update_chunk(chunk, u.lod, lvisible)
+		_update_chunk(chunk, u.lod, lvisible and chunk.is_active())
 		_updated_chunks += 1
 
 	_pending_chunk_updates.clear()
