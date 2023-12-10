@@ -20,6 +20,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Fixed `lod_scale` property getter was always returning 2 instead of the last set value
 - Fixed LOD chunks sometimes overlapping when the heightmap is modified (issue #411)
 - Fixed detail layers were rendering repeating instances outside the terrain when `map_scale` is not 1.0
+- Fixed detail layers were not rendering correctly when terrain is in centered mode
 
 
 1.7.2

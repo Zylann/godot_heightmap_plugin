@@ -418,7 +418,7 @@ func _on_terrain_transform_changed(gt: Transform3D):
 		_logger.error("Detail layer is not child of a terrain!")
 		return
 	
-	var terrain_transform : Transform3D = terrain.get_internal_transform()
+	var terrain_transform : Transform3D = terrain.get_internal_transform_unscaled()
 
 	# Update AABBs and transforms, because scale might have changed
 	for k in _chunks:
@@ -451,8 +451,8 @@ func process(delta: float, viewer_pos: Vector3):
 		terrain.get_internal_transform_unscaled()
 	var local_viewer_pos := terrain_transform_without_map_scale.affine_inverse() * viewer_pos
 
-	var viewer_cx := local_viewer_pos.x / CHUNK_SIZE
-	var viewer_cz := local_viewer_pos.z / CHUNK_SIZE
+	var viewer_cx := int(local_viewer_pos.x / CHUNK_SIZE)
+	var viewer_cz := int(local_viewer_pos.z / CHUNK_SIZE)
 
 	var cr := int(view_distance) / CHUNK_SIZE + 1
 
@@ -481,7 +481,8 @@ func process(delta: float, viewer_pos: Vector3):
 		_debug_cubes.clear()
 		for cz in range(cmin_z, cmax_z):
 			for cx in range(cmin_x, cmax_x):
-				_add_debug_cube(terrain, _get_chunk_aabb(terrain, Vector3(cx, 0, cz) * CHUNK_SIZE))
+				_add_debug_cube(terrain, _get_chunk_aabb(terrain, Vector3(cx, 0, cz) * CHUNK_SIZE),
+					terrain_transform_without_map_scale)
 
 	for cz in range(cmin_z, cmax_z):
 		for cx in range(cmin_x, cmax_x):
@@ -637,7 +638,7 @@ func _update_material():
 	mat.set_shader_parameter("u_terrain_globalmap", globalmap_texture)
 
 
-func _add_debug_cube(terrain: Node3D, aabb: AABB):
+func _add_debug_cube(terrain: Node3D, aabb: AABB, terrain_transform_without_scale: Transform3D):
 	var world : World3D = terrain.get_world_3d()
 
 	if _debug_wirecube_mesh == null:
@@ -653,7 +654,8 @@ func _add_debug_cube(terrain: Node3D, aabb: AABB):
 	debug_cube.set_mesh(_debug_wirecube_mesh)
 	debug_cube.set_world(world)
 	#aabb.position.y += 0.2*randf()
-	debug_cube.set_transform(Transform3D(Basis().scaled(aabb.size), aabb.position))
+	debug_cube.set_transform(terrain_transform_without_scale \
+		* Transform3D(Basis().scaled(aabb.size), aabb.position))
 
 	_debug_cubes.append(debug_cube)
 

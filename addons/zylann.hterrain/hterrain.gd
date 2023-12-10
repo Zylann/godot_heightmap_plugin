@@ -678,7 +678,8 @@ func get_internal_transform_unscaled():
 	var gt := global_transform
 	if centered and _data != null:
 		var half_size := 0.5 * (_data.get_resolution() - 1.0)
-		gt.origin += gt.basis * (-Vector3(half_size, 0, half_size))
+		# Map scale still has an effect on origin when the map is centered
+		gt.origin += gt.basis * (-Vector3(half_size, 0, half_size) * map_scale)
 	return gt
 
 
