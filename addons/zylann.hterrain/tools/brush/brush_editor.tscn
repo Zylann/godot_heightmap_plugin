@@ -50,9 +50,11 @@ value = 2.0
 exp_edit = true
 rounded = true
 
-[node name="Label" type="Label" parent="GridContainer/BrushSizeControl"]
+[node name="SpinBox" type="SpinBox" parent="GridContainer/BrushSizeControl"]
 layout_mode = 2
-text = "999"
+min_value = 2.0
+max_value = 500.0
+value = 2.0
 
 [node name="BrushOpacityLabel" type="Label" parent="GridContainer"]
 layout_mode = 2
@@ -67,9 +69,9 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 1
 
-[node name="Label" type="Label" parent="GridContainer/BrushOpacityControl"]
+[node name="SpinBox" type="SpinBox" parent="GridContainer/BrushOpacityControl"]
 layout_mode = 2
-text = "999"
+value = 1.0
 
 [node name="FlattenHeightLabel" type="Label" parent="GridContainer"]
 layout_mode = 2
