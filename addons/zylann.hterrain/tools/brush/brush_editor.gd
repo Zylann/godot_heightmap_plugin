@@ -13,12 +13,12 @@ const HT_BrushSettingsDialog = preload("./settings_dialog/brush_settings_dialog.
 
 
 @onready var _size_slider : Slider = $GridContainer/BrushSizeControl/Slider
-@onready var _size_value_label : Label = $GridContainer/BrushSizeControl/Label
+@onready var _size_spin_box : SpinBox = $GridContainer/BrushSizeControl/SpinBox
 #onready var _size_label = _params_container.get_node("BrushSizeLabel")
 
 @onready var _opacity_slider : Slider = $GridContainer/BrushOpacityControl/Slider
-@onready var _opacity_value_label : Label = $GridContainer/BrushOpacityControl/Label
 @onready var _opacity_control : Control = $GridContainer/BrushOpacityControl
+@onready var _opacity_spin_box : SpinBox = $GridContainer/BrushOpacityControl/SpinBox
 @onready var _opacity_label : Label = $GridContainer/BrushOpacityLabel
 
 @onready var _flatten_height_container : Control = $GridContainer/HB
@@ -58,7 +58,9 @@ func _set_visibility_of(node: Control, v: bool):
 
 func _ready():
 	_size_slider.value_changed.connect(_on_size_slider_value_changed)
+	_size_slider.share(_size_spin_box)
 	_opacity_slider.value_changed.connect(_on_opacity_slider_value_changed)
+	_opacity_slider.share(_opacity_spin_box)
 	_flatten_height_box.value_changed.connect(_on_flatten_height_box_value_changed)
 	_color_picker.color_changed.connect(_on_color_picker_color_changed)
 	_density_slider.value_changed.connect(_on_density_slider_changed)
@@ -190,13 +192,11 @@ func set_display_mode(mode: int):
 func _on_size_slider_value_changed(v: float):
 	if _terrain_painter != null:
 		_terrain_painter.set_brush_size(int(v))
-	_size_value_label.text = str(v)
 
 
 func _on_opacity_slider_value_changed(v: float):
 	if _terrain_painter != null:
 		_terrain_painter.set_opacity(_opacity_slider.ratio)
-	_opacity_value_label.text = str(v)
 
 
 func _on_flatten_height_box_value_changed(v: float):
