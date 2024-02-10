@@ -576,12 +576,25 @@ func _set_data_directory(dirpath: String):
 			if FileAccess.file_exists(fpath):
 				# Load existing
 				var d = load(fpath)
+				if d == null:
+					# Logging this explicitely because otherwise all the log would say is
+					# that terrain data failed to load. Adding this info gives more context.
+					_logger.error("Could not load existing data: {}".format([fpath]))
 				set_data(d)
 			else:
 				# Create new
 				var d := HTerrainData.new()
 				d.resource_path = fpath
 				set_data(d)
+				# TODO This is an attempt to workaround an issue that has plagued the plugin for years.
+				# See https://github.com/Zylann/godot_heightmap_plugin/issues/232
+				# For some reason, randomly, Godot decies to NOT save the resource and leave
+				# the data directory empty (no .hterrain file) when the user creates a new
+				# terrain, assigns a data directory and saves the scene.
+				# Ideally data should only be saved if the user saves the scene... but given
+				# this random issue (which to this day is still not figured out!) then we
+				# force saving to be done when assigning a new path.
+				d.save_data(fpath.get_base_dir())
 	else:
 		_logger.warn("Setting twice the same terrain directory??")
 
