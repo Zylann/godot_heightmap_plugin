@@ -1331,7 +1331,7 @@ func _load_map(dir: String, map_type: int, index: int, resource_loader_cache_mod
 	
 	var must_load_image_in_editor := true
 	
-	# Short-term compatibility with RGB8 encoding from the godot4 branch
+	# Forward-compatibility with old heightmap encodings
 	if Engine.is_editor_hint() and tex == null and map_type == CHANNEL_HEIGHT:
 		var legacy_fpath := fpath.get_basename() + ".png"
 		var temp = ResourceLoader.load(legacy_fpath, "", resource_loader_cache_mode)
@@ -1344,7 +1344,16 @@ func _load_map(dir: String, map_type: int, index: int, resource_loader_cache_mod
 						"Found a heightmap using legacy RGB8 format. It will be converted to RF. ",
 						"You may want to remove the old file: {0}").format([fpath]))
 					tex = convert_heightmap_to_float(temp, _logger)
+					# This is a different file so we can save without overwriting the old path
 					_save_map_image(fpath.get_basename(), map_type, tex)
+
+				elif temp.get_format() == Image.FORMAT_RH:
+					_logger.warn(str(
+						"Found a heightmap using legacy RH format. It will be converted to RF. ",
+						"You may edit and re-save to make the upgrade persist."))
+					tex = convert_heightmap_to_float(temp, _logger)
+					# Not saving yet to prevent unintentional data loss if anything goes wrong?
+					#_save_map_image(fpath.get_basename(), map_type, tex)
 
 	if tex != null and tex is Image:
 		# The texture is imported as Image,
