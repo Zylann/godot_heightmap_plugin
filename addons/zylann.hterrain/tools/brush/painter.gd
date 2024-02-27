@@ -125,7 +125,8 @@ func set_image(image: Image, texture: ImageTexture):
 	_viewport_bg_sprite.texture = _texture
 	_brush_material.set_shader_parameter(SHADER_PARAM_SRC_TEXTURE, _texture)
 	if image != null:
-		if image.get_format() == Image.FORMAT_RF:
+		if image.get_format() == Image.FORMAT_RF \
+		or image.get_format() == Image.FORMAT_RH: 
 			# In case of RF all shaders must encode their fragment outputs in RGBA8,
 			# including the unmodified background, as Godot 4.0 does not support RF viewports
 			_no_blend_material.shader = HT_NoBlendRFShader
@@ -279,6 +280,18 @@ func _process(delta: float):
 			viewport_image = Image.create_from_data(
 				viewport_image.get_width(), viewport_image.get_height(), false, Image.FORMAT_RF, 
 				viewport_image.get_data())
+		
+		elif _image.get_format() == Image.FORMAT_RH:
+			# Reinterpret RGBA8 as RF then convert to RH.
+			# This assumes painting shaders encode the output properly.
+			# This is slower and only meant as legacy compatibility. It may be preferable to
+			# upgrade such heightmaps to RF at least for edition.
+			assert(viewport_image.get_format() == Image.FORMAT_RGBA8)
+			viewport_image = Image.create_from_data(
+				viewport_image.get_width(), viewport_image.get_height(), false, Image.FORMAT_RF, 
+				viewport_image.get_data())
+			viewport_image.convert(Image.FORMAT_RH)
+		
 		else:
 			viewport_image.convert(_image.get_format())
 		

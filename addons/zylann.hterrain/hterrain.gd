@@ -1591,6 +1591,16 @@ func _get_configuration_warnings() -> PackedStringArray:
 	if _data == null:
 		warnings.append("The terrain is missing data.\n" \
 			+ "Select the `Data Directory` property in the inspector to assign it.")
+	
+	else:
+		var heightmap := _data.get_image(HTerrainData.CHANNEL_HEIGHT)
+		if heightmap.get_format() == Image.FORMAT_RH:
+			# This is in case the user has a heightmap using the old format and didn't convert
+			# for some reason
+			warnings.append(
+				"The heightmap uses a legacy format (RH), which might cause suboptimal authoring.\n"
+				+ "You may convert it to RF by exporting it to 32-bit EXR, then import it back.\n"
+				+ "You can also use a script to convert \"height.res\" (Image resource)")
 
 	if _texture_set == null:
 		warnings.append("The terrain does not have a HTerrainTextureSet assigned\n" \

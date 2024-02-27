@@ -83,6 +83,9 @@ static func load_heightmap(f: FileAccess, dst_image: Image, bounds: HT_XYZBounds
 	# separated by 1 unit each in a grid pattern, it could be a bit faster, but
 	# parsing points from text really is the main bottleneck (40 seconds to load a 2000x2000 file!).
 	
+	var dst_format := dst_image.get_format()
+	assert(dst_format == Image.FORMAT_RF or dst_format == Image.FORMAT_RH)
+	
 	# Bounds can be precalculated
 	if bounds == null:
 		var file_begin := f.get_position()

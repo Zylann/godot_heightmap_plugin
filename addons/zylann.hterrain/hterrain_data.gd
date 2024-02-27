@@ -355,7 +355,8 @@ func get_height_at(x: int, y: int) -> float:
 	var im := get_image(CHANNEL_HEIGHT)
 	assert(im != null)
 	match im.get_format():
-		Image.FORMAT_RF:
+		Image.FORMAT_RF, \
+		Image.FORMAT_RH:
 			return HT_Util.get_pixel_clamped(im, x, y).r
 		Image.FORMAT_RGB8:
 			return decode_height_from_rgb8_unorm(HT_Util.get_pixel_clamped(im, x, y))
@@ -387,7 +388,8 @@ func get_interpolated_height_at(pos: Vector3) -> float:
 	var h11 : float
 	
 	match im.get_format():
-		Image.FORMAT_RF:
+		Image.FORMAT_RF, \
+		Image.FORMAT_RH:
 			h00 = HT_Util.get_pixel_clamped(im, x0, y0).r
 			h10 = HT_Util.get_pixel_clamped(im, x0 + 1, y0).r
 			h01 = HT_Util.get_pixel_clamped(im, x0, y0 + 1).r
@@ -499,6 +501,7 @@ func get_all_heights() -> PackedFloat32Array:
 	if im.get_format() == Image.FORMAT_RF:
 		return im.get_data().to_float32_array()
 	else:
+		# Non-native format, may be slower. Legacy heightmap?
 		return get_heights_region(0, 0, _resolution, _resolution)
 
 
@@ -943,7 +946,8 @@ func _compute_vertical_bounds_at(
 	var heights := get_image(CHANNEL_HEIGHT)
 	assert(heights != null)
 	match heights.get_format():
-		Image.FORMAT_RF:
+		Image.FORMAT_RF, \
+		Image.FORMAT_RH:
 			return _get_heights_range_f(heights, Rect2i(origin_x, origin_y, size_x, size_y))
 		Image.FORMAT_RGB8:
 			return _get_heights_range_rgb8(heights, Rect2i(origin_x, origin_y, size_x, size_y))
@@ -974,7 +978,7 @@ static func _get_heights_range_rgb8(im: Image, rect: Rect2i) -> Vector2:
 
 
 static func _get_heights_range_f(im: Image, rect: Rect2i) -> Vector2:
-	assert(im.get_format() == Image.FORMAT_RF)
+	assert(im.get_format() == Image.FORMAT_RF or im.get_format() == Image.FORMAT_RH)
 	
 	rect = rect.intersection(Rect2i(0, 0, im.get_width(), im.get_height()))
 	var min_x := rect.position.x
@@ -1424,7 +1428,9 @@ static func get_adjusted_map_size(width: int, height: int) -> int:
 	return size_po2
 
 
-func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bool, bit_depth: int) -> bool:
+func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bool, 
+	bit_depth: int) -> bool:
+	
 	var ext := fpath.get_extension().to_lower()
 
 	if ext == "png":
@@ -1457,7 +1463,8 @@ func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bo
 
 		# Convert to internal format with range scaling
 		match im.get_format():
-			Image.FORMAT_RF:
+			Image.FORMAT_RF, \
+			Image.FORMAT_RH:
 				for y in width:
 					for x in height:
 						var gs := src_image.get_pixel(x, y).r
@@ -1497,8 +1504,17 @@ func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bo
 				# See https://github.com/Zylann/godot_heightmap_plugin/issues/34
 				# Godot can load EXR but it always makes them have at least 3-channels.
 				# Heightmaps need only one, so we have to get rid of 2.
-				var height_format = _map_types[CHANNEL_HEIGHT].texture_format
+				var height_format : int = _map_types[CHANNEL_HEIGHT].texture_format
 				src_image.convert(height_format)
+				im.blit_rect(src_image, Rect2i(0, 0, res, res), Vector2i())
+
+			# Legacy format?
+			Image.FORMAT_RH:
+				var height_format : int = _map_types[CHANNEL_HEIGHT].texture_format
+				src_image.convert(height_format)
+				# Exception: instead of keeping the old format, 
+				# convert to use the preferred format to allow upgrading old maps
+				im.convert(height_format)
 				im.blit_rect(src_image, Rect2i(0, 0, res, res), Vector2i())
 			
 			Image.FORMAT_RGB8:
@@ -1557,7 +1573,8 @@ func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bo
 					var gs := float(f.get_32()) / 4294967295.0
 					h = min_y + hrange * float(gs)
 					match im.get_format():
-						Image.FORMAT_RF:
+						Image.FORMAT_RF, \
+						Image.FORMAT_RH:
 							im.set_pixel(x, y, Color(h, 0, 0))
 						Image.FORMAT_RGB8:
 							im.set_pixel(x, y, encode_height_to_rgb8_unorm(h))
@@ -1569,12 +1586,14 @@ func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bo
 				for x in range(rw, file_res):
 					f.get_32()
 		else:
+			# Assuming 16-bit
 			for y in rh:
 				for x in rw:
 					var gs := float(f.get_16()) / 65535.0
 					h = min_y + hrange * float(gs)
 					match im.get_format():
-						Image.FORMAT_RF:
+						Image.FORMAT_RF, \
+						Image.FORMAT_RH:
 							im.set_pixel(x, y, Color(h, 0, 0))
 						Image.FORMAT_RGB8:
 							im.set_pixel(x, y, encode_height_to_rgb8_unorm(h))
@@ -1609,7 +1628,10 @@ func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bo
 
 		_logger.debug(str("Parsing XYZ file (this can take a while)..."))
 		f.seek(0)
-		var float_heightmap := Image.create(im.get_width(), im.get_height(), false, Image.FORMAT_RF)
+		var src_format := Image.FORMAT_RF
+		if im.get_format() == Image.FORMAT_RH:
+			src_format = im.get_format()
+		var float_heightmap := Image.create(im.get_width(), im.get_height(), false, src_format)
 		HT_XYZFormat.load_heightmap(f, float_heightmap, bounds)
 
 		# Flipping because in Godot, for X to mean "east"/"right", Z must be backward,
@@ -1617,7 +1639,8 @@ func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bo
 		float_heightmap.flip_y()
 		
 		match im.get_format():
-			Image.FORMAT_RF:
+			Image.FORMAT_RF, \
+			Image.FORMAT_RH:
 				im.blit_rect(float_heightmap, Rect2i(0, 0, res, res), Vector2i())
 			Image.FORMAT_RGB8:
 				convert_float_heightmap_to_rgb8(float_heightmap, im)
@@ -1800,6 +1823,7 @@ func cell_raycast(ray_origin: Vector3, ray_direction: Vector3, max_distance: flo
 	ctx.broad_param_2d_to_3d = ctx.cell_param_2d_to_3d * VERTICAL_BOUNDS_CHUNK_SIZE
 	
 	match heightmap.get_format():
+		Image.FORMAT_RH, \
 		Image.FORMAT_RF:
 			ctx.decode_height_func = decode_height_from_f
 		Image.FORMAT_RGB8:
