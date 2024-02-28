@@ -12,6 +12,8 @@ const HT_Logger = preload("./util/logger.gd")
 const HT_ImageFileCache = preload("./util/image_file_cache.gd")
 const HT_XYZFormat = preload("./util/xyz_format.gd")
 
+const ENABLE_LEGACY_HEIGHTMAP_RH_CONVERSION_IN_EDITOR = true
+
 enum {
 	BIT_DEPTH_UNDEFINED = 0,
 	BIT_DEPTH_16 = 16,
@@ -1331,15 +1333,15 @@ func _load_map(dir: String, map_type: int, index: int, resource_loader_cache_mod
 	
 	var must_load_image_in_editor := true
 	
-	# Forward-compatibility with old heightmap encodings
-	if Engine.is_editor_hint() and tex == null and map_type == CHANNEL_HEIGHT:
-		var legacy_fpath := fpath.get_basename() + ".png"
-		var temp = ResourceLoader.load(legacy_fpath, "", resource_loader_cache_mode)
-		if temp != null:
-			if temp is Texture2D:
-				temp = temp.get_image()
-			if temp is Image:
-				if temp.get_format() == Image.FORMAT_RGB8:
+	if Engine.is_editor_hint():
+		# Short-term compatibility with RGB8 encoding from the godot4 branch
+		if tex == null and map_type == CHANNEL_HEIGHT:
+			var legacy_fpath := fpath.get_basename() + ".png"
+			var temp = ResourceLoader.load(legacy_fpath, "", resource_loader_cache_mode)
+			if temp != null:
+				if temp is Texture2D:
+					temp = temp.get_image()
+				if temp is Image and temp.get_format() == Image.FORMAT_RGB8:
 					_logger.warn(str(
 						"Found a heightmap using legacy RGB8 format. It will be converted to RF. ",
 						"You may want to remove the old file: {0}").format([fpath]))
@@ -1347,13 +1349,23 @@ func _load_map(dir: String, map_type: int, index: int, resource_loader_cache_mod
 					# This is a different file so we can save without overwriting the old path
 					_save_map_image(fpath.get_basename(), map_type, tex)
 
-				elif temp.get_format() == Image.FORMAT_RH:
-					_logger.warn(str(
-						"Found a heightmap using legacy RH format. It will be converted to RF. ",
-						"You may edit and re-save to make the upgrade persist."))
-					tex = convert_heightmap_to_float(temp, _logger)
-					# Not saving yet to prevent unintentional data loss if anything goes wrong?
-					#_save_map_image(fpath.get_basename(), map_type, tex)
+		# Forward-compatibility with legacy format used in godot3
+		if ENABLE_LEGACY_HEIGHTMAP_RH_CONVERSION_IN_EDITOR \
+		and tex != null and map_type == CHANNEL_HEIGHT:
+			var temp := tex as Image
+			if temp == null and tex is Texture2D:
+				var tex_format := RenderingServer.texture_get_format(tex.get_rid())
+				if tex_format == Image.FORMAT_RH:
+					# Downloads image from RenderingServer, might be expensive
+					temp = tex.get_image()
+			if temp != null and temp.get_format() == Image.FORMAT_RH:
+				_logger.warn(str(
+					"Found a heightmap using legacy RH format. It will be converted to RF. ",
+					"You may edit and re-save to make the upgrade persist."))
+				temp.convert(Image.FORMAT_RF)
+				tex = temp
+				# Not saving yet to prevent unintentional data loss if anything goes wrong?
+				#_save_map_image(fpath.get_basename(), map_type, tex)
 
 	if tex != null and tex is Image:
 		# The texture is imported as Image,
