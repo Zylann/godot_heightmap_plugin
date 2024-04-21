@@ -15,6 +15,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Added support for importing and exporting 32-bit raw files
 - Allow to set brush size and opacity size with spinboxes (thanks to Vercix)
 - Exposed specular parameter in ground shaders
+- Save terrain data immediately when assigning a new `data_directory` (attempt to workaround random saving issue #232)
 - Fixed brush cursor looked off-center at close range when using tiny brush sizes
 - Fixed error when trying to change `TextureSet` mode while it has textures in it
 - Fixed shader parameters not displaying the right value in the inspector until they are set by the user at least once
@@ -23,6 +24,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Fixed detail layers were rendering repeating instances outside the terrain when `map_scale` is not 1.0
 - Fixed detail layers were not rendering correctly when terrain is in centered mode
 - Fixed texture import dialog was opening a very tall window (issue #423)
+- Fixed detail layers "lines" showing on top of grass quads when MSAA is enabled
 
 
 1.7.2

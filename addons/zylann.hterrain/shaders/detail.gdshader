@@ -10,7 +10,10 @@ uniform sampler2D u_terrain_globalmap : source_color;
 uniform mat4 u_terrain_inverse_transform;
 uniform mat3 u_terrain_normal_basis;
 
-uniform sampler2D u_albedo_alpha : source_color;
+// We need to disable repetition, otherwise it can cause "lines" to appear on top of grass quads
+// due to filtering, especially when MSAA is enabled
+uniform sampler2D u_albedo_alpha : source_color, repeat_disable;
+
 uniform float u_view_distance = 100.0;
 uniform float u_globalmap_tint_bottom : hint_range(0.0, 1.0);
 uniform float u_globalmap_tint_top : hint_range(0.0, 1.0);
