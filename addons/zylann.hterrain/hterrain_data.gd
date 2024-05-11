@@ -92,6 +92,12 @@ const _map_types = {
 		shader_param_name = "u_terrain_detailmap",
 		filter = true,
 		mipmaps = false,
+		# TODO Godot has issues properly using R8 like we intend to.
+		# - save_png ignores it and saves RGB8 instead
+		# - the importer always uses RGB8 even if the PNG file is 8-bit
+		# As a result it triggers warnings in the plugin due to converting back to R8.
+		# Maybe that's one reason for us to stop relying on the importer at this point.
+		# It's been nothing but pain to try integrating with it.
 		texture_format = Image.FORMAT_R8,
 		default_fill = Color(0, 0, 0),
 		default_count = 0,
