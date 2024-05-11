@@ -25,6 +25,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Fixed detail layers were not rendering correctly when terrain is in centered mode
 - Fixed texture import dialog was opening a very tall window (issue #423)
 - Fixed detail layers "lines" showing on top of grass quads when MSAA is enabled
+- Fixed detail layer chunks disappearing unexpectedly when `map_scale` is very large
 
 
 1.7.2

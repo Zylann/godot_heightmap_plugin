@@ -477,13 +477,23 @@ func process(delta: float, viewer_pos: Vector3):
 	cmax_x = clampi(cmax_x, 0, terrain_chunks_x + 1)
 	cmax_z = clampi(cmax_z, 0, terrain_chunks_z + 1)
 
+	# This algorithm isn't the most efficient ever.
+	# Maybe we could switch to a clipbox algorithm eventually, and updating only when the viewer
+	# changes chunk position?
+
 	if DEBUG and visible:
 		_debug_cubes.clear()
-		for cz in range(cmin_z, cmax_z):
-			for cx in range(cmin_x, cmax_x):
-				_add_debug_cube(terrain, _get_chunk_aabb(terrain, Vector3(cx, 0, cz) * CHUNK_SIZE),
-					terrain_transform_without_map_scale)
-
+		#for cz in range(cmin_z, cmax_z):
+			#for cx in range(cmin_x, cmax_x):
+				#_add_debug_cube(terrain, _get_chunk_aabb(terrain, Vector3(cx, 0, cz) * CHUNK_SIZE),
+					#terrain_transform_without_map_scale)
+		for k in _chunks:
+			var aabb := _get_chunk_aabb(terrain, Vector3(k.x, 0, k.y) * CHUNK_SIZE)
+			_add_debug_cube(terrain, aabb, terrain_transform_without_map_scale)
+		_add_debug_cube(terrain, 
+			AABB(local_viewer_pos - Vector3(1,1,1), Vector3(2,2,2)), 
+			terrain_transform_without_map_scale)
+	
 	for cz in range(cmin_z, cmax_z):
 		for cx in range(cmin_x, cmax_x):
 
@@ -492,7 +502,7 @@ func process(delta: float, viewer_pos: Vector3):
 				continue
 
 			var aabb := _get_chunk_aabb(terrain, Vector3(cx, 0, cz) * CHUNK_SIZE)
-			var d := (aabb.position + 0.5 * aabb.size).distance_to(local_viewer_pos)
+			var d := _get_approx_distance_to_chunk_aabb(aabb, local_viewer_pos)
 
 			if d < view_distance:
 				_load_chunk(terrain_transform_without_map_scale, cx, cz, aabb)
@@ -502,7 +512,7 @@ func process(delta: float, viewer_pos: Vector3):
 	for k in _chunks:
 		var chunk = _chunks[k]
 		var aabb := _get_chunk_aabb(terrain, Vector3(k.x, 0, k.y) * CHUNK_SIZE)
-		var d := (aabb.position + 0.5 * aabb.size).distance_to(local_viewer_pos)
+		var d := _get_approx_distance_to_chunk_aabb(aabb, local_viewer_pos)
 		if d > view_distance:
 			to_recycle.append(k)
 
@@ -517,6 +527,23 @@ func process(delta: float, viewer_pos: Vector3):
 	_material.set_shader_parameter("u_ambient_wind", awp)
 
 
+# It would be nice if Godot had "AABB.distance_squared_to(vec3)"...
+# Using an approximation here cuz GDScript is slow.
+static func _get_approx_distance_to_chunk_aabb(aabb: AABB, pos: Vector3) -> float:
+	# Distance to center is faster but has issues with very large map scale.
+	# Detail chunks are based on cached vertical bounds.
+	# Usually it works fine on moderate scales, but on huge map scales,
+	# vertical bound chunks cover such large areas that detail chunks often
+	# stay exceedingly tall, in turn causing their centers to be randomly
+	# far from the ground, and then getting unloaded because assumed too far away
+	#return aabb.get_center().distance_to(pos)
+	
+	if aabb.has_point(pos):
+		return 0.0
+	var delta := (pos - aabb.get_center()).abs() - aabb.size * 0.5
+	return maxf(delta.x, maxf(delta.y, delta.z))
+
+
 # Gets local-space AABB of a detail chunk.
 # This only apply map_scale in Y, because details are not affected by X and Z map scale.
 func _get_chunk_aabb(terrain, lpos: Vector3) -> AABB:
@@ -524,8 +551,10 @@ func _get_chunk_aabb(terrain, lpos: Vector3) -> AABB:
 	var terrain_data = terrain.get_data()
 	var origin_cells_x := int(lpos.x / terrain_scale.x)
 	var origin_cells_z := int(lpos.z / terrain_scale.z)
-	var size_cells_x := int(CHUNK_SIZE / terrain_scale.x)
-	var size_cells_z := int(CHUNK_SIZE / terrain_scale.z)
+	# We must at least sample 1 cell, in cases where map_scale is greater than the size of our 
+	# chunks. This is quite an extreme situation though
+	var size_cells_x := int(ceilf(CHUNK_SIZE / terrain_scale.x))
+	var size_cells_z := int(ceilf(CHUNK_SIZE / terrain_scale.z))
 	
 	var aabb = terrain_data.get_region_aabb(
 		origin_cells_x, origin_cells_z, size_cells_x, size_cells_z)
