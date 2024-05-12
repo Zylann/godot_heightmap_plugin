@@ -26,6 +26,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Fixed texture import dialog was opening a very tall window (issue #423)
 - Fixed detail layers "lines" showing on top of grass quads when MSAA is enabled
 - Fixed detail layer chunks disappearing unexpectedly when `map_scale` is very large
+- Fixed wrong density map when redoing the addition of a density map (undo/redo)
 
 
 1.7.2

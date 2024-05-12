@@ -118,7 +118,7 @@ func _add_layer():
 	node.set_meta("_editor_icon", detail_layer_icon)
 	node.name = "HTerrainDetailLayer"
 	var map_index := terrain_data._edit_add_map(HTerrainData.CHANNEL_DETAIL)
-	var map_image := terrain_data.get_image(HTerrainData.CHANNEL_DETAIL)
+	var map_image := terrain_data.get_image(HTerrainData.CHANNEL_DETAIL, map_index)
 	var map_image_cache_id := _image_cache.save_image(map_image)
 	node.layer_index = map_index
 	
