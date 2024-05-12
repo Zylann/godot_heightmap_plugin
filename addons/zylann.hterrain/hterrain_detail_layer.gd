@@ -197,7 +197,8 @@ func _enter_tree():
 		#if _auto_pick_index_on_enter_tree:
 		#	_auto_pick_index_on_enter_tree = false
 		#	_auto_pick_index()
-
+		
+		# Register this detail layer in the terrain node (this does not create a new layer)
 		terrain._internal_add_detail_layer(self)
 
 	_update_material()
@@ -207,6 +208,7 @@ func _exit_tree():
 	var terrain = _get_terrain()
 	if terrain != null:
 		terrain.transform_changed.disconnect(_on_terrain_transform_changed)
+		# Unregister from terrain
 		terrain._internal_remove_detail_layer(self)
 	_update_material()
 	for k in _chunks.keys():

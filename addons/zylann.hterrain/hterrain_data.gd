@@ -757,10 +757,10 @@ func _edit_add_map(map_type: int) -> int:
 	_logger.debug(str("Adding map of type ", get_channel_name(map_type)))
 	while map_type >= len(_maps):
 		_maps.append([])
-	var maps = _maps[map_type]
-	var map = HT_Map.new(_get_free_id(map_type))
+	var maps : Array = _maps[map_type]
+	var map := HT_Map.new(_get_free_id(map_type))
 	map.image = Image.create(_resolution, _resolution, false, get_channel_format(map_type))
-	var index = len(maps)
+	var index := maps.size()
 	var default_color = _get_map_default_fill_color(map_type, index)
 	if default_color != null:
 		map.image.fill(default_color)
@@ -769,6 +769,7 @@ func _edit_add_map(map_type: int) -> int:
 	return index
 
 
+# Editor-only. Used for undo/redo.
 func _edit_insert_map_from_image_cache(map_type: int, index: int, image_cache, image_id: int):
 	if _edit_disable_apply_undo:
 		return
@@ -776,7 +777,7 @@ func _edit_insert_map_from_image_cache(map_type: int, index: int, image_cache, i
 		" from an image at index ", index))
 	while map_type >= len(_maps):
 		_maps.append([])
-	var maps = _maps[map_type]
+	var maps : Array = _maps[map_type]
 	var map := HT_Map.new(_get_free_id(map_type))
 	map.image = image_cache.load_image(image_id)
 	maps.insert(index, map)
@@ -792,15 +793,15 @@ func _edit_remove_map(map_type: int, index: int):
 
 
 func _get_free_id(map_type: int) -> int:
-	var maps = _maps[map_type]
-	var id = 0
+	var maps : Array = _maps[map_type]
+	var id := 0
 	while _get_map_by_id(map_type, id) != null:
 		id += 1
 	return id
 
 
 func _get_map_by_id(map_type: int, id: int) -> HT_Map:
-	var maps = _maps[map_type]
+	var maps : Array = _maps[map_type]
 	for map in maps:
 		if map.id == id:
 			return map
@@ -808,8 +809,9 @@ func _get_map_by_id(map_type: int, id: int) -> HT_Map:
 
 
 func get_image(map_type: int, index := 0) -> Image:
-	var maps = _maps[map_type]
-	return maps[index].image
+	var maps : Array = _maps[map_type]
+	var map : HT_Map = maps[index]
+	return map.image
 
 
 func get_texture(map_type: int, index := 0, writable := false) -> Texture:
