@@ -24,7 +24,7 @@ func _generate_from_path(path: String, size: Vector2i, metadata: Dictionary) -> 
 	var normals_fname := str(HTerrainData.get_channel_name(HTerrainData.CHANNEL_NORMAL), ".png")
 	var normals_path := data_dir.path_join(normals_fname)
 	var normals := Image.new()
-	var err := normals.load(normals_path)
+	var err := normals.load(ProjectSettings.globalize_path(normals_path))
 	if err != OK:
 		_logger.error("Could not load '{0}', error {1}" \
 			.format([normals_path, HT_Errors.get_message(err)]))

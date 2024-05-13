@@ -379,7 +379,7 @@ func _set_ui_slot_texture_from_path(im_path: String, type: int):
 	else:
 		# Regular path
 		im = Image.new()
-		var err := im.load(im_path)
+		var err := im.load(ProjectSettings.globalize_path(im_path))
 		if err != OK:
 			_logger.error(str("Unable to load image from ", im_path))
 			# TODO Different icon for images that can't load?

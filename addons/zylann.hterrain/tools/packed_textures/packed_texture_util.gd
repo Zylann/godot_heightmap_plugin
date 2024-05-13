@@ -39,7 +39,7 @@ static func generate_image(sources: Dictionary, resolution: int, logger) -> HT_R
 		else:
 			# File
 			src_image = Image.new()
-			var err := src_image.load(src_path)
+			var err := src_image.load(ProjectSettings.globalize_path(src_path))
 			if err != OK:
 				return HT_Result.new(false, "Could not open file \"{0}\": {1}" \
 					.format([src_path, HT_Errors.get_message(err)])) \

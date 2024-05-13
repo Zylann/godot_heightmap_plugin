@@ -1392,9 +1392,9 @@ func _load_map(dir: String, map_type: int, index: int, resource_loader_cache_mod
 			# But in the editor we want textures to be editable,
 			# so we have to automatically load the data also in RAM
 			if map.image == null:
-				map.image = Image.load_from_file(fpath)
+				map.image = Image.load_from_file(ProjectSettings.globalize_path(fpath))
 			else:
-				map.image.load(fpath)
+				map.image.load(ProjectSettings.globalize_path(fpath))
 		_ensure_map_format(map.image, map_type, index)
 	
 	if map_type == CHANNEL_HEIGHT:
@@ -1466,7 +1466,7 @@ func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bo
 		# Godot can only load 8-bit PNG,
 		# so we have to bring it back to float in the wanted range
 
-		var src_image := Image.load_from_file(fpath)
+		var src_image := Image.load_from_file(ProjectSettings.globalize_path(fpath))
 		# TODO No way to access the error code?
 		if src_image == null:
 			return false
@@ -1509,7 +1509,7 @@ func _import_heightmap(fpath: String, min_y: float, max_y: float, big_endian: bo
 				_logger.error(str("Invalid heightmap format ", im.get_format()))
 	
 	elif ext == "exr":
-		var src_image := Image.load_from_file(fpath)
+		var src_image := Image.load_from_file(ProjectSettings.globalize_path(fpath))
 		# TODO No way to access the error code?
 		if src_image == null:
 			return false
@@ -1696,7 +1696,7 @@ func _import_map(map_type: int, path: String) -> bool:
 	# Heightmap requires special treatment
 	assert(map_type != CHANNEL_HEIGHT)
 
-	var im := Image.load_from_file(path)
+	var im := Image.load_from_file(ProjectSettings.globalize_path(path))
 	# TODO No way to get the error code?
 	if im == null:
 		return false
