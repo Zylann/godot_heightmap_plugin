@@ -27,7 +27,7 @@ const _compress_names = ["Raw", "Lossless", "Lossy", "VRAM"]
 const _smart_pick_file_keywords = [
 	["albedo", "color", "col", "diffuse"],
 	["bump", "height", "depth", "displacement", "disp"],
-	["normal", "norm", "nrm"],
+	["normal", "norm", "nrm", "normalgl"],
 	["roughness", "rough", "rgh"]
 ]
 
