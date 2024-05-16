@@ -147,7 +147,7 @@ func is_shape_cycling_enabled() -> bool:
 
 static func load_shape_from_image_file(fpath: String, logger, retries := 1) -> Texture2D:
 	var im := Image.new()
-	var err := im.load(fpath)
+	var err := im.load(ProjectSettings.globalize_path(fpath))
 	if err != OK:
 		if retries > 0:
 			# TODO There is a bug with Godot randomly being unable to load images.

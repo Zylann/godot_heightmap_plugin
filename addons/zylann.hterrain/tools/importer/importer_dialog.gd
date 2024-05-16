@@ -294,7 +294,7 @@ static func _load_image_size(path: String, logger, bit_depth: int) -> HT_ImageSi
 	if ext == "png" or ext == "exr":
 		# Godot can load these formats natively
 		var im := Image.new()
-		var err := im.load(path)
+		var err := im.load(ProjectSettings.globalize_path(path))
 		if err != OK:
 			logger.error("An error occurred loading image '{0}', code {1}".format([path, err]))
 			result.error_code = err
