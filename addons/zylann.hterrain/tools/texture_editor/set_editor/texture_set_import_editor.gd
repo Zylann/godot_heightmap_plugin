@@ -25,9 +25,9 @@ const _compress_names = ["Raw", "Lossless", "Lossy", "VRAM"]
 
 # Indexed by HTerrainTextureSet.SRC_TYPE_* constants
 const _smart_pick_file_keywords = [
-	["albedo", "color", "col", "diffuse"],
+	["albedo", "color", "col", "diffuse", "diff"],
 	["bump", "height", "depth", "displacement", "disp"],
-	["normal", "norm", "nrm"],
+	["normal", "norm", "nrm", "normalgl", "nor_gl"],
 	["roughness", "rough", "rgh"]
 ]
 
