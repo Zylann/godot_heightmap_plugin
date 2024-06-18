@@ -16,6 +16,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Allow to set brush size and opacity size with spinboxes (thanks to Vercix)
 - Exposed specular parameter in ground shaders
 - Save terrain data immediately when assigning a new `data_directory` (attempt to workaround random saving issue #232)
+- Updated name detection in the texture import dialog to work better with AmbientCG and PolyHaven (thanks to GustJc)
 - Fixed brush cursor looked off-center at close range when using tiny brush sizes
 - Fixed error when trying to change `TextureSet` mode while it has textures in it
 - Fixed shader parameters not displaying the right value in the inspector until they are set by the user at least once
@@ -27,6 +28,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Fixed detail layers "lines" showing on top of grass quads when MSAA is enabled
 - Fixed detail layer chunks disappearing unexpectedly when `map_scale` is very large
 - Fixed wrong density map when redoing the addition of a density map (undo/redo)
+- Fixed `Image.load` warnings in the editor (thanks to GustJc)
 
 
 1.7.2
