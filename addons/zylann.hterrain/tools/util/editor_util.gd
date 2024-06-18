@@ -95,7 +95,7 @@ static func load_texture(path: String, logger) -> Texture:
 	# See https://github.com/godotengine/godot/issues/17483
 	logger.error(str("Failed to load texture ", path, ", attempting to load manually"))
 	var im := Image.new()
-	var err = im.load(path)
+	var err = im.load(ProjectSettings.globalize_path(path))
 	if err != OK:
 		logger.error(str("Failed to load image ", path))
 		return null

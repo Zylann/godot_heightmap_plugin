@@ -25,9 +25,9 @@ const _compress_names = ["Raw", "Lossless", "Lossy", "VRAM"]
 
 # Indexed by HTerrainTextureSet.SRC_TYPE_* constants
 const _smart_pick_file_keywords = [
-	["albedo", "color", "col", "diffuse"],
+	["albedo", "color", "col", "diffuse", "diff"],
 	["bump", "height", "depth", "displacement", "disp"],
-	["normal", "norm", "nrm"],
+	["normal", "norm", "nrm", "normalgl", "nor_gl"],
 	["roughness", "rough", "rgh"]
 ]
 
@@ -379,7 +379,7 @@ func _set_ui_slot_texture_from_path(im_path: String, type: int):
 	else:
 		# Regular path
 		im = Image.new()
-		var err := im.load(im_path)
+		var err := im.load(ProjectSettings.globalize_path(im_path))
 		if err != OK:
 			_logger.error(str("Unable to load image from ", im_path))
 			# TODO Different icon for images that can't load?
