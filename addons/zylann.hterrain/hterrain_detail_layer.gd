@@ -476,8 +476,8 @@ func process(delta: float, viewer_pos: Vector3):
 	cmin_x = clampi(cmin_x, 0, terrain_chunks_x)
 	cmin_z = clampi(cmin_z, 0, terrain_chunks_z)
 
-	cmax_x = clampi(cmax_x, 0, terrain_chunks_x + 1)
-	cmax_z = clampi(cmax_z, 0, terrain_chunks_z + 1)
+	cmax_x = clampi(cmax_x, 0, terrain_chunks_x)
+	cmax_z = clampi(cmax_z, 0, terrain_chunks_z)
 
 	# This algorithm isn't the most efficient ever.
 	# Maybe we could switch to a clipbox algorithm eventually, and updating only when the viewer

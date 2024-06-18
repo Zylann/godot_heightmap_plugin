@@ -29,6 +29,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Fixed detail layer chunks disappearing unexpectedly when `map_scale` is very large
 - Fixed wrong density map when redoing the addition of a density map (undo/redo)
 - Fixed `Image.load` warnings in the editor (thanks to GustJc)
+- Fixed detail layers rendering one chunk beyond positive edges of the terrain
 
 
 1.7.2
