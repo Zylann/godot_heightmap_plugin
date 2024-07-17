@@ -17,6 +17,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Exposed specular parameter in ground shaders
 - Save terrain data immediately when assigning a new `data_directory` (attempt to workaround random saving issue #232)
 - Updated name detection in the texture import dialog to work better with AmbientCG and PolyHaven (thanks to GustJc)
+- Optimized `HTerrainDetailLayer` process function by updating chunks when needed and spreading calculations over time
 - Fixed brush cursor looked off-center at close range when using tiny brush sizes
 - Fixed error when trying to change `TextureSet` mode while it has textures in it
 - Fixed shader parameters not displaying the right value in the inspector until they are set by the user at least once
