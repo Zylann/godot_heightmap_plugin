@@ -11,8 +11,6 @@ inline void generic_brush_op(Image &image, Image &brush, Vector2 p_pos, float fa
 	int min_y_noclamp = range.min_y;
 	range.clip(Vector2i(image.get_size()));
 
-	image.lock();
-	brush.lock();
 
 	for (int y = range.min_y; y < range.max_y; ++y) {
 		int by = y - min_y_noclamp;
@@ -25,8 +23,6 @@ inline void generic_brush_op(Image &image, Image &brush, Vector2 p_pos, float fa
 		}
 	}
 
-	image.unlock();
-	brush.unlock();
 }
 
 ImageUtils::ImageUtils() {
@@ -54,7 +50,6 @@ Vector2 ImageUtils::get_red_range(Ref<Image> image_ref, Rect2 rect) const {
 	IntRange2D range(rect);
 	range.clip(Vector2i(image.get_size()));
 
-	image.lock();
 
 	float min_value = image.get_pixel(range.min_x, range.min_y).r;
 	float max_value = min_value;
@@ -71,7 +66,6 @@ Vector2 ImageUtils::get_red_range(Ref<Image> image_ref, Rect2 rect) const {
 		}
 	}
 
-	image.unlock();
 
 	return Vector2(min_value, max_value);
 }
@@ -83,7 +77,6 @@ float ImageUtils::get_red_sum(Ref<Image> image_ref, Rect2 rect) const {
 	IntRange2D range(rect);
 	range.clip(Vector2i(image.get_size()));
 
-	image.lock();
 
 	float sum = 0.f;
 
@@ -93,7 +86,6 @@ float ImageUtils::get_red_sum(Ref<Image> image_ref, Rect2 rect) const {
 		}
 	}
 
-	image.unlock();
 
 	return sum;
 }
@@ -144,7 +136,7 @@ void ImageUtils::lerp_color_brush(Ref<Image> image_ref, Ref<Image> brush_ref, Ve
 	Image &brush = **brush_ref;
 
 	generic_brush_op(image, brush, p_pos, factor, [target_value](Image &image, int x, int y, float b) {
-		const Color c = image.get_pixel(x, y).linear_interpolate(target_value, b);
+		const Color c = image.get_pixel(x, y).lerp(target_value, b);
 		image.set_pixel(x, y, c);
 	});
 }
@@ -163,7 +155,6 @@ float ImageUtils::generate_gaussian_brush(Ref<Image> image_ref) const {
 	ERR_FAIL_COND_V(radius <= 0.1f, 0.f);
 
 	float sum = 0.f;
-	image.lock();
 
 	for (int y = 0; y < h; ++y) {
 		for (int x = 0; x < w; ++x) {
@@ -174,7 +165,6 @@ float ImageUtils::generate_gaussian_brush(Ref<Image> image_ref) const {
 		}
 	}
 
-	image.unlock();
 	return sum;
 }
 
@@ -197,7 +187,6 @@ void ImageUtils::blur_red_brush(Ref<Image> image_ref, Ref<Image> brush_ref, Vect
 	const int buffer_height = static_cast<int>(buffer_range.get_height());
 	_blur_buffer.resize(buffer_width * buffer_height);
 
-	image.lock();
 
 	// Cache pixels, because they will be queried more than once and written to later
 	int buffer_i = 0;
@@ -220,7 +209,6 @@ void ImageUtils::blur_red_brush(Ref<Image> image_ref, Ref<Image> brush_ref, Vect
 	const int buffer_offset_top = -buffer_width;
 	const int buffer_offset_bottom = buffer_width;
 
-	brush.lock();
 
 	// Apply blur
 	for (int y = range.min_y; y < range.max_y; ++y) {
@@ -247,8 +235,6 @@ void ImageUtils::blur_red_brush(Ref<Image> image_ref, Ref<Image> brush_ref, Vect
 		}
 	}
 
-	image.unlock();
-	brush.unlock();
 }
 
 void ImageUtils::paint_indexed_splat(Ref<Image> index_map_ref, Ref<Image> weight_map_ref,
@@ -276,9 +262,6 @@ void ImageUtils::paint_indexed_splat(Ref<Image> index_map_ref, Ref<Image> weight
 	Color cm(-1, -1, -1);
 	cm[ci] = 1;
 
-	brush.lock();
-	index_map.lock();
-	weight_map.lock();
 
 	for (int y = range.min_y; y < range.max_y; ++y) {
 		const int brush_y = y - min_y_noclamp;
@@ -344,21 +327,18 @@ void ImageUtils::paint_indexed_splat(Ref<Image> index_map_ref, Ref<Image> weight
 		}
 	}
 
-	brush.lock();
-	index_map.unlock();
-	weight_map.unlock();
 }
 
-void ImageUtils::_register_methods() {
-	register_method("get_red_range", &ImageUtils::get_red_range);
-	register_method("get_red_sum", &ImageUtils::get_red_sum);
-	register_method("get_red_sum_weighted", &ImageUtils::get_red_sum_weighted);
-	register_method("add_red_brush", &ImageUtils::add_red_brush);
-	register_method("lerp_channel_brush", &ImageUtils::lerp_channel_brush);
-	register_method("lerp_color_brush", &ImageUtils::lerp_color_brush);
-	register_method("generate_gaussian_brush", &ImageUtils::generate_gaussian_brush);
-	register_method("blur_red_brush", &ImageUtils::blur_red_brush);
-	register_method("paint_indexed_splat", &ImageUtils::paint_indexed_splat);
+void ImageUtils::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("get_red_range"), &ImageUtils::get_red_range);
+	ClassDB::bind_method(D_METHOD("get_red_sum"), &ImageUtils::get_red_sum);
+	ClassDB::bind_method(D_METHOD("get_red_sum_weighted", "image_ref", "brush_ref", "p_pos"), &ImageUtils::get_red_sum_weighted);
+	ClassDB::bind_method(D_METHOD("add_red_brush", "image_ref", "brush_ref", "p_pos", "factor"), &ImageUtils::add_red_brush);
+	ClassDB::bind_method(D_METHOD("lerp_channel_brush", "image_ref", "brush_ref", "p_pos", "factor", "target_value", "channel"), &ImageUtils::lerp_channel_brush);
+	ClassDB::bind_method(D_METHOD("lerp_color_brush", "image_ref", "brush_ref", "p_pos", "factor", "target_value"), &ImageUtils::lerp_color_brush);
+	ClassDB::bind_method(D_METHOD("generate_gaussian_brush", "image_ref"), &ImageUtils::generate_gaussian_brush);
+	ClassDB::bind_method(D_METHOD("blur_red_brush", "image_ref", "blur_ref", "p_pos", "factor"), &ImageUtils::blur_red_brush);
+	ClassDB::bind_method(D_METHOD("paint_indexed_splat", "index_map_ref", "weight_map_ref"), &ImageUtils::paint_indexed_splat);
 }
 
 } // namespace godot

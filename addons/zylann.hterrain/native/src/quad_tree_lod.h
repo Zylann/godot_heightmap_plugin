@@ -1,25 +1,25 @@
 #ifndef QUAD_TREE_LOD_H
 #define QUAD_TREE_LOD_H
 
-#include <CanvasItem.hpp>
-#include <FuncRef.hpp>
-#include <Godot.hpp>
+#include <godot_cpp/classes/canvas_item.hpp>
+#include <godot_cpp/variant/callable.hpp>
+#include <godot_cpp/godot.hpp>
 
 #include <vector>
 
 namespace godot {
 
-class QuadTreeLod : public Reference {
-	GODOT_CLASS(QuadTreeLod, Reference)
+class QuadTreeLod : public RefCounted{
+	GDCLASS(QuadTreeLod, RefCounted)
 public:
-	static void _register_methods();
+	static void _bind_methods();
 
 	QuadTreeLod() {}
 	~QuadTreeLod() {}
 	
 	void _init() {}
 
-	void set_callbacks(Ref<FuncRef> make_cb, Ref<FuncRef> recycle_cb, Ref<FuncRef> vbounds_cb);
+	void set_callbacks(Callable make_cb, Callable recycle_cb, Callable vbounds_cb);
 	int get_lod_count();
 	int get_lod_factor(int lod);
 	int compute_lod_count(int base_size, int full_size);
@@ -90,9 +90,9 @@ private:
 	int _base_size = 16;
 	real_t _split_scale = 2.0f;
 
-	Ref<FuncRef> _make_func;
-	Ref<FuncRef> _recycle_func;
-	Ref<FuncRef> _vertical_bounds_func;
+	Callable _make_func;
+	Callable _recycle_func;
+	Callable _vertical_bounds_func;
 
 	inline Quad *_get_root() {
 		return &_root;

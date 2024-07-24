@@ -1,17 +1,17 @@
 #ifndef IMAGE_UTILS_H
 #define IMAGE_UTILS_H
 
-#include <core/Godot.hpp>
-#include <gen/Image.hpp>
-#include <gen/Reference.hpp>
+#include <godot_cpp/godot.hpp>
+#include <godot_cpp/classes/image.hpp>
+#include <godot_cpp/classes/ref_counted.hpp>
 #include <vector>
 
 namespace godot {
 
-class ImageUtils : public Reference {
-    GODOT_CLASS(ImageUtils, Reference)
+class ImageUtils : public RefCounted {
+    GDCLASS(ImageUtils, RefCounted )
 public:
-    static void _register_methods();
+    static void _bind_methods();
 
     ImageUtils();
     ~ImageUtils();

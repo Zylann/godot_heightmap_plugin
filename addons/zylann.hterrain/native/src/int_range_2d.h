@@ -2,8 +2,8 @@
 #define INT_RANGE_2D_H
 
 #include "math_funcs.h"
-#include "vector2i.h"
-#include <core/Rect2.hpp>
+#include <godot_cpp/variant/rect2.hpp>
+#include <godot_cpp/variant/vector2i.hpp>
 
 struct IntRange2D {
     int min_x;
@@ -26,14 +26,14 @@ struct IntRange2D {
         max_y = static_cast<int>(rect.position.y + rect.size.y);
     }
 
-    inline bool is_inside(Vector2i size) const {
+    inline bool is_inside(godot::Vector2i size) const {
         return min_x >= size.x &&
                min_y >= size.y &&
                max_x <= size.x &&
                max_y <= size.y;
     }
 
-    inline void clip(Vector2i size) {
+    inline void clip(godot::Vector2i size) {
         min_x = Math::clamp(min_x, 0, size.x);
         min_y = Math::clamp(min_y, 0, size.y);
         max_x = Math::clamp(max_x, 0, size.x);

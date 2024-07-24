@@ -1,0 +1,13 @@
+[configuration]
+
+entry_symbol = "terrain_library_init"
+compatibility_minimum = "4.1"
+
+[libraries]
+
+linux.debug.x86_64 = "bin/libhterrain_native.so"
+windows.debug.x86_64 = "bin/libhterrain_native.dll"
+windows.release.x86_64 = "bin/libhterrain_native.dll"
+macos.debug = "bin/libhterrain.framework"
+macos.release = "bin/libhterrain.framework"
+

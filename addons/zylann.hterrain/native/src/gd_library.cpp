@@ -1,30 +1,37 @@
+#include <godot_cpp/godot.hpp>
 #include "image_utils.h"
 #include "quad_tree_lod.h"
 
-extern "C" {
+ using namespace godot;
 
-void GDN_EXPORT godot_gdnative_init(godot_gdnative_init_options *o) {
+void godot_gdextension_initialize(ModuleInitializationLevel p_level) {
+    if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) return;
 #ifdef _DEBUG
     printf("godot_gdnative_init hterrain_native\n");
 #endif
-    godot::Godot::gdnative_init(o);
+    ClassDB::register_class<ImageUtils>();
+    ClassDB::register_class<QuadTreeLod>();
 }
 
-void GDN_EXPORT godot_gdnative_terminate(godot_gdnative_terminate_options *o) {
+void godot_gdextension_terminate(ModuleInitializationLevel p_level) {
+    	if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) return;
 #ifdef _DEBUG
     printf("godot_gdnative_terminate hterrain_native\n");
 #endif
-    godot::Godot::gdnative_terminate(o);
+    // todo: unregister classes, if possible...
 }
 
-void GDN_EXPORT godot_nativescript_init(void *handle) {
+extern "C"{
+GDExtensionBool GDE_EXPORT terrain_library_init(GDExtensionInterfaceGetProcAddress p_get_proc_address, const GDExtensionClassLibraryPtr p_library, GDExtensionInitialization *r_initialization) {
 #ifdef _DEBUG
     printf("godot_nativescript_init hterrain_native\n");
 #endif
-    godot::Godot::nativescript_init(handle);
+    godot::GDExtensionBinding::InitObject init_obj(p_get_proc_address, p_library, r_initialization);
 
-    godot::register_tool_class<godot::ImageUtils>();
-    godot::register_tool_class<godot::QuadTreeLod>();
+	init_obj.register_initializer(godot_gdextension_initialize);
+	init_obj.register_terminator(godot_gdextension_terminate);
+	init_obj.set_minimum_library_initialization_level(MODULE_INITIALIZATION_LEVEL_SCENE);
+    return init_obj.init();
 }
 
 } // extern "C"

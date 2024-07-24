@@ -2,7 +2,7 @@
 
 namespace godot {
 
-void QuadTreeLod::set_callbacks(Ref<FuncRef> make_cb, Ref<FuncRef> recycle_cb, Ref<FuncRef> vbounds_cb) {
+void QuadTreeLod::set_callbacks(Callable make_cb, Callable recycle_cb, Callable vbounds_cb) {
 	_make_func = make_cb;
 	_recycle_func = recycle_cb;
 	_vertical_bounds_func = vbounds_cb;
@@ -115,7 +115,7 @@ void QuadTreeLod::_recycle_children(unsigned int i0) {
 
 Variant QuadTreeLod::_make_chunk(int lod, int origin_x, int origin_y) {
 	if (_make_func.is_valid()) {
-		return _make_func->call_func(origin_x, origin_y, lod);
+		return _make_func.call(origin_x, origin_y, lod);
 	} else {
 		return Variant();
 	}
@@ -124,7 +124,7 @@ Variant QuadTreeLod::_make_chunk(int lod, int origin_x, int origin_y) {
 void QuadTreeLod::_recycle_chunk(unsigned int quad_index, int lod) {
 	Quad *quad = _get_node(quad_index);
 	if (_recycle_func.is_valid()) {
-		_recycle_func->call_func(quad->get_data(), quad->origin_x, quad->origin_y, lod);
+		_recycle_func.call(quad->get_data(), quad->origin_x, quad->origin_y, lod);
 	}
 }
 
@@ -151,7 +151,7 @@ void QuadTreeLod::_update(unsigned int quad_index, int lod, Vector3 view_pos) {
 	Vector3 world_center = static_cast<real_t>(chunk_size) * (Vector3(static_cast<real_t>(quad->origin_x), 0.f, static_cast<real_t>(quad->origin_y)) + Vector3(0.5f, 0.f, 0.5f));
 
 	if (_vertical_bounds_func.is_valid()) {
-		Variant result = _vertical_bounds_func->call_func(quad->origin_x, quad->origin_y, lod);
+		Variant result = _vertical_bounds_func.call(quad->origin_x, quad->origin_y, lod);
 		ERR_FAIL_COND(result.get_type() != Variant::VECTOR2);
 		Vector2 vbounds = static_cast<Vector2>(result);
 		world_center.y = (vbounds.x + vbounds.y) / 2.0f;
@@ -225,18 +225,18 @@ void QuadTreeLod::_debug_draw_tree_recursive(CanvasItem *ci, unsigned int quad_i
 		ci->draw_rect(rect2, color);
 	}
 }
-
-void QuadTreeLod::_register_methods() {
-	register_method("set_callbacks", &QuadTreeLod::set_callbacks);
-	register_method("get_lod_count", &QuadTreeLod::get_lod_count);
-	register_method("get_lod_factor", &QuadTreeLod::get_lod_factor);
-	register_method("compute_lod_count", &QuadTreeLod::compute_lod_count);
-	register_method("set_split_scale", &QuadTreeLod::set_split_scale);
-	register_method("get_split_scale", &QuadTreeLod::get_split_scale);
-	register_method("clear", &QuadTreeLod::clear);
-	register_method("create_from_sizes", &QuadTreeLod::create_from_sizes);
-	register_method("update", &QuadTreeLod::update);
-	register_method("debug_draw_tree", &QuadTreeLod::debug_draw_tree);
+// TODO name arguments please (DMETHOD(method_name, arg1, arg2,...))
+void QuadTreeLod::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("set_callbacks"), &QuadTreeLod::set_callbacks);
+	ClassDB::bind_method(D_METHOD("get_lod_count"), &QuadTreeLod::get_lod_count);
+	ClassDB::bind_method(D_METHOD("get_lod_factor"), &QuadTreeLod::get_lod_factor);
+	ClassDB::bind_method(D_METHOD("compute_lod_count"), &QuadTreeLod::compute_lod_count);
+	ClassDB::bind_method(D_METHOD("set_split_scale"), &QuadTreeLod::set_split_scale);
+	ClassDB::bind_method(D_METHOD("get_split_scale"), &QuadTreeLod::get_split_scale);
+	ClassDB::bind_method(D_METHOD("clear"), &QuadTreeLod::clear);
+	ClassDB::bind_method(D_METHOD("create_from_sizes"), &QuadTreeLod::create_from_sizes);
+	ClassDB::bind_method(D_METHOD("update"), &QuadTreeLod::update);
+	ClassDB::bind_method(D_METHOD("debug_draw_tree"), &QuadTreeLod::debug_draw_tree);
 }
 
 } // namespace godot
