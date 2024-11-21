@@ -1423,8 +1423,7 @@ func _load_map(dir: String, map_type: int, index: int, resource_loader_cache_mod
 func _ensure_map_format(im: Image, map_type: int, index: int) -> Image:
 	var format := im.get_format()
 	var expected_format : int = _map_types[map_type].texture_format
-	print("map type ", map_type, " index ", index, " loaded as format ", format, 
-		", expecting ", expected_format)
+
 	if format != expected_format:
 		_logger.warn("Map {0} loaded as format {1}, expected {2}. Will be converted." \
 			.format([get_map_debug_name(map_type, index), format, expected_format]))
