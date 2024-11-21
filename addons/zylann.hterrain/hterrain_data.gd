@@ -98,7 +98,11 @@ const _map_types = {
 		# As a result it triggers warnings in the plugin due to converting back to R8.
 		# Maybe that's one reason for us to stop relying on the importer at this point.
 		# It's been nothing but pain to try integrating with it.
-		texture_format = Image.FORMAT_R8,
+		# 2024/11/21: L8 appears to create smaller PNG files (not 3x smaller, but it's a start)
+		# which have bit depth 8 so it seems it does what we want.
+		# It also imports as L8, but ONLY if we set `mode` to `VRAM uncompressed`, instead of
+		# `Lossless`, go figure what difference it makes for us
+		texture_format = Image.FORMAT_L8,
 		default_fill = Color(0, 0, 0),
 		default_count = 0,
 		can_be_saved_as_png = true,
@@ -1262,8 +1266,15 @@ static func _try_write_default_import_options(
 	
 	var map_info = _map_types[channel]
 	var srgb: bool = map_info.srgb
+	var tex_format: int = map_info.texture_format
 	
 	var defaults : Dictionary
+	
+	# To this day Godot still has no clean API to know what to write in these .import files.
+	# We have to find out what to write by manyally setting things up on a test file and see
+	# what Godot writes in the .import file.
+	# Sometimes values come directly from enums that are used in importers UI, 
+	# and NOT the corresponding resource classes...
 	
 	if channel == CHANNEL_HEIGHT:
 		defaults = {
@@ -1289,10 +1300,11 @@ static func _try_write_default_import_options(
 			"params": {
 				# Use lossless compression.
 				# Lossy ruins quality and makes the editor choke on big textures.
-				# TODO I would have used ImageTexture.COMPRESS_LOSSLESS,
-				# but apparently what is saved in the .import file does not match,
-				# and rather corresponds TO THE UI IN THE IMPORT DOCK :facepalm:
-				"compress/mode": 0,
+				# Also, in case we want 8-bit per pixel uncompressed formats, using VRAM
+				# Uncompressed imports as L8, unlike Lossless, which imports as RGB8 even if the 
+				# image is 8-bit depth (greyscale PNGs). It's confusing.
+				# I could not find any options to import as R8.
+				"compress/mode": 3 if tex_format == Image.FORMAT_L8 else 0,
 				
 				"compress/hdr_compression": 0,
 				"compress/normal_map": 0,
@@ -1395,7 +1407,7 @@ func _load_map(dir: String, map_type: int, index: int, resource_loader_cache_mod
 				map.image = Image.load_from_file(ProjectSettings.globalize_path(fpath))
 			else:
 				map.image.load(ProjectSettings.globalize_path(fpath))
-		_ensure_map_format(map.image, map_type, index)
+		map.image = _ensure_map_format(map.image, map_type, index)
 	
 	if map_type == CHANNEL_HEIGHT:
 		_resolution = map.image.get_width()
@@ -1408,13 +1420,41 @@ func _load_map(dir: String, map_type: int, index: int, resource_loader_cache_mod
 	return true
 
 
-func _ensure_map_format(im: Image, map_type: int, index: int):
+func _ensure_map_format(im: Image, map_type: int, index: int) -> Image:
 	var format := im.get_format()
 	var expected_format : int = _map_types[map_type].texture_format
+	print("map type ", map_type, " index ", index, " loaded as format ", format, 
+		", expecting ", expected_format)
 	if format != expected_format:
 		_logger.warn("Map {0} loaded as format {1}, expected {2}. Will be converted." \
 			.format([get_map_debug_name(map_type, index), format, expected_format]))
-		im.convert(expected_format)
+		
+		if expected_format == Image.FORMAT_L8:
+			# `convert` won't do what we want here. We actually use L8 as a greyscale format
+			# because it uses less memory than other formats, not because it happens to be a 
+			# "luminance" format.
+			# (R8 has issues so we can't use it, see comments elsewhere)
+			# `convert` takes color brightness into account, so "maximum red" pixels is NOT full 
+			# bright in the L8 format. So R=255 degrades to 54 after conversion.
+			# In practice, we had density maps incorrectly saved/imported as RGB8 in the past.
+			# Using the current function to "fix" in case import settings are still wrong
+			# would make the image darker, and therefore, lower density, which is data loss.
+			# This behavior makes some sense, but is not clearly documented and not what we want.
+			# What we want is to keep the exact pixel values, and only
+			# use the minimal amount of channels to represents those values.
+			
+			# Truncate image channels to just what is in R
+			im.convert(Image.FORMAT_R8)
+			# Reinterpret as greyscale. 
+			# Unfortunately there is not (anymore!) an API to do this without re-creating the
+			# object, so we had to modify the function to return the image instead of just 
+			# modifying it.
+			im = Image.create_from_data(
+				im.get_width(), im.get_height(), false, Image.FORMAT_L8, im.get_data())
+		else:
+			im.convert(expected_format)
+	
+	return im
 
 
 # Imports images into the terrain data by converting them to the internal format.
@@ -1986,4 +2026,3 @@ static func convert_float_heightmap_to_rgb8(src: Image, dst: Image):
 		for x in src.get_width():
 			var h = src.get_pixel(x, y).r
 			dst.set_pixel(x, y, encode_height_to_rgb8_unorm(h))
-

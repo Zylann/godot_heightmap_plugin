@@ -47,7 +47,8 @@ const _supported_formats = [
 	Image.FORMAT_R8,
 	Image.FORMAT_RG8,
 	Image.FORMAT_RGB8,
-	Image.FORMAT_RGBA8
+	Image.FORMAT_RGBA8,
+	Image.FORMAT_L8
 	# No longer supported since Godot 4 removed support for it in 2D viewports...
 #	Image.FORMAT_RH,
 #	Image.FORMAT_RGH,

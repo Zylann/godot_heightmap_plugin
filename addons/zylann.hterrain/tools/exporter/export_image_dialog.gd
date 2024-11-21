@@ -123,7 +123,10 @@ func _export() -> bool:
 	if format == FORMAT_PNG8:
 		var hscale := 1.0 / (height_max - height_min)
 		var im := Image.create(
-			src_heightmap.get_width(), src_heightmap.get_height(), false, Image.FORMAT_R8)
+			src_heightmap.get_width(), src_heightmap.get_height(), false, 
+			# Using L8 because when using R8 Godot saves as 24-bit per pixel (RGB8) 
+			# which is wasteful
+			Image.FORMAT_L8)
 		
 		for y in src_heightmap.get_height():
 			for x in src_heightmap.get_width():
