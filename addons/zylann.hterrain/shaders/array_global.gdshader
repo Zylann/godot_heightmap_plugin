@@ -53,7 +53,7 @@ void fragment() {
 	vec4 tex_splat_weights = texture(u_terrain_splat_weight_map, UV);
 	// TODO Can't use texelFetch!
 	// https://github.com/godotengine/godot/issues/31732
-	
+
 	vec3 splat_indexes = tex_splat_indexes.rgb * 255.0;
 
 	// Get bump at normal resolution so depth blending is accurate
@@ -69,18 +69,18 @@ void fragment() {
 	vec3 a2 = textureLod(u_ground_albedo_bump_array, vec3(ndc_center, splat_indexes.z), 10.0).rgb;
 
 	vec3 splat_weights = vec3(
-		tex_splat_weights.r, 
+		tex_splat_weights.r,
 		tex_splat_weights.g,
 		1.0 - tex_splat_weights.r - tex_splat_weights.g
 	);
-	
+
 	// TODO An #ifdef macro would be nice! Or copy/paste everything in a different shader...
 	if (u_depth_blending) {
 		splat_weights = get_depth_blended_weights(splat_weights, vec3(b0, b1, b2));
 	}
 
 	ALBEDO = tint.rgb * (
-		  a0 * splat_weights.x 
+		  a0 * splat_weights.x
 		+ a1 * splat_weights.y
 		+ a2 * splat_weights.z
 	);

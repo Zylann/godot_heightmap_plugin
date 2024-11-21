@@ -125,13 +125,13 @@ vec4 texture_antitile(sampler2D albedo_tex, sampler2D normal_tex, vec2 uv, out v
 	float frequency = 2.0;
 	float scale = 1.3;
 	float sharpness = 0.7;
-	
+
 	// Rotate and scale UV
 	float rot = 3.14 * 0.6;
 	float cosa = cos(rot);
 	float sina = sin(rot);
 	vec2 uv2 = rotate(uv, cosa, sina) * scale;
-	
+
 	vec4 col0 = texture(albedo_tex, uv);
 	vec4 col1 = texture(albedo_tex, uv2);
 	vec4 nrm0 = texture(normal_tex, uv);
@@ -144,10 +144,10 @@ vec4 texture_antitile(sampler2D albedo_tex, sampler2D normal_tex, vec2 uv, out v
 	// Had to negate the Y axis for some reason. I never remember the myriad of conventions around
 	n.xz = rotate(n.xz, cosa, -sina);
 	nrm1 = pack_normal(n, nrm1.a);
-	
+
 	// Periodically alternate between the two versions using a warped checker pattern
-	float t = 1.2 + 
-		  sin(uv2.x * frequency + sin(uv.x) * 2.0) 
+	float t = 1.2 +
+		  sin(uv2.x * frequency + sin(uv.x) * 2.0)
 		* cos(uv2.y * frequency + sin(uv.y) * 2.0); // Result in [0..2]
 	t = smoothstep(sharpness, 2.0 - sharpness, t);
 
@@ -201,12 +201,12 @@ void fragment() {
 		discard;
 	}
 
-	vec3 terrain_normal_world = 
+	vec3 terrain_normal_world =
 		u_terrain_normal_basis * unpack_normal(texture(u_terrain_normalmap, UV));
 	terrain_normal_world = normalize(terrain_normal_world);
 	vec3 normal = terrain_normal_world;
 
-	float globalmap_factor = clamp((v_distance_to_camera - u_globalmap_blend_start) 
+	float globalmap_factor = clamp((v_distance_to_camera - u_globalmap_blend_start)
 		* u_globalmap_blend_distance, 0.0, 1.0);
 	globalmap_factor *= globalmap_factor; // slower start, faster transition but far away
 	vec3 global_albedo = texture(u_terrain_globalmap, UV).rgb;

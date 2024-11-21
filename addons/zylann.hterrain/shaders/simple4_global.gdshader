@@ -22,15 +22,15 @@ vec4 get_depth_blended_weights(vec4 splat, vec4 bumps) {
 	float dh = 0.2;
 
 	vec4 h = bumps + splat;
-	
+
 	h *= smoothstep(0, 0.05, splat);
-	
+
 	vec4 d = h + dh;
 	d.r -= max(h.g, max(h.b, h.a));
 	d.g -= max(h.r, max(h.b, h.a));
 	d.b -= max(h.g, max(h.r, h.a));
 	d.a -= max(h.g, max(h.b, h.r));
-	
+
 	return clamp(d, 0, 1);
 }
 
@@ -64,20 +64,19 @@ void fragment() {
 	vec3 col1 = textureLod(u_ground_albedo_bump_1, ndc_center, 10.0).rgb;
 	vec3 col2 = textureLod(u_ground_albedo_bump_2, ndc_center, 10.0).rgb;
 	vec3 col3 = textureLod(u_ground_albedo_bump_3, ndc_center, 10.0).rgb;
-	
+
 	vec4 w;
 	if (u_depth_blending) {
 		w = get_depth_blended_weights(splat, vec4(b0, b1, b2, b3));
 	} else {
 		w = splat.rgba;
 	}
-	
+
 	float w_sum = (w.r + w.g + w.b + w.a);
-	
+
 	ALBEDO = tint.rgb * (
-		w.r * col0 + 
-		w.g * col1 + 
-		w.b * col2 + 
+		w.r * col0 +
+		w.g * col1 +
+		w.b * col2 +
 		w.a * col3) / w_sum;
 }
-

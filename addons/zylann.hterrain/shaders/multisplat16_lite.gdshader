@@ -85,14 +85,14 @@ void get_splat_weights(vec2 uv, out vec4 out_high_indices, out vec4 out_high_wei
 	vec4 ew1 = texture(u_terrain_splatmap_1, uv);
 	vec4 ew2 = texture(u_terrain_splatmap_2, uv);
 	vec4 ew3 = texture(u_terrain_splatmap_3, uv);
-	
+
 	float weights[16] = {
 		ew0.r, ew0.g, ew0.b, ew0.a,
 		ew1.r, ew1.g, ew1.b, ew1.a,
 		ew2.r, ew2.g, ew2.b, ew2.a,
 		ew3.r, ew3.g, ew3.b, ew3.a
 	};
-	
+
 //		float weights_sum = 0.0;
 //		for (int i = 0; i < 16; ++i) {
 //			weights_sum += weights[i];
@@ -101,7 +101,7 @@ void get_splat_weights(vec2 uv, out vec4 out_high_indices, out vec4 out_high_wei
 //			weights_sum /= weights_sum;
 //		}
 //		weights_sum=1.1;
-	
+
 	// Now we have to pick the 4 highest weights and use them to blend textures.
 
 	// Using arrays because Godot's shader version doesn't support dynamic indexing of vectors
@@ -115,7 +115,7 @@ void get_splat_weights(vec2 uv, out vec4 out_high_indices, out vec4 out_high_wei
 	// which is very unlikely. If we consider 1.0 / 5.0, we are a bit more likely to find
 	// 4 results, and finding 5 results remains almost impossible.
 	float pivot = /*weights_sum*/1.0 / 5.0;
-	
+
 	for (int i = 0; i < 16; ++i) {
 		if (weights[i] > pivot) {
 			high_weights_array[count] = weights[i];
@@ -124,11 +124,11 @@ void get_splat_weights(vec2 uv, out vec4 out_high_indices, out vec4 out_high_wei
 			++count;
 		}
 	}
-	
+
 	while (count < 4 && pivot > 0.0) {
 		float max_weight = 0.0;
 		int max_index = 0;
-		
+
 		for (int i = 0; i < 16; ++i) {
 			if (/*weights[i] <= pivot && */weights[i] > max_weight) {
 				max_weight = weights[i];
@@ -136,22 +136,22 @@ void get_splat_weights(vec2 uv, out vec4 out_high_indices, out vec4 out_high_wei
 				weights[i] = 0.0;
 			}
 		}
-		
+
 		high_indices_array[count] = max_index;
 		high_weights_array[count] = max_weight;
 		++count;
 		pivot = max_weight;
 	}
-			
+
 	out_high_weights = vec4(
-		high_weights_array[0], high_weights_array[1], 
+		high_weights_array[0], high_weights_array[1],
 		high_weights_array[2], high_weights_array[3]);
-	
+
 	out_high_indices = vec4(
 		float(high_indices_array[0]), float(high_indices_array[1]),
 		float(high_indices_array[2]), float(high_indices_array[3]));
-	
-	out_high_weights /= 
+
+	out_high_weights /=
 		out_high_weights.r + out_high_weights.g + out_high_weights.b + out_high_weights.a;
 }
 
@@ -180,7 +180,7 @@ void vertex() {
 	vec4 tint = texture(u_terrain_colormap, UV);
 	v_hole = tint.a;
 	v_tint = tint.rgb;
-	
+
 	// Need to use u_terrain_normal_basis to handle scaling.
 	NORMAL = u_terrain_normal_basis * unpack_normal(texture(u_terrain_normalmap, UV));
 
@@ -193,7 +193,7 @@ void fragment() {
 		discard;
 	}
 
-	vec3 terrain_normal_world = 
+	vec3 terrain_normal_world =
 		u_terrain_normal_basis * unpack_normal(texture(u_terrain_normalmap, UV));
 	terrain_normal_world = normalize(terrain_normal_world);
 
@@ -210,12 +210,12 @@ void fragment() {
 		vec4 high_indices;
 		vec4 high_weights;
 		get_splat_weights(UV, high_indices, high_weights);
-		
+
 		vec4 ab0 = texture(u_ground_albedo_bump_array, vec3(v_ground_uv.xz, high_indices.x));
 		vec4 ab1 = texture(u_ground_albedo_bump_array, vec3(v_ground_uv.xz, high_indices.y));
 		vec4 ab2 = texture(u_ground_albedo_bump_array, vec3(v_ground_uv.xz, high_indices.z));
 		vec4 ab3 = texture(u_ground_albedo_bump_array, vec3(v_ground_uv.xz, high_indices.w));
-		
+
 		vec3 col0 = ab0.rgb * v_tint;
 		vec3 col1 = ab1.rgb * v_tint;
 		vec3 col2 = ab2.rgb * v_tint;

@@ -81,18 +81,18 @@ float cnoise(vec2 P) {
     vec2 g10 = vec2(gx.y,gy.y);
     vec2 g01 = vec2(gx.z,gy.z);
     vec2 g11 = vec2(gx.w,gy.w);
-    
+
     vec4 norm = taylorInvSqrt(vec4(dot(g00, g00), dot(g01, g01), dot(g10, g10), dot(g11, g11)));
     g00 *= norm.x;
     g01 *= norm.y;
     g10 *= norm.z;
     g11 *= norm.w;
-    
+
     float n00 = dot(g00, vec2(fx.x, fy.x));
     float n10 = dot(g10, vec2(fx.y, fy.y));
     float n01 = dot(g01, vec2(fx.z, fy.z));
     float n11 = dot(g11, vec2(fx.w, fy.w));
-    
+
     vec2 fade_xy = fade(Pf.xy);
     vec2 n_x = mix(vec2(n00, n01), vec2(n10, n11), fade_xy.x);
     float n_xy = mix(n_x.x, n_x.y, fade_xy.y);
@@ -107,7 +107,7 @@ float get_fractal_noise(vec2 uv) {
 	int octaves = u_octaves;
 	float p = 1.0;
 	uv.x += float(u_seed) * 61.0;
-	
+
 	for (int i = 0; i < octaves; ++i) {
 		sum += p * cnoise(uv * scale);
 		amp += p;
@@ -159,19 +159,19 @@ float get_island_distance(vec2 pos, vec2 center, float terrain_size) {
 // pos is in terrain space
 float get_height(vec2 pos) {
 	float h = 0.0;
-	
+
 	{
 		// Noise (0..1)
 		// Offset and scale for the noise itself
 		vec2 uv_noise = (pos / u_terrain_size + u_offset) * u_scale;
 		h = 0.5 + 0.5 * get_fractal_noise(uv_noise);
 	}
-	
+
 	// Curve
 	{
 		h = pow(h, u_curve);
 	}
-	
+
 	// Island
 	{
 		float terrain_size = u_terrain_size;
@@ -187,14 +187,14 @@ float get_height(vec2 pos) {
 	{
 		h = u_base_height + h * u_height_range;
 	}
-	
+
 	// Additive heightmap
 	{
 		vec2 uv = pos / u_terrain_size;
 		float ah = sample_heightmap(u_additive_heightmap, uv);
 		h += u_additive_heightmap_factor * ah;
 	}
-	
+
 	return h;
 }
 
@@ -206,6 +206,6 @@ void fragment() {
 	vec2 uv_tile = (SCREEN_UV + u_uv_offset) * u_uv_scale;
 
 	float h = get_height(uv_tile * u_tile_size);
-	
+
 	COLOR = encode_height_to_viewport(h);
 }

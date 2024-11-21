@@ -929,4 +929,3 @@ func _generate_packed_texarray_images(import_dir: String, prefix: String) -> HT_
 		texarray_images_infos.append(texarray_image_info)
 
 	return HT_Result.new(true).with_value(texarray_images_infos)
-

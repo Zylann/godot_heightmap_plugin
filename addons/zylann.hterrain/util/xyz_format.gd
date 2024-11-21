@@ -109,4 +109,3 @@ static func load_heightmap(f: FileAccess, dst_image: Image, bounds: HT_XYZBounds
 		# `Rect2i` would be better but is only available in Godot 4.
 		if x >= 0 and y >= 0 and x < dst_image.get_width() and y < dst_image.get_height():
 			dst_image.set_pixel(x, y, Color(floats[2], 0, 0))
-

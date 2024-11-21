@@ -45,17 +45,17 @@ vec4 get_depth_blended_weights(vec4 splat, vec4 bumps) {
 	float dh = 0.2;
 
 	vec4 h = bumps + splat;
-	
+
 	// TODO Keep improving multilayer blending, there are still some edge cases...
 	// Mitigation: nullify layers with near-zero splat
 	h *= smoothstep(0, 0.05, splat);
-	
+
 	vec4 d = h + dh;
 	d.r -= max(h.g, max(h.b, h.a));
 	d.g -= max(h.r, max(h.b, h.a));
 	d.b -= max(h.g, max(h.r, h.a));
 	d.a -= max(h.g, max(h.b, h.r));
-	
+
 	return clamp(d, 0, 1);
 }
 
@@ -88,19 +88,19 @@ vec4 texture_antitile(sampler2D tex, vec2 uv) {
 	float frequency = 2.0;
 	float scale = 1.3;
 	float sharpness = 0.7;
-	
+
 	// Rotate and scale UV
 	float rot = 3.14 * 0.6;
 	float cosa = cos(rot);
 	float sina = sin(rot);
 	vec2 uv2 = vec2(cosa * uv.x - sina * uv.y, sina * uv.x + cosa * uv.y) * scale;
-	
+
 	vec4 col0 = texture(tex, uv);
 	vec4 col1 = texture(tex, uv2);
 	//col0 = vec4(0.0, 0.0, 1.0, 1.0);
 	// Periodically alternate between the two versions using a warped checker pattern
-	float t = 0.5 + 0.5 
-		* sin(uv2.x * frequency + sin(uv.x) * 2.0) 
+	float t = 0.5 + 0.5
+		* sin(uv2.x * frequency + sin(uv.x) * 2.0)
 		* cos(uv2.y * frequency + sin(uv.y) * 2.0);
 	// Using depth blend because classic alpha blending smoothes out details
 	return depth_blend2(col0, col1, smoothstep(0.5 * sharpness, 1.0 - 0.5 * sharpness, t));
@@ -114,20 +114,20 @@ void vertex() {
 
 	// Normalized UV
 	UV = cell_coords / vec2(textureSize(u_terrain_heightmap, 0));
-	
+
 	// Height displacement
 	float h = sample_heightmap(u_terrain_heightmap, UV);
 	VERTEX.y = h;
 
 	v_ground_uv = vec3(cell_coords.x, h * MODEL_MATRIX[1][1], cell_coords.y) / u_ground_uv_scale;
-	
+
 	// Putting this in vertex saves 2 fetches from the fragment shader,
 	// which is good for performance at a negligible quality cost,
 	// provided that geometry is a regular grid that decimates with LOD.
 	// (downside is LOD will also decimate tint and splat, but it's not bad overall)
 	v_tint = texture(u_terrain_colormap, UV);
 	v_splat = texture(u_terrain_splatmap, UV);
-	
+
 	// Need to use u_terrain_normal_basis to handle scaling.
 	NORMAL = u_terrain_normal_basis * unpack_normal(texture(u_terrain_normalmap, UV));
 }
@@ -137,15 +137,15 @@ void fragment() {
 		// TODO Add option to use vertex discarding instead, using NaNs
 		discard;
 	}
-	
-	vec3 terrain_normal_world = 
+
+	vec3 terrain_normal_world =
 		u_terrain_normal_basis * unpack_normal(texture(u_terrain_normalmap, UV));
 	terrain_normal_world = normalize(terrain_normal_world);
 
 	// TODO Detail should only be rasterized on nearby chunks (needs proximity management to switch shaders)
-	
+
 	vec2 ground_uv = v_ground_uv.xz;
-	
+
 	vec4 ab0, ab1, ab2, ab3;
 	if (u_triplanar) {
 		// Only do triplanar on one texture slot,
@@ -164,7 +164,7 @@ void fragment() {
 			ab3 = texture_antitile(u_ground_albedo_bump_3, ground_uv);
 		}
 	}
-	
+
 	if (u_tile_reduction[0] > 0.0) {
 		ab0 = texture_antitile(u_ground_albedo_bump_0, ground_uv);
 	} else {
@@ -180,12 +180,12 @@ void fragment() {
 	} else {
 		ab2 = texture(u_ground_albedo_bump_2, ground_uv);
 	}
-	
+
 	vec3 col0 = ab0.rgb;
 	vec3 col1 = ab1.rgb;
 	vec3 col2 = ab2.rgb;
 	vec3 col3 = ab3.rgb;
-	
+
 	vec4 w;
 	// TODO An #ifdef macro would be nice! Or copy/paste everything in a different shader...
 	if (u_depth_blending) {
@@ -193,21 +193,20 @@ void fragment() {
 	} else {
 		w = v_splat.rgba;
 	}
-	
+
 	float w_sum = (w.r + w.g + w.b + w.a);
-	
+
 	ALBEDO = v_tint.rgb * (
-		w.r * col0.rgb + 
-		w.g * col1.rgb + 
-		w.b * col2.rgb + 
+		w.r * col0.rgb +
+		w.g * col1.rgb +
+		w.b * col2.rgb +
 		w.a * col3.rgb) / w_sum;
-	
+
 	ROUGHNESS = 1.0;
-	
+
 	NORMAL = (VIEW_MATRIX * (vec4(terrain_normal_world, 0.0))).xyz;
 	SPECULAR = u_specular;
 
 	//ALBEDO = w.rgb;
 	//ALBEDO = v_ground_uv.xyz;
 }
-

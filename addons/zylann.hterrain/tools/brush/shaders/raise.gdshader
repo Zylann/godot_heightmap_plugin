@@ -15,7 +15,7 @@ vec2 get_src_uv(vec2 screen_uv) {
 
 void fragment() {
 	float brush_value = u_factor * u_opacity * texture(TEXTURE, UV).r;
-	
+
 	float src_h = sample_heightmap(u_src_texture, get_src_uv(SCREEN_UV));
 	float h = src_h + brush_value;
 	COLOR = encode_height_to_viewport(h);

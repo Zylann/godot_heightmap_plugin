@@ -57,14 +57,14 @@ void fragment() {
 		discard;
 	}
 
-	vec3 terrain_normal_world = 
+	vec3 terrain_normal_world =
 		u_terrain_normal_basis * unpack_normal(texture(u_terrain_normalmap, UV));
 	terrain_normal_world = normalize(terrain_normal_world);
 	vec3 normal = terrain_normal_world;
-	
+
 	vec4 value = texture(u_map, UV);
 	// TODO Blend toward checker pattern to show the alpha channel
-	
+
 	ALBEDO = value.rgb;
 	ROUGHNESS = 0.5;
 	NORMAL = (VIEW_MATRIX * (vec4(normal, 0.0))).xyz;
