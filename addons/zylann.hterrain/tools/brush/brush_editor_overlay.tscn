@@ -1,0 +1,91 @@
+[gd_scene load_steps=5 format=3 uid="uid://d324kwgdf7e6l"]
+
+[ext_resource type="Script" path="res://addons/zylann.hterrain/tools/brush/brush_editor_overlay.gd" id="1_grgos"]
+[ext_resource type="Texture2D" uid="uid://fk2rcx7lsbam" path="res://addons/zylann.hterrain/tools/icons/brush_circle_background.svg" id="2_jeqe2"]
+[ext_resource type="Texture2D" uid="uid://c4ma6f4217y48" path="res://addons/zylann.hterrain/tools/icons/brush_circle.svg" id="3_sw64o"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_0d2ij"]
+font_size = 32
+
+[node name="BrushEditorOverlay" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_grgos")
+min_value = 2.0
+max_value = 500.0
+
+[node name="BrushSizeBackground" type="TextureRect" parent="."]
+unique_name_in_owner = true
+modulate = Color(0.478431, 0.478431, 0.478431, 0.423529)
+layout_mode = 0
+offset_left = -209.0
+offset_top = -209.0
+offset_right = 210.0
+offset_bottom = 210.0
+texture = ExtResource("2_jeqe2")
+expand_mode = 1
+metadata/_edit_use_anchors_ = true
+
+[node name="BrushSizePreview" type="TextureRect" parent="."]
+unique_name_in_owner = true
+modulate = Color(1, 0, 0, 1)
+layout_mode = 1
+offset_left = -204.0
+offset_top = -204.0
+offset_right = 205.0
+offset_bottom = 205.0
+texture = ExtResource("3_sw64o")
+expand_mode = 1
+metadata/_edit_use_anchors_ = true
+
+[node name="ValueLabel" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = -1
+anchor_top = 0.001
+anchor_bottom = 0.001
+offset_left = -35.0
+offset_top = -22.648
+offset_right = 38.0
+offset_bottom = 22.352
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(0.7, 0.7)
+pivot_offset = Vector2(33, 22)
+text = "266"
+label_settings = SubResource("LabelSettings_0d2ij")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="OverlayNameLabel" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = -1
+offset_left = -211.0
+offset_top = -62.0
+offset_right = 400.0
+offset_bottom = 19.0
+scale = Vector2(0.7, 0.7)
+text = "Brush size"
+label_settings = SubResource("LabelSettings_0d2ij")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ExponentialSlider" type="HSlider" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = -132.0
+offset_top = 50.0
+offset_right = 140.0
+offset_bottom = 66.0
+focus_mode = 0
+mouse_filter = 2
+min_value = 40.0
+max_value = 500.0
+value = 131.0
+exp_edit = true
