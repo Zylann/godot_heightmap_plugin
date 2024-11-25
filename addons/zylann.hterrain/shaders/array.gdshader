@@ -93,12 +93,12 @@ void fragment() {
 		discard;
 	}
 
-	vec3 terrain_normal_world = 
+	vec3 terrain_normal_world =
 		u_terrain_normal_basis * unpack_normal(texture(u_terrain_normalmap, UV));
 	terrain_normal_world = normalize(terrain_normal_world);
 	vec3 normal = terrain_normal_world;
 
-	float globalmap_factor = 
+	float globalmap_factor =
 		clamp((v_distance_to_camera - u_globalmap_blend_start) * u_globalmap_blend_distance, 0.0, 1.0);
 	globalmap_factor *= globalmap_factor; // slower start, faster transition but far away
 	vec3 global_albedo = texture(u_terrain_globalmap, UV).rgb;
@@ -112,10 +112,10 @@ void fragment() {
 		vec4 tex_splat_weights = texture(u_terrain_splat_weight_map, UV);
 		// TODO Can't use texelFetch!
 		// https://github.com/godotengine/godot/issues/31732
-		
+
 		vec3 splat_indexes = tex_splat_indexes.rgb * 255.0;
 		vec3 splat_weights = vec3(
-			tex_splat_weights.r, 
+			tex_splat_weights.r,
 			tex_splat_weights.g,
 			1.0 - tex_splat_weights.r - tex_splat_weights.g
 		);
@@ -134,12 +134,12 @@ void fragment() {
 		}
 
 		ALBEDO = v_tint * (
-			  ab0.rgb * splat_weights.x 
+			  ab0.rgb * splat_weights.x
 			+ ab1.rgb * splat_weights.y
 			+ ab2.rgb * splat_weights.z
 		);
-			
-		ROUGHNESS = 
+
+		ROUGHNESS =
 			  nr0.a * splat_weights.x
 			+ nr1.a * splat_weights.y
 			+ nr2.a * splat_weights.z;
@@ -147,8 +147,8 @@ void fragment() {
 		vec3 normal0 = unpack_normal(nr0);
 		vec3 normal1 = unpack_normal(nr1);
 		vec3 normal2 = unpack_normal(nr2);
-		
-		vec3 ground_normal = 
+
+		vec3 ground_normal =
 			  normal0 * splat_weights.x
 			+ normal1 * splat_weights.y
 			+ normal2 * splat_weights.z;
