@@ -9,6 +9,7 @@ const HTerrainMesher = preload("../hterrain_mesher.gd")
 const HTerrainTextureSet = preload("../hterrain_texture_set.gd")
 const HT_PreviewGenerator = preload("./preview_generator.gd")
 const HT_TerrainPainter = preload("./brush/terrain_painter.gd")
+const HT_Brush = preload("./brush/brush.gd")
 const HT_BrushDecal = preload("./brush/decal.gd")
 const HT_Util = preload("../util/util.gd")
 const HT_EditorUtil = preload("./util/editor_util.gd")
@@ -22,6 +23,8 @@ const HT_TextureSetEditor = preload("./texture_editor/set_editor/texture_set_edi
 const HT_TextureSetImportEditor = \
 	preload("./texture_editor/set_editor/texture_set_import_editor.gd")
 const HT_ProgressWindow = preload("./progress_window.gd")
+const HT_BrushEditorOverlay = preload("./brush/brush_editor_overlay.gd")
+const HT_BrushEditorOverlayScene = preload("./brush/brush_editor_overlay.tscn")
 
 const HT_EditPanelScene = preload("./panel.tscn")
 const HT_ProgressWindowScene = preload("./progress_window.tscn")
@@ -85,6 +88,9 @@ var _brush_decal : HT_BrushDecal = null
 var _mouse_pressed := false
 #var _pending_paint_action = null
 var _pending_paint_commit := false
+
+var _overlay_selector : HT_BrushEditorOverlay = null
+var _editor_viewport : SubViewportContainer
 
 var _logger := HT_Logger.get_for(self)
 
@@ -281,11 +287,14 @@ func _enter_tree():
 	_texture_set_import_editor.call_deferred("setup_dialogs", base_control)
 
 	_texture_set_editor.import_selected.connect(_on_TextureSetEditor_import_selected)
-	
+
+	_editor_viewport = _get_editor_viewport_container()
 
 func _exit_tree():
 	_logger.debug("HTerrain plugin Exit tree")
 	
+	_remove_overlay_selector()
+
 	# Make sure we release all references to edited stuff
 	_edit(null)
 
@@ -455,6 +464,28 @@ func _forward_3d_gui_input(p_camera: Camera3D, p_event: InputEvent) -> int:
 
 	var captured_event = false
 	
+	if p_event is InputEventKey:
+		if p_event.keycode == KEY_G and p_event.is_echo() == false and p_event.pressed:
+			captured_event = true
+			_show_brush_editor_overlay(
+				HT_Brush.MIN_SIZE_FOR_SLIDERS,
+				HT_Brush.MAX_SIZE_FOR_SLIDERS,
+				Color.LIGHT_GREEN, _terrain_painter.get_brush_size(),
+										"Brush Size",
+			func on_value_changed(value):
+				_terrain_painter.set_brush_size(value)\
+			 )
+		elif p_event.keycode == KEY_H and p_event.is_echo() == false and p_event.pressed:
+			captured_event = true
+			_show_brush_editor_overlay(
+				HT_Brush.MIN_OPACITY_FOR_SLIDERS,
+				HT_Brush.MAX_OPACITY_FOR_SLIDERS,
+				Color.LIGHT_CORAL, _terrain_painter.get_opacity()*100,
+										"Brush Opacity",
+			func on_value_changed(value):
+				_terrain_painter.set_opacity(value/100.0)\
+			 )
+
 	if p_event is InputEventMouseButton:
 		var mb = p_event
 		
@@ -850,6 +881,54 @@ func _debug_spawn_collider_indicators():
 			else:
 				mi.show()
 				mi.position = hit.position
+
+
+func _show_brush_editor_overlay(min_size: float, max_size: float, widget_color: Color,
+									initial_value: float, action_name: String,
+									on_value_selected: Callable):
+	_remove_overlay_selector()
+
+	if _editor_viewport == null:
+		# something went wrong
+		return
+
+	var selector: HT_BrushEditorOverlay = HT_BrushEditorOverlayScene.instantiate()
+	EditorInterface.get_base_control().add_child(selector)
+
+	selector.min_value = min_size
+	selector.max_value = max_size
+	selector.set_overlay_name(action_name)
+	selector.set_brush_preview_color(widget_color)
+	selector.apply_dpi_scale(get_editor_interface().get_editor_scale())
+	selector.setup_start_position(_editor_viewport.get_global_mouse_position(), initial_value)
+
+	_overlay_selector = selector
+
+
+	selector.on_value_selected.connect(func f(value):
+		on_value_selected.call(value)
+		_remove_overlay_selector()
+	)
+	selector.on_cancel.connect(func f():
+		_remove_overlay_selector()
+	)
+
+
+func _remove_overlay_selector():
+	if _overlay_selector != null:
+		_overlay_selector.queue_free()
+		_overlay_selector = null
+
+
+func _get_editor_viewport_container() -> SubViewportContainer:
+	# Returns the Node3DEditorViewportContainer
+	var viewport_container: Control = EditorInterface.get_editor_viewport_3d().get_parent().get_parent()
+	var editor_viewport_container: Array[Node] = viewport_container.find_children("*","SubViewportContainer", false,false)
+
+	if editor_viewport_container.is_empty():
+		return null
+
+	return editor_viewport_container[0]
 
 
 func _spawn_vertical_bound_boxes():
