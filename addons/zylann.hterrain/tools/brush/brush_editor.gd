@@ -68,6 +68,9 @@ func _ready():
 	_slope_limit_control.changed.connect(_on_slope_limit_changed)
 	
 	_size_slider.max_value = HT_Brush.MAX_SIZE_FOR_SLIDERS
+	_size_slider.min_value = HT_Brush.MIN_SIZE_FOR_SLIDERS
+	_opacity_slider.max_value = HT_Brush.MAX_OPACITY_FOR_SLIDERS
+	_opacity_slider.min_value = HT_Brush.MIN_OPACITY_FOR_SLIDERS
 	#if NativeFactory.is_native_available():
 	#	_size_slider.max_value = 200
 	#else:
@@ -104,6 +107,8 @@ func set_terrain_painter(terrain_painter: HT_TerrainPainter):
 		_terrain_painter.flatten_height_changed.disconnect(_on_flatten_height_changed)
 		_terrain_painter.get_brush().shapes_changed.disconnect(_on_brush_shapes_changed)
 		_terrain_painter.get_brush().shape_index_changed.disconnect(_on_brush_shape_index_changed)
+		_terrain_painter.get_brush().size_changed.disconnect(_on_brush_size_changed)
+		_terrain_painter.get_brush().opacity_changed.disconnect(_on_brush_opacity_changed)
 	
 	_terrain_painter = terrain_painter
 
@@ -138,6 +143,8 @@ func set_terrain_painter(terrain_painter: HT_TerrainPainter):
 		_terrain_painter.flatten_height_changed.connect(_on_flatten_height_changed)
 		brush.shapes_changed.connect(_on_brush_shapes_changed)
 		brush.shape_index_changed.connect(_on_brush_shape_index_changed)
+		brush.size_changed.connect(_on_brush_size_changed)
+		brush.opacity_changed.connect(_on_brush_opacity_changed)
 
 
 func _on_flatten_height_changed():
@@ -149,6 +156,14 @@ func _on_brush_shapes_changed():
 	_update_shape_preview()
 
 
+func _on_brush_size_changed(new_size):
+	_update_brush_size(new_size)
+
+
+func _on_brush_opacity_changed(new_opacity):
+	_update_brush_opacity(new_opacity)
+
+
 func _on_brush_shape_index_changed():
 	_update_shape_preview()
 
@@ -157,6 +172,16 @@ func _update_shape_preview():
 	var brush := _terrain_painter.get_brush()
 	var i := brush.get_shape_index()
 	_shape_texture_rect.texture = brush.get_shape(i)
+
+
+func _update_brush_size(new_size):
+	if _terrain_painter != null:
+		_size_slider.set_value_no_signal(new_size)
+
+
+func _update_brush_opacity(new_opacity):
+	if _terrain_painter != null:
+		_opacity_slider.set_value_no_signal(new_opacity * _opacity_slider.max_value)
 
 
 func set_display_mode(mode: int):

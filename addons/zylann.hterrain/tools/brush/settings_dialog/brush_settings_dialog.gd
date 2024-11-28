@@ -39,6 +39,9 @@ func _ready():
 		return
 	
 	_size_slider.set_max_value(HT_Brush.MAX_SIZE_FOR_SLIDERS)
+	_size_slider.set_min_value(HT_Brush.MIN_SIZE_FOR_SLIDERS)
+	_opacity_slider.set_max_value(HT_Brush.MAX_OPACITY_FOR_SLIDERS)
+	_opacity_slider.set_min_value(HT_Brush.MIN_OPACITY_FOR_SLIDERS)
 	_size_slider.set_greater_max_value(HT_Brush.MAX_SIZE)
 	
 	# TESTING
@@ -277,4 +280,3 @@ func _update_shape_list_buttons():
 
 func _on_shape_list_empty_clicked(at_position, mouse_button_index):
 	_update_shape_list_buttons()
-
