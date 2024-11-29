@@ -650,38 +650,16 @@ func _on_ImportButton_pressed():
 		_show_error("EditorFileSystem is not setup, can't trigger import system.")
 		return
 
-	#                   ______
-	#                .-"      "-.
-	#               /            \
-	#   _          |              |          _
-	#  ( \         |,  .-.  .-.  ,|         / )
-	#   > "=._     | )(__/  \__)( |     _.=" <
-	#  (_/"=._"=._ |/     /\     \| _.="_.="\_)
-	#         "=._ (_     ^^     _)"_.="
-	#             "=\__|IIIIII|__/="
-	#            _.="| \IIIIII/ |"=._
-	#  _     _.="_.="\          /"=._"=._     _
-	# ( \_.="_.="     `--------`     "=._"=._/ )
-	#  > _.="                            "=._ <
-	# (_/                                    \_)
-	#
-	# TODO What I need here is a way to trigger the import of specific files!
-	# It exists, but is not exposed, so I have to rely on a VERY fragile and hacky use of scan()...
-	# I'm not even sure it works tbh. It's terrible.
-	# See https://github.com/godotengine/godot-proposals/issues/1615
-	_editor_file_system.scan()
-	while _editor_file_system.is_scanning():
-		_logger.debug("Waiting for scan to complete...")
-		await get_tree().process_frame
-		if not is_inside_tree():
-			# oops?
-			return
-	_logger.debug("Scanning complete")
-	# Looks like import takes place AFTER scanning, so let's yield some more...
-	for fd in len(files_data) * 2:
-		_logger.debug("Yielding some more")
-		await get_tree().process_frame
-
+	# Notify Godot's file system that new files were created
+	for fd in files_data:
+		_editor_file_system.update_file(fd.path)
+	
+	# Import new files
+	var files_paths := PackedStringArray()
+	for fd in files_data:
+		files_paths.append(fd.path)
+	_editor_file_system.reimport_files(files_paths)
+	
 	var failed_resource_paths := []
 
 	# Using UndoRedo is mandatory for Godot to consider the resource as modified...
