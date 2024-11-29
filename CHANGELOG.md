@@ -33,6 +33,8 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Fixed wrong density map when redoing the addition of a density map (undo/redo)
 - Fixed `Image.load` warnings in the editor (thanks to GustJc)
 - Fixed detail layers rendering one chunk beyond positive edges of the terrain
+- Fixed rare pixel artifacts at the horizon or shallow angles, causing flashes when bloom is enabled (might slightly affect performance though, see https://github.com/Zylann/godot_heightmap_plugin/issues/469)
+- Fixed (hopefully) error where resources are sometimes not able to load after importing with the texture tool
 
 
 1.7.2

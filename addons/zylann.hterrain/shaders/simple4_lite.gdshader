@@ -3,6 +3,14 @@ shader_type spatial;
 // This is a shader with less textures, in case the main one doesn't run on your GPU.
 // It's mostly a big copy/paste, because Godot doesn't support #include or #ifdef...
 
+// TODO Figure out why sampling colormap or splatmap in vertex shader leads to artifacts.
+// At extremely shallow angles (such as horizon), some pixels start to flash.
+// It appears to be caused by interpolation between the vertex and fragment shaders, leading to
+// color values going largely outside of 0..1.
+// See https://github.com/Zylann/godot_heightmap_plugin/issues/469
+//#define COLORMAP_PER_VERTEX
+//#define SPLATMAP_PER_VERTEX
+
 #include "res://addons/zylann.hterrain/shaders/include/heightmap.gdshaderinc"
 
 uniform sampler2D u_terrain_heightmap;
@@ -26,8 +34,12 @@ uniform bool u_triplanar = false;
 uniform vec4 u_tile_reduction = vec4(0.0, 0.0, 0.0, 0.0);
 uniform float u_specular = 0.5;
 
+#ifdef COLORMAP_PER_VERTEX
 varying vec4 v_tint;
+#endif
+#ifdef SPLATMAP_PER_VERTEX
 varying vec4 v_splat;
+#endif
 varying vec3 v_ground_uv;
 
 
@@ -121,22 +133,34 @@ void vertex() {
 
 	v_ground_uv = vec3(cell_coords.x, h * MODEL_MATRIX[1][1], cell_coords.y) / u_ground_uv_scale;
 
+#ifdef COLORMAP_PER_VERTEX
 	// Putting this in vertex saves 2 fetches from the fragment shader,
 	// which is good for performance at a negligible quality cost,
 	// provided that geometry is a regular grid that decimates with LOD.
 	// (downside is LOD will also decimate tint and splat, but it's not bad overall)
 	v_tint = texture(u_terrain_colormap, UV);
+#endif
+#ifdef SPLATMAP_PER_VERTEX
 	v_splat = texture(u_terrain_splatmap, UV);
+#endif
 
 	// Need to use u_terrain_normal_basis to handle scaling.
 	NORMAL = u_terrain_normal_basis * unpack_normal(texture(u_terrain_normalmap, UV));
 }
 
 void fragment() {
+#ifndef COLORMAP_PER_VERTEX
+	vec4 v_tint = texture(u_terrain_colormap, UV);
+#endif
+
 	if (v_tint.a < 0.5) {
 		// TODO Add option to use vertex discarding instead, using NaNs
 		discard;
 	}
+
+#ifndef SPLATMAP_PER_VERTEX
+	vec4 v_splat = texture(u_terrain_splatmap, UV);
+#endif
 
 	vec3 terrain_normal_world =
 		u_terrain_normal_basis * unpack_normal(texture(u_terrain_normalmap, UV));

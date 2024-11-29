@@ -1,8 +1,14 @@
 shader_type spatial;
 
-// WIP
 // This shader uses a texture array with multiple splatmaps, allowing up to 16 textures.
 // Only the 4 textures having highest blending weight are sampled.
+
+// TODO Figure out why sampling colormap or splatmap in vertex shader leads to artifacts.
+// At extremely shallow angles (such as horizon), some pixels start to flash.
+// It appears to be caused by interpolation between the vertex and fragment shaders, leading to
+// color values going largely outside of 0..1.
+// See https://github.com/Zylann/godot_heightmap_plugin/issues/469
+//#define COLORMAP_PER_VERTEX
 
 #include "res://addons/zylann.hterrain/shaders/include/heightmap.gdshaderinc"
 
@@ -29,8 +35,10 @@ uniform float u_globalmap_blend_distance;
 uniform bool u_tile_reduction = false;
 uniform float u_specular = 0.5;
 
+#ifdef COLORMAP_PER_VERTEX
 varying float v_hole;
 varying vec3 v_tint;
+#endif
 varying vec2 v_terrain_uv;
 varying vec3 v_ground_uv;
 varying float v_distance_to_camera;
@@ -234,6 +242,7 @@ void vertex() {
 	vec3 base_ground_uv = vec3(cell_coords.x, h * MODEL_MATRIX[1][1], cell_coords.y);
 	v_ground_uv = base_ground_uv / u_ground_uv_scale;
 
+#ifdef COLORMAP_PER_VERTEX
 	// Putting this in vertex saves a fetch from the fragment shader,
 	// which is good for performance at a negligible quality cost,
 	// provided that geometry is a regular grid that decimates with LOD.
@@ -241,7 +250,8 @@ void vertex() {
 	vec4 tint = texture(u_terrain_colormap, UV);
 	v_hole = tint.a;
 	v_tint = tint.rgb;
-
+#endif
+	
 	// Need to use u_terrain_normal_basis to handle scaling.
 	NORMAL = u_terrain_normal_basis * unpack_normal(texture(u_terrain_normalmap, UV));
 
@@ -249,6 +259,12 @@ void vertex() {
 }
 
 void fragment() {
+#ifndef COLORMAP_PER_VERTEX
+	vec4 tint = texture(u_terrain_colormap, UV);
+	float v_hole = tint.a;
+	vec3 v_tint = tint.rgb;
+#endif
+
 	if (v_hole < 0.5) {
 		// TODO Add option to use vertex discarding instead, using NaNs
 		discard;

@@ -4,6 +4,14 @@ shader_type spatial;
 // it should be preferred for high-end graphics cards.
 // For less features but lower-end targets, see the lite version.
 
+// TODO Figure out why sampling colormap or splatmap in vertex shader leads to artifacts.
+// At extremely shallow angles (such as horizon), some pixels start to flash.
+// It appears to be caused by interpolation between the vertex and fragment shaders, leading to
+// color values going largely outside of 0..1.
+// See https://github.com/Zylann/godot_heightmap_plugin/issues/469
+//#define COLORMAP_PER_VERTEX
+//#define SPLATMAP_PER_VERTEX
+
 #include "res://addons/zylann.hterrain/shaders/include/heightmap.gdshaderinc"
 
 uniform sampler2D u_terrain_heightmap;
@@ -46,12 +54,16 @@ uniform vec4 u_colormap_opacity_per_texture = vec4(1.0, 1.0, 1.0, 1.0);
 
 uniform float u_specular = 0.5;
 
+#ifdef COLORMAP_PER_VERTEX
 varying float v_hole;
 varying vec3 v_tint0;
 varying vec3 v_tint1;
 varying vec3 v_tint2;
 varying vec3 v_tint3;
+#endif
+#ifdef SPLATMAP_PER_VERTEX
 varying vec4 v_splat;
+#endif
 varying vec2 v_ground_uv0;
 varying vec2 v_ground_uv1;
 varying vec2 v_ground_uv2;
@@ -177,6 +189,7 @@ void vertex() {
 	v_ground_uv2 = base_ground_uv.xz / u_ground_uv_scale_per_texture.z;
 	v_ground_uv3 = base_ground_uv / u_ground_uv_scale_per_texture.w;
 
+#ifdef COLORMAP_PER_VERTEX
 	// Putting this in vertex saves 2 fetches from the fragment shader,
 	// which is good for performance at a negligible quality cost,
 	// provided that geometry is a regular grid that decimates with LOD.
@@ -187,7 +200,10 @@ void vertex() {
 	v_tint1 = mix(vec3(1.0), tint.rgb, u_colormap_opacity_per_texture.y);
 	v_tint2 = mix(vec3(1.0), tint.rgb, u_colormap_opacity_per_texture.z);
 	v_tint3 = mix(vec3(1.0), tint.rgb, u_colormap_opacity_per_texture.w);
+#endif
+#ifdef SPLATMAP_PER_VERTEX
 	v_splat = texture(u_terrain_splatmap, UV);
+#endif
 
 	// Need to use u_terrain_normal_basis to handle scaling.
 	NORMAL = u_terrain_normal_basis * unpack_normal(texture(u_terrain_normalmap, UV));
@@ -196,10 +212,23 @@ void vertex() {
 }
 
 void fragment() {
+#ifndef COLORMAP_PER_VERTEX
+	vec4 tint = texture(u_terrain_colormap, UV);
+	float v_hole = tint.a;
+	vec3 v_tint0 = mix(vec3(1.0), tint.rgb, u_colormap_opacity_per_texture.x);
+	vec3 v_tint1 = mix(vec3(1.0), tint.rgb, u_colormap_opacity_per_texture.y);
+	vec3 v_tint2 = mix(vec3(1.0), tint.rgb, u_colormap_opacity_per_texture.z);
+	vec3 v_tint3 = mix(vec3(1.0), tint.rgb, u_colormap_opacity_per_texture.w);
+#endif
+
 	if (v_hole < 0.5) {
 		// TODO Add option to use vertex discarding instead, using NaNs
 		discard;
 	}
+
+#ifndef SPLATMAP_PER_VERTEX
+	vec4 v_splat = texture(u_terrain_splatmap, UV);
+#endif
 
 	vec3 terrain_normal_world =
 		u_terrain_normal_basis * unpack_normal(texture(u_terrain_normalmap, UV));
@@ -326,7 +355,7 @@ void fragment() {
 //	else {
 //		ALBEDO = vec3(1.0, 0.0, 0.0);
 //	}
-
+	
 	NORMAL = (VIEW_MATRIX * (vec4(normal, 0.0))).xyz;
 	SPECULAR = u_specular;
 }
