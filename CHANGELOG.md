@@ -19,6 +19,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Updated name detection in the texture import dialog to work better with AmbientCG and PolyHaven (thanks to GustJc)
 - Optimized `HTerrainDetailLayer` process function by updating chunks when needed and spreading calculations over time
 - Changed detail layers format to `L8`. Before it was `R8` but that is handled inefficiently by `save_png` and Godot's import pipeline. It kept using `RGB8` which consumed more memory and printed a "Will be converted" warning.
+- Added shortcut widget to change brush size and opacity with hotkeys G and H (thanks to GustJc, PR #470)
 - Fixed brush cursor looked off-center at close range when using tiny brush sizes
 - Fixed error when trying to change `TextureSet` mode while it has textures in it
 - Fixed shader parameters not displaying the right value in the inspector until they are set by the user at least once
