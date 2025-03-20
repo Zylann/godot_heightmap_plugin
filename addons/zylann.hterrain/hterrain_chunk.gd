@@ -29,6 +29,15 @@ func _init(p_parent: Node3D, p_cell_x: int, p_cell_y: int, p_material: Material)
 	var rs := RenderingServer
 
 	_mesh_instance = rs.instance_create()
+	
+	# Godot 4.4 introduced physics interpolation again, and it's always on.
+	# Unfortunately that breaks terrain chunks, which start to flicker when created,
+	# even though they don't move. Terrains are inherently static so that feature must not be used.
+	# This feature is new in Godot 4.4 so to maintain compatibility with previous versions
+	# we have to test if the method is available.
+	# See https://github.com/Zylann/godot_heightmap_plugin/issues/475
+	if rs.has_method(&"instance_set_interpolated"):
+		rs.call(&"instance_set_interpolated", _mesh_instance, false)
 
 	if p_material != null:
 		rs.instance_geometry_set_material_override(_mesh_instance, p_material.get_rid())
@@ -122,4 +131,3 @@ func set_render_layer_mask(mask: int):
 func set_cast_shadow_setting(setting: int):
 	assert(_mesh_instance != RID())
 	RenderingServer.instance_geometry_set_cast_shadows_setting(_mesh_instance, setting)
-
