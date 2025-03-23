@@ -35,6 +35,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Fixed detail layers rendering one chunk beyond positive edges of the terrain
 - Fixed rare pixel artifacts at the horizon or shallow angles, causing flashes when bloom is enabled (might slightly affect performance though, see https://github.com/Zylann/godot_heightmap_plugin/issues/469)
 - Fixed (hopefully) error where resources are sometimes not able to load after importing with the texture tool
+- Fixed detail layers temporarily disappearing or having wrong culling AABB after doing tall height edits in the editor
 
 
 1.7.2

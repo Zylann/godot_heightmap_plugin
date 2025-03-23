@@ -903,6 +903,9 @@ func _on_data_region_changed(min_x, min_y, size_x, size_y, channel):
 
 		if _normals_baker != null:
 			_normals_baker.request_tiles_in_region(Vector2(min_x, min_y), Vector2(size_x, size_y))
+		
+		for layer in _detail_layers:
+			layer.on_heightmap_region_changed(Rect2i(min_x, min_y, size_x, size_y))
 
 
 func _on_data_map_changed(type: int, index: int):

@@ -163,6 +163,7 @@ const _API_SHADER_PARAMS = {
 class Chunk:
 	var mmi: HT_DirectMultiMeshInstance
 	var pending_update: bool = false
+	var pending_aabb_update: bool = false
 
 
 var _material: ShaderMaterial = null
@@ -181,7 +182,8 @@ var _debug_cubes := []
 var _logger := HT_Logger.get_for(self)
 var _prev_frame_cmin := Vector3i()
 var _prev_frame_cmax := Vector3i()
-var _pending_exit_updates : Array[Vector2i] = []
+var _pending_chunk_updates : Array[Vector2i] = []
+var _force_chunk_updates_next_frame : bool = false
 
 
 func _init():
@@ -506,7 +508,9 @@ func process(delta: float, viewer_pos: Vector3):
 	var time_exit := 0
 	
 	# Only update when the camera moves across chunks
-	if cmin != _prev_frame_cmin or cmax != _prev_frame_cmax:
+	if cmin != _prev_frame_cmin or cmax != _prev_frame_cmax or _force_chunk_updates_next_frame:
+		_force_chunk_updates_next_frame = false
+		
 		for cz in range(cmin.z, cmax.z):
 			for cx in range(cmin.x, cmax.x):
 		
@@ -520,15 +524,14 @@ func process(delta: float, viewer_pos: Vector3):
 				if d < view_distance:
 					_load_chunk(terrain_transform_without_map_scale, cx, cz, aabb)
 		
-		var to_recycle : Array[Vector2i] = []
-		
 		for k in _chunks:
 			var chunk : Chunk = _chunks[k]
+			# TODO Maybe we shouldn't include chunks that were just loaded above?
 			if not chunk.pending_update:
 				chunk.pending_update = true
-				_pending_exit_updates.append(k)
+				_pending_chunk_updates.append(k)
 		
-	_process_pending_exit_updates(terrain, local_viewer_pos)
+	_process_pending_updates(terrain, local_viewer_pos)
 	
 	# Update time manually, so we can accelerate the animation when strength is increased,
 	# without causing phase jumps (which would be the case if we just scaled TIME)
@@ -541,13 +544,42 @@ func process(delta: float, viewer_pos: Vector3):
 	_prev_frame_cmax = cmax
 
 
-func _process_pending_exit_updates(terrain, local_viewer_pos: Vector3):
+func on_heightmap_region_changed(rect: Rect2i) -> void:
+	# Whether chunks should be loaded or not and their AABB may change,
+	# even if the camera didn't move
+	_force_chunk_updates_next_frame = true
+	
+	# The AABB of existing chunks may change
+	var cmin : Vector2i = rect.position / CHUNK_SIZE
+	var cmax : Vector2i = ceildiv_vec2i_int(rect.end, CHUNK_SIZE)
+	for cz in range(cmin.y, cmax.y):
+		for cx in range(cmin.x, cmax.x):
+			var cpos := Vector2i(cx, cz)
+			var chunk : Chunk = _chunks.get(cpos)
+			if chunk != null and not chunk.pending_update:
+				chunk.pending_update = true
+				chunk.pending_aabb_update = true
+				_pending_chunk_updates.append(cpos)
+
+
+static func ceildiv(x: int, d: int) -> int:
+	assert(d > 0);
+	if x < 0:
+		return (x - d + 1) / d
+	return x / d
+
+
+static func ceildiv_vec2i_int(v: Vector2i, d: int) -> Vector2i:
+	return Vector2i(ceildiv(v.x, d), ceildiv(v.y, d))
+
+
+func _process_pending_updates(terrain, local_viewer_pos: Vector3):
 	# Defer this over multiple frames
 	var budget_us := 1000
 	var time_before := Time.get_ticks_usec()
 	
-	while _pending_exit_updates.size() > 0:
-		var cpos : Vector2i = _pending_exit_updates.pop_back()
+	while _pending_chunk_updates.size() > 0:
+		var cpos : Vector2i = _pending_chunk_updates.pop_back()
 		var chunk : Chunk = _chunks[cpos]
 		chunk.pending_update = false
 		
@@ -555,6 +587,9 @@ func _process_pending_exit_updates(terrain, local_viewer_pos: Vector3):
 		var d := _get_approx_distance_to_chunk_aabb(aabb, local_viewer_pos)
 		if d > view_distance:
 			_recycle_chunk(cpos)
+		elif chunk.pending_aabb_update:
+			chunk.pending_aabb_update = false
+			chunk.mmi.set_aabb(aabb)
 		
 		if Time.get_ticks_usec() - time_before > budget_us:
 			break
