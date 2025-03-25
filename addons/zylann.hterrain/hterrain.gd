@@ -224,6 +224,7 @@ var _collision_enabled := true
 var _collider: HTerrainCollider = null
 var _collision_layer := 1
 var _collision_mask := 1
+var _physics_material : PhysicsMaterial = null
 
 # Stats & debug
 var _updated_chunks := 0
@@ -313,6 +314,13 @@ func _get_property_list():
 			"type": TYPE_INT,
 			"usage": PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_STORAGE,
 			"hint": PROPERTY_HINT_LAYERS_3D_PHYSICS
+		},
+		{
+			"name": "physics_material",
+			"type": TYPE_OBJECT,
+			"usage": PROPERTY_USAGE_DEFAULT,
+			"hint": PROPERTY_HINT_RESOURCE_TYPE,
+			"hint_string": "PhysicsMaterial"
 		},
 		{
 			"name": "Rendering",
@@ -444,6 +452,9 @@ func _get(key: StringName):
 
 	elif key == &"collision_mask":
 		return _collision_mask
+	
+	elif key == &"physics_material":
+		return _physics_material
 
 	elif key == &"render_layers":
 		return get_render_layer_mask()
@@ -506,6 +517,9 @@ func _set(key: StringName, value):
 		_collision_mask = value
 		if _collider != null:
 			_collider.set_collision_mask(value)
+
+	elif key == &"physics_material":
+		set_physics_material(value)
 
 	elif key == &"render_layers":
 		return set_render_layer_mask(value)
@@ -621,6 +635,7 @@ func set_collision_enabled(enabled: bool):
 		if _collision_enabled:
 			if _check_heightmap_collider_support():
 				_collider = HTerrainCollider.new(self, _collision_layer, _collision_mask)
+				_collider.update_physics_material(_physics_material)
 				# Collision is not updated with data here,
 				# because loading is quite a mess at the moment...
 				# 1) This function can be called while no data has been set yet
@@ -632,6 +647,26 @@ func set_collision_enabled(enabled: bool):
 			# Despite this object being a Reference,
 			# this should free it, as it should be the only reference
 			_collider = null
+
+
+func set_physics_material(new_physics_material: PhysicsMaterial) -> void:
+	if new_physics_material == _physics_material:
+		return
+	
+	if _physics_material != null:
+		_physics_material.changed.disconnect(_on_physics_material_changed)
+
+	_physics_material = new_physics_material
+
+	if _physics_material != null:
+		_physics_material.changed.connect(_on_physics_material_changed)
+	
+	_on_physics_material_changed()
+
+
+func _on_physics_material_changed() -> void:
+	if _collider != null:
+		_collider.update_physics_material(_physics_material)
 
 
 func _for_all_chunks(action):

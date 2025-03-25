@@ -47,6 +47,27 @@ func set_collision_mask(mask: int):
 	PhysicsServer3D.body_set_collision_mask(_body_rid, mask)
 
 
+func update_physics_material(physics_material: PhysicsMaterial) -> void:
+	# Logic based on Godot `static_body.cpp`
+	
+	var ps := PhysicsServer3D
+	if physics_material == null:
+		# Reset to defaults
+		ps.body_set_param(_body_rid, PhysicsServer3D.BODY_PARAM_BOUNCE, 0)
+		ps.body_set_param(_body_rid, PhysicsServer3D.BODY_PARAM_FRICTION, 1)
+	
+	else:
+		var bounce := physics_material.bounce
+		if physics_material.absorbent:
+			bounce = -bounce
+		ps.body_set_param(_body_rid, PhysicsServer3D.BODY_PARAM_BOUNCE, bounce)
+		
+		var friction := physics_material.friction
+		if physics_material.rough:
+			friction = -friction
+		ps.body_set_param(_body_rid, PhysicsServer3D.BODY_PARAM_FRICTION, friction)
+
+
 func _notification(what: int):
 	if what == NOTIFICATION_PREDELETE:
 		_logger.debug("Destroy HTerrainCollider")
