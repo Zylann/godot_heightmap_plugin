@@ -122,6 +122,11 @@ func _add_layer():
 	var map_image_cache_id := _image_cache.save_image(map_image)
 	node.layer_index = map_index
 	
+	var max_seed := 0
+	for dl in _terrain.get_detail_layers():
+		max_seed = maxi(dl.random_seed, max_seed)
+	node.random_seed = max_seed + 1
+	
 	var undo_redo := _undo_redo_manager.get_history_undo_redo(
 		_undo_redo_manager.get_object_history_id(_terrain))
 	

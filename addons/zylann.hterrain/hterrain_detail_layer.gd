@@ -119,6 +119,30 @@ const _API_SHADER_PARAMS = {
 		_multimesh_need_regen = true
 
 
+# Sets the seed of the random number generator that populates the multimesh
+@export var fixed_seed := 0:
+	get:
+		return fixed_seed
+	set(v):
+		if v == fixed_seed:
+			return
+		fixed_seed = v
+		_multimesh_need_regen = true
+
+
+# If false, the multimesh seed will be picked from current time.
+# Otherwise, `fixed_seed` will be used.
+# Defaults to `false` because that was the behavior on old versions.
+@export var fixed_seed_enabled := false:
+	get:
+		return fixed_seed_enabled
+	set(v):
+		if v == fixed_seed_enabled:
+			return
+		fixed_seed_enabled = v
+		_multimesh_need_regen = true
+
+
 # Mesh used for every detail instance (for example, every grass patch).
 # If not assigned, an internal quad mesh will be used.
 # I would have called it `mesh` but that's too broad and conflicts with local vars ._.
@@ -763,7 +787,14 @@ func _regen_multimesh():
 	# We modify the existing multimesh instead of replacing it.
 	# DirectMultiMeshInstance does not keep a strong reference to them,
 	# so replacing would break pooled instances.
-	_generate_multimesh(CHUNK_SIZE, density, _get_used_mesh(), _multimesh)
+	
+	var rng := RandomNumberGenerator.new()
+	if fixed_seed_enabled:
+		rng.seed = fixed_seed
+	else:
+		rng.randomize()
+	
+	_generate_multimesh(CHUNK_SIZE, density, _get_used_mesh(), _multimesh, rng)
 
 
 func is_layer_index_valid() -> bool:
@@ -819,7 +850,10 @@ func _on_custom_shader_changed():
 	notify_property_list_changed()
 
 
-static func _generate_multimesh(resolution: int, density: float, mesh: Mesh, multimesh: MultiMesh):
+static func _generate_multimesh(
+		resolution: int, density: float, mesh: Mesh, multimesh: MultiMesh, 
+		rng: RandomNumberGenerator):
+	
 	assert(multimesh != null)
 	
 	var position_randomness := 0.5
@@ -833,17 +867,16 @@ static func _generate_multimesh(resolution: int, density: float, mesh: Mesh, mul
 	
 	multimesh.instance_count = total_instance_count
 	multimesh.mesh = mesh
-
+	
 	# First pass ensures uniform spread
 	var i := 0
 	for z in resolution:
 		for x in resolution:
 			for j in idensity:
-				
 				var pos := Vector3(x, 0, z)
-				pos.x += randf_range(-position_randomness, position_randomness)
-				pos.z += randf_range(-position_randomness, position_randomness)
-
+				pos.x += rng.randf_range(-position_randomness, position_randomness)
+				pos.z += rng.randf_range(-position_randomness, position_randomness)
+	
 				multimesh.set_instance_color(i, Color(1, 1, 1))
 				multimesh.set_instance_transform(i, \
 					Transform3D(_get_random_instance_basis(scale_randomness), pos))
@@ -851,7 +884,7 @@ static func _generate_multimesh(resolution: int, density: float, mesh: Mesh, mul
 	
 	# Second pass adds the rest
 	for j in random_instance_count:
-		var pos = Vector3(randf_range(0, resolution), 0, randf_range(0, resolution))
+		var pos = Vector3(rng.randf_range(0, resolution), 0, rng.randf_range(0, resolution))
 		multimesh.set_instance_color(i, Color(1, 1, 1))
 		multimesh.set_instance_transform(i, \
 			Transform3D(_get_random_instance_basis(scale_randomness), pos))
