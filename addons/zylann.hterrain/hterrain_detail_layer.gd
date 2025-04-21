@@ -879,8 +879,6 @@ static func _generate_multimesh(
 				pos.z += rng.randf_range(-position_randomness, position_randomness)
 	
 				multimesh.set_instance_color(i, Color(1, 1, 1))
-				
-	
 				multimesh.set_instance_transform(i, \
 					Transform3D(_get_random_instance_basis(scale_randomness, rng), pos))
 				i += 1
