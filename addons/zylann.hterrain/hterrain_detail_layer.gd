@@ -7,8 +7,9 @@ extends Node3D
 # A terrain can have multiple detail maps, and you can choose which one will be
 # used with `layer_index`.
 # Details use instanced rendering within their own chunk grid, scattered around
-# the player. Importantly, the position and rotation of this node don't matter,
-# and they also do NOT scale with map scale. Indeed, scaling the heightmap
+# the player. Importantly, the position and rotation of this node don't matter 
+# unless fixed_seed_enabled is set to true.
+# Also they also do NOT scale with map scale. Indeed, scaling the heightmap
 # doesn't mean we want to scale grass blades (which is not a use case I know of).
 
 const HTerrainData = preload("./hterrain_data.gd")
@@ -878,8 +879,10 @@ static func _generate_multimesh(
 				pos.z += rng.randf_range(-position_randomness, position_randomness)
 	
 				multimesh.set_instance_color(i, Color(1, 1, 1))
+				
+	
 				multimesh.set_instance_transform(i, \
-					Transform3D(_get_random_instance_basis(scale_randomness), pos))
+					Transform3D(_get_random_instance_basis(scale_randomness, rng), pos))
 				i += 1
 	
 	# Second pass adds the rest
@@ -887,16 +890,16 @@ static func _generate_multimesh(
 		var pos = Vector3(rng.randf_range(0, resolution), 0, rng.randf_range(0, resolution))
 		multimesh.set_instance_color(i, Color(1, 1, 1))
 		multimesh.set_instance_transform(i, \
-			Transform3D(_get_random_instance_basis(scale_randomness), pos))
+			Transform3D(_get_random_instance_basis(scale_randomness, rng), pos))
 		i += 1
 
 
-static func _get_random_instance_basis(scale_randomness: float) -> Basis:
-	var sr := randf_range(0, scale_randomness)
+static func _get_random_instance_basis(scale_randomness: float, rng: RandomNumberGenerator) -> Basis:
+	var sr := rng.randf_range(0, scale_randomness)
 	var s := 1.0 + (sr * sr * sr * sr * sr) * 50.0
 
 	var basis := Basis()
 	basis = basis.scaled(Vector3(1, s, 1))
-	basis = basis.rotated(Vector3(0, 1, 0), randf_range(0, PI))
+	basis = basis.rotated(Vector3(0, 1, 0), rng.randf_range(0, PI))
 	
 	return basis
