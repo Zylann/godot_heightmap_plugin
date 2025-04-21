@@ -894,7 +894,7 @@ static func _generate_multimesh(
 
 static func _get_random_instance_basis(scale_randomness: float, rng: RandomNumberGenerator) -> Basis:
 	var sr := rng.randf_range(0, scale_randomness)
-	var s := 1.0 + (sr * sr * sr * sr * sr) * 50.0
+	var s := 1.0 + pow(sr, 5) * 50.0
 
 	var basis := Basis()
 	basis = basis.scaled(Vector3(1, s, 1))
