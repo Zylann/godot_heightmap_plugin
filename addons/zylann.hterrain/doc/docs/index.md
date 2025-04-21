@@ -638,7 +638,7 @@ To deal with this, make sure your editor has an option to turn this off. In Gimp
 ![Screenshot of the importer](images/gimp_png_preserve_colors.png)
 
 
-Detail layers
+s
 ---------------
 
 Once you have textured ground, you may want to add small detail objects to it, such as grass and small rocks.
@@ -660,6 +660,7 @@ You can paint detail maps just like you paint anything else, using the same brus
 !!! note
     A detail map can be used by more than one node (by setting the same index in their `layer_index` property), so you can have one for grass, another for flowers, and paint on the shared map to see both nodes update at the same time.
 
+By default the positions and rotations of each detail is not deterministic, this can be changed by setting fixed_seed_enabled to true on the `HterrainDetailLayer`.
 
 ### Shading options
 
