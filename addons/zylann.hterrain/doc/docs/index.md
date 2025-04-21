@@ -638,7 +638,7 @@ To deal with this, make sure your editor has an option to turn this off. In Gimp
 ![Screenshot of the importer](images/gimp_png_preserve_colors.png)
 
 
-s
+Detail layers
 ---------------
 
 Once you have textured ground, you may want to add small detail objects to it, such as grass and small rocks.
