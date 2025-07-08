@@ -660,6 +660,7 @@ You can paint detail maps just like you paint anything else, using the same brus
 !!! note
     A detail map can be used by more than one node (by setting the same index in their `layer_index` property), so you can have one for grass, another for flowers, and paint on the shared map to see both nodes update at the same time.
 
+By default the positions and rotations of each detail is not deterministic, this can be changed by setting fixed_seed_enabled to true on the `HterrainDetailLayer`.
 
 ### Shading options
 
