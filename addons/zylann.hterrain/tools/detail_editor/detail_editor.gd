@@ -135,7 +135,7 @@ func _add_layer():
 	
 	undo_redo.add_do_method(terrain_data._edit_insert_map_from_image_cache.bind(
 		HTerrainData.CHANNEL_DETAIL, map_index, _image_cache, map_image_cache_id))
-	undo_redo.add_do_method(_terrain.add_child.bind(node))
+	undo_redo.add_do_method(_terrain.add_child.bind(node, true))
 	undo_redo.add_do_property(node, "owner", get_tree().edited_scene_root)
 	undo_redo.add_do_method(self._update_list)
 	undo_redo.add_do_reference(node)
