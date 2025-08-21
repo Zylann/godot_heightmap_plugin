@@ -586,6 +586,18 @@ func on_heightmap_region_changed(rect: Rect2i) -> void:
 				_pending_chunk_updates.append(cpos)
 
 
+func on_heightmap_resolution_changed() -> void:
+	_reset_chunks()
+
+
+func _reset_chunks() -> void:
+	for k in _chunks.keys():
+		_recycle_chunk(k)
+	_prev_frame_cmin = Vector3i()
+	_prev_frame_cmax = Vector3i()
+	_pending_chunk_updates.clear()
+
+
 static func ceildiv(x: int, d: int) -> int:
 	assert(d > 0);
 	if x < 0:

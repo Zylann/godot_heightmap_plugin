@@ -904,6 +904,9 @@ func update_collider():
 func _on_data_resolution_changed():
 	_reset_ground_chunks()
 
+	for layer in _detail_layers:
+		layer.on_heightmap_resolution_changed()
+
 
 func _reset_ground_chunks():
 	if _data == null:
