@@ -425,7 +425,7 @@ func _notification(what: int):
 			_set_world(null)
 
 		NOTIFICATION_VISIBILITY_CHANGED:
-			_set_visible(visible)
+			_set_visible(is_visible_in_tree())
 			
 		NOTIFICATION_PREDELETE:
 			# Force DirectMeshInstances to be destroyed before the material.
