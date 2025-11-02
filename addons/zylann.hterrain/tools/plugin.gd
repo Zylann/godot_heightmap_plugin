@@ -530,7 +530,7 @@ func _forward_3d_gui_input(p_camera: Camera3D, p_event: InputEvent) -> int:
 			
 			if _mouse_pressed:
 				if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
-					_terrain_painter.paint_input(hit_pos_in_cells, mm.pressure)
+					_terrain_painter.paint_input(hit_pos_in_cells, mm.pressure, mm.shift_pressed)
 					captured_event = true
 
 		# This is in case the data or textures change as the user edits the terrain,

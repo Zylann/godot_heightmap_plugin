@@ -242,7 +242,7 @@ func set_terrain(terrain: HTerrain):
 
 # This may be called from an `_input` callback.
 # Returns `true` if any change was performed.
-func paint_input(position: Vector2, pressure: float) -> bool:
+func paint_input(position: Vector2, pressure: float, shift_pressed: bool) -> bool:
 	assert(_terrain.get_data() != null)
 	var data := _terrain.get_data()
 	assert(not data.is_locked())
@@ -255,10 +255,10 @@ func paint_input(position: Vector2, pressure: float) -> bool:
 	
 	match _mode:
 		MODE_RAISE:
-			_paint_height(data, position, 1.0)
+			_paint_height(data, position, -1.0 if shift_pressed else 1.0)
 
 		MODE_LOWER:
-			_paint_height(data, position, -1.0)
+			_paint_height(data, position, 1.0 if shift_pressed else -1.0)
 
 		MODE_SMOOTH:
 			_paint_smooth(data, position)
@@ -290,13 +290,13 @@ func paint_input(position: Vector2, pressure: float) -> bool:
 						_paint_splat16(data, position)
 
 		MODE_COLOR:
-			_paint_color(data, position)
+			_paint_color(data, position, shift_pressed)
 
 		MODE_MASK:
-			_paint_mask(data, position)
+			_paint_mask(data, position, shift_pressed)
 
 		MODE_DETAIL:
-			_paint_detail(data, position)
+			_paint_detail(data, position, shift_pressed)
 			
 		_:
 			_logger.error("Unknown mode {0}".format([_mode]))
@@ -504,7 +504,7 @@ func _paint_splat16(data: HTerrainData, position: Vector2):
 		p.paint_input(position)
 
 
-func _paint_color(data: HTerrainData, position: Vector2):
+func _paint_color(data: HTerrainData, position: Vector2, shift_pressed: bool):
 	var image := data.get_image(HTerrainData.CHANNEL_COLOR)
 	var texture := data.get_texture(HTerrainData.CHANNEL_COLOR, 0, true)
 	
@@ -519,15 +519,17 @@ func _paint_color(data: HTerrainData, position: Vector2):
 	# There was a problem with painting colors because of sRGB
 	# https://github.com/Zylann/godot_heightmap_plugin/issues/17#issuecomment-734001879
 
+	var color := Color(1.0, 1.0, 1.0) if shift_pressed else _color
+
 	p.set_brush_shader(HT_ColorShader)
-	p.set_brush_shader_param("u_color", _color)
+	p.set_brush_shader_param("u_color", color)
 	p.set_brush_shader_param("u_normal_min_y", 0.0)
 	p.set_brush_shader_param("u_normal_max_y", 1.0)
 	p.set_image(image, texture)
 	p.paint_input(position)
 
 
-func _paint_mask(data: HTerrainData, position: Vector2):
+func _paint_mask(data: HTerrainData, position: Vector2, shift_pressed: bool):
 	var image := data.get_image(HTerrainData.CHANNEL_COLOR)
 	var texture := data.get_texture(HTerrainData.CHANNEL_COLOR, 0, true)
 	
@@ -539,13 +541,17 @@ func _paint_mask(data: HTerrainData, position: Vector2):
 
 	var p : HT_Painter = _painters[0]
 	
+	var mask := _mask_flag
+	if shift_pressed:
+		mask = not mask
+	
 	p.set_brush_shader(HT_AlphaShader)
-	p.set_brush_shader_param("u_value", 1.0 if _mask_flag else 0.0)
+	p.set_brush_shader_param("u_value", 1.0 if mask else 0.0)
 	p.set_image(image, texture)
 	p.paint_input(position)
 
 
-func _paint_detail(data: HTerrainData, position: Vector2):
+func _paint_detail(data: HTerrainData, position: Vector2, shift_pressed: bool):
 	var image := data.get_image(HTerrainData.CHANNEL_DETAIL, _detail_index)
 	var texture := data.get_texture(HTerrainData.CHANNEL_DETAIL, _detail_index, true)
 	var heightmap_texture = data.get_texture(HTerrainData.CHANNEL_HEIGHT, 0)
@@ -557,7 +563,8 @@ func _paint_detail(data: HTerrainData, position: Vector2):
 	_modified_maps = [mm]
 
 	var p : HT_Painter = _painters[0]
-	var c := Color(_detail_density, _detail_density, _detail_density, 1.0)
+	var density := 0.0 if shift_pressed else _detail_density
+	var c := Color(density, density, density, 1.0)
 	
 	# TODO Don't use this shader (why?)
 	p.set_brush_shader(HT_ColorShader)

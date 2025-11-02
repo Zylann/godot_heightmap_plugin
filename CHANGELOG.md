@@ -22,6 +22,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Added shortcut widget to change brush size and opacity with hotkeys G and H (thanks to GustJc, PR #470)
 - Exposed property to set the PhysicsMaterial of the heightmap's static body
 - Added random seed options to `HTerrainDetailLayer`
+- Some of the tools now reverse/erase when holding shift (raise, lower, color, holes, details)
 - Fixed brush cursor looked off-center at close range when using tiny brush sizes
 - Fixed error when trying to change `TextureSet` mode while it has textures in it
 - Fixed shader parameters not displaying the right value in the inspector until they are set by the user at least once
