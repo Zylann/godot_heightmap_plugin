@@ -355,7 +355,7 @@ void fragment() {
 //	else {
 //		ALBEDO = vec3(1.0, 0.0, 0.0);
 //	}
-	
+
 	NORMAL = (VIEW_MATRIX * (vec4(normal, 0.0))).xyz;
 	SPECULAR = u_specular;
 }

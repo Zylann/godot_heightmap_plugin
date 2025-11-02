@@ -558,5 +558,3 @@ static func get_shader_material_parameter(material: ShaderMaterial, param_name: 
 		if shader != null:
 			v = RenderingServer.shader_get_parameter_default(shader.get_rid(), param_name)
 	return v
-
-

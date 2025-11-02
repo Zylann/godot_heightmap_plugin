@@ -495,7 +495,9 @@ func _forward_3d_gui_input(p_camera: Camera3D, p_event: InputEvent) -> int:
 
 			# Need to check modifiers before capturing the event,
 			# because they are used in navigation schemes
-			if (not mb.ctrl_pressed) and (not mb.alt_pressed) and mb.button_index == MOUSE_BUTTON_LEFT:
+			if (not mb.ctrl_pressed) \
+			and (not mb.alt_pressed) \
+			and mb.button_index == MOUSE_BUTTON_LEFT:
 				if mb.pressed:
 					# TODO Allow to paint on click
 					# TODO `pressure` is not available in button press events
