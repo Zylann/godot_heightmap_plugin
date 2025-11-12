@@ -164,7 +164,7 @@ const _API_SHADER_PARAMS = {
 	set(mask):
 		render_layers = mask
 		for k in _chunks:
-			var chunk : Chunk = _chunks[k]
+			var chunk: HT_DetailChunk = _chunks[k]
 			chunk.mmi.set_layer_mask(mask)
 
 
@@ -180,11 +180,11 @@ const _API_SHADER_PARAMS = {
 			return
 		cast_shadow = option
 		for k in _chunks:
-			var chunk : Chunk = _chunks[k]
+			var chunk: HT_DetailChunk = _chunks[k]
 			chunk.mmi.set_cast_shadow(option)
 
 
-class Chunk:
+class HT_DetailChunk:
 	var mmi: HT_DirectMultiMeshInstance
 	var pending_update: bool = false
 	var pending_aabb_update: bool = false
@@ -436,13 +436,13 @@ func _notification(what: int):
 
 func _set_visible(v: bool):
 	for k in _chunks:
-		var chunk : Chunk = _chunks[k]
+		var chunk: HT_DetailChunk = _chunks[k]
 		chunk.mmi.set_visible(v)
 
 
 func _set_world(w: World3D):
 	for k in _chunks:
-		var chunk : Chunk = _chunks[k]
+		var chunk: HT_DetailChunk = _chunks[k]
 		chunk.mmi.set_world(w)
 
 
@@ -458,7 +458,7 @@ func _on_terrain_transform_changed(gt: Transform3D):
 
 	# Update AABBs and transforms, because scale might have changed
 	for k in _chunks:
-		var chunk : Chunk = _chunks[k]
+		var chunk: HT_DetailChunk = _chunks[k]
 		var mmi := chunk.mmi
 		var aabb := _get_chunk_aabb(terrain, Vector3(k.x * CHUNK_SIZE, 0, k.y * CHUNK_SIZE))
 		# Nullify XZ translation because that's done by transform already
@@ -481,7 +481,7 @@ func process(delta: float, viewer_pos: Vector3):
 		# Crash workaround for Godot 3.1
 		# See https://github.com/godotengine/godot/issues/32500
 		for k in _chunks:
-			var chunk : Chunk = _chunks[k]
+			var chunk: HT_DetailChunk = _chunks[k]
 			chunk.mmi.set_multimesh(_multimesh)
 
 	# Detail layers are unaffected by ground map_scale
@@ -549,7 +549,7 @@ func process(delta: float, viewer_pos: Vector3):
 					_load_chunk(terrain_transform_without_map_scale, cx, cz, aabb)
 		
 		for k in _chunks:
-			var chunk : Chunk = _chunks[k]
+			var chunk: HT_DetailChunk = _chunks[k]
 			# TODO Maybe we shouldn't include chunks that were just loaded above?
 			if not chunk.pending_update:
 				chunk.pending_update = true
@@ -579,7 +579,7 @@ func on_heightmap_region_changed(rect: Rect2i) -> void:
 	for cz in range(cmin.y, cmax.y):
 		for cx in range(cmin.x, cmax.x):
 			var cpos := Vector2i(cx, cz)
-			var chunk : Chunk = _chunks.get(cpos)
+			var chunk: HT_DetailChunk = _chunks.get(cpos)
 			if chunk != null and not chunk.pending_update:
 				chunk.pending_update = true
 				chunk.pending_aabb_update = true
@@ -616,7 +616,7 @@ func _process_pending_updates(terrain, local_viewer_pos: Vector3):
 	
 	while _pending_chunk_updates.size() > 0:
 		var cpos : Vector2i = _pending_chunk_updates.pop_back()
-		var chunk : Chunk = _chunks[cpos]
+		var chunk: HT_DetailChunk = _chunks[cpos]
 		chunk.pending_update = false
 		
 		var aabb := _get_chunk_aabb(terrain, Vector3(cpos.x, 0, cpos.y) * CHUNK_SIZE)
@@ -699,13 +699,13 @@ func _load_chunk(terrain_transform_without_map_scale: Transform3D, cx: int, cz: 
 	mmi.set_cast_shadow(cast_shadow)
 	mmi.set_visible(visible)
 	
-	var chunk := Chunk.new()
+	var chunk := HT_DetailChunk.new()
 	chunk.mmi = mmi
 	_chunks[Vector2i(cx, cz)] = chunk
 
 
 func _recycle_chunk(cpos2d: Vector2i):
-	var chunk : Chunk = _chunks[cpos2d]
+	var chunk: HT_DetailChunk = _chunks[cpos2d]
 	_chunks.erase(cpos2d)
 	chunk.mmi.set_visible(false)
 	_multimesh_instance_pool.append(chunk.mmi)

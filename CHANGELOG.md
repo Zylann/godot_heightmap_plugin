@@ -41,6 +41,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Fixed detail layers temporarily disappearing or having wrong culling AABB after doing tall height edits in the editor
 - Fixed detail layers remaining visible when a parent node is hidden (PR #482)
 - Fixed detail layers not culling properly after changing terrain resolution in the editor (issue #483)
+- Fixed missing class prefix which caused the plugin to fail loading if a `class_name Chunk` already exists anywhere in the project
 
 
 1.7.2
