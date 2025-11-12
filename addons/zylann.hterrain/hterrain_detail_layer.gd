@@ -55,7 +55,7 @@ const _API_SHADER_PARAMS = {
 
 
 # Texture to render on the detail meshes.
-@export var texture : Texture:
+@export var texture: Texture:
 	get:
 		return texture
 	set(tex):
@@ -78,7 +78,7 @@ const _API_SHADER_PARAMS = {
 
 
 # Custom shader to replace the default one.
-@export var custom_shader : Shader:
+@export var custom_shader: Shader:
 	get:
 		return custom_shader
 
@@ -146,7 +146,7 @@ const _API_SHADER_PARAMS = {
 # Mesh used for every detail instance (for example, every grass patch).
 # If not assigned, an internal quad mesh will be used.
 # I would have called it `mesh` but that's too broad and conflicts with local vars ._.
-@export var instance_mesh : Mesh:
+@export var instance_mesh: Mesh:
 	get:
 		return instance_mesh
 	set(p_mesh):
@@ -198,7 +198,7 @@ var _chunks := {}
 
 var _multimesh: MultiMesh
 var _multimesh_need_regen = true
-var _multimesh_instance_pool : Array[HT_DirectMultiMeshInstance] = []
+var _multimesh_instance_pool: Array[HT_DirectMultiMeshInstance] = []
 var _ambient_wind_time := 0.0
 #var _auto_pick_index_on_enter_tree := Engine.is_editor_hint()
 var _debug_wirecube_mesh: Mesh = null
@@ -206,8 +206,8 @@ var _debug_cubes := []
 var _logger := HT_Logger.get_for(self)
 var _prev_frame_cmin := Vector3i()
 var _prev_frame_cmax := Vector3i()
-var _pending_chunk_updates : Array[Vector2i] = []
-var _force_chunk_updates_next_frame : bool = false
+var _pending_chunk_updates: Array[Vector2i] = []
+var _force_chunk_updates_next_frame: bool = false
 
 
 func _init():
@@ -454,7 +454,7 @@ func _on_terrain_transform_changed(gt: Transform3D):
 		_logger.error("Detail layer is not child of a terrain!")
 		return
 	
-	var terrain_transform : Transform3D = terrain.get_internal_transform_unscaled()
+	var terrain_transform: Transform3D = terrain.get_internal_transform_unscaled()
 
 	# Update AABBs and transforms, because scale might have changed
 	for k in _chunks:
@@ -485,9 +485,9 @@ func process(delta: float, viewer_pos: Vector3):
 			chunk.mmi.set_multimesh(_multimesh)
 
 	# Detail layers are unaffected by ground map_scale
-	var terrain_transform_without_map_scale : Transform3D = \
+	var terrain_transform_without_map_scale: Transform3D = \
 		terrain.get_internal_transform_unscaled()
-	var local_viewer_pos : Vector3 = \
+	var local_viewer_pos: Vector3 = \
 		terrain_transform_without_map_scale.affine_inverse() * viewer_pos
 
 	var viewer_cpos := Vector3i(local_viewer_pos / CHUNK_SIZE)
@@ -497,9 +497,9 @@ func process(delta: float, viewer_pos: Vector3):
 	var cmin := viewer_cpos - Vector3i(cr, cr, cr)
 	var cmax := viewer_cpos + Vector3i(cr, cr, cr)
 
-	var terrain_data : HTerrainData = terrain.get_data()
+	var terrain_data: HTerrainData = terrain.get_data()
 	var map_res := terrain_data.get_resolution()
-	var map_scale : Vector3 = terrain.map_scale
+	var map_scale: Vector3 = terrain.map_scale
 
 	var terrain_size_v2i := Vector2i(map_res * map_scale.x, map_res * map_scale.z)
 	var terrain_num_chunks_v2i := terrain_size_v2i / CHUNK_SIZE
@@ -524,8 +524,8 @@ func process(delta: float, viewer_pos: Vector3):
 			var aabb := _get_chunk_aabb(terrain, Vector3(k.x, 0, k.y) * CHUNK_SIZE)
 			_add_debug_cube(terrain, aabb, terrain_transform_without_map_scale)
 		
-		_add_debug_cube(terrain, 
-			AABB(local_viewer_pos - Vector3(1,1,1), Vector3(2,2,2)), 
+		_add_debug_cube(terrain,
+			AABB(local_viewer_pos - Vector3(1, 1, 1), Vector3(2, 2, 2)),
 			terrain_transform_without_map_scale)
 	
 	var time_enter := 0
@@ -537,7 +537,6 @@ func process(delta: float, viewer_pos: Vector3):
 		
 		for cz in range(cmin.z, cmax.z):
 			for cx in range(cmin.x, cmax.x):
-		
 				var cpos2d := Vector2i(cx, cz)
 				if _chunks.has(cpos2d):
 					continue
@@ -574,8 +573,8 @@ func on_heightmap_region_changed(rect: Rect2i) -> void:
 	_force_chunk_updates_next_frame = true
 	
 	# The AABB of existing chunks may change
-	var cmin : Vector2i = rect.position / CHUNK_SIZE
-	var cmax : Vector2i = ceildiv_vec2i_int(rect.end, CHUNK_SIZE)
+	var cmin: Vector2i = rect.position / CHUNK_SIZE
+	var cmax: Vector2i = ceildiv_vec2i_int(rect.end, CHUNK_SIZE)
 	for cz in range(cmin.y, cmax.y):
 		for cx in range(cmin.x, cmax.x):
 			var cpos := Vector2i(cx, cz)
@@ -615,7 +614,7 @@ func _process_pending_updates(terrain, local_viewer_pos: Vector3):
 	var time_before := Time.get_ticks_usec()
 	
 	while _pending_chunk_updates.size() > 0:
-		var cpos : Vector2i = _pending_chunk_updates.pop_back()
+		var cpos: Vector2i = _pending_chunk_updates.pop_back()
 		var chunk: HT_DetailChunk = _chunks[cpos]
 		chunk.pending_update = false
 		
@@ -641,7 +640,6 @@ static func _get_approx_distance_to_chunk_aabb(aabb: AABB, pos: Vector3) -> floa
 	# stay exceedingly tall, in turn causing their centers to be randomly
 	# far from the ground, and then getting unloaded because assumed too far away
 	#return aabb.get_center().distance_to(pos)
-	
 	if aabb.has_point(pos):
 		return 0.0
 	var delta := (pos - aabb.get_center()).abs() - aabb.size * 0.5
@@ -681,7 +679,7 @@ func _load_chunk(terrain_transform_without_map_scale: Transform3D, cx: int, cz: 
 	aabb.position.x = 0
 	aabb.position.z = 0
 
-	var mmi : HT_DirectMultiMeshInstance = null
+	var mmi: HT_DirectMultiMeshInstance = null
 	if len(_multimesh_instance_pool) != 0:
 		mmi = _multimesh_instance_pool[-1]
 		_multimesh_instance_pool.pop_back()
@@ -724,13 +722,13 @@ func _update_material():
 	# Sets API shader properties. Custom properties are assumed to be set already
 	_logger.debug("Updating detail layer material")
 
-	var terrain_data : HTerrainData = null
+	var terrain_data: HTerrainData = null
 	var terrain = _get_terrain()
 	var it := Transform3D()
 	var normal_basis := Basis()
 
 	if terrain != null:
-		var gt : Transform3D = terrain.get_internal_transform()
+		var gt: Transform3D = terrain.get_internal_transform()
 		it = gt.affine_inverse()
 		terrain_data = terrain.get_data()
 		# This is needed to properly transform normals if the terrain is scaled.
@@ -746,10 +744,10 @@ func _update_material():
 	mat.set_shader_parameter("u_view_distance", view_distance)
 	mat.set_shader_parameter("u_ambient_wind", _get_ambient_wind_params())
 
-	var heightmap_texture : Texture = null
-	var normalmap_texture : Texture = null
-	var detailmap_texture : Texture = null
-	var globalmap_texture : Texture = null
+	var heightmap_texture: Texture = null
+	var normalmap_texture: Texture = null
+	var detailmap_texture: Texture = null
+	var globalmap_texture: Texture = null
 
 	if terrain_data != null:
 		if terrain_data.is_locked():
@@ -774,7 +772,7 @@ func _update_material():
 
 
 func _add_debug_cube(terrain: Node3D, aabb: AABB, terrain_transform_without_scale: Transform3D):
-	var world : World3D = terrain.get_world_3d()
+	var world: World3D = terrain.get_world_3d()
 
 	if _debug_wirecube_mesh == null:
 		_debug_wirecube_mesh = HT_Util.create_wirecube_mesh()
@@ -799,7 +797,6 @@ func _regen_multimesh():
 	# We modify the existing multimesh instead of replacing it.
 	# DirectMultiMeshInstance does not keep a strong reference to them,
 	# so replacing would break pooled instances.
-	
 	var rng := RandomNumberGenerator.new()
 	if fixed_seed_enabled:
 		rng.seed = fixed_seed
@@ -863,9 +860,8 @@ func _on_custom_shader_changed():
 
 
 static func _generate_multimesh(
-		resolution: int, density: float, mesh: Mesh, multimesh: MultiMesh, 
+		resolution: int, density: float, mesh: Mesh, multimesh: MultiMesh,
 		rng: RandomNumberGenerator):
-	
 	assert(multimesh != null)
 	
 	var position_randomness := 0.5
