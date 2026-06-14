@@ -1098,7 +1098,7 @@ This issue happened a few times and had various causes so if the checks mentione
 
 This can happen on [double-precision builds](https://docs.godotengine.org/en/stable/tutorials/physics/large_world_coordinates.html) of Godot. An error message `ERROR: Expected PackedFloat64Array or float Image.` will appear in the debugger.
 
-- Edit `hterrain_collider.gd` to replace `PackedFloat32Array` instead of `PackedFloat64Array`
+- Edit `hterrain_collider.gd` to replace `PackedFloat32Array` with `PackedFloat64Array`
 
 ### Temporary files
 
