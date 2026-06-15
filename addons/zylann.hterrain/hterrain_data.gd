@@ -1169,7 +1169,7 @@ func _deserialize_metadata(dict: Dictionary) -> bool:
 func load_data(
 	dir_path: String,
 	# Same as default in ResourceLoader.load()
-	resource_loader_cache_mode := ResourceLoader.CACHE_MODE_REUSE,
+	resource_loader_cache_mode := ResourceLoader.CACHE_MODE_REUSE
 ) -> void:
 	_locked = true
 
@@ -1361,8 +1361,7 @@ func _load_map(
 	dir: String, 
 	map_type: int, 
 	index: int, 
-	resource_loader_cache_mode: int, 
-	external: bool
+	resource_loader_cache_mode: int
 ) -> bool:
 	var fpath := dir.path_join(_get_map_filename(map_type, index))
 
