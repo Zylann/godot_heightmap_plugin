@@ -7,6 +7,7 @@
 extends Node
 
 const HTerrainData = preload("../hterrain_data.gd")
+const _bump2normal_shader_path = "res://addons/zylann.hterrain/tools/bump2normal_tex.gdshader"
 
 const VIEWPORT_SIZE = 64
 
@@ -15,9 +16,10 @@ const STATE_PROCESSING = 1
 
 var _viewport : SubViewport = null
 var _ci : Sprite2D = null
-var _pending_tiles_grid := {}
-var _pending_tiles_queue := [] # Array[Vector2] (older Godot versions can't type array contents)
-var _processing_tile = null # ?Vector2
+var _pending_tiles_grid := {} # Dictionary[Vector2i, int] (typed dicts only from 4.4)
+var _pending_tiles_queue : Array[Vector2i] = []
+var _processing_tile : Vector2i
+var _is_processing_tile := false
 var _terrain_data : HTerrainData = null
 
 
@@ -32,8 +34,8 @@ func _init() -> void:
 	_viewport.own_world_3d = true
 	add_child(_viewport)
 	
-	var mat = ShaderMaterial.new()
-	mat.shader = load("res://addons/zylann.hterrain/tools/bump2normal_tex.gdshader")
+	var mat := ShaderMaterial.new()
+	mat.shader = load(_bump2normal_shader_path)
 	
 	_ci = Sprite2D.new()
 	_ci.centered = false
@@ -49,7 +51,6 @@ func set_terrain_data(data: HTerrainData) -> void:
 
 	_pending_tiles_grid.clear()
 	_pending_tiles_queue.clear()
-	_processing_tile = null
 	_ci.texture = null
 	set_process(false)
 	
@@ -75,33 +76,30 @@ func _on_terrain_data_resolution_changed() -> void:
 	_ci.queue_redraw()
 
 
-# TODO Use Vector2i
-func request_tiles_in_region(min_pos: Vector2, size: Vector2) -> void:
+func request_tiles_in_region(rect: Rect2i) -> void:
 	assert(is_inside_tree())
 	assert(_terrain_data != null)
-	var res = _terrain_data.get_resolution()
+	var res : int = _terrain_data.get_resolution()
 	
-	min_pos -= Vector2(1, 1)
-	var max_pos = min_pos + size + Vector2(1, 1)
-	var tmin = (min_pos / VIEWPORT_SIZE).floor()
-	var tmax = (max_pos / VIEWPORT_SIZE).ceil()
-	var ntx = res / VIEWPORT_SIZE
-	var nty = res / VIEWPORT_SIZE
-	tmin.x = clamp(tmin.x, 0, ntx)
-	tmin.y = clamp(tmin.y, 0, nty)
-	tmax.x = clamp(tmax.x, 0, ntx)
-	tmax.y = clamp(tmax.y, 0, nty)
+	var min_pos := rect.position - Vector2i(1, 1)
+	var max_pos := rect.position + rect.size + Vector2i(1, 1)
+	var tmin : Vector2i = min_pos / VIEWPORT_SIZE
+	var tmax : Vector2i = max_pos / VIEWPORT_SIZE
+	var ntx := res / VIEWPORT_SIZE
+	var nty := res / VIEWPORT_SIZE
+	tmin.x = clampi(tmin.x, 0, ntx)
+	tmin.y = clampi(tmin.y, 0, nty)
+	tmax.x = clampi(tmax.x, 0, ntx)
+	tmax.y = clampi(tmax.y, 0, nty)
 	
 	for y in range(tmin.y, tmax.y):
 		for x in range(tmin.x, tmax.x):
-			request_tile(Vector2(x, y))
+			_request_tile(Vector2i(x, y))
 
 
-# TODO Use Vector2i
-func request_tile(tpos: Vector2) -> void:
-	assert(tpos == tpos.round())
+func _request_tile(tpos: Vector2i) -> void:
 	if _pending_tiles_grid.has(tpos):
-		var state = _pending_tiles_grid[tpos]
+		var state : int = _pending_tiles_grid[tpos]
 		if state == STATE_PENDING:
 			return
 	_pending_tiles_grid[tpos] = STATE_PENDING
@@ -113,30 +111,31 @@ func _process(_unused_delta: float) -> void:
 	if not is_processing():
 		return
 	
-	if _processing_tile != null and _terrain_data != null:
+	if _is_processing_tile and _terrain_data != null:
 		var src : Image = _viewport.get_texture().get_image()
 		var dst : Image = _terrain_data.get_image(HTerrainData.CHANNEL_NORMAL)
 		
 		src.convert(dst.get_format())
 		#src.save_png(str("test_", _processing_tile.x, "_", _processing_tile.y, ".png"))
-		var pos = _processing_tile * VIEWPORT_SIZE
-		var w = src.get_width() - 1
-		var h = src.get_height() - 1
+		var pos := _processing_tile * VIEWPORT_SIZE
+		var w := src.get_width() - 1
+		var h := src.get_height() - 1
 		dst.blit_rect(src, Rect2i(1, 1, w, h), pos)
 		_terrain_data.notify_region_change(Rect2(pos.x, pos.y, w, h), HTerrainData.CHANNEL_NORMAL)
 		
 		if _pending_tiles_grid[_processing_tile] == STATE_PROCESSING:
 			_pending_tiles_grid.erase(_processing_tile)
-		_processing_tile = null
+		_is_processing_tile = false
 
 	if _has_pending_tiles():
-		var tpos : Vector2 = _pending_tiles_queue[-1]
+		var tpos : Vector2i = _pending_tiles_queue[-1]
 		_pending_tiles_queue.pop_back()
 		# The sprite will be much larger than the viewport due to the size of the heightmap.
 		# We move it around so the part inside the viewport will correspond to the tile.
-		_ci.position = -VIEWPORT_SIZE * tpos + Vector2(1, 1)
+		_ci.position = -VIEWPORT_SIZE * tpos + Vector2i(1, 1)
 		_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 		_processing_tile = tpos
+		_is_processing_tile = true
 		_pending_tiles_grid[tpos] = STATE_PROCESSING
 	else:
 		set_process(false)
