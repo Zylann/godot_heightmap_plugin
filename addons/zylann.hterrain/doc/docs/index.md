@@ -1094,27 +1094,6 @@ This issue happened a few times and had various causes so if the checks mentione
 - If your problem relates to collisions in editor, update the collider using `Terrain -> Update Editor Collider`, because this one does not update automatically yet
 - Godot seems to randomly forget where the terrain saver is, but I need help to find out why because I could never reproduce it. See [issue #120](https://github.com/Zylann/godot_heightmap_plugin/issues/120)
 
-### Collider fails to build properly on double-precision builds
-
-This can happen on [double-precision builds](https://docs.godotengine.org/en/stable/tutorials/physics/large_world_coordinates.html) of Godot. An error message `ERROR: Expected PackedFloat64Array or float Image.` will appear in the debugger.
-Note that in general, double-precision is not necessary for heightmaps and is considered wasteful; this workaround only exists as a brute-force approach for working within the constraints of the Godot double-precision builds. It is not recommended for generating or editing terrain at runtime.
-
-- Edit `hterrain_collider.gd` to replace `PackedFloat32Array` with `PackedFloat64Array`
-- Convert the call to `terrain_data.get_all_heights()` to `PackedFloat64Array`
-
-For example,
-
-```
-func packed32ToPacked64(p32: PackedFloat32Array) -> PackedFloat64Array:
-	var p64 = PackedFloat64Array();
-	for i in p32.size():
-		p64.append(p32.get(i));
-	return p64;
-
-...
-
-"heights": packed32ToPacked64(terrain_data.get_all_heights()),
-```
 
 ### Temporary files
 

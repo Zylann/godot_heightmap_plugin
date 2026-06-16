@@ -9,6 +9,16 @@ var _terrain_transform := Transform3D()
 var _terrain_data : HTerrainData = null
 var _logger = HT_Logger.get_for(self)
 
+func _is_double_precision_build() -> bool:
+	return ProjectSettings.get_setting("application/config/features").has("Double Precision")
+
+func _packed32_to_packed64(p32: PackedFloat32Array) -> PackedFloat64Array:
+	# This is a slower brute-force method as a workaround to double-precision builds requiring PackedFloat64Array. Otherwise, colliders would fail to build on double-precision builds entirely.
+	# In an ideal world Godot would be updated to accept a PackedFloat32Array since it uses it under the hood anyways
+	var p64 = PackedFloat64Array();
+	for i in p32.size():
+		p64.append(p32.get(i));
+	return p64;
 
 func _init(attached_node: Node, initial_layer: int, initial_mask: int) -> void:
 	_logger.debug("HTerrainCollider: creating body")
@@ -28,7 +38,7 @@ func _init(attached_node: Node, initial_layer: int, initial_mask: int) -> void:
 	PhysicsServer3D.shape_set_data(_shape_rid, {
 		"width": 2,
 		"depth": 2,
-		"heights": PackedFloat32Array([0, 0, 0, 0]),
+		"heights": PackedFloat64Array([0, 0, 0, 0]) _is_double_precision_build() else PackedFloat32Array([0, 0, 0, 0]),
 		"min_height": -1,
 		"max_height": 1
 	})
@@ -100,15 +110,24 @@ func create_from_terrain_data(terrain_data: HTerrainData) -> void:
 	var depth := terrain_data.get_resolution()
 	var height := aabb.size.y
 
-	var shape_data = {
-		"width": terrain_data.get_resolution(),
-		"depth": terrain_data.get_resolution(),
-		"heights": terrain_data.get_all_heights(),
-		"min_height": aabb.position.y,
-		"max_height": aabb.end.y
-	}
-
-	PhysicsServer3D.shape_set_data(_shape_rid, shape_data)
+	if():
+		var shape_data = {
+			"width": terrain_data.get_resolution(),
+			"depth": terrain_data.get_resolution(),
+			"heights": terrain_data.get_all_heights(),
+			"min_height": aabb.position.y,
+			"max_height": aabb.end.y
+		}
+		PhysicsServer3D.shape_set_data(_shape_rid, shape_data)
+	else:
+		var shape_data = {
+			"width": terrain_data.get_resolution(),
+			"depth": terrain_data.get_resolution(),
+			"heights": _packed32_to_packed64(terrain_data.get_all_heights()) if _is_double_precision_build() else terrain_data.get_all_heights(),
+			"min_height": aabb.position.y,
+			"max_height": aabb.end.y
+		}
+		PhysicsServer3D.shape_set_data(_shape_rid, shape_data)
 	
 	_update_transform()
 
