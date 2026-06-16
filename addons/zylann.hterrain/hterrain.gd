@@ -230,7 +230,8 @@ var _physics_material: PhysicsMaterial = null
 var _updated_chunks := 0
 var _logger = HT_Logger.get_for(self)
 
-# Editor-only
+# Editor-only.
+# Untyped, because tools can be excluded from builds
 var _normals_baker = null
 
 var _lookdev_enabled := false
@@ -957,12 +958,19 @@ func _on_data_region_changed(min_x, min_y, size_x, size_y, channel) -> void:
 	# Testing only heights because it's the only channel that can impact geometry and LOD
 	if channel == HTerrainData.CHANNEL_HEIGHT:
 		set_area_dirty(min_x, min_y, size_x, size_y)
-
-		if _normals_baker != null:
-			_normals_baker.request_tiles_in_region(Vector2(min_x, min_y), Vector2(size_x, size_y))
+		
+		var rect := Rect2i(min_x, min_y, size_x, size_y)
+		
+		# WARNING: there can be other instances of the SAME terrain outside the scene tree,
+		# for example if you edit a terrain in focused scene A, while an instance of A is
+		# also present in non-focused scene B!
+		# For now we may skip logic that requires being in the tree, but if more issues arise
+		# we might have to refactor more things to workaround these embarrassing situations
+		if _normals_baker != null and is_inside_tree():
+			_normals_baker.request_tiles_in_region(rect)
 		
 		for layer in _detail_layers:
-			layer.on_heightmap_region_changed(Rect2i(min_x, min_y, size_x, size_y))
+			layer.on_heightmap_region_changed(rect)
 
 
 func _on_data_map_changed(type: int, index: int) -> void:
