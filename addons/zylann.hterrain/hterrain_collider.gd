@@ -38,7 +38,7 @@ func _init(attached_node: Node, initial_layer: int, initial_mask: int) -> void:
 	PhysicsServer3D.shape_set_data(_shape_rid, {
 		"width": 2,
 		"depth": 2,
-		"heights": PackedFloat64Array([0, 0, 0, 0]) _is_double_precision_build() else PackedFloat32Array([0, 0, 0, 0]),
+		"heights": PackedFloat64Array([0, 0, 0, 0]) if _is_double_precision_build() else PackedFloat32Array([0, 0, 0, 0]),
 		"min_height": -1,
 		"max_height": 1
 	})
