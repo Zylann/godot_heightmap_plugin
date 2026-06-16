@@ -183,9 +183,9 @@ void fragment() {
 
 	} else {
 		if (u_tile_reduction[3] > 0.0) {
-			ab3 = texture(u_ground_albedo_bump_3, ground_uv);
-		} else {
 			ab3 = texture_antitile(u_ground_albedo_bump_3, ground_uv);
+		} else {
+			ab3 = texture(u_ground_albedo_bump_3, ground_uv);
 		}
 	}
 
