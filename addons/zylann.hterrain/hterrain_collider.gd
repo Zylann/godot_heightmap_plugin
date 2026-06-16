@@ -9,17 +9,6 @@ var _terrain_transform := Transform3D()
 var _terrain_data : HTerrainData = null
 var _logger = HT_Logger.get_for(self)
 
-func _is_double_precision_build() -> bool:
-	return ProjectSettings.get_setting("application/config/features").has("Double Precision")
-
-func _packed32_to_packed64(p32: PackedFloat32Array) -> PackedFloat64Array:
-	# This is a slower brute-force method as a workaround to double-precision builds requiring PackedFloat64Array. Otherwise, colliders would fail to build on double-precision builds entirely.
-	# In an ideal world Godot would be updated to accept a PackedFloat32Array since it uses it under the hood anyways
-	var p64 = PackedFloat64Array();
-	for i in p32.size():
-		p64.append(p32.get(i));
-	return p64;
-
 func _init(attached_node: Node, initial_layer: int, initial_mask: int) -> void:
 	_logger.debug("HTerrainCollider: creating body")
 	assert(attached_node != null)
@@ -47,6 +36,20 @@ func _init(attached_node: Node, initial_layer: int, initial_mask: int) -> void:
 	
 	# This makes collision hits report the provided object as `collider`
 	PhysicsServer3D.body_attach_object_instance_id(_body_rid, attached_node.get_instance_id())
+
+
+static func _is_double_precision_build() -> bool:
+	return ProjectSettings.get_setting("application/config/features").has("Double Precision")
+
+
+static func _packed32_to_packed64(p32: PackedFloat32Array) -> PackedFloat64Array:
+	# This is a slower brute-force method as a workaround to double-precision builds requiring PackedFloat64Array. Otherwise, colliders would fail to build on double-precision builds entirely.
+	# In an ideal world Godot would be updated to accept a PackedFloat32Array since it uses it under the hood anyways
+	var p64 = PackedFloat64Array();
+	p64.resize(p32.size())
+	for i in p32.size():
+		p64.set(i, p32[i]);
+	return p64;
 
 
 func set_collision_layer(layer: int) -> void:
