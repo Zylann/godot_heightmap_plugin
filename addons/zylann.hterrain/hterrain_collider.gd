@@ -110,24 +110,14 @@ func create_from_terrain_data(terrain_data: HTerrainData) -> void:
 	var depth := terrain_data.get_resolution()
 	var height := aabb.size.y
 
-	if():
-		var shape_data = {
-			"width": terrain_data.get_resolution(),
-			"depth": terrain_data.get_resolution(),
-			"heights": terrain_data.get_all_heights(),
-			"min_height": aabb.position.y,
-			"max_height": aabb.end.y
-		}
-		PhysicsServer3D.shape_set_data(_shape_rid, shape_data)
-	else:
-		var shape_data = {
-			"width": terrain_data.get_resolution(),
-			"depth": terrain_data.get_resolution(),
-			"heights": _packed32_to_packed64(terrain_data.get_all_heights()) if _is_double_precision_build() else terrain_data.get_all_heights(),
-			"min_height": aabb.position.y,
-			"max_height": aabb.end.y
-		}
-		PhysicsServer3D.shape_set_data(_shape_rid, shape_data)
+	var shape_data = {
+		"width": terrain_data.get_resolution(),
+		"depth": terrain_data.get_resolution(),
+		"heights": _packed32_to_packed64(terrain_data.get_all_heights()) if _is_double_precision_build() else terrain_data.get_all_heights(),
+		"min_height": aabb.position.y,
+		"max_height": aabb.end.y
+	}
+	PhysicsServer3D.shape_set_data(_shape_rid, shape_data)
 	
 	_update_transform()
 
