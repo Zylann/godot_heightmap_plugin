@@ -95,13 +95,13 @@ const _API_SHADER_PARAMS = {
 		if custom_shader == null:
 			_material.shader = load(DEFAULT_SHADER_PATH)
 		else:
+			if Engine.is_editor_hint() and custom_shader.code == "":
+				# Ability to fork default shader
+				custom_shader.code = _default_shader.code
+		
 			_material.shader = custom_shader
 
 			if Engine.is_editor_hint():
-				# Ability to fork default shader
-				if shader.code == "":
-					shader.code = _default_shader.code
-				
 				custom_shader.changed.connect(_on_custom_shader_changed)
 		
 				notify_property_list_changed()
