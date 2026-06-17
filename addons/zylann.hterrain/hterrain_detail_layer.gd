@@ -194,7 +194,7 @@ var _material: ShaderMaterial = null
 var _default_shader: Shader = null
 
 # Vector2i => Chunk
-var _chunks := {}
+var _chunks: Dictionary[Vector2i, HT_DetailChunk] = {}
 
 var _multimesh: MultiMesh
 var _multimesh_need_regen = true
@@ -236,6 +236,7 @@ func _enter_tree() -> void:
 		terrain._internal_add_detail_layer(self)
 
 	_update_material()
+	_force_chunk_updates_next_frame = true
 
 
 func _exit_tree() -> void:
@@ -479,7 +480,6 @@ func process(delta: float, viewer_pos: Vector3) -> void:
 		return
 
 	if _multimesh_need_regen:
-		print("Regen multimesh")
 		_regen_multimesh()
 		_multimesh_need_regen = false
 		# Crash workaround for Godot 3.1
