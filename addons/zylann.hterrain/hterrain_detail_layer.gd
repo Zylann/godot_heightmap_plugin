@@ -193,8 +193,8 @@ class HT_DetailChunk:
 var _material: ShaderMaterial = null
 var _default_shader: Shader = null
 
-# Vector2i => Chunk
-var _chunks: Dictionary[Vector2i, HT_DetailChunk] = {}
+# Dictionary[Vector2i, HT_DetailChunk] (Godot 4.4 compatible syntax)
+var _chunks := {}
 
 var _multimesh: MultiMesh
 var _multimesh_need_regen = true
