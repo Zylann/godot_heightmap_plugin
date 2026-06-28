@@ -18,7 +18,7 @@ var _values := [0.2, 0.6]
 var _grabbing := false
 
 
-func _get_property_list() -> Array:
+func _get_property_list() -> Array[Dictionary]:
 	return [
 		{
 			"name": "min_value",

@@ -281,7 +281,7 @@ func _exit_tree() -> void:
 #	layer_index = auto_index
 
 
-func _get_property_list() -> Array:
+func _get_property_list() -> Array[Dictionary]:
 	# Dynamic properties coming from the shader
 	var props := []
 	if _material != null:

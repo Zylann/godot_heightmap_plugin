@@ -72,7 +72,7 @@ static func get_max_slots_for_mode(mode: int) -> int:
 	return 0
 
 
-func _get_property_list() -> Array:
+func _get_property_list() -> Array[Dictionary]:
 	return [
 		{
 			"name": "mode",

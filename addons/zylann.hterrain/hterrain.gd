@@ -261,7 +261,7 @@ func _init() -> void:
 			_collider = HTerrainCollider.new(self, _collision_layer, _collision_mask)
 
 
-func _get_property_list() -> Array:
+func _get_property_list() -> Array[Dictionary]:
 	# A lot of properties had to be exported like this instead of using `export`,
 	# because Godot 3 does not support easy categorization and lacks some hints
 	var props = [
