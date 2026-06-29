@@ -1,50 +1,34 @@
-[gd_scene load_steps=3 format=2]
+[gd_scene format=3 uid="uid://cu4atrrme3hm8"]
 
-[ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/texture_editor.gd" type="Script" id=1]
-[ext_resource path="res://addons/zylann.hterrain/tools/texture_editor/texture_list.tscn" type="PackedScene" id=2]
+[ext_resource type="Script" uid="uid://dj5f0eu3ffx84" path="res://addons/zylann.hterrain/tools/texture_editor/texture_editor.gd" id="1"]
+[ext_resource type="PackedScene" path="res://addons/zylann.hterrain/tools/texture_editor/texture_list.tscn" id="2"]
 
-[node name="TextureEditor" type="Control"]
-offset_right = 352.0
-offset_bottom = 104.0
-custom_minimum_size = Vector2( 100, 0 )
+[node name="TextureEditor" type="VBoxContainer" unique_id=1087399411]
+custom_minimum_size = Vector2(100, 0)
+offset_right = 280.0
+offset_bottom = 114.0
 size_flags_horizontal = 3
-script = ExtResource( 1 )
-__meta__ = {
-"_edit_use_anchors_": false
-}
+script = ExtResource("1")
 
-[node name="TextureList" parent="." instance=ExtResource( 2 )]
-layout_mode = 0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_bottom = -26.0
+[node name="TextureList" parent="." unique_id=731546636 instance=ExtResource("2")]
+layout_mode = 2
+size_flags_vertical = 3
 
-[node name="HBoxContainer" type="HBoxContainer" parent="."]
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = -24.0
-__meta__ = {
-"_edit_use_anchors_": false
-}
+[node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=1168104440]
+layout_mode = 2
 
-[node name="EditButton" type="Button" parent="HBoxContainer"]
-offset_right = 48.0
-offset_bottom = 24.0
+[node name="EditButton" type="Button" parent="HBoxContainer" unique_id=130073411]
+layout_mode = 2
 text = "Edit..."
 
-[node name="ImportButton" type="Button" parent="HBoxContainer"]
-offset_left = 52.0
-offset_right = 120.0
-offset_bottom = 24.0
+[node name="ImportButton" type="Button" parent="HBoxContainer" unique_id=1354464463]
+layout_mode = 2
 text = "Import..."
 
-[node name="Label" type="Label" parent="HBoxContainer"]
-offset_left = 124.0
-offset_top = 5.0
-offset_right = 179.0
-offset_bottom = 19.0
+[node name="Label" type="Label" parent="HBoxContainer" unique_id=171700361]
+layout_mode = 2
 text = "Textures"
+
 [connection signal="item_activated" from="TextureList" to="." method="_on_TextureList_item_activated"]
 [connection signal="item_selected" from="TextureList" to="." method="_on_TextureList_item_selected"]
 [connection signal="pressed" from="HBoxContainer/EditButton" to="." method="_on_EditButton_pressed"]

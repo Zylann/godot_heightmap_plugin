@@ -1,45 +1,37 @@
-[gd_scene load_steps=2 format=3 uid="uid://do3c3jse5p7hx"]
+[gd_scene format=3 uid="uid://do3c3jse5p7hx"]
 
-[ext_resource type="Script" path="res://addons/zylann.hterrain/tools/detail_editor/detail_editor.gd" id="1"]
+[ext_resource type="Script" uid="uid://5t3er7xpqot2" path="res://addons/zylann.hterrain/tools/detail_editor/detail_editor.gd" id="1"]
 
-[node name="DetailEditor" type="Control"]
+[node name="DetailEditor" type="VBoxContainer" unique_id=1458950686]
 custom_minimum_size = Vector2(200, 0)
-layout_mode = 3
-anchors_preset = 0
-offset_right = 189.0
+offset_right = 200.0
 offset_bottom = 109.0
 script = ExtResource("1")
 
-[node name="ItemList" type="ItemList" parent="."]
-layout_mode = 0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_bottom = -26.0
+[node name="ItemList" type="ItemList" parent="." unique_id=356558033]
+layout_mode = 2
+size_flags_vertical = 3
 max_columns = 0
 same_column_width = true
 icon_mode = 0
 fixed_icon_size = Vector2i(32, 32)
 
-[node name="HBoxContainer" type="HBoxContainer" parent="."]
-layout_mode = 0
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = -24.0
+[node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=1729809154]
+layout_mode = 2
 
-[node name="Add" type="Button" parent="HBoxContainer"]
+[node name="Add" type="Button" parent="HBoxContainer" unique_id=1508437437]
 layout_mode = 2
 text = "Add"
 
-[node name="Remove" type="Button" parent="HBoxContainer"]
+[node name="Remove" type="Button" parent="HBoxContainer" unique_id=148861059]
 layout_mode = 2
 text = "Remove"
 
-[node name="Label" type="Label" parent="HBoxContainer"]
+[node name="Label" type="Label" parent="HBoxContainer" unique_id=1445106079]
 layout_mode = 2
 text = "Details"
 
-[node name="ConfirmationDialog" type="ConfirmationDialog" parent="."]
+[node name="ConfirmationDialog" type="ConfirmationDialog" parent="." unique_id=1134612765]
 dialog_text = "Are you sure you want to remove this detail map?"
 
 [connection signal="item_selected" from="ItemList" to="." method="_on_ItemList_item_selected"]
