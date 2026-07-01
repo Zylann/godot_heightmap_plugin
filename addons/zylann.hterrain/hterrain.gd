@@ -264,7 +264,7 @@ func _init() -> void:
 func _get_property_list() -> Array[Dictionary]:
 	# A lot of properties had to be exported like this instead of using `export`,
 	# because Godot 3 does not support easy categorization and lacks some hints
-	var props = [
+	var props: Array[Dictionary] = [
 		{
 			# Terrain data is exposed only as a path in the editor,
 			# because it can only be saved if it has a directory selected.

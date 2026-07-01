@@ -284,7 +284,7 @@ func _exit_tree() -> void:
 
 func _get_property_list() -> Array[Dictionary]:
 	# Dynamic properties coming from the shader
-	var props := []
+	var props : Array[Dictionary] = []
 	if _material != null:
 		var shader_params = _material.shader.get_shader_uniform_list(true)
 		for p in shader_params:
