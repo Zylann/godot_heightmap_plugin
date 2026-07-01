@@ -43,6 +43,7 @@ For a more detailed list of past and incoming changes, see the commit history.
 - Fixed detail layers not culling properly after changing terrain resolution in the editor (issue #483)
 - Fixed missing class prefix which caused the plugin to fail loading if a `class_name Chunk` already exists anywhere in the project
 - Fixed assigning a new empty custom shader to `HTerrainDetailLayer` was making grass disappear despite default code being loaded (#502)
+- Fixed switching scene tabs in editor and exiting/entering tree was making `HTerrainDetailLayer` disappear (#503)
 
 
 1.7.2
