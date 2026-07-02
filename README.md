@@ -14,6 +14,15 @@ To get the last version that supported Godot 3.0.6, checkout [branch `0.10`](htt
 To get the last version that supported Godot 3.x, checkout [branch `godot3`](https://github.com/Zylann/godot_heightmap_plugin/tree/godot3) (no longer maintained)
 
 
+Disclaimer
+-----------
+
+This plugin is not in "active" development.
+I wouldn't say it's dead, but as a matter of fact, I no longer work on features, and only do bug fixes these days.
+It is my first relatively big plugin, starting in Godot 2, and got to know better the editor APIs with it. But I have other projects now, so my free time is used elsewhere.
+The plugin should be stable though, and may be useful to learn from.
+
+
 Installation
 --------------
 
