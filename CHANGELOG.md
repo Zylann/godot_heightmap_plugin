@@ -8,42 +8,53 @@ For a more detailed list of past and incoming changes, see the commit history.
 1.7.3 (dev)
 --------------
 
-- Added more explicit image format check before `update_collider` is called
-- Used absolute path in shader #includes, so forking doesn't fail to find them by default
-- Added `HTerrainData.reload` function to allow reloading a terrain while the game is running (after saving in the editor)
-- Update properties in the inspector when a custom shader is modified
-- Added support for importing and exporting 32-bit raw files
-- Allow to set brush size and opacity size with spinboxes (thanks to Vercix)
-- Exposed specular parameter in ground shaders
-- Save terrain data immediately when assigning a new `data_directory` (attempt to workaround random saving issue #232)
-- Updated name detection in the texture import dialog to work better with AmbientCG and PolyHaven (thanks to GustJc)
-- Optimized `HTerrainDetailLayer` process function by updating chunks when needed and spreading calculations over time
-- Changed detail layers format to `L8`. Before it was `R8` but that is handled inefficiently by `save_png` and Godot's import pipeline. It kept using `RGB8` which consumed more memory and printed a "Will be converted" warning.
-- Added shortcut widget to change brush size and opacity with hotkeys G and H (thanks to GustJc, PR #470)
-- Exposed property to set the PhysicsMaterial of the heightmap's static body
-- Added random seed options to `HTerrainDetailLayer`
-- Some of the tools now reverse/erase when holding shift (raise, lower, color, holes, details)
-- Fixed brush cursor looked off-center at close range when using tiny brush sizes
-- Fixed error when trying to change `TextureSet` mode while it has textures in it
-- Fixed shader parameters not displaying the right value in the inspector until they are set by the user at least once
-- Fixed `lod_scale` property getter was always returning 2 instead of the last set value
-- Fixed LOD chunks sometimes overlapping when the heightmap is modified (issue #411)
-- Fixed detail layers were rendering repeating instances outside the terrain when `map_scale` is not 1.0
-- Fixed detail layers were not rendering correctly when terrain is in centered mode
-- Fixed texture import dialog was opening a very tall window (issue #423)
-- Fixed detail layers "lines" showing on top of grass quads when MSAA is enabled
-- Fixed detail layer chunks disappearing unexpectedly when `map_scale` is very large
-- Fixed wrong density map when redoing the addition of a density map (undo/redo)
-- Fixed `Image.load` warnings in the editor (thanks to GustJc)
-- Fixed detail layers rendering one chunk beyond positive edges of the terrain
-- Fixed rare pixel artifacts at the horizon or shallow angles, causing flashes when bloom is enabled (might slightly affect performance though, see https://github.com/Zylann/godot_heightmap_plugin/issues/469)
-- Fixed (hopefully) error where resources are sometimes not able to load after importing with the texture tool
-- Fixed detail layers temporarily disappearing or having wrong culling AABB after doing tall height edits in the editor
-- Fixed detail layers remaining visible when a parent node is hidden (PR #482)
-- Fixed detail layers not culling properly after changing terrain resolution in the editor (issue #483)
-- Fixed missing class prefix which caused the plugin to fail loading if a `class_name Chunk` already exists anywhere in the project
-- Fixed assigning a new empty custom shader to `HTerrainDetailLayer` was making grass disappear despite default code being loaded (#502)
-- Fixed switching scene tabs in editor and exiting/entering tree was making `HTerrainDetailLayer` disappear (#503)
+## Improvements
+
+- Base terrain:
+	- Added more explicit image format check before `update_collider` is called
+	- Used absolute path in shader #includes, so forking doesn't fail to find them by default
+	- Added `HTerrainData.reload` function to allow reloading a terrain while the game is running (after saving in the editor)
+	- Update properties in the inspector when a custom shader is modified
+	- Added support for importing and exporting 32-bit raw files
+	- Exposed specular parameter in ground shaders
+	- Exposed property to set the PhysicsMaterial of the heightmap's static body
+- Detail layers:
+	- Optimized `HTerrainDetailLayer` process function by updating chunks when needed and spreading calculations over time
+	- Changed detail layers format to `L8`. Before it was `R8` but that is handled inefficiently by `save_png` and Godot's import pipeline. It kept using `RGB8` which consumed more memory and printed a "Will be converted" warning.
+	- Added random seed options to `HTerrainDetailLayer`
+- Editor:
+	- Allow to set brush size and opacity size with spinboxes (thanks to Vercix)
+	- Save terrain data immediately when assigning a new `data_directory` (attempt to workaround random saving issue #232)
+	- Updated name detection in the texture import dialog to work better with AmbientCG and PolyHaven (thanks to GustJc)
+	- Added shortcut widget to change brush size and opacity with hotkeys G and H (thanks to GustJc, PR #470)
+	- Some of the tools now reverse/erase when holding shift (raise, lower, color, holes, details)
+
+## Fixes
+
+- Base terrain:
+	- Fixed `lod_scale` property getter was always returning 2 instead of the last set value
+	- Fixed LOD chunks sometimes overlapping when the heightmap is modified (issue #411)
+	- Fixed rare pixel artifacts at the horizon or shallow angles, causing flashes when bloom is enabled (might slightly affect performance though, see https://github.com/Zylann/godot_heightmap_plugin/issues/469)
+	- Fixed missing class prefix which caused the plugin to fail loading if a `class_name Chunk` already exists anywhere in the project
+- Detail layers:
+	- Fixed detail layers were rendering repeating instances outside the terrain when `map_scale` is not 1.0
+	- Fixed detail layers were not rendering correctly when terrain is in centered mode
+	- Fixed detail layers "lines" showing on top of grass quads when MSAA is enabled
+	- Fixed detail layer chunks disappearing unexpectedly when `map_scale` is very large
+	- Fixed detail layers rendering one chunk beyond positive edges of the terrain
+	- Fixed detail layers remaining visible when a parent node is hidden (PR #482)
+- Editor:
+	- Fixed brush cursor looked off-center at close range when using tiny brush sizes
+	- Fixed error when trying to change `TextureSet` mode while it has textures in it
+	- Fixed shader parameters not displaying the right value in the inspector until they are set by the user at least once
+	- Fixed texture import dialog was opening a very tall window (issue #423)
+	- Fixed wrong density map when redoing the addition of a density map (undo/redo)
+	- Fixed `Image.load` warnings in the editor (thanks to GustJc)
+	- Fixed (hopefully) error where resources are sometimes not able to load after importing with the texture tool
+	- Fixed detail layers temporarily disappearing or having wrong culling AABB after doing tall height edits in the editor
+	- Fixed detail layers not culling properly after changing terrain resolution in the editor (issue #483)
+	- Fixed assigning a new empty custom shader to `HTerrainDetailLayer` was making grass disappear despite default code being loaded (#502)
+	- Fixed switching scene tabs in editor and exiting/entering tree was making `HTerrainDetailLayer` disappear (#503)
 
 
 1.7.2
