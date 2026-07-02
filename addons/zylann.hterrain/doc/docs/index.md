@@ -22,7 +22,7 @@ This written doc should be the most up to date and precise information, but vide
 
 ### How to install
 
-You will need to use Godot 4.1 or later.
+You will need to use Godot 4.6 or later.
 
 To get the last version that supported Godot 3.x, checkout the `godot3` branch in the Git repository.
 
