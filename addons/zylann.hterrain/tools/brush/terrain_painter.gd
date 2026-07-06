@@ -200,7 +200,7 @@ func commit() -> Dictionary:
 		
 		var cs := get_undo_chunk_size()
 		for pos in info.chunk_positions:
-			var rect = Rect2(pos * cs, Vector2(cs, cs))
+			var rect := Rect2i(pos * cs, Vector2i(cs, cs))
 			# This will update vertical bounds and notify normal map baker,
 			# since the latter updates out of order for preview
 			terrain_data.notify_region_change(rect, mm.map_type, mm.map_index, false, true)
@@ -305,7 +305,7 @@ func paint_input(position: Vector2, pressure: float, shift_pressed: bool) -> boo
 	return true
 
 
-func _on_painter_texture_region_changed(rect: Rect2, painter_index: int) -> void:
+func _on_painter_texture_region_changed(rect: Rect2i, painter_index: int) -> void:
 	var data := _terrain.get_data()
 	if data == null:
 		return

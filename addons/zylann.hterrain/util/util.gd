@@ -585,3 +585,25 @@ static func get_shader_material_parameter(
 		if shader != null:
 			v = RenderingServer.shader_get_parameter_default(shader.get_rid(), param_name)
 	return v
+
+
+static func floordiv(x: int, d: int) -> int:
+	assert(d > 0)
+	if x < 0:
+		return (x - d + 1) / d
+	return x / d
+
+
+static func ceildiv(x: int, d: int) -> int:
+	assert(d > 0);
+	if x < 0:
+		return (x - d + 1) / d
+	return x / d
+
+
+static func floordiv_vec2i_int(v: Vector2i, d: int) -> Vector2i:
+	return Vector2i(floordiv(v.x, d), floordiv(v.y, d))
+
+
+static func ceildiv_vec2i_int(v: Vector2i, d: int) -> Vector2i:
+	return Vector2i(ceildiv(v.x, d), ceildiv(v.y, d))

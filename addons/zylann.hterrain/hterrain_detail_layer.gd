@@ -577,7 +577,7 @@ func on_heightmap_region_changed(rect: Rect2i) -> void:
 	
 	# The AABB of existing chunks may change
 	var cmin: Vector2i = rect.position / CHUNK_SIZE
-	var cmax: Vector2i = ceildiv_vec2i_int(rect.end, CHUNK_SIZE)
+	var cmax: Vector2i = HT_Util.ceildiv_vec2i_int(rect.end, CHUNK_SIZE)
 	for cz in range(cmin.y, cmax.y):
 		for cx in range(cmin.x, cmax.x):
 			var cpos := Vector2i(cx, cz)
@@ -598,17 +598,6 @@ func _reset_chunks() -> void:
 	_prev_frame_cmin = Vector3i()
 	_prev_frame_cmax = Vector3i()
 	_pending_chunk_updates.clear()
-
-
-static func ceildiv(x: int, d: int) -> int:
-	assert(d > 0);
-	if x < 0:
-		return (x - d + 1) / d
-	return x / d
-
-
-static func ceildiv_vec2i_int(v: Vector2i, d: int) -> Vector2i:
-	return Vector2i(ceildiv(v.x, d), ceildiv(v.y, d))
 
 
 func _process_pending_updates(terrain, local_viewer_pos: Vector3) -> void:

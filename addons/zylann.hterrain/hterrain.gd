@@ -954,12 +954,10 @@ func _reset_ground_chunks() -> void:
 	_mesher.configure(_chunk_size, _chunk_size, _lodder.get_lod_count())
 
 
-func _on_data_region_changed(min_x, min_y, size_x, size_y, channel) -> void:
+func _on_data_region_changed(rect: Rect2i, channel: int) -> void:
 	# Testing only heights because it's the only channel that can impact geometry and LOD
 	if channel == HTerrainData.CHANNEL_HEIGHT:
-		set_area_dirty(min_x, min_y, size_x, size_y)
-		
-		var rect := Rect2i(min_x, min_y, size_x, size_y)
+		set_area_dirty(rect)
 		
 		# WARNING: there can be other instances of the SAME terrain outside the scene tree,
 		# for example if you edit a terrain in focused scene A, while an instance of A is
@@ -1439,16 +1437,11 @@ func _add_chunk_update(chunk: HTerrainChunk, pos_x: int, pos_y: int, lod: int) -
 
 
 # Used when editing an existing terrain
-func set_area_dirty(
-	origin_in_cells_x: int,
-	origin_in_cells_y: int,
-	size_in_cells_x: int,
-	size_in_cells_y: int
-) -> void:
-	var cpos0_x := origin_in_cells_x / _chunk_size
-	var cpos0_y := origin_in_cells_y / _chunk_size
-	var csize_x := (size_in_cells_x - 1) / _chunk_size + 1
-	var csize_y := (size_in_cells_y - 1) / _chunk_size + 1
+func set_area_dirty(rect_pixels: Rect2i) -> void:
+	var cpos0_x := rect_pixels.position.x / _chunk_size
+	var cpos0_y := rect_pixels.position.y / _chunk_size
+	var csize_x := (rect_pixels.size.x - 1) / _chunk_size + 1
+	var csize_y := (rect_pixels.size.y - 1) / _chunk_size + 1
 
 	# For each lod
 	for lod in _lodder.get_lod_count():

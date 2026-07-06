@@ -32,7 +32,7 @@ const _API_SHADER_PARAMS = [
 # Emitted when a region of the painted texture actually changed.
 # Note 1: the image might not have changed yet at this point.
 # Note 2: the user could still be in the middle of dragging the brush.
-signal texture_region_changed(rect)
+signal texture_region_changed(rect: Rect2i)
 
 # Godot doesn't support 32-bit float rendering, so painting is limited to 16-bit depth.
 # We should get this in Godot 4.0, either as Compute or renderer improvement
@@ -310,7 +310,7 @@ func _process(delta: float) -> void:
 			_mark_modified_chunks(dst_x, dst_y, src_w, src_h)
 			HT_Util.update_texture_partial(_texture, viewport_image,
 				Rect2i(src_x, src_y, src_w, src_h), Vector2i(dst_x, dst_y))
-			texture_region_changed.emit(Rect2(dst_x, dst_y, src_w, src_h))
+			texture_region_changed.emit(Rect2i(dst_x, dst_y, src_w, src_h))
 	
 	# Input is handled just before process, so we still have to wait till next frame
 	if _cmd_paint:

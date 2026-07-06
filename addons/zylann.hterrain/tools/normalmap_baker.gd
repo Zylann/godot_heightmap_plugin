@@ -121,7 +121,7 @@ func _process(_unused_delta: float) -> void:
 		var w := src.get_width() - 1
 		var h := src.get_height() - 1
 		dst.blit_rect(src, Rect2i(1, 1, w, h), pos)
-		_terrain_data.notify_region_change(Rect2(pos.x, pos.y, w, h), HTerrainData.CHANNEL_NORMAL)
+		_terrain_data.notify_region_change(Rect2i(pos.x, pos.y, w, h), HTerrainData.CHANNEL_NORMAL)
 		
 		if _pending_tiles_grid[_processing_tile] == STATE_PROCESSING:
 			_pending_tiles_grid.erase(_processing_tile)

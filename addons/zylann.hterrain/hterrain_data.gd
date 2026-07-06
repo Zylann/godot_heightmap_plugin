@@ -160,7 +160,7 @@ const META_FILENAME = "data.hterrain"
 const META_VERSION = "0.11"
 
 signal resolution_changed
-signal region_changed(x, y, w, h, channel)
+signal region_changed(rect: Rect2i, channel: int)
 signal map_added(type, index)
 signal map_removed(type, index)
 signal map_changed(type, index)
@@ -521,7 +521,7 @@ func get_all_heights() -> PackedFloat32Array:
 #     if the modified map is the heightmap, vertical bounds will be updated.
 #
 func notify_region_change(
-	p_rect: Rect2,
+	p_rect: Rect2i,
 	p_map_type: int,
 	p_index := 0,
 	p_upload_to_texture := true,
@@ -529,21 +529,16 @@ func notify_region_change(
 ) -> void:
 	assert(p_map_type >= 0 and p_map_type < CHANNEL_COUNT)
 	
-	var min_x := int(p_rect.position.x)
-	var min_y := int(p_rect.position.y)
-	var size_x := int(p_rect.size.x)
-	var size_y := int(p_rect.size.y)
-	
 	if p_map_type == CHANNEL_HEIGHT and p_update_vertical_bounds:
 		assert(p_index == 0)
-		_update_vertical_bounds(min_x, min_y, size_x, size_y)
+		update_vertical_bounds(p_rect)
 	
 	if p_upload_to_texture:
-		_upload_region(p_map_type, p_index, min_x, min_y, size_x, size_y)
+		_upload_region(p_map_type, p_index, p_rect)
 	
 	_maps[p_map_type][p_index].modified = true
 
-	region_changed.emit(min_x, min_y, size_x, size_y, p_map_type)
+	region_changed.emit(p_rect, p_map_type)
 	changed.emit()
 
 
@@ -554,7 +549,7 @@ func notify_full_change() -> void:
 			continue
 		var maps = _maps[maptype]
 		for index in len(maps):
-			notify_region_change(Rect2(0, 0, _resolution, _resolution), maptype, index)
+			notify_region_change(Rect2i(0, 0, _resolution, _resolution), maptype, index)
 
 
 func _edit_set_disable_apply_undo(e: bool) -> void:
@@ -614,7 +609,10 @@ func _edit_apply_undo(undo_data: Dictionary, image_cache: HT_ImageFileCache) -> 
 			# Defer this to a second pass,
 			# otherwise it causes order-dependent artifacts on the normal map
 			regions_changed.append([
-				Rect2(min_x, min_y, max_x - min_x, max_y - min_y), map_type, map_index])
+				Rect2i(min_x, min_y, max_x - min_x, max_y - min_y),
+				map_type,
+				map_index
+			])
 
 		for args in regions_changed:
 			notify_region_change(args[0], args[1], args[2])
@@ -656,17 +654,10 @@ func _edit_apply_maps_from_file_cache(
 
 
 func _upload_channel(channel: int, index: int) -> void:
-	_upload_region(channel, index, 0, 0, _resolution, _resolution)
+	_upload_region(channel, index, Rect2i(0, 0, _resolution, _resolution))
 
 
-func _upload_region(
-	channel: int, 
-	index: int, 
-	min_x: int, 
-	min_y: int, 
-	size_x: int, 
-	size_y: int
-) -> void:
+func _upload_region(channel: int, index: int, rect_pixels: Rect2i) -> void:
 	#_logger.debug("Upload ", min_x, ", ", min_y, ", ", size_x, "x", size_y)
 	#var time_before = OS.get_ticks_msec()
 
@@ -674,18 +665,11 @@ func _upload_region(
 
 	var image := map.image
 	assert(image != null)
-	assert(size_x > 0 and size_y > 0)
+	assert(rect_pixels.size.x > 0 and rect_pixels.size.y > 0)
 
 	# TODO Actually, I think the input params should be valid in the first place...
-	if min_x < 0:
-		min_x = 0
-	if min_y < 0:
-		min_y = 0
-	if min_x + size_x > image.get_width():
-		size_x = image.get_width() - min_x
-	if min_y + size_y > image.get_height():
-		size_y = image.get_height() - min_y
-	if size_x <= 0 or size_y <= 0:
+	rect_pixels = rect_pixels.intersection(Rect2i(Vector2i(), image.get_size()))
+	if rect_pixels.size.x <= 0 or rect_pixels.size.y <= 0:
 		return
 
 	var texture := map.texture
@@ -720,8 +704,7 @@ func _upload_region(
 		map_changed.emit(channel, index)
 
 	else:
-		HT_Util.update_texture_partial(texture, image,
-			Rect2i(min_x, min_y, size_x, size_y), Vector2i(min_x, min_y))
+		HT_Util.update_texture_partial(texture, image, rect_pixels, rect_pixels.position)
 
 	#_logger.debug(str("Channel updated ", channel))
 
@@ -914,63 +897,41 @@ func _update_all_vertical_bounds() -> void:
 	var csize_y := _resolution / VERTICAL_BOUNDS_CHUNK_SIZE
 	_logger.debug(str("Updating all vertical bounds... (", csize_x, "x", csize_y, " chunks)"))
 	_chunked_vertical_bounds = Image.create(csize_x, csize_y, false, Image.FORMAT_RGF)
-	_update_vertical_bounds(0, 0, _resolution - 1, _resolution - 1)
+	update_vertical_bounds(Rect2i(0, 0, _resolution - 1, _resolution - 1))
 
 
-func update_vertical_bounds(p_rect: Rect2) -> void:
-	var min_x := int(p_rect.position.x)
-	var min_y := int(p_rect.position.y)
-	var size_x := int(p_rect.size.x)
-	var size_y := int(p_rect.size.y)
-
-	_update_vertical_bounds(min_x, min_y, size_x, size_y)
-
-
-func _update_vertical_bounds(
-	origin_in_cells_x: int, 
-	origin_in_cells_y: int,
-	size_in_cells_x: int, 
-	size_in_cells_y: int
-) -> void:
-	var cmin_x := origin_in_cells_x / VERTICAL_BOUNDS_CHUNK_SIZE
-	var cmin_y := origin_in_cells_y / VERTICAL_BOUNDS_CHUNK_SIZE
-
-	var cmax_x := (origin_in_cells_x + size_in_cells_x - 1) / VERTICAL_BOUNDS_CHUNK_SIZE + 1
-	var cmax_y := (origin_in_cells_y + size_in_cells_y - 1) / VERTICAL_BOUNDS_CHUNK_SIZE + 1
-
-	cmin_x = clampi(cmin_x, 0, _chunked_vertical_bounds.get_width() - 1)
-	cmin_y = clampi(cmin_y, 0, _chunked_vertical_bounds.get_height() - 1)
-	cmax_x = clampi(cmax_x, 0, _chunked_vertical_bounds.get_width())
-	cmax_y = clampi(cmax_y, 0, _chunked_vertical_bounds.get_height())
+func update_vertical_bounds(rect_pixels: Rect2i) -> void:
+	var cmin := HT_Util.floordiv_vec2i_int(rect_pixels.position, VERTICAL_BOUNDS_CHUNK_SIZE)
+	var cmax := HT_Util.ceildiv_vec2i_int(rect_pixels.end, VERTICAL_BOUNDS_CHUNK_SIZE)
+	
+	cmin.x = clampi(cmin.x, 0, _chunked_vertical_bounds.get_width() - 1)
+	cmin.y = clampi(cmin.y, 0, _chunked_vertical_bounds.get_height() - 1)
+	cmax.x = clampi(cmax.x, 0, _chunked_vertical_bounds.get_width())
+	cmax.y = clampi(cmax.y, 0, _chunked_vertical_bounds.get_height())
 
 	# Note: chunks in _chunked_vertical_bounds share their edge cells and
 	# have an actual size of chunk size + 1.
 	var chunk_size_x := VERTICAL_BOUNDS_CHUNK_SIZE + 1
 	var chunk_size_y := VERTICAL_BOUNDS_CHUNK_SIZE + 1
 	
-	for y in range(cmin_y, cmax_y):
+	for y in range(cmin.y, cmax.y):
 		var pmin_y := y * VERTICAL_BOUNDS_CHUNK_SIZE
 
-		for x in range(cmin_x, cmax_x):
+		for x in range(cmin.x, cmax.x):
 			var pmin_x := x * VERTICAL_BOUNDS_CHUNK_SIZE
-			var b = _compute_vertical_bounds_at(pmin_x, pmin_y, chunk_size_x, chunk_size_y)
+			var b = _compute_vertical_bounds_at(Rect2i(pmin_x, pmin_y, chunk_size_x, chunk_size_y))
 			_chunked_vertical_bounds.set_pixel(x, y, Color(b.x, b.y, 0))
 
 
-func _compute_vertical_bounds_at(
-	origin_x: int, 
-	origin_y: int, 
-	size_x: int, 
-	size_y: int
-) -> Vector2:
+func _compute_vertical_bounds_at(rect_pixels: Rect2i) -> Vector2:
 	var heights := get_image(CHANNEL_HEIGHT)
 	assert(heights != null)
 	match heights.get_format():
 		Image.FORMAT_RF, \
 		Image.FORMAT_RH:
-			return _get_heights_range_f(heights, Rect2i(origin_x, origin_y, size_x, size_y))
+			return _get_heights_range_f(heights, rect_pixels)
 		Image.FORMAT_RGB8:
-			return _get_heights_range_rgb8(heights, Rect2i(origin_x, origin_y, size_x, size_y))
+			return _get_heights_range_rgb8(heights, rect_pixels)
 		_:
 			_logger.error(str("Unknown heightmap format ", heights.get_format()))
 			return Vector2()
@@ -1744,7 +1705,7 @@ func _import_heightmap(
 	_locked = false
 
 	_logger.debug("Notify region change...")
-	notify_region_change(Rect2(0, 0, get_resolution(), get_resolution()), CHANNEL_HEIGHT)
+	notify_region_change(Rect2i(0, 0, get_resolution(), get_resolution()), CHANNEL_HEIGHT)
 
 	return true
 
@@ -1768,7 +1729,7 @@ func _import_map(map_type: int, path: String) -> bool:
 	var map: HTerrainDataMap = _maps[map_type][0]
 	map.image = im
 
-	notify_region_change(Rect2(0, 0, im.get_width(), im.get_height()), map_type)
+	notify_region_change(Rect2i(0, 0, im.get_width(), im.get_height()), map_type)
 	return true
 
 

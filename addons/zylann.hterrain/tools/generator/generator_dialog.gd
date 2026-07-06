@@ -517,7 +517,7 @@ func _on_TextureGenerator_completed() -> void:
 	assert(_terrain != null)
 	var data : HTerrainData = _terrain.get_data()
 	var resolution := data.get_resolution()
-	data.notify_region_change(Rect2(0, 0, resolution, resolution), HTerrainData.CHANNEL_HEIGHT)
+	data.notify_region_change(Rect2i(0, 0, resolution, resolution), HTerrainData.CHANNEL_HEIGHT)
 
 	var redo_map_ids := {}
 	for map_type in _undo_map_ids:

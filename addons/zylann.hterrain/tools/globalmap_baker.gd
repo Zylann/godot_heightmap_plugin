@@ -160,7 +160,7 @@ func _finish() -> void:
 	assert(data != null)
 	var dst := data.get_image(HTerrainData.CHANNEL_GLOBAL_ALBEDO)
 	
-	data.notify_region_change(Rect2(0, 0, dst.get_width(), dst.get_height()), 
+	data.notify_region_change(Rect2i(0, 0, dst.get_width(), dst.get_height()), 
 		HTerrainData.CHANNEL_GLOBAL_ALBEDO)
 	permanent_change_performed.emit("Bake globalmap")
 	
