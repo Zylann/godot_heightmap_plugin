@@ -54,10 +54,10 @@ func _update_list() -> void:
 		return
 	
 	var layer_nodes = _terrain.get_detail_layers()
-	var layer_nodes_by_index := {}
+	var layer_nodes_by_index : Dictionary[int, PackedStringArray] = {}
 	for layer in layer_nodes:
 		if not layer_nodes_by_index.has(layer.layer_index):
-			layer_nodes_by_index[layer.layer_index] = []
+			layer_nodes_by_index[layer.layer_index] = PackedStringArray()
 		layer_nodes_by_index[layer.layer_index].append(layer.name)
 
 	var data = _terrain.get_data()
@@ -73,7 +73,7 @@ func _update_list() -> void:
 			
 			if layer_nodes_by_index.has(i):
 				# TODO How to keep names updated with node names?
-				var names := ", ".join(PackedStringArray(layer_nodes_by_index[i]))
+				var names := ", ".join(layer_nodes_by_index[i])
 				if len(names) == 1:
 					_item_list.set_item_tooltip(i, "Used by " + names)
 				else:

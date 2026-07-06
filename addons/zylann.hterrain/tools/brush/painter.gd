@@ -78,8 +78,8 @@ var _image : Image
 var _texture : ImageTexture
 var _cmd_paint := false
 var _pending_paint_render := false
-var _modified_chunks := {}
-var _modified_shader_params := {}
+var _modified_chunks : Dictionary[Vector2i, bool] = {}
+var _modified_shader_params : Dictionary[String, bool] = {}
 
 var _debug_display : TextureRect
 var _logger = HT_Logger.get_for(self)
@@ -331,7 +331,7 @@ func _mark_modified_chunks(bx: int, by: int, bw: int, bh: int) -> void:
 	for cy in range(cmin_y, cmax_y):
 		for cx in range(cmin_x, cmax_x):
 			#print("Marking chunk ", Vector2(cx, cy))
-			_modified_chunks[Vector2(cx, cy)] = true
+			_modified_chunks[Vector2i(cx, cy)] = true
 
 
 func _commit_modified_chunks() -> Dictionary:
@@ -347,11 +347,8 @@ func _commit_modified_chunks() -> Dictionary:
 	# TODO get_data_partial() would be nice...
 	var final_image := _texture.get_image()
 	for cpos in _modified_chunks:
-		var cx : int = cpos.x
-		var cy : int = cpos.y
-		
-		var x := cx * cs
-		var y := cy * cs
+		var x := cpos.x * cs
+		var y := cpos.y * cs
 		var w : int = mini(cs, _image.get_width() - x)
 		var h : int = mini(cs, _image.get_height() - y)
 		

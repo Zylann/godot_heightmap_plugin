@@ -1074,7 +1074,7 @@ func _update_material_params() -> void:
 	assert(_material != null)
 	_logger.debug("Updating terrain material params")
 	
-	var terrain_textures := {}
+	var terrain_textures : Dictionary[String, Texture2D] = {}
 	var res := Vector2(-1, -1)
 	
 	var lookdev_material: ShaderMaterial
@@ -1108,7 +1108,7 @@ func _update_material_params() -> void:
 			lookdev_material.set_shader_parameter(SHADER_PARAM_NORMAL_BASIS, normal_basis)
 	
 	for param_name in terrain_textures:
-		var tex = terrain_textures[param_name]
+		var tex := terrain_textures[param_name]
 		_material.set_shader_parameter(param_name, tex)
 		if lookdev_material != null:
 			lookdev_material.set_shader_parameter(param_name, tex)
@@ -1170,9 +1170,14 @@ func is_using_indexed_splatmap() -> bool:
 	return _is_using_indexed_splatmap
 
 
-static func _get_common_shader_params(shader1: Shader, shader2: Shader) -> Array:
-	var shader1_param_names := {}
-	var common_params := []
+static func _get_common_shader_params(shader1: Shader, shader2: Shader) -> PackedStringArray:
+	var shader1_param_names : Dictionary[String, bool] = {}
+	var common_params := PackedStringArray()
+	
+	# Note: unfortunately Godot gives us `String` for parameter names, not `StringName`.
+	# The consequence is that later on there will be StringName conversions.
+	# https://github.com/godotengine/godot/blob/f5af32893ba3774235b5d3c570d8433d079a4b82/core/
+	# object/property_info.h#L126
 	
 	var shader1_params := RenderingServer.get_shader_parameter_list(shader1.get_rid())
 	var shader2_params := RenderingServer.get_shader_parameter_list(shader2.get_rid())
@@ -1194,7 +1199,7 @@ func setup_globalmap_material(mat: ShaderMaterial) -> void:
 		_logger.error("Could not find a shader to use for baking the global map.")
 		return
 	# Copy all parameters shaders have in common
-	var common_params = _get_common_shader_params(mat.shader, _material.shader)
+	var common_params := _get_common_shader_params(mat.shader, _material.shader)
 	for param_name in common_params:
 		var v = _material.get_shader_parameter(param_name)
 		mat.set_shader_parameter(param_name, v)
