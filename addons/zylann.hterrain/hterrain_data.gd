@@ -166,29 +166,11 @@ signal map_removed(type, index)
 signal map_changed(type, index)
 
 
-# A map is a texture covering the terrain.
-# The usage of a map depends on its type (heightmap, normalmap, splatmap...).
-class HT_Map:
-	var texture: Texture2D
-	# Reference used in case we need the data CPU-side
-	var image: Image
-	# ID used for saving, because when adding/removing maps,
-	# we shouldn't rename texture files just because the indexes change.
-	# This is mostly for internal keeping.
-	# The API still uses indexes that may shift if your remove a map.
-	var id := -1
-	# Should be set to true if the map has unsaved modifications.
-	var modified := true
-
-	func _init(p_id: int):
-		id = p_id
-
-
 var _resolution := 0
 
 # There can be multiple maps of the same type, though most of them are single
-# [map_type][instance_index] => map
-var _maps := [[]]
+# Array[Array[HTerrainDataMap]]
+var _maps : Array[Array] = [[]]
 
 # RGF image where R is min height and G is max height
 var _chunked_vertical_bounds := Image.new()
@@ -210,7 +192,7 @@ func _set_default_maps() -> void:
 		var maps := []
 		var n: int = _map_types[c].default_count
 		for i in n:
-			maps.append(HT_Map.new(i))
+			maps.append(HTerrainDataMap.new(i))
 		_maps[c] = maps
 
 
@@ -298,7 +280,7 @@ func resize(p_res: int, stretch := true, anchor := Vector2(-1, -1)) -> void:
 		for index in len(maps):
 			_logger.debug(str("Resizing ", get_map_debug_name(channel, index), "..."))
 
-			var map: HT_Map = maps[index]
+			var map: HTerrainDataMap = maps[index]
 			var im := map.image
 
 			if im == null:
@@ -476,7 +458,7 @@ func check_images() -> void:
 		var map_list: Array = _maps[map_type]
 
 		for map_index in map_list.size():
-			var map: HT_Map = map_list[map_index]
+			var map: HTerrainDataMap = map_list[map_index]
 			var im := map.image
 
 			if im == null:
@@ -688,7 +670,7 @@ func _upload_region(
 	#_logger.debug("Upload ", min_x, ", ", min_y, ", ", size_x, "x", size_y)
 	#var time_before = OS.get_ticks_msec()
 
-	var map: HT_Map = _maps[channel][index]
+	var map: HTerrainDataMap = _maps[channel][index]
 
 	var image := map.image
 	assert(image != null)
@@ -771,7 +753,7 @@ func _edit_add_map(map_type: int) -> int:
 	while map_type >= len(_maps):
 		_maps.append([])
 	var maps: Array = _maps[map_type]
-	var map := HT_Map.new(_get_free_id(map_type))
+	var map := HTerrainDataMap.new(_get_free_id(map_type))
 	map.image = Image.create(_resolution, _resolution, false, get_channel_format(map_type))
 	var index := maps.size()
 	var default_color = _get_map_default_fill_color(map_type, index)
@@ -796,7 +778,7 @@ func _edit_insert_map_from_image_cache(
 	while map_type >= len(_maps):
 		_maps.append([])
 	var maps: Array = _maps[map_type]
-	var map := HT_Map.new(_get_free_id(map_type))
+	var map := HTerrainDataMap.new(_get_free_id(map_type))
 	map.image = image_cache.load_image(image_id)
 	maps.insert(index, map)
 	map_added.emit(map_type, index)
@@ -818,7 +800,7 @@ func _get_free_id(map_type: int) -> int:
 	return id
 
 
-func _get_map_by_id(map_type: int, id: int) -> HT_Map:
+func _get_map_by_id(map_type: int, id: int) -> HTerrainDataMap:
 	var maps: Array = _maps[map_type]
 	for map in maps:
 		if map.id == id:
@@ -828,7 +810,7 @@ func _get_map_by_id(map_type: int, id: int) -> HT_Map:
 
 func get_image(map_type: int, index := 0) -> Image:
 	var maps: Array = _maps[map_type]
-	var map: HT_Map = maps[index]
+	var map: HTerrainDataMap = maps[index]
 	return map.image
 
 
@@ -836,7 +818,7 @@ func get_texture(map_type: int, index := 0, writable := false) -> Texture2D:
 	# TODO Split into `get_texture` and `get_writable_texture`?
 	
 	var maps: Array = _maps[map_type]
-	var map: HT_Map = maps[index]
+	var map: HTerrainDataMap = maps[index]
 
 	if map.image != null:
 		if map.texture == null:
@@ -1052,7 +1034,7 @@ func save_data(data_dir: String) -> bool:
 		var maps: Array = _maps[map_type]
 
 		for index in len(maps):
-			var map: HT_Map = maps[index]
+			var map: HTerrainDataMap = maps[index]
 			if not map.modified:
 				_logger.debug(str(
 					"Skipping non-modified ", get_map_debug_name(map_type, index)))
@@ -1120,7 +1102,7 @@ func _serialize_metadata() -> Dictionary:
 		var maps_data := []
 
 		for j in range(len(maps)):
-			var map: HT_Map = maps[j]
+			var map: HTerrainDataMap = maps[j]
 			maps_data.append({"id": map.id})
 
 		data[i] = maps_data
@@ -1158,7 +1140,7 @@ func _deserialize_metadata(dict: Dictionary) -> bool:
 			# Cast because the data comes from json, where every number is double
 			var id := int(maps_data[j].id)
 			if map == null:
-				map = HT_Map.new(id)
+				map = HTerrainDataMap.new(id)
 				maps[j] = map
 			else:
 				map.id = id
@@ -1233,7 +1215,7 @@ func get_data_dir() -> String:
 
 
 func _save_map(dir_path: String, map_type: int, index: int) -> bool:
-	var map: HT_Map = _maps[map_type][index]
+	var map: HTerrainDataMap = _maps[map_type][index]
 	var im := map.image
 	if im == null:
 		var tex := map.texture
@@ -1366,7 +1348,7 @@ func _load_map(
 	var fpath := dir.path_join(_get_map_filename(map_type, index))
 
 	# Maps must be configured before being loaded
-	var map: HT_Map = _maps[map_type][index]
+	var map: HTerrainDataMap = _maps[map_type][index]
 	# while len(_maps) <= map_type:
 	# 	_maps.append([])
 	# while len(_maps[map_type]) <= index:
@@ -1783,7 +1765,7 @@ func _import_map(map_type: int, path: String) -> bool:
 	if im.get_format() != get_channel_format(map_type):
 		im.convert(get_channel_format(map_type))
 
-	var map: HT_Map = _maps[map_type][0]
+	var map: HTerrainDataMap = _maps[map_type][0]
 	map.image = im
 
 	notify_region_change(Rect2(0, 0, im.get_width(), im.get_height()), map_type)
