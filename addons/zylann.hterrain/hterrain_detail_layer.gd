@@ -691,7 +691,7 @@ func _process_chunk_update(
 			# Nullify XZ translation because that's done by transform already
 			local_aabb.position.x = 0
 			local_aabb.position.z = 0
-			chunk.mmi.set_aabb(aabb)
+			chunk.mmi.set_aabb(local_aabb)
 
 
 # It would be nice if Godot had "AABB.distance_squared_to(vec3)"...
