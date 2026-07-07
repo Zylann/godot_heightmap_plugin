@@ -856,11 +856,6 @@ func get_region_aabb(
 	size_in_cells_x: int, 
 	size_in_cells_y: int
 ) -> AABB:
-	assert(typeof(origin_in_cells_x) == TYPE_INT)
-	assert(typeof(origin_in_cells_y) == TYPE_INT)
-	assert(typeof(size_in_cells_x) == TYPE_INT)
-	assert(typeof(size_in_cells_y) == TYPE_INT)
-
 	# Get info from cached vertical bounds,
 	# which is a lot faster than directly fetching heights from the map.
 	# It's not 100% accurate, but enough for culling use case if chunk size is decently chosen.
@@ -877,15 +872,15 @@ func get_region_aabb(
 	cmax_y = clampi(cmax_y, 0, _chunked_vertical_bounds.get_height())
 
 	var min_height := _chunked_vertical_bounds.get_pixel(cmin_x, cmin_y).r
-	var max_height = min_height
+	var max_height := min_height
 
 	for y in range(cmin_y, cmax_y):
 		for x in range(cmin_x, cmax_x):
-			var b = _chunked_vertical_bounds.get_pixel(x, y)
+			var b := _chunked_vertical_bounds.get_pixel(x, y)
 			min_height = minf(b.r, min_height)
 			max_height = maxf(b.g, max_height)
 
-	var aabb = AABB()
+	var aabb := AABB()
 	aabb.position = Vector3(origin_in_cells_x, min_height, origin_in_cells_y)
 	aabb.size = Vector3(size_in_cells_x, max_height - min_height, size_in_cells_y)
 
@@ -1324,7 +1319,7 @@ func _load_map(
 	else:
 		fpath += ".res"
 	
-	var tex = ResourceLoader.load(fpath, "", resource_loader_cache_mode)
+	var tex : Resource = ResourceLoader.load(fpath, "", resource_loader_cache_mode)
 	
 	var must_load_image_in_editor := true
 	
