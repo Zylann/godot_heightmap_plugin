@@ -33,8 +33,8 @@ func update_from_pixel_rect(rect_pixels: Rect2i, im: Image) -> void:
 	var cmin := HT_Util.floordiv_vec2i_int(rect_pixels.position, chunk_size)
 	var cmax := HT_Util.ceildiv_vec2i_int(rect_pixels.end, chunk_size)
 	
-	for cy in range(cmin.x, cmax.x):
-		for cx in range(cmin.y, cmax.y):
+	for cy in range(cmin.y, cmax.y):
+		for cx in range(cmin.x, cmax.x):
 			update_chunk(Vector2i(cx, cy), im)
 
 
