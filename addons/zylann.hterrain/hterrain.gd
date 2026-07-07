@@ -1,7 +1,7 @@
 @tool
 extends Node3D
 
-const HT_NativeFactory = preload("./native/factory.gd")
+const HT_QuadTreeLod = preload("./util/quad_tree_lod.gd")
 const HT_Mesher = preload("./hterrain_mesher.gd")
 const HT_Grid = preload("./util/grid.gd")
 const HTerrainData = preload("./hterrain_data.gd")
@@ -209,7 +209,7 @@ var _texture_set_migration_textures = null
 var _data: HTerrainData = null
 
 var _mesher := HT_Mesher.new()
-var _lodder = HT_NativeFactory.get_quad_tree_lod()
+var _lodder := HT_QuadTreeLod.new()
 var _viewer_pos_world := Vector3()
 
 # [lod][z][x] -> chunk
