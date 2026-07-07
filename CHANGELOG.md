@@ -64,6 +64,10 @@ For a more detailed list of past and incoming changes, see the commit history.
 	- Fixed assigning a new empty custom shader to `HTerrainDetailLayer` was making grass disappear despite default code being loaded (#502)
 	- Fixed switching scene tabs in editor and exiting/entering tree was making `HTerrainDetailLayer` disappear (#503)
 
+## Breaking changes
+
+- Dropped support for Godot versions older than 4.6
+
 
 1.7.2
 ------
