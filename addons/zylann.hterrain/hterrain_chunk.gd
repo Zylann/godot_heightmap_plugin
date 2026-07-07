@@ -1,7 +1,6 @@
 @tool
 
-var cell_origin_x := 0
-var cell_origin_y := 0
+var cell_origin := Vector2i()
 
 var _visible : bool
 # This is true when the chunk is meant to be displayed.
@@ -17,14 +16,8 @@ var _mesh : Mesh = null
 
 
 # TODO p_parent is HTerrain, can't add type hint due to cyclic reference
-func _init(p_parent: Node3D, p_cell_x: int, p_cell_y: int, p_material: Material) -> void:
-	assert(p_parent is Node3D)
-	assert(typeof(p_cell_x) == TYPE_INT)
-	assert(typeof(p_cell_y) == TYPE_INT)
-	assert(p_material is Material)
-	
-	cell_origin_x = p_cell_x
-	cell_origin_y = p_cell_y
+func _init(p_parent: Node3D, p_cell_origin: Vector2i, p_material: Material) -> void:
+	cell_origin = p_cell_origin
 
 	var rs := RenderingServer
 
@@ -89,7 +82,7 @@ func exit_world() -> void:
 
 func parent_transform_changed(parent_transform: Transform3D) -> void:
 	assert(_mesh_instance != RID())
-	var local_transform := Transform3D(Basis(), Vector3(cell_origin_x, 0, cell_origin_y))
+	var local_transform := Transform3D(Basis(), Vector3(cell_origin.x, 0, cell_origin.y))
 	var world_transform := parent_transform * local_transform
 	RenderingServer.instance_set_transform(_mesh_instance, world_transform)
 

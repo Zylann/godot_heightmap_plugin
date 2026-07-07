@@ -1383,8 +1383,8 @@ func _update_chunk(chunk: HTerrainChunk, lod: int, p_visible: bool) -> void:
 
 	# Check for my own seams
 	var seams := 0
-	var cpos_x := chunk.cell_origin_x / (_chunk_size << lod)
-	var cpos_y := chunk.cell_origin_y / (_chunk_size << lod)
+	var cpos_x := chunk.cell_origin.x / (_chunk_size << lod)
+	var cpos_y := chunk.cell_origin.y / (_chunk_size << lod)
 	var cpos_lower_x := cpos_x / 2
 	var cpos_lower_y := cpos_y / 2
 
@@ -1473,17 +1473,19 @@ func _cb_make_chunk(cpos_x: int, cpos_y: int, lod: int) -> HTerrainChunk:
 		# This is the first time this chunk is required at this lod, generate it
 		
 		var lod_factor: int = _lodder.get_lod_factor(lod)
-		var origin_in_cells_x := cpos_x * _chunk_size * lod_factor
-		var origin_in_cells_y := cpos_y * _chunk_size * lod_factor
+		var origin_in_cells := Vector2i(
+			cpos_x * _chunk_size * lod_factor,
+			cpos_y * _chunk_size * lod_factor
+		)
 		
-		var material = _material
+		var material := _material
 		if _lookdev_enabled:
 			material = _get_lookdev_material()
 
 		if _DEBUG_AABB:
-			chunk = HTerrainChunkDebug.new(self, origin_in_cells_x, origin_in_cells_y, material)
+			chunk = HTerrainChunkDebug.new(self, origin_in_cells, material)
 		else:
-			chunk = HTerrainChunk.new(self, origin_in_cells_x, origin_in_cells_y, material)
+			chunk = HTerrainChunk.new(self, origin_in_cells, material)
 		chunk.parent_transform_changed(get_internal_transform())
 
 		chunk.set_render_layer_mask(_render_layer_mask)

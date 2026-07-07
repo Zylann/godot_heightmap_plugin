@@ -14,8 +14,8 @@ var _aabb := AABB()
 var _parent_transform := Transform3D()
 
 
-func _init(p_parent: Node3D, p_cell_x: int, p_cell_y: int, p_material: Material) -> void:
-	super(p_parent, p_cell_x, p_cell_y, p_material)
+func _init(p_parent: Node3D, p_cell_origin: Vector2i, p_material: Material) -> void:
+	super(p_parent, p_cell_origin, p_material)
 
 	var wirecube : Mesh
 	if not p_parent.has_meta("debug_wirecube_mesh"):
@@ -62,5 +62,5 @@ func set_aabb(aabb: AABB) -> void:
 
 
 func _compute_aabb() -> Transform3D:
-	var pos = Vector3(cell_origin_x, 0, cell_origin_y)
+	var pos := Vector3(cell_origin.x, 0, cell_origin.y)
 	return _parent_transform * Transform3D(Basis().scaled(_aabb.size), pos + _aabb.position)
