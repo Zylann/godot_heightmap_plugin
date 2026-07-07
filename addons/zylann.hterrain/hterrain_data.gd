@@ -160,7 +160,7 @@ const META_FILENAME = "data.hterrain"
 const META_VERSION = "0.11"
 
 signal resolution_changed
-signal region_changed(rect: Rect2i, channel: int)
+signal region_changed(rect: Rect2i, channel: int, index: int)
 signal map_added(type, index)
 signal map_removed(type, index)
 signal map_changed(type, index)
@@ -526,7 +526,8 @@ func notify_region_change(
 	p_map_type: int,
 	p_index := 0,
 	p_upload_to_texture := true,
-	p_update_vertical_bounds := true
+	p_update_vertical_bounds := true,
+	p_force_some_occupancy := false
 ) -> void:
 	assert(p_map_type >= 0 and p_map_type < CHANNEL_COUNT)
 	
@@ -540,11 +541,17 @@ func notify_region_change(
 	var map : HTerrainDataMap = _maps[p_map_type][p_index]
 	
 	if map.occupancy != null:
-		map.occupancy.update_from_pixel_rect(p_rect, map.image)
+		if p_force_some_occupancy:
+			# While we paint, we force occupancy to assume there are some pixels due to a 
+			# performance compromise done by the Painter.
+			# When painting ends we'll update from the real data
+			map.occupancy.set_state_for_pixel_rect(p_rect, true)
+		else:
+			map.occupancy.update_from_pixel_rect(p_rect, map.image)
 	
 	map.modified = true
 
-	region_changed.emit(p_rect, p_map_type)
+	region_changed.emit(p_rect, p_map_type, p_index)
 	changed.emit()
 
 

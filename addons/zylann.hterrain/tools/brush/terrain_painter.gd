@@ -312,7 +312,11 @@ func _on_painter_texture_region_changed(rect: Rect2i, painter_index: int) -> voi
 	for mm in _modified_maps:
 		if mm.painter_index == painter_index:
 			# This will tell auto-baked maps to update (like normals).
-			data.notify_region_change(rect, mm.map_type, mm.map_index, false, false)
+			# Warning: the GPU texture is updated, but CPU `image` fields in maps are not updated 
+			# while we do a paint stroke! They are only updated when the changes are committed when
+			# we release the mouse. So we can't update CPU stuff at this time yet.
+			# I assume I did it this way to save a bit of performance while we paint?
+			data.notify_region_change(rect, mm.map_type, mm.map_index, false, false, true)
 			break
 
 

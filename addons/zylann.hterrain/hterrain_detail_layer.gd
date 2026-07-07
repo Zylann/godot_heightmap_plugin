@@ -584,6 +584,14 @@ func process(delta: float, viewer_pos: Vector3) -> void:
 
 
 func on_heightmap_region_changed(rect: Rect2i) -> void:
+	_schedule_chunk_updates_in_pixel_region(rect, true)
+
+
+func on_density_region_changed(rect: Rect2i) -> void:
+	_schedule_chunk_updates_in_pixel_region(rect, false)
+
+
+func _schedule_chunk_updates_in_pixel_region(rect: Rect2i, with_aabb : bool) -> void:
 	# Whether chunks should be loaded or not and their AABB may change,
 	# even if the camera didn't move
 	_force_chunk_updates_next_frame = true
@@ -597,7 +605,7 @@ func on_heightmap_region_changed(rect: Rect2i) -> void:
 			var chunk: HT_DetailChunk = _chunks.get(cpos)
 			if chunk != null and not chunk.pending_update:
 				chunk.pending_update = true
-				chunk.pending_aabb_update = true
+				chunk.pending_aabb_update = with_aabb
 				_pending_chunk_updates.append(cpos)
 
 
