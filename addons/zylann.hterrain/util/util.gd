@@ -596,8 +596,8 @@ static func floordiv(x: int, d: int) -> int:
 
 static func ceildiv(x: int, d: int) -> int:
 	assert(d > 0);
-	if x < 0:
-		return (x - d + 1) / d
+	if x > 0:
+		return (x + d - 1) / d
 	return x / d
 
 
