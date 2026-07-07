@@ -1390,8 +1390,8 @@ func _update_chunk(chunk: HTerrainChunk, lod: int, p_visible: bool) -> void:
 
 	# Check for lower-LOD chunks around me
 	for d in 4:
-		var ncpos_lower_x = (cpos_x + s_dirs[d].x) / 2
-		var ncpos_lower_y = (cpos_y + s_dirs[d].y) / 2
+		var ncpos_lower_x := (cpos_x + s_dirs[d].x) / 2
+		var ncpos_lower_y := (cpos_y + s_dirs[d].y) / 2
 		if ncpos_lower_x != cpos_lower_x or ncpos_lower_y != cpos_lower_y:
 			var nchunk := _get_chunk_at(ncpos_lower_x, ncpos_lower_y, lod + 1)
 			if nchunk != null and nchunk.is_active():
