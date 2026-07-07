@@ -10,7 +10,10 @@ For a more detailed list of past and incoming changes, see the commit history.
 
 ## Improvements
 
-- Added new round brush with hard edges, notably efficient for density removal (other brushes tend to leave non-zero density behind)
+- Detail layers:
+	- Optimized away chunks where the density map is zero by computing an occupancy map under the hood
+- Editor:
+	- Added new round brush with hard edges, notably efficient for density removal (other brushes tend to leave non-zero density behind)
 
 
 1.8

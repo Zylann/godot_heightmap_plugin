@@ -318,6 +318,7 @@ func resize(p_res: int, stretch := true, anchor := Vector2(-1, -1)) -> void:
 			map.modified = true
 
 	_update_all_vertical_bounds()
+	_update_all_occupancies(true)
 
 	resolution_changed.emit()
 
@@ -536,7 +537,12 @@ func notify_region_change(
 	if p_upload_to_texture:
 		_upload_region(p_map_type, p_index, p_rect)
 	
-	_maps[p_map_type][p_index].modified = true
+	var map : HTerrainDataMap = _maps[p_map_type][p_index]
+	
+	if map.occupancy != null:
+		map.occupancy.update_from_pixel_rect(p_rect, map.image)
+	
+	map.modified = true
 
 	region_changed.emit(p_rect, p_map_type)
 	changed.emit()
@@ -737,11 +743,12 @@ func _edit_add_map(map_type: int) -> int:
 		_maps.append([])
 	var maps: Array = _maps[map_type]
 	var map := HTerrainDataMap.new(_get_free_id(map_type))
-	map.image = Image.create(_resolution, _resolution, false, get_channel_format(map_type))
+	var format := get_channel_format(map_type)
+	map.image = Image.create(_resolution, _resolution, false, format)
 	var index := maps.size()
-	var default_color = _get_map_default_fill_color(map_type, index)
-	if default_color != null:
-		map.image.fill(default_color)
+	var maybe_default_color = _get_map_default_fill_color(map_type, index)
+	if maybe_default_color != null:
+		map.image.fill(maybe_default_color)
 	maps.append(map)
 	map_added.emit(map_type, index)
 	return index
@@ -795,6 +802,13 @@ func get_image(map_type: int, index := 0) -> Image:
 	var maps: Array = _maps[map_type]
 	var map: HTerrainDataMap = maps[index]
 	return map.image
+
+
+func try_get_map(map_type: int, index := 0) -> HTerrainDataMap:
+	var maps: Array = _maps[map_type]
+	if index >= maps.size():
+		return null
+	return maps[index]
 
 
 func get_texture(map_type: int, index := 0, writable := false) -> Texture2D:
@@ -1109,9 +1123,15 @@ func load_data(
 	# Same as default in ResourceLoader.load()
 	resource_loader_cache_mode := ResourceLoader.CACHE_MODE_REUSE
 ) -> void:
+	
 	_locked = true
 
+	var time_before := Time.get_ticks_usec()
+	
 	_load_metadata(dir_path.path_join(META_FILENAME))
+	
+	var time_loading_metadata := Time.get_ticks_usec() - time_before
+	time_before = Time.get_ticks_usec()
 
 	_logger.debug("Loading terrain data...")
 
@@ -1134,13 +1154,50 @@ func load_data(
 
 			pi += 1
 
+	var time_loading_maps := Time.get_ticks_usec() - time_before
+	time_before = Time.get_ticks_usec()
+
+	# TODO Figure out a way to actually save this extra data for faster loading
+	
 	_logger.debug("Calculating vertical bounds...")
 	_update_all_vertical_bounds()
+
+	var time_loading_ranges := Time.get_ticks_usec() - time_before
+	time_before = Time.get_ticks_usec()
+	
+	_logger.debug("Calculating occupancies...")
+	_update_all_occupancies()
+
+	var time_loading_occupancies := Time.get_ticks_usec() - time_before
+	time_before = Time.get_ticks_usec()
 
 	_logger.debug("Notify resolution change...")
 
 	_locked = false
 	resolution_changed.emit()
+
+	var time_notify := Time.get_ticks_usec() - time_before
+	
+	#print("--- HTerrainData.load timing ---")
+	#print("metadata: ", time_loading_metadata, " us")
+	#print("maps: ", time_loading_maps, " us")
+	#print("ranges: ", time_loading_ranges, " us")
+	#print("occupancies: ", time_loading_occupancies, " us")
+	#print("notify: ", time_notify, " us")
+	#print("---")
+
+
+func _update_all_occupancies(force_recreate := false) -> void:
+	var details : Array = _maps[CHANNEL_DETAIL]
+	for i in details.size():
+		var map : HTerrainDataMap = details[i]
+		if map.image != null and (map.occupancy == null or force_recreate):
+			var occ := HTerrainDataOccupancyMap.new()
+			# TODO Use `class_name` more widely so we can finally have dependency cycles
+			occ.chunk_size = 32 # HTerrainDetailLayer.CHUNK_SIZE
+			occ.update(map.image)
+			map.occupancy = occ
+			map.modified = true
 
 
 # Reloads the entire terrain from files, disregarding cached resources.
@@ -1193,7 +1250,8 @@ func _save_map(dir_path: String, map_type: int, index: int) -> bool:
 				.format([dir_path, HT_Errors.get_message(err)]))
 		return false
 
-	var fpath := dir_path.path_join(_get_map_filename(map_type, index))
+	var base_name := _get_map_filename(map_type, index)
+	var fpath := dir_path.path_join(base_name)
 
 	return _save_map_image(fpath, map_type, im)
 
@@ -1301,7 +1359,7 @@ func _load_map(
 	index: int, 
 	resource_loader_cache_mode: int
 ) -> bool:
-	var fpath := dir.path_join(_get_map_filename(map_type, index))
+	var base_path := dir.path_join(_get_map_filename(map_type, index))
 
 	# Maps must be configured before being loaded
 	var map: HTerrainDataMap = _maps[map_type][index]
@@ -1314,6 +1372,7 @@ func _load_map(
 	# 	map = Map.new()
 	# 	_maps[map_type][index] = map
 
+	var fpath := base_path
 	if _channel_can_be_saved_as_png(map_type):
 		fpath += ".png"
 	else:
@@ -1535,10 +1594,10 @@ func _import_heightmap(
 
 		_logger.debug(str("Resizing terrain to ", res, "x", res, "..."))
 		resize(src_image.get_width(), false, Vector2())
-
+		
 		var im := get_image(CHANNEL_HEIGHT)
 		assert(im != null)
-
+		
 		_logger.debug("Converting to internal format...")
 		
 		match im.get_format():
@@ -1549,7 +1608,7 @@ func _import_heightmap(
 				var height_format: int = _map_types[CHANNEL_HEIGHT].texture_format
 				src_image.convert(height_format)
 				im.blit_rect(src_image, Rect2i(0, 0, res, res), Vector2i())
-
+			
 			# Legacy format?
 			Image.FORMAT_RH:
 				var height_format: int = _map_types[CHANNEL_HEIGHT].texture_format

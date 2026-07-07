@@ -25,6 +25,7 @@ var HTerrain = load("res://addons/zylann.hterrain/hterrain.gd")
 const CHUNK_SIZE = 32
 const DEFAULT_SHADER_PATH = "res://addons/zylann.hterrain/shaders/detail.gdshader"
 const DEBUG = false
+const CHUNK_UPDATES_BUDGET_US = 1000
 
 # These parameters are considered built-in,
 # they are managed internally so they are not directly exposed
@@ -165,7 +166,8 @@ const _API_SHADER_PARAMS = {
 		render_layers = mask
 		for k in _chunks:
 			var chunk: HT_DetailChunk = _chunks[k]
-			chunk.mmi.set_layer_mask(mask)
+			if chunk.mmi != null:
+				chunk.mmi.set_layer_mask(mask)
 
 
 # Exposes shadow casting setting.
@@ -181,10 +183,12 @@ const _API_SHADER_PARAMS = {
 		cast_shadow = option
 		for k in _chunks:
 			var chunk: HT_DetailChunk = _chunks[k]
-			chunk.mmi.set_cast_shadow(option)
+			if chunk.mmi != null:
+				chunk.mmi.set_cast_shadow(option)
 
 
 class HT_DetailChunk:
+	# Can be null if there are no instances in the chunk
 	var mmi: HT_DirectMultiMeshInstance
 	var pending_update: bool = false
 	var pending_aabb_update: bool = false
@@ -441,13 +445,15 @@ func _notification(what: int) -> void:
 func _set_visible(v: bool) -> void:
 	for k in _chunks:
 		var chunk: HT_DetailChunk = _chunks[k]
-		chunk.mmi.set_visible(v)
+		if chunk.mmi != null:
+			chunk.mmi.set_visible(v)
 
 
 func _set_world(w: World3D) -> void:
 	for k in _chunks:
 		var chunk: HT_DetailChunk = _chunks[k]
-		chunk.mmi.set_world(w)
+		if chunk.mmi != null:
+			chunk.mmi.set_world(w)
 
 
 func _on_terrain_transform_changed(gt: Transform3D) -> void:
@@ -464,6 +470,8 @@ func _on_terrain_transform_changed(gt: Transform3D) -> void:
 	for k in _chunks:
 		var chunk: HT_DetailChunk = _chunks[k]
 		var mmi := chunk.mmi
+		if mmi == null:
+			continue
 		var aabb := _get_chunk_aabb(terrain, Vector3(k.x * CHUNK_SIZE, 0, k.y * CHUNK_SIZE))
 		# Nullify XZ translation because that's done by transform already
 		aabb.position.x = 0
@@ -485,6 +493,8 @@ func process(delta: float, viewer_pos: Vector3) -> void:
 		# See https://github.com/godotengine/godot/issues/32500
 		for k in _chunks:
 			var chunk: HT_DetailChunk = _chunks[k]
+			if chunk.mmi == null:
+				continue
 			chunk.mmi.set_multimesh(_multimesh)
 
 	# Detail layers are unaffected by ground map_scale
@@ -548,7 +558,10 @@ func process(delta: float, viewer_pos: Vector3) -> void:
 				var d := _get_approx_distance_to_chunk_aabb(aabb, local_viewer_pos)
 		
 				if d < view_distance:
-					_load_chunk(terrain_transform_without_map_scale, cx, cz, aabb)
+					var chunk := HT_DetailChunk.new()
+					chunk.pending_update = true
+					_chunks[cpos2d] = chunk
+					_pending_chunk_updates.append(cpos2d)
 		
 		for k in _chunks:
 			var chunk: HT_DetailChunk = _chunks[k]
@@ -557,7 +570,7 @@ func process(delta: float, viewer_pos: Vector3) -> void:
 				chunk.pending_update = true
 				_pending_chunk_updates.append(k)
 		
-	_process_pending_updates(terrain, local_viewer_pos)
+	_process_pending_updates(terrain, local_viewer_pos, terrain_transform_without_map_scale)
 	
 	# Update time manually, so we can accelerate the animation when strength is increased,
 	# without causing phase jumps (which would be the case if we just scaled TIME)
@@ -600,26 +613,85 @@ func _reset_chunks() -> void:
 	_pending_chunk_updates.clear()
 
 
-func _process_pending_updates(terrain, local_viewer_pos: Vector3) -> void:
+func _process_pending_updates(
+	terrain,
+	local_viewer_pos: Vector3, 
+	terrain_transform_without_map_scale: Transform3D
+) -> void:
 	# Defer this over multiple frames
-	var budget_us := 1000
 	var time_before := Time.get_ticks_usec()
 	
-	while _pending_chunk_updates.size() > 0:
-		var cpos: Vector2i = _pending_chunk_updates.pop_back()
-		var chunk: HT_DetailChunk = _chunks[cpos]
-		chunk.pending_update = false
+	var i := 0
+	while i < _pending_chunk_updates.size():
+		var cpos: Vector2i = _pending_chunk_updates[i]
+		_process_chunk_update(cpos, local_viewer_pos, terrain_transform_without_map_scale)
+		i += 1
 		
-		var aabb := _get_chunk_aabb(terrain, Vector3(cpos.x, 0, cpos.y) * CHUNK_SIZE)
-		var d := _get_approx_distance_to_chunk_aabb(aabb, local_viewer_pos)
-		if d > view_distance:
-			_recycle_chunk(cpos)
-		elif chunk.pending_aabb_update:
-			chunk.pending_aabb_update = false
-			chunk.mmi.set_aabb(aabb)
-		
-		if Time.get_ticks_usec() - time_before > budget_us:
+		if Time.get_ticks_usec() - time_before > CHUNK_UPDATES_BUDGET_US:
+			# Time is out
 			break
+	
+	# I really wish Godot had an efficient Queue data type...
+	if i >= _pending_chunk_updates.size():
+		_pending_chunk_updates.clear()
+	else:
+		_pending_chunk_updates = _pending_chunk_updates.slice(i)
+
+
+func _process_chunk_update(
+	cpos: Vector2i, 
+	local_viewer_pos: Vector3, 
+	terrain_transform_without_map_scale: Transform3D
+) -> void:
+	var chunk: HT_DetailChunk = _chunks[cpos]
+	
+	var terrain = _get_terrain()
+	var aabb := _get_chunk_aabb(terrain, Vector3(cpos.x, 0, cpos.y) * CHUNK_SIZE)
+	
+	var d := _get_approx_distance_to_chunk_aabb(aabb, local_viewer_pos)
+	if d > view_distance:
+		_recycle_chunk(cpos)
+		return
+	
+	#if chunk == null:
+		#chunk = HT_DetailChunk.new()
+		#_chunks[cpos] = chunk
+	
+	chunk.pending_update = false
+	
+	var terrain_data : HTerrainData = terrain.get_data()
+	var map := terrain_data.try_get_map(HTerrainData.CHANNEL_DETAIL, layer_index)
+	var any := true
+	if map != null:
+		var occ := map.occupancy
+		if occ != null:
+			any = occ.get_state(cpos)
+	
+	if not any:
+		if chunk.mmi != null:
+			_recycle_multimesh_instance(chunk.mmi)
+			chunk.mmi = null
+		return
+	
+	if chunk.mmi == null:
+		var mmi := _alloc_multimesh_instance()
+		var trans := _get_chunk_transform(terrain_transform_without_map_scale, cpos.x, cpos.y)
+		mmi.set_transform(trans)
+		var local_aabb := aabb
+		# Nullify XZ translation because that's done by transform already
+		local_aabb.position.x = 0
+		local_aabb.position.z = 0
+		mmi.set_aabb(local_aabb)
+		chunk.mmi = mmi
+	
+	elif chunk.pending_aabb_update:
+		chunk.pending_aabb_update = false
+		if chunk.mmi != null:
+			var local_aabb := aabb
+			# Nullify XZ translation because that's done by transform already
+			local_aabb.position.x = 0
+			local_aabb.position.z = 0
+			chunk.mmi.set_aabb(aabb)
 
 
 # It would be nice if Godot had "AABB.distance_squared_to(vec3)"...
@@ -641,8 +713,8 @@ static func _get_approx_distance_to_chunk_aabb(aabb: AABB, pos: Vector3) -> floa
 # Gets local-space AABB of a detail chunk.
 # This only apply map_scale in Y, because details are not affected by X and Z map scale.
 func _get_chunk_aabb(terrain, lpos: Vector3) -> AABB:
-	var terrain_scale = terrain.map_scale
-	var terrain_data = terrain.get_data()
+	var terrain_scale : Vector3 = terrain.map_scale
+	var terrain_data: HTerrainData = terrain.get_data()
 	var origin_cells_x := int(lpos.x / terrain_scale.x)
 	var origin_cells_z := int(lpos.z / terrain_scale.z)
 	# We must at least sample 1 cell, in cases where map_scale is greater than the size of our 
@@ -650,7 +722,7 @@ func _get_chunk_aabb(terrain, lpos: Vector3) -> AABB:
 	var size_cells_x := int(ceilf(CHUNK_SIZE / terrain_scale.x))
 	var size_cells_z := int(ceilf(CHUNK_SIZE / terrain_scale.z))
 	
-	var aabb = terrain_data.get_region_aabb(
+	var aabb := terrain_data.get_region_aabb(
 		origin_cells_x, origin_cells_z, size_cells_x, size_cells_z)
 	
 	aabb.position = Vector3(lpos.x, lpos.y + aabb.position.y * terrain_scale.y, lpos.z)
@@ -667,16 +739,23 @@ func _get_chunk_transform(terrain_transform: Transform3D, cx: int, cz: int) -> T
 	return trans
 
 
-func _load_chunk(
-	terrain_transform_without_map_scale: Transform3D, 
-	cx: int, 
-	cz: int, 
-	aabb: AABB
-) -> void:
-	aabb.position.x = 0
-	aabb.position.z = 0
+func _recycle_chunk(cpos2d: Vector2i) -> void:
+	var chunk: HT_DetailChunk = _chunks.get(cpos2d)
+	if chunk == null:
+		return
+	_chunks.erase(cpos2d)
+	if chunk.mmi != null:
+		_recycle_multimesh_instance(chunk.mmi)
 
-	var mmi: HT_DirectMultiMeshInstance = null
+
+func _recycle_multimesh_instance(mmi: HT_DirectMultiMeshInstance) -> void:
+	mmi.set_visible(false)
+	_multimesh_instance_pool.append(mmi)
+
+
+func _alloc_multimesh_instance() -> HT_DirectMultiMeshInstance:
+	var mmi : HT_DirectMultiMeshInstance = null
+	
 	if len(_multimesh_instance_pool) != 0:
 		mmi = _multimesh_instance_pool[-1]
 		_multimesh_instance_pool.pop_back()
@@ -684,26 +763,13 @@ func _load_chunk(
 		mmi = HT_DirectMultiMeshInstance.new()
 		mmi.set_world(get_world_3d())
 		mmi.set_multimesh(_multimesh)
-
-	var trans := _get_chunk_transform(terrain_transform_without_map_scale, cx, cz)
 	
 	mmi.set_material_override(_material)
-	mmi.set_transform(trans)
-	mmi.set_aabb(aabb)
 	mmi.set_layer_mask(render_layers)
 	mmi.set_cast_shadow(cast_shadow)
 	mmi.set_visible(visible)
 	
-	var chunk := HT_DetailChunk.new()
-	chunk.mmi = mmi
-	_chunks[Vector2i(cx, cz)] = chunk
-
-
-func _recycle_chunk(cpos2d: Vector2i) -> void:
-	var chunk: HT_DetailChunk = _chunks[cpos2d]
-	_chunks.erase(cpos2d)
-	chunk.mmi.set_visible(false)
-	_multimesh_instance_pool.append(chunk.mmi)
+	return mmi
 
 
 func _get_ambient_wind_params() -> Vector2:

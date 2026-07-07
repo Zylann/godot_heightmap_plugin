@@ -17,6 +17,9 @@ var id := -1
 # Should be set to true if the map has unsaved modifications.
 var modified := true
 
+# Used for density maps, to know if an area contains any non-zero pixel.
+var occupancy : HTerrainDataOccupancyMap = null
+
 
 func _init(p_id: int):
 	id = p_id

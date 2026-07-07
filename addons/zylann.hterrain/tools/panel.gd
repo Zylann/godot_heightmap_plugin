@@ -2,6 +2,7 @@
 extends Control
 
 const HT_DetailEditor = preload("./detail_editor/detail_editor.gd")
+const HT_EditorMinimap = preload("res://addons/zylann.hterrain/tools/minimap/minimap.gd")
 
 
 # Emitted when a texture item is selected
@@ -14,7 +15,7 @@ signal detail_selected(index: int)
 signal detail_list_changed
 
 
-@onready var _minimap = $HSplitContainer/HSplitContainer/MinimapContainer/Minimap
+@onready var _minimap: HT_EditorMinimap = $HSplitContainer/HSplitContainer/MinimapContainer/Minimap
 @onready var _brush_editor = $HSplitContainer/BrushEditor
 @onready var _texture_editor = $HSplitContainer/HSplitContainer/HSplitContainer/TextureEditor
 @onready var _detail_editor : HT_DetailEditor = \
@@ -53,6 +54,7 @@ func _on_TextureEditor_texture_selected(index: int) -> void:
 
 func _on_DetailEditor_detail_selected(index: int) -> void:
 	detail_selected.emit(index)
+	_minimap.set_layer_index(index)
 
 
 func set_brush_editor_display_mode(mode) -> void:
