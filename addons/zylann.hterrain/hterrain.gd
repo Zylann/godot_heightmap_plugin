@@ -1236,11 +1236,11 @@ func get_lod_count() -> int:
 #      o---o
 #        2
 # Directions to go to neighbor chunks
-const s_dirs = [
-	[-1, 0], # SEAM_LEFT
-	[1, 0], # SEAM_RIGHT
-	[0, -1], # SEAM_BOTTOM
-	[0, 1] # SEAM_TOP
+const s_dirs : Array[Vector2i] = [
+	Vector2i(-1, 0), # SEAM_LEFT
+	Vector2i(1, 0), # SEAM_RIGHT
+	Vector2i(0, -1), # SEAM_BOTTOM
+	Vector2i(0, 1) # SEAM_TOP
 ]
 
 #       7   6
@@ -1252,15 +1252,15 @@ const s_dirs = [
 #       2   3
 #
 # Directions to go to neighbor chunks of higher LOD
-const s_rdirs = [
-	[-1, 0],
-	[-1, 1],
-	[0, 2],
-	[1, 2],
-	[2, 1],
-	[2, 0],
-	[1, -1],
-	[0, -1]
+const s_rdirs : Array[Vector2i] = [
+	Vector2i(-1, 0),
+	Vector2i(-1, 1),
+	Vector2i(0, 2),
+	Vector2i(1, 2),
+	Vector2i(2, 1),
+	Vector2i(2, 0),
+	Vector2i(1, -1),
+	Vector2i(0, -1)
 ]
 
 
@@ -1334,8 +1334,8 @@ func _process(delta: float) -> void:
 
 		# In case the chunk got split
 		for d in 4:
-			var ncpos_x = u.pos_x + s_dirs[d][0]
-			var ncpos_y = u.pos_y + s_dirs[d][1]
+			var ncpos_x = u.pos_x + s_dirs[d].x
+			var ncpos_y = u.pos_y + s_dirs[d].y
 
 			var nchunk := _get_chunk_at(ncpos_x, ncpos_y, u.lod)
 			if nchunk != null and nchunk.is_active():
@@ -1350,8 +1350,8 @@ func _process(delta: float) -> void:
 			var nlod := u.lod - 1
 
 			for rd in 8:
-				var ncpos_upper_x = cpos_upper_x + s_rdirs[rd][0]
-				var ncpos_upper_y = cpos_upper_y + s_rdirs[rd][1]
+				var ncpos_upper_x = cpos_upper_x + s_rdirs[rd].x
+				var ncpos_upper_y = cpos_upper_y + s_rdirs[rd].y
 
 				var nchunk := _get_chunk_at(ncpos_upper_x, ncpos_upper_y, nlod)
 				if nchunk != null and nchunk.is_active():
@@ -1390,8 +1390,8 @@ func _update_chunk(chunk: HTerrainChunk, lod: int, p_visible: bool) -> void:
 
 	# Check for lower-LOD chunks around me
 	for d in 4:
-		var ncpos_lower_x = (cpos_x + s_dirs[d][0]) / 2
-		var ncpos_lower_y = (cpos_y + s_dirs[d][1]) / 2
+		var ncpos_lower_x = (cpos_x + s_dirs[d].x) / 2
+		var ncpos_lower_y = (cpos_y + s_dirs[d].y) / 2
 		if ncpos_lower_x != cpos_lower_x or ncpos_lower_y != cpos_lower_y:
 			var nchunk := _get_chunk_at(ncpos_lower_x, ncpos_lower_y, lod + 1)
 			if nchunk != null and nchunk.is_active():
