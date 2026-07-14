@@ -3,8 +3,6 @@ extends SubViewportContainer
 
 const PREVIEW_MESH_LOD = 2
 
-const HT_Util = preload("../util/util.gd")
-
 signal dragged(relative, button_mask)
 
 @onready var _viewport : SubViewport = $Viewport

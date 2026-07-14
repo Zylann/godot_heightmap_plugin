@@ -1,7 +1,6 @@
 @tool
 extends AcceptDialog
 
-const HT_Util = preload("../../../util/util.gd")
 const HT_Brush = preload("../brush.gd")
 const HT_Logger = preload("../../../util/logger.gd")
 const HT_EditorUtil = preload("../../util/editor_util.gd")

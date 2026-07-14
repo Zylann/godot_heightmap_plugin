@@ -2,8 +2,6 @@
 # used to roughly tell if there are any non-zero pixels in chunks of the map
 class_name HTerrainDataOccupancyMap
 
-const HT_Util = preload("res://addons/zylann.hterrain/util/util.gd")
-
 var data := PackedByteArray()
 var chunk_size := 32 # should  be power of two (future proofing)
 var resolution := Vector2i() # in chunks

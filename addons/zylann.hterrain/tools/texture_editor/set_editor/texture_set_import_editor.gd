@@ -6,7 +6,6 @@ const HT_EditorUtil = preload("../../util/editor_util.gd")
 const HT_Errors = preload("../../../util/errors.gd")
 const HT_TextureSetEditor = preload("./texture_set_editor.gd")
 const HT_Result = preload("../../util/result.gd")
-const HT_Util = preload("../../../util/util.gd")
 const HT_PackedTextureUtil = preload("../../packed_textures/packed_texture_util.gd")
 const ResourceImporterTexture_Unexposed = preload("../../util/resource_importer_texture.gd")
 const ResourceImporterTextureLayered_Unexposed = preload(

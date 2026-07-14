@@ -6,7 +6,6 @@ extends "hterrain_chunk.gd"
 
 
 const HT_DirectMeshInstance = preload("./util/direct_mesh_instance.gd")
-const HT_Util = preload("./util/util.gd")
 
 
 var _debug_cube : HT_DirectMeshInstance = null

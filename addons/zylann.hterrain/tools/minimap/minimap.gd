@@ -1,7 +1,6 @@
 @tool
 extends Control
 
-const HT_Util = preload("../../util/util.gd")
 const HT_MinimapOverlay = preload("./minimap_overlay.gd")
 
 const HT_MinimapShader = preload("./minimap_normal.gdshader")

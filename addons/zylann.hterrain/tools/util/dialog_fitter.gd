@@ -9,8 +9,6 @@
 # Needs to be a Control, otherwise we don't receive the notification...
 extends Control
 
-const HT_Util = preload("../../util/util.gd")
-
 
 func _notification(what: int) -> void:
 	if HT_Util.is_in_edited_scene(self):

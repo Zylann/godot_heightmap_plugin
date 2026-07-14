@@ -12,7 +12,6 @@
 extends Node
 
 const HT_Logger = preload("../../util/logger.gd")
-const HT_Util = preload("../../util/util.gd")
 const HT_NoBlendShader = preload("./no_blend.gdshader")
 const HT_NoBlendRFShader = preload("./no_blend_rf.gdshader")
 

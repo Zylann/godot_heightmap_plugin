@@ -4,7 +4,6 @@
 # TODO Use an actual decal node, it wasn't available in Godot 3
 
 const HT_DirectMeshInstance = preload("../../util/direct_mesh_instance.gd")
-const HT_Util = preload("../../util/util.gd")
 
 var _mesh_instance : HT_DirectMeshInstance
 var _mesh : PlaneMesh

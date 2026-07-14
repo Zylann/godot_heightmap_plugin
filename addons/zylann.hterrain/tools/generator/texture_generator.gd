@@ -5,7 +5,6 @@
 @tool
 extends Node
 
-const HT_Util = preload("res://addons/zylann.hterrain/util/util.gd")
 const HT_TextureGeneratorPass = preload("./texture_generator_pass.gd")
 const HT_Logger = preload("../../util/logger.gd")
 # TODO Can't preload because it causes the plugin to fail loading if assets aren't imported

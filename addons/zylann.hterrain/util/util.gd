@@ -1,4 +1,5 @@
 @tool
+class_name HT_Util
 
 const HT_Errors = preload("./errors.gd")
 

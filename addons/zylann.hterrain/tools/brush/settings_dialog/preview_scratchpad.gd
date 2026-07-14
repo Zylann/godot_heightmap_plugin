@@ -7,7 +7,6 @@ const HT_PreviewPainter = preload("./preview_painter.gd")
 const HT_Brush = preload("../brush.gd")
 const HT_Logger = preload("../../../util/logger.gd")
 const HT_EditorUtil = preload("../../util/editor_util.gd")
-const HT_Util = preload("../../../util/util.gd")
 
 @onready var _texture_rect : TextureRect = $TextureRect
 @onready var _painter : HT_PreviewPainter = $Painter

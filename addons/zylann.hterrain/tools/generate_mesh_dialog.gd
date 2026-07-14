@@ -3,8 +3,6 @@ extends AcceptDialog
 
 signal generate_selected(lod)
 
-const HT_Util = preload("../util/util.gd")
-
 @onready var _preview_label : Label = $VBoxContainer/PreviewLabel
 @onready var _lod_spinbox : SpinBox = $VBoxContainer/HBoxContainer/LODSpinBox
 
