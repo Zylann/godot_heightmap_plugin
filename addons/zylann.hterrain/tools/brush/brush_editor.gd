@@ -5,7 +5,6 @@ const HT_TerrainPainter = preload("./terrain_painter.gd")
 const HT_Brush = preload("./brush.gd")
 const HT_Errors = preload("../../util/errors.gd")
 #const NativeFactory = preload("../../native/factory.gd")
-const HT_Logger = preload("../../util/logger.gd")
 const HT_IntervalSlider = preload("../util/interval_slider.gd")
 
 const HT_BrushSettingsDialogScene = preload("./settings_dialog/brush_settings_dialog.tscn")

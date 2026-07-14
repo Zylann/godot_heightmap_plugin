@@ -3,7 +3,6 @@ extends Control
 
 const HT_ImageFileCache = preload("../../util/image_file_cache.gd")
 const HT_EditorUtil = preload("../util/editor_util.gd")
-const HT_Logger = preload("../../util/logger.gd")
 
 # TODO Can't preload because it causes the plugin to fail loading if assets aren't imported
 const PLACEHOLDER_ICON_TEXTURE = "res://addons/zylann.hterrain/tools/icons/icon_grass.svg"

@@ -1,8 +1,6 @@
 @tool
 extends AcceptDialog
 
-const HT_Logger = preload("../../util/logger.gd")
-
 const ANCHOR_TOP_LEFT = 0
 const ANCHOR_TOP = 1
 const ANCHOR_TOP_RIGHT = 2

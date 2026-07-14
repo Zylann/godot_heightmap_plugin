@@ -6,7 +6,6 @@ class_name HTerrainData
 extends Resource
 
 const HT_Errors = preload("./util/errors.gd")
-const HT_Logger = preload("./util/logger.gd")
 const HT_ImageFileCache = preload("./util/image_file_cache.gd")
 const HT_XYZFormat = preload("./util/xyz_format.gd")
 

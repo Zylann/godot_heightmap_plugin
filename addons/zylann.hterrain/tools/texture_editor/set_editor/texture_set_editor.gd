@@ -2,7 +2,6 @@
 extends AcceptDialog
 
 const HT_EditorUtil = preload("../../util/editor_util.gd")
-const HT_Logger = preload("../../../util/logger.gd")
 
 const HT_ColorShader = preload("../display_color.gdshader")
 const HT_ColorSliceShader = preload("../display_color_slice.gdshader")

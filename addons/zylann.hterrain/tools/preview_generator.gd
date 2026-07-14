@@ -2,7 +2,6 @@
 extends EditorResourcePreviewGenerator
 
 const HT_Errors = preload("../util/errors.gd")
-const HT_Logger = preload("../util/logger.gd")
 
 var _logger = HT_Logger.get_for(self)
 

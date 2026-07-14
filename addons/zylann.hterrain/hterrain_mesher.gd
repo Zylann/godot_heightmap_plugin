@@ -1,8 +1,6 @@
 @tool
 class_name HTerrainMesher
 
-#const HT_Logger = preload("./util/logger.gd")
-
 const SEAM_LEFT = 1
 const SEAM_RIGHT = 2
 const SEAM_BOTTOM = 4

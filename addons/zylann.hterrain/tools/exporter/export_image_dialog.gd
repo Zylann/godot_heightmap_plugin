@@ -2,7 +2,6 @@
 extends AcceptDialog
 
 const HT_Errors = preload("../../util/errors.gd")
-const HT_Logger = preload("../../util/logger.gd")
 
 const FORMAT_RH = 0
 const FORMAT_RF = 1

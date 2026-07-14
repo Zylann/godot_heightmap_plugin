@@ -3,7 +3,6 @@ extends AcceptDialog
 
 const HT_TextureGenerator = preload("./texture_generator.gd")
 const HT_TextureGeneratorPass = preload("./texture_generator_pass.gd")
-const HT_Logger = preload("../../util/logger.gd")
 const HT_ImageFileCache = preload("../../util/image_file_cache.gd")
 const HT_Inspector = preload("../inspector/inspector.gd")
 const HT_TerrainPreview = preload("../terrain_preview.gd")

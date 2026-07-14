@@ -1,7 +1,5 @@
 @tool
 
-const HT_Logger = preload("./util/logger.gd")
-
 var _shape_rid := RID()
 var _body_rid := RID()
 var _terrain_transform := Transform3D()

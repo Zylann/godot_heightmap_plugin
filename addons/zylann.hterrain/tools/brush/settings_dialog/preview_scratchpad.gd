@@ -5,7 +5,6 @@ const HT_PreviewPainter = preload("./preview_painter.gd")
 # TODO Can't preload because it causes the plugin to fail loading if assets aren't imported
 #const HT_DefaultBrushTexture = preload("../shapes/round2.exr")
 const HT_Brush = preload("../brush.gd")
-const HT_Logger = preload("../../../util/logger.gd")
 const HT_EditorUtil = preload("../../util/editor_util.gd")
 
 @onready var _texture_rect : TextureRect = $TextureRect

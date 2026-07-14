@@ -2,7 +2,6 @@
 extends Node
 
 const HT_Painter = preload("./painter.gd")
-const HT_Logger = preload("../../util/logger.gd")
 const HT_Brush = preload("./brush.gd")
 
 const HT_RaiseShader = preload("./shaders/raise.gdshader")

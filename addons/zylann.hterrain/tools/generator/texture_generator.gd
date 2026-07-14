@@ -6,7 +6,6 @@
 extends Node
 
 const HT_TextureGeneratorPass = preload("./texture_generator_pass.gd")
-const HT_Logger = preload("../../util/logger.gd")
 # TODO Can't preload because it causes the plugin to fail loading if assets aren't imported
 const DUMMY_TEXTURE_PATH = "res://addons/zylann.hterrain/tools/icons/empty.png"
 

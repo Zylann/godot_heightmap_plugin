@@ -1,6 +1,5 @@
 @tool
 
-const HT_Logger = preload("../../util/logger.gd")
 const HT_Errors = preload("../../util/errors.gd")
 const HT_Result = preload("../util/result.gd")
 

@@ -8,7 +8,6 @@ const HT_Grid = preload("./util/grid.gd")
 const HTerrainChunk = preload("./hterrain_chunk.gd")
 const HTerrainChunkDebug = preload("./hterrain_chunk_debug.gd")
 const HTerrainCollider = preload("./hterrain_collider.gd")
-const HT_Logger = preload("./util/logger.gd")
 const HTerrainChunkGrid = preload("./hterrain_chunk_grid.gd")
 
 const SHADER_CLASSIC4 = "Classic4"
