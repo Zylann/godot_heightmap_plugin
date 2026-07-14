@@ -1342,7 +1342,7 @@ func _process(delta: float) -> void:
 
 		# In case the chunk got split
 		for d in 4:
-			var ncpos := Vector2i(u.pos_x, u.pos_y) + s_dirs[d]
+			var ncpos := u.cpos + s_dirs[d]
 
 			var nchunk := _get_chunk_at(ncpos, u.lod)
 			if nchunk != null and nchunk.is_active():
@@ -1352,7 +1352,7 @@ func _process(delta: float) -> void:
 
 		# In case the chunk got joined
 		if u.lod > 0:
-			var cpos_upper := Vector2i(u.pos_x, u.pos_y) * 2
+			var cpos_upper := u.cpos * 2
 			var nlod := u.lod - 1
 
 			for rd in 8:
@@ -1366,7 +1366,7 @@ func _process(delta: float) -> void:
 	var lvisible := is_visible_in_tree()
 	for i in len(_pending_chunk_updates):
 		var u: HT_PendingChunkUpdate = _pending_chunk_updates[i]
-		var chunk := _get_chunk_at(Vector2i(u.pos_x, u.pos_y), u.lod)
+		var chunk := _get_chunk_at(u.cpos, u.lod)
 		assert(chunk != null)
 		_update_chunk(chunk, u.lod, lvisible and chunk.is_active())
 		_updated_chunks += 1
@@ -1430,8 +1430,7 @@ func _add_chunk_update(chunk: HTerrainChunk, cpos: Vector2i, lod: int) -> void:
 
 	# No update pending for this chunk, create one
 	var u := HT_PendingChunkUpdate.new()
-	u.pos_x = cpos.x
-	u.pos_y = cpos.y
+	u.cpos = cpos
 	u.lod = lod
 	_pending_chunk_updates.push_back(u)
 
@@ -1726,8 +1725,7 @@ func _get_lookdev_material() -> ShaderMaterial:
 
 
 class HT_PendingChunkUpdate:
-	var pos_x := 0
-	var pos_y := 0
+	var cpos := Vector2i()
 	var lod := 0
 
 
