@@ -216,7 +216,7 @@ var _viewer_pos_world := Vector3()
 # This container owns chunks
 var _chunks := []
 var _chunk_size: int = 32
-var _pending_chunk_updates := []
+var _pending_chunk_updates : Array[HT_PendingChunkUpdate] = []
 
 var _detail_layers := []
 
@@ -809,7 +809,7 @@ func _on_transform_changed() -> void:
 		# before we enter the tree
 		return
 
-	var gt = get_internal_transform()
+	var gt := get_internal_transform()
 
 	_for_all_chunks(HT_TransformChangedAction.new(gt))
 
@@ -1731,14 +1731,14 @@ class HT_PendingChunkUpdate:
 
 class HT_EnterWorldAction:
 	var world: World3D = null
-	func _init(w) -> void:
+	func _init(w: World3D) -> void:
 		world = w
-	func exec(chunk) -> void:
+	func exec(chunk: HTerrainChunk) -> void:
 		chunk.enter_world(world)
 
 
 class HT_ExitWorldAction:
-	func exec(chunk) -> void:
+	func exec(chunk: HTerrainChunk) -> void:
 		chunk.exit_world()
 
 
@@ -1746,7 +1746,7 @@ class HT_TransformChangedAction:
 	var transform: Transform3D
 	func _init(t: Transform3D) -> void:
 		transform = t
-	func exec(chunk) -> void:
+	func exec(chunk: HTerrainChunk) -> void:
 		chunk.parent_transform_changed(transform)
 
 
@@ -1754,7 +1754,7 @@ class HT_VisibilityChangedAction:
 	var visible := false
 	func _init(v: bool) -> void:
 		visible = v
-	func exec(chunk) -> void:
+	func exec(chunk: HTerrainChunk) -> void:
 		chunk.set_visible(visible and chunk.is_active())
 
 
@@ -1767,7 +1767,7 @@ class HT_SetMaterialAction:
 	var material: Material = null
 	func _init(m: Material) -> void:
 		material = m
-	func exec(chunk) -> void:
+	func exec(chunk: HTerrainChunk) -> void:
 		chunk.set_material(material)
 
 
@@ -1775,7 +1775,7 @@ class HT_SetRenderLayerMaskAction:
 	var mask: int = 0
 	func _init(m: int) -> void:
 		mask = m
-	func exec(chunk) -> void:
+	func exec(chunk: HTerrainChunk) -> void:
 		chunk.set_render_layer_mask(mask)
 
 
@@ -1783,5 +1783,5 @@ class HT_SetCastShadowSettingAction:
 	var setting := 0
 	func _init(s: int) -> void:
 		setting = s
-	func exec(chunk) -> void:
+	func exec(chunk: HTerrainChunk) -> void:
 		chunk.set_cast_shadow_setting(setting)
