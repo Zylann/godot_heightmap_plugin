@@ -1187,10 +1187,11 @@ static func _try_write_default_import_options(
 	# Sometimes values come directly from enums that are used in importers UI, 
 	# and NOT the corresponding resource classes...
 	
-	if channel == CHANNEL_HEIGHT:
+	# Heightmap is very often needed on CPU.
+	# Detail is currently needed to generate occupancy maps at runtime.
+	if channel == CHANNEL_HEIGHT or channel == CHANNEL_DETAIL:
 		defaults = {
 			"remap": {
-				# Have the heightmap editable as an image by default
 				"importer": "image",
 				"type": "Image"
 			},
