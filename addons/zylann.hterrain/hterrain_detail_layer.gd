@@ -171,10 +171,8 @@ const _API_SHADER_PARAMS = {
 
 
 # Exposes shadow casting setting.
-# Possible values are the same as the enum `GeometryInstance.SHADOW_CASTING_SETTING_*`.
-# TODO Casting to `int` should not be necessary! Had to do it otherwise GDScript complains...
-@export_enum("Off", "On", "DoubleSided", "ShadowsOnly") \
-	var cast_shadow := int(GeometryInstance3D.SHADOW_CASTING_SETTING_ON):
+@export var cast_shadow : GeometryInstance3D.ShadowCastingSetting = \
+GeometryInstance3D.SHADOW_CASTING_SETTING_ON:
 	get:
 		return cast_shadow
 	set(option):

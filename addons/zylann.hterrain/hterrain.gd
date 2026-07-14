@@ -590,14 +590,14 @@ func get_render_layer_mask() -> int:
 	return _render_layer_mask
 
 
-func set_cast_shadow(setting: int) -> void:
+func set_cast_shadow(setting: GeometryInstance3D.ShadowCastingSetting) -> void:
 	if setting == _cast_shadow_setting:
 		return
 	_cast_shadow_setting = setting
 	_for_all_chunks(HT_SetCastShadowSettingAction.new(setting))
 
 
-func get_cast_shadow() -> int:
+func get_cast_shadow() -> GeometryInstance3D.ShadowCastingSetting:
 	return _cast_shadow_setting
 
 
