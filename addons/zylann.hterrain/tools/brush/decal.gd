@@ -87,11 +87,12 @@ func set_position(p_local_pos: Vector3) -> void:
 	var data := _terrain.get_data()
 	if data != null:
 		var r := _mesh.size / 2
-		var aabb := data.get_region_aabb( \
-			int(p_local_pos.x - r.x), \
-			int(p_local_pos.z - r.y), \
-			int(2 * r.x), \
-			int(2 * r.y))
+		var aabb := data.get_region_aabb(Rect2i(
+			int(p_local_pos.x - r.x),
+			int(p_local_pos.z - r.y),
+			int(2 * r.x),
+			int(2 * r.y)
+		))
 		aabb.position = Vector3(-r.x, aabb.position.y, -r.y)
 		_mesh.custom_aabb = aabb
 		#_debug_mesh.size = aabb.size

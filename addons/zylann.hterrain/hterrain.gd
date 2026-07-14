@@ -1401,7 +1401,7 @@ func _update_chunk(chunk: HTerrainChunk, lod: int, p_visible: bool) -> void:
 	# Because chunks are rendered using vertex shader displacement,
 	# the renderer cannot rely on the mesh's AABB.
 	var s := _chunk_size << lod
-	var aabb := _data.get_region_aabb(chunk.cell_origin.x, chunk.cell_origin.y, s, s)
+	var aabb := _data.get_region_aabb(Rect2i(chunk.cell_origin.x, chunk.cell_origin.y, s, s))
 	aabb.position.x = 0
 	aabb.position.z = 0
 	chunk.set_aabb(aabb)

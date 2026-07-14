@@ -843,27 +843,15 @@ func has_texture(map_type: int, index: int) -> bool:
 
 
 func get_aabb() -> AABB:
-	# TODO Why subtract 1? I forgot
-	# TODO Optimize for full region, this is actually quite costy
-	return get_region_aabb(0, 0, _resolution - 1, _resolution - 1)
+	return _range_map.get_aabb()
 
 
 func get_point_aabb(cell_x: int, cell_y: int) -> Vector2:
 	return _range_map.get_point_aabb(cell_x, cell_y)
 
 
-func get_region_aabb(
-	origin_in_cells_x: int, 
-	origin_in_cells_y: int,
-	size_in_cells_x: int, 
-	size_in_cells_y: int
-) -> AABB:
-	return _range_map.get_region_aabb(
-		origin_in_cells_x, 
-		origin_in_cells_y,
-		size_in_cells_x, 
-		size_in_cells_y
-	)
+func get_region_aabb(rect_pixels: Rect2i) -> AABB:
+	return _range_map.get_region_aabb(rect_pixels)
 
 
 func _update_all_vertical_bounds() -> void:

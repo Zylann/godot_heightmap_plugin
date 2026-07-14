@@ -722,8 +722,12 @@ func _get_chunk_aabb(terrain: HTerrain, lpos: Vector3) -> AABB:
 	var size_cells_x := int(ceilf(CHUNK_SIZE / terrain_scale.x))
 	var size_cells_z := int(ceilf(CHUNK_SIZE / terrain_scale.z))
 	
-	var aabb := terrain_data.get_region_aabb(
-		origin_cells_x, origin_cells_z, size_cells_x, size_cells_z)
+	var aabb := terrain_data.get_region_aabb(Rect2i(
+		origin_cells_x, 
+		origin_cells_z, 
+		size_cells_x, 
+		size_cells_z
+	))
 	
 	aabb.position = Vector3(lpos.x, lpos.y + aabb.position.y * terrain_scale.y, lpos.z)
 	aabb.size = Vector3(CHUNK_SIZE, aabb.size.y * terrain_scale.y, CHUNK_SIZE)

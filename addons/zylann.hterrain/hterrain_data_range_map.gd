@@ -39,39 +39,36 @@ func get_point_aabb(cell_x: int, cell_y: int) -> Vector2:
 	return Vector2(b.r, b.g)
 
 
-func get_region_aabb(
-	origin_in_cells_x: int, 
-	origin_in_cells_y: int,
-	size_in_cells_x: int, 
-	size_in_cells_y: int
-) -> AABB:
+func get_aabb() -> AABB:
+	# TODO Why subtract 1? I forgot. 
+	#      Could it be the off-by-one from power of two used in HTerrainData?
+	# TODO Optimize for full region, this is actually quite costy
+	return get_region_aabb(Rect2i(Vector2i(), _data.get_size() - Vector2i(1, 1)))
+
+
+func get_region_aabb(rect_pixels: Rect2i) -> AABB:
 	# Get info from cached vertical bounds,
 	# which is a lot faster than directly fetching heights from the map.
 	# It's not 100% accurate, but enough for culling use case if chunk size is decently chosen.
 
-	var cmin_x := origin_in_cells_x / CHUNK_SIZE
-	var cmin_y := origin_in_cells_y / CHUNK_SIZE
+	var cmin := rect_pixels.position / CHUNK_SIZE
+	var cmax := (rect_pixels.end - Vector2i(1,1)) / CHUNK_SIZE + Vector2i(1,1)
 
-	var cmax_x := (origin_in_cells_x + size_in_cells_x - 1) / CHUNK_SIZE + 1
-	var cmax_y := (origin_in_cells_y + size_in_cells_y - 1) / CHUNK_SIZE + 1
+	cmin = cmin.clamp(Vector2i(), _data.get_size() - Vector2i(1,1))
+	cmax = cmax.clamp(Vector2i(), _data.get_size())
 
-	cmin_x = clampi(cmin_x, 0, _data.get_width() - 1)
-	cmin_y = clampi(cmin_y, 0, _data.get_height() - 1)
-	cmax_x = clampi(cmax_x, 0, _data.get_width())
-	cmax_y = clampi(cmax_y, 0, _data.get_height())
-
-	var min_height := _data.get_pixel(cmin_x, cmin_y).r
+	var min_height := _data.get_pixelv(cmin).r
 	var max_height := min_height
 
-	for y in range(cmin_y, cmax_y):
-		for x in range(cmin_x, cmax_x):
+	for y in range(cmin.y, cmax.y):
+		for x in range(cmin.x, cmax.x):
 			var b := _data.get_pixel(x, y)
 			min_height = minf(b.r, min_height)
 			max_height = maxf(b.g, max_height)
 
 	var aabb := AABB()
-	aabb.position = Vector3(origin_in_cells_x, min_height, origin_in_cells_y)
-	aabb.size = Vector3(size_in_cells_x, max_height - min_height, size_in_cells_y)
+	aabb.position = Vector3(rect_pixels.position.x, min_height, rect_pixels.position.y)
+	aabb.size = Vector3(rect_pixels.size.x, max_height - min_height, rect_pixels.size.y)
 
 	return aabb
 
