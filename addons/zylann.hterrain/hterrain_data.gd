@@ -285,8 +285,9 @@ func resize(p_res: int, stretch := true, anchor := Vector2(-1, -1)) -> void:
 				_logger.debug("Image not in memory, creating it")
 				im = Image.create(_resolution, _resolution, false, get_channel_format(channel))
 
-				var fill_color = _get_map_default_fill_color(channel, index)
-				if fill_color != null:
+				var maybe_fill_color = _get_map_default_fill_color(channel, index)
+				if maybe_fill_color != null:
+					var fill_color : Color = maybe_fill_color
 					_logger.debug(str("Fill with ", fill_color))
 					im.fill(fill_color)
 
@@ -308,9 +309,9 @@ func resize(p_res: int, stretch := true, anchor := Vector2(-1, -1)) -> void:
 							# Assuming float or single-component fixed-point
 							im.resize(_resolution, _resolution)
 					else:
-						var fill_color = _get_map_default_fill_color(channel, index)
-						im = HT_Util.get_cropped_image(im, _resolution, _resolution, \
-							fill_color, anchor)
+						var maybe_fill_color = _get_map_default_fill_color(channel, index)
+						im = HT_Util.get_cropped_image(im, _resolution, _resolution,
+							maybe_fill_color, anchor)
 
 			map.image = im
 			map.modified = true
@@ -1528,9 +1529,9 @@ func _edit_import_maps(input: Dictionary) -> bool:
 # Provided an arbitrary width and height,
 # returns the closest size the terrain actuallysupports
 static func get_adjusted_map_size(width: int, height: int) -> int:
-	var width_po2 = HT_Util.next_power_of_two(width - 1) + 1
-	var height_po2 = HT_Util.next_power_of_two(height - 1) + 1
-	var size_po2 = mini(width_po2, height_po2)
+	var width_po2 := HT_Util.next_power_of_two(width - 1) + 1
+	var height_po2 := HT_Util.next_power_of_two(height - 1) + 1
+	var size_po2 := mini(width_po2, height_po2)
 	size_po2 = clampi(size_po2, MIN_RESOLUTION, MAX_RESOLUTION)
 	return size_po2
 
