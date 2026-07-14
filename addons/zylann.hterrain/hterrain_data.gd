@@ -4,7 +4,6 @@
 @tool
 extends Resource
 
-const HT_Grid = preload("./util/grid.gd")
 const HT_Util = preload("./util/util.gd")
 const HT_Errors = preload("./util/errors.gd")
 const HT_Logger = preload("./util/logger.gd")
