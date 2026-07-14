@@ -150,9 +150,6 @@ const MIN_RESOLUTION = 65 # must be higher than largest chunk size
 const DEFAULT_RESOLUTION = 513
 const SUPPORTED_RESOLUTIONS = [65, 129, 257, 513, 1025, 2049, 4097]
 
-const VERTICAL_BOUNDS_CHUNK_SIZE = 16
-# TODO Have undo chunk size to emphasise the fact it's independent
-
 const META_EXTENSION = "hterrain"
 const META_FILENAME = "data.hterrain"
 const META_VERSION = "0.11"
@@ -170,8 +167,7 @@ var _resolution := 0
 # Array[Array[HTerrainDataMap]]
 var _maps : Array[Array] = [[]]
 
-# RGF image where R is min height and G is max height
-var _chunked_vertical_bounds := Image.new()
+var _range_map := HTerrainDataRangeMap.new()
 
 var _locked := false
 
@@ -852,27 +848,8 @@ func get_aabb() -> AABB:
 	return get_region_aabb(0, 0, _resolution - 1, _resolution - 1)
 
 
-# Not so useful in itself, but GDScript is slow,
-# so I needed it to speed up the LOD hack I had to do to take height into account.
-# x is min height, y is max height
 func get_point_aabb(cell_x: int, cell_y: int) -> Vector2:
-	assert(typeof(cell_x) == TYPE_INT)
-	assert(typeof(cell_y) == TYPE_INT)
-
-	var cx = cell_x / VERTICAL_BOUNDS_CHUNK_SIZE
-	var cy = cell_y / VERTICAL_BOUNDS_CHUNK_SIZE
-
-	if cx < 0:
-		cx = 0
-	if cy < 0:
-		cy = 0
-	if cx >= _chunked_vertical_bounds.get_width():
-		cx = _chunked_vertical_bounds.get_width() - 1
-	if cy >= _chunked_vertical_bounds.get_height():
-		cy = _chunked_vertical_bounds.get_height() - 1
-
-	var b := _chunked_vertical_bounds.get_pixel(cx, cy)
-	return Vector2(b.r, b.g)
+	return _range_map.get_point_aabb(cell_x, cell_y)
 
 
 func get_region_aabb(
@@ -881,122 +858,22 @@ func get_region_aabb(
 	size_in_cells_x: int, 
 	size_in_cells_y: int
 ) -> AABB:
-	# Get info from cached vertical bounds,
-	# which is a lot faster than directly fetching heights from the map.
-	# It's not 100% accurate, but enough for culling use case if chunk size is decently chosen.
-
-	var cmin_x := origin_in_cells_x / VERTICAL_BOUNDS_CHUNK_SIZE
-	var cmin_y := origin_in_cells_y / VERTICAL_BOUNDS_CHUNK_SIZE
-
-	var cmax_x := (origin_in_cells_x + size_in_cells_x - 1) / VERTICAL_BOUNDS_CHUNK_SIZE + 1
-	var cmax_y := (origin_in_cells_y + size_in_cells_y - 1) / VERTICAL_BOUNDS_CHUNK_SIZE + 1
-
-	cmin_x = clampi(cmin_x, 0, _chunked_vertical_bounds.get_width() - 1)
-	cmin_y = clampi(cmin_y, 0, _chunked_vertical_bounds.get_height() - 1)
-	cmax_x = clampi(cmax_x, 0, _chunked_vertical_bounds.get_width())
-	cmax_y = clampi(cmax_y, 0, _chunked_vertical_bounds.get_height())
-
-	var min_height := _chunked_vertical_bounds.get_pixel(cmin_x, cmin_y).r
-	var max_height := min_height
-
-	for y in range(cmin_y, cmax_y):
-		for x in range(cmin_x, cmax_x):
-			var b := _chunked_vertical_bounds.get_pixel(x, y)
-			min_height = minf(b.r, min_height)
-			max_height = maxf(b.g, max_height)
-
-	var aabb := AABB()
-	aabb.position = Vector3(origin_in_cells_x, min_height, origin_in_cells_y)
-	aabb.size = Vector3(size_in_cells_x, max_height - min_height, size_in_cells_y)
-
-	return aabb
+	return _range_map.get_region_aabb(
+		origin_in_cells_x, 
+		origin_in_cells_y,
+		size_in_cells_x, 
+		size_in_cells_y
+	)
 
 
 func _update_all_vertical_bounds() -> void:
-	var csize_x := _resolution / VERTICAL_BOUNDS_CHUNK_SIZE
-	var csize_y := _resolution / VERTICAL_BOUNDS_CHUNK_SIZE
-	_logger.debug(str("Updating all vertical bounds... (", csize_x, "x", csize_y, " chunks)"))
-	_chunked_vertical_bounds = Image.create(csize_x, csize_y, false, Image.FORMAT_RGF)
-	update_vertical_bounds(Rect2i(0, 0, _resolution - 1, _resolution - 1))
+	var im := get_image(CHANNEL_HEIGHT)
+	_range_map.update(im)
 
 
 func update_vertical_bounds(rect_pixels: Rect2i) -> void:
-	var cmin := HT_Util.floordiv_vec2i_int(rect_pixels.position, VERTICAL_BOUNDS_CHUNK_SIZE)
-	var cmax := HT_Util.ceildiv_vec2i_int(rect_pixels.end, VERTICAL_BOUNDS_CHUNK_SIZE)
-	
-	cmin.x = clampi(cmin.x, 0, _chunked_vertical_bounds.get_width() - 1)
-	cmin.y = clampi(cmin.y, 0, _chunked_vertical_bounds.get_height() - 1)
-	cmax.x = clampi(cmax.x, 0, _chunked_vertical_bounds.get_width())
-	cmax.y = clampi(cmax.y, 0, _chunked_vertical_bounds.get_height())
-
-	# Note: chunks in _chunked_vertical_bounds share their edge cells and
-	# have an actual size of chunk size + 1.
-	var chunk_size_x := VERTICAL_BOUNDS_CHUNK_SIZE + 1
-	var chunk_size_y := VERTICAL_BOUNDS_CHUNK_SIZE + 1
-	
-	for y in range(cmin.y, cmax.y):
-		var pmin_y := y * VERTICAL_BOUNDS_CHUNK_SIZE
-
-		for x in range(cmin.x, cmax.x):
-			var pmin_x := x * VERTICAL_BOUNDS_CHUNK_SIZE
-			var b = _compute_vertical_bounds_at(Rect2i(pmin_x, pmin_y, chunk_size_x, chunk_size_y))
-			_chunked_vertical_bounds.set_pixel(x, y, Color(b.x, b.y, 0))
-
-
-func _compute_vertical_bounds_at(rect_pixels: Rect2i) -> Vector2:
-	var heights := get_image(CHANNEL_HEIGHT)
-	assert(heights != null)
-	match heights.get_format():
-		Image.FORMAT_RF, \
-		Image.FORMAT_RH:
-			return _get_heights_range_f(heights, rect_pixels)
-		Image.FORMAT_RGB8:
-			return _get_heights_range_rgb8(heights, rect_pixels)
-		_:
-			_logger.error(str("Unknown heightmap format ", heights.get_format()))
-			return Vector2()
-
-
-static func _get_heights_range_rgb8(im: Image, rect: Rect2i) -> Vector2:
-	assert(im.get_format() == Image.FORMAT_RGB8)
-	
-	rect = rect.intersection(Rect2i(0, 0, im.get_width(), im.get_height()))
-	var min_x := rect.position.x
-	var min_y := rect.position.y
-	var max_x := min_x + rect.size.x
-	var max_y := min_y + rect.size.y
-	
-	var min_height := decode_height_from_rgb8_unorm(im.get_pixel(min_x, min_y))
-	var max_height := min_height
-
-	for y in range(min_y, max_y):
-		for x in range(min_x, max_x):
-			var h := decode_height_from_rgb8_unorm(im.get_pixel(x, y))
-			min_height = minf(h, min_height)
-			max_height = maxf(h, max_height)
-
-	return Vector2(min_height, max_height)
-
-
-static func _get_heights_range_f(im: Image, rect: Rect2i) -> Vector2:
-	assert(im.get_format() == Image.FORMAT_RF or im.get_format() == Image.FORMAT_RH)
-	
-	rect = rect.intersection(Rect2i(0, 0, im.get_width(), im.get_height()))
-	var min_x := rect.position.x
-	var min_y := rect.position.y
-	var max_x := min_x + rect.size.x
-	var max_y := min_y + rect.size.y
-	
-	var min_height := im.get_pixel(min_x, min_y).r
-	var max_height := min_height
-
-	for y in range(min_y, max_y):
-		for x in range(min_x, max_x):
-			var h := im.get_pixel(x, y).r
-			min_height = minf(h, min_height)
-			max_height = maxf(h, max_height)
-
-	return Vector2(min_height, max_height)
+	var im := get_image(CHANNEL_HEIGHT)
+	_range_map.update_area(im, rect_pixels)
 
 
 func save_data(data_dir: String) -> bool:
@@ -1813,7 +1690,7 @@ class HT_CellRaycastContext:
 	var _cell_begin_pos_2d := Vector2()
 	var dir := Vector3()
 	var dir_2d := Vector2()
-	var vertical_bounds: Image
+	var vertical_bounds: HTerrainDataRangeMap
 	var hit = null # ?Vector3
 	var heightmap: Image
 	var broad_param_2d_to_3d := 1.0
@@ -1823,21 +1700,21 @@ class HT_CellRaycastContext:
 	#var dbg
 	
 	func broad_cb(cx: int, cz: int, enter_param: float, exit_param: float) -> bool:
-		if cx < 0 or cz < 0 or cz >= vertical_bounds.get_height() \
-		or cx >= vertical_bounds.get_width():
+		var vbs := vertical_bounds.get_size()
+		if cx < 0 or cz < 0 or cz >= vbs.y or cx >= vbs.x:
 			# The function may occasionally be called at boundary values
 			return false
-		var vb := vertical_bounds.get_pixel(cx, cz)
+		var vb := vertical_bounds.get_chunk_range(Vector2i(cx, cz))
 		var begin := begin_pos + dir * (enter_param * broad_param_2d_to_3d)
 		var exit_y := begin_pos.y + dir.y * exit_param * broad_param_2d_to_3d
 		#_spawn_box(Vector3(cx * VERTICAL_BOUNDS_CHUNK_SIZE, \
 		#	begin.y, cz * VERTICAL_BOUNDS_CHUNK_SIZE), 2.0)
-		if begin.y < vb.r or exit_y > vb.g:
+		if begin.y < vb.x or exit_y > vb.y:
 			# Not hitting this chunk
 			return false
 		# We may be hitting something in this chunk, perform a narrow phase
 		# through terrain cells
-		var distance_in_chunk_2d := (exit_param - enter_param) * VERTICAL_BOUNDS_CHUNK_SIZE
+		var distance_in_chunk_2d := (exit_param - enter_param) * HTerrainDataRangeMap.CHUNK_SIZE
 		var cell_ray_origin_2d := Vector2(begin.x, begin.z)
 		_cell_begin_pos_y = begin.y
 		_cell_begin_pos_2d = cell_ray_origin_2d
@@ -1939,10 +1816,10 @@ func cell_raycast(ray_origin: Vector3, ray_direction: Vector3, max_distance: flo
 	ctx.begin_pos = ray_origin + ray_direction * (begin_clip_param * max_distance)
 	ctx.dir = ray_direction
 	ctx.dir_2d = ray_direction_2d
-	ctx.vertical_bounds = _chunked_vertical_bounds
+	ctx.vertical_bounds = _range_map
 	ctx.heightmap = heightmap
 	ctx.cell_param_2d_to_3d = max_distance / max_distance_2d
-	ctx.broad_param_2d_to_3d = ctx.cell_param_2d_to_3d * VERTICAL_BOUNDS_CHUNK_SIZE
+	ctx.broad_param_2d_to_3d = ctx.cell_param_2d_to_3d * HTerrainDataRangeMap.CHUNK_SIZE
 	
 	match heightmap.get_format():
 		Image.FORMAT_RH, \
@@ -1957,9 +1834,9 @@ func cell_raycast(ray_origin: Vector3, ray_direction: Vector3, max_distance: flo
 	#ctx.dbg = dbg
 
 	# Broad phase through cached vertical bound chunks
-	var broad_ray_origin = clipped_segment_2d[0] / VERTICAL_BOUNDS_CHUNK_SIZE
+	var broad_ray_origin = clipped_segment_2d[0] / HTerrainDataRangeMap.CHUNK_SIZE
 	var broad_max_distance = \
-		clipped_segment_2d[0].distance_to(clipped_segment_2d[1]) / VERTICAL_BOUNDS_CHUNK_SIZE
+		clipped_segment_2d[0].distance_to(clipped_segment_2d[1]) / HTerrainDataRangeMap.CHUNK_SIZE
 	var hit_bp = HT_Util.grid_raytrace_2d(broad_ray_origin, ray_direction_2d, ctx.broad_cb,
 		broad_max_distance)
 

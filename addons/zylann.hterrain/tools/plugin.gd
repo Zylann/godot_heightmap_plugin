@@ -946,17 +946,19 @@ func _spawn_vertical_bound_boxes() -> void:
 	mat.albedo_color = Color(1,1,1,0.2)
 	for cy in range(30, 60):
 		for cx in range(30, 60):
-			var vb := data._chunked_vertical_bounds.get_pixel(cx, cy)
-			var minv := vb.r
-			var maxv := vb.g
+			var vb := data._range_map.get_chunk_range(Vector2i(cx, cy))
+			var minv := vb.x
+			var maxv := vb.y
 			var mi := MeshInstance3D.new()
-			mi.mesh = BoxMesh.new()
-			var cs := HTerrainData.VERTICAL_BOUNDS_CHUNK_SIZE
-			mi.mesh.size = Vector3(cs, maxv - minv, cs)
+			var bm := BoxMesh.new()
+			var cs := HTerrainDataRangeMap.CHUNK_SIZE
+			bm.size = Vector3(cs, maxv - minv, cs)
+			mi.mesh = bm
 			mi.position = Vector3(
 				(float(cx) + 0.5) * cs,
-				minv + mi.mesh.size.y * 0.5, 
-				(float(cy) + 0.5) * cs)
+				minv + bm.size.y * 0.5, 
+				(float(cy) + 0.5) * cs
+			)
 			mi.position *= _node.map_scale
 			mi.scale = _node.map_scale
 			mi.material_override = mat
