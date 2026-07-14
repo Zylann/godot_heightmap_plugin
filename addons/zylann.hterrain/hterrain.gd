@@ -1467,7 +1467,7 @@ func set_area_dirty(rect_pixels: Rect2i) -> void:
 		# Find which chunks are within
 		for cy in range(min_y, max_y):
 			for cx in range(min_x, max_x):
-				var chunk = HT_Grid.grid_get_or_default(grid, cx, cy, null)
+				var chunk : HTerrainChunk = HT_Grid.grid_get_or_default(grid, cx, cy, null)
 				if chunk != null and chunk.is_active():
 					_add_chunk_update(chunk, cx, cy, lod)
 
