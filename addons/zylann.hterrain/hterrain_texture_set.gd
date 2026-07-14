@@ -1,4 +1,5 @@
 @tool
+class_name HTerrainTextureSet
 extends Resource
 
 const MODE_TEXTURES = 0

@@ -3,7 +3,6 @@
 extends EditorPlugin
 
 const HTerrainMesher = preload("../hterrain_mesher.gd")
-const HTerrainTextureSet = preload("../hterrain_texture_set.gd")
 const HT_PreviewGenerator = preload("./preview_generator.gd")
 const HT_TerrainPainter = preload("./brush/terrain_painter.gd")
 const HT_Brush = preload("./brush/brush.gd")

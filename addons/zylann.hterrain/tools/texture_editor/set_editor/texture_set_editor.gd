@@ -1,7 +1,6 @@
 @tool
 extends AcceptDialog
 
-const HTerrainTextureSet = preload("../../../hterrain_texture_set.gd")
 const HT_EditorUtil = preload("../../util/editor_util.gd")
 const HT_Util = preload("../../../util/util.gd")
 const HT_Logger = preload("../../../util/logger.gd")

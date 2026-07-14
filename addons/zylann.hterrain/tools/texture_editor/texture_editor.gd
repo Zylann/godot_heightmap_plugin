@@ -1,7 +1,6 @@
 @tool
 extends Control
 
-const HTerrainTextureSet = preload("../../hterrain_texture_set.gd")
 const HT_TextureList = preload("./texture_list.gd")
 const HT_Logger = preload("../../util/logger.gd")
 # TODO Can't preload because it causes the plugin to fail loading if assets aren't imported

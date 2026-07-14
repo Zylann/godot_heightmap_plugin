@@ -9,7 +9,6 @@ const HTerrainChunk = preload("./hterrain_chunk.gd")
 const HTerrainChunkDebug = preload("./hterrain_chunk_debug.gd")
 const HT_Util = preload("./util/util.gd")
 const HTerrainCollider = preload("./hterrain_collider.gd")
-const HTerrainTextureSet = preload("./hterrain_texture_set.gd")
 const HT_Logger = preload("./util/logger.gd")
 const HTerrainChunkGrid = preload("./hterrain_chunk_grid.gd")
 
