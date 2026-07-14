@@ -4,7 +4,6 @@ extends Node3D
 
 const HT_QuadTreeLod = preload("./util/quad_tree_lod.gd")
 const HT_Mesher = preload("./hterrain_mesher.gd")
-const HT_Grid = preload("./util/grid.gd")
 const HTerrainChunk = preload("./hterrain_chunk.gd")
 const HTerrainChunkDebug = preload("./hterrain_chunk_debug.gd")
 const HTerrainCollider = preload("./hterrain_collider.gd")
