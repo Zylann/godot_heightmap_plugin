@@ -516,8 +516,7 @@ func _forward_3d_gui_input(p_camera: Camera3D, p_event: InputEvent) -> int:
 				var maybe_hit_pos_in_cells = _get_pointed_cell_position(mb.position, p_camera)
 				if maybe_hit_pos_in_cells != null:
 					var hit_pos_in_cells : Vector2 = maybe_hit_pos_in_cells
-					var h := _node.get_data().get_height_at(
-						int(hit_pos_in_cells.x), int(hit_pos_in_cells.y))
+					var h := _node.get_data().get_height_at(Vector2i(hit_pos_in_cells))
 					_logger.debug("Picking height {0}".format([h]))
 					_terrain_painter.set_flatten_height(h)
 

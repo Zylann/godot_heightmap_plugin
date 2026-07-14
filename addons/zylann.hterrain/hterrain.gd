@@ -1290,7 +1290,7 @@ func _update_viewer_position(camera: Camera3D) -> void:
 			var hit_cell_pos_f : Vector2 = maybe_hit_cell_pos
 			var hit_cell_pos : Vector2i = hit_cell_pos_f.floor()
 			var cell_to_world := get_internal_transform()
-			var h := _data.get_height_at(hit_cell_pos.x, hit_cell_pos.y)
+			var h := _data.get_height_at(hit_cell_pos)
 			_viewer_pos_world = cell_to_world * Vector3(hit_cell_pos_f.x, h, hit_cell_pos_f.y)
 			
 	else:

@@ -342,16 +342,16 @@ static func _get_map_default_fill_color(map_type: int, map_index: int): # -> ?Co
 # Gets the height at the given cell position.
 # This height is raw and doesn't account for scaling of the terrain node.
 # This function is relatively slow due to locking, so don't use it to fetch large areas.
-func get_height_at(x: int, y: int) -> float:
+func get_height_at(pos_pixels: Vector2i) -> float:
 	# Height data must be loaded in RAM
 	var im := get_image(CHANNEL_HEIGHT)
 	assert(im != null)
 	match im.get_format():
 		Image.FORMAT_RF, \
 		Image.FORMAT_RH:
-			return HT_Util.get_pixel_clamped(im, Vector2i(x, y)).r
+			return HT_Util.get_pixel_clamped(im, pos_pixels).r
 		Image.FORMAT_RGB8:
-			return decode_height_from_rgb8_unorm(HT_Util.get_pixel_clamped(im, Vector2i(x, y)))
+			return decode_height_from_rgb8_unorm(HT_Util.get_pixel_clamped(im, pos_pixels))
 		_:
 			_logger.error(str("Invalid heigthmap format ", im.get_format()))
 			return 0.0
