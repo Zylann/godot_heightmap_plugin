@@ -11,6 +11,7 @@ const HT_Util = preload("./util/util.gd")
 const HTerrainCollider = preload("./hterrain_collider.gd")
 const HTerrainTextureSet = preload("./hterrain_texture_set.gd")
 const HT_Logger = preload("./util/logger.gd")
+const HTerrainChunkGrid = preload("./hterrain_chunk_grid.gd")
 
 const SHADER_CLASSIC4 = "Classic4"
 const SHADER_CLASSIC4_LITE = "Classic4Lite"
@@ -214,7 +215,7 @@ var _viewer_pos_world := Vector3()
 
 # [lod][z][x] -> chunk
 # This container owns chunks
-var _chunks := []
+var _lods : Array[HTerrainChunkGrid] = []
 var _chunk_size: int = 32
 var _pending_chunk_updates : Array[HT_PendingChunkUpdate] = []
 
@@ -690,14 +691,8 @@ func _on_physics_material_changed() -> void:
 
 
 func _for_all_chunks(action) -> void:
-	for lod in len(_chunks):
-		var grid = _chunks[lod]
-		for y in len(grid):
-			var row = grid[y]
-			for x in len(row):
-				var chunk = row[x]
-				if chunk != null:
-					action.exec(chunk)
+	for lod in _lods:
+		lod.for_each_chunk(action)
 
 
 func get_chunk_size() -> int:
@@ -838,14 +833,15 @@ func _clear_all_chunks() -> void:
 
 	#_for_all_chunks(DeleteChunkAction.new())
 
-	for i in len(_chunks):
-		_chunks[i].clear()
+	for lod in _lods:
+		lod.clear()
 
 
-func _get_chunk_at(cpos: Vector2i, lod: int) -> HTerrainChunk:
-	if lod < len(_chunks):
-		return HT_Grid.grid_get_or_default(_chunks[lod], cpos.x, cpos.y, null)
-	return null
+func _get_chunk_at(cpos: Vector2i, lod_index: int) -> HTerrainChunk:
+	if lod_index >= _lods.size():
+		return null
+	var lod := _lods[lod_index]
+	return lod.try_get_chunk(cpos)
 
 
 func get_data() -> HTerrainData:
@@ -938,18 +934,17 @@ func _reset_ground_chunks() -> void:
 
 	_lodder.create_from_sizes(_chunk_size, _data.get_resolution())
 
-	_chunks.resize(_lodder.get_lod_count())
+	_lods.resize(_lodder.get_lod_count())
 
 	var cres := _data.get_resolution() / _chunk_size
-	var csize_x := cres
-	var csize_y := cres
+	var csize := Vector2i(cres, cres)
 
-	for lod in _lodder.get_lod_count():
-		_logger.debug(str("Create grid for lod ", lod, ", ", csize_x, "x", csize_y))
-		var grid = HT_Grid.create_grid(csize_x, csize_y)
-		_chunks[lod] = grid
-		csize_x /= 2
-		csize_y /= 2
+	for lod_index in _lodder.get_lod_count():
+		_logger.debug(str("Create grid for lod ", lod_index, ", ", csize))
+		var grid := HTerrainChunkGrid.new()
+		grid.resize(csize)
+		_lods[lod_index] = grid
+		csize /= 2
 
 	_mesher.configure(_chunk_size, _chunk_size, _lodder.get_lod_count())
 
@@ -1417,21 +1412,19 @@ func _update_chunk(chunk: HTerrainChunk, lod: int, p_visible: bool) -> void:
 	chunk.set_pending_update(false)
 
 
-func _add_chunk_update(chunk: HTerrainChunk, cpos: Vector2i, lod: int) -> void:
+func _add_chunk_update(chunk: HTerrainChunk, cpos: Vector2i, lod_index: int) -> void:
 	if chunk.is_pending_update():
 		#_logger.debug("Chunk update is already pending!")
 		return
 
-	assert(lod < len(_chunks))
-	assert(cpos.x >= 0)
-	assert(cpos.y >= 0)
-	assert(cpos.y < len(_chunks[lod]))
-	assert(cpos.x < len(_chunks[lod][cpos.y]))
+	assert(lod_index < len(_lods))
+	var lod := _lods[lod_index]
+	assert(lod.is_valid_position(cpos))
 
 	# No update pending for this chunk, create one
 	var u := HT_PendingChunkUpdate.new()
 	u.cpos = cpos
-	u.lod = lod
+	u.lod = lod_index
 	_pending_chunk_updates.push_back(u)
 
 	chunk.set_pending_update(true)
@@ -1448,10 +1441,10 @@ func set_area_dirty(rect_pixels: Rect2i) -> void:
 	var csize_y := (rect_pixels.size.y - 1) / _chunk_size + 1
 
 	# For each lod
-	for lod in _lodder.get_lod_count():
+	for lod_index in _lodder.get_lod_count():
 		# Get grid and chunk size
-		var grid = _chunks[lod]
-		var s: int = _lodder.get_lod_factor(lod)
+		var grid := _lods[lod_index]
+		var s: int = _lodder.get_lod_factor(lod_index)
 
 		# Convert rect into this lod's coordinates:
 		# Pick min and max (included), divide them, then add 1 to max so it's excluded again
@@ -1463,21 +1456,22 @@ func set_area_dirty(rect_pixels: Rect2i) -> void:
 		# Find which chunks are within
 		for cy in range(min_y, max_y):
 			for cx in range(min_x, max_x):
-				var chunk : HTerrainChunk = HT_Grid.grid_get_or_default(grid, cx, cy, null)
+				var cpos := Vector2i(cx, cy)
+				var chunk : HTerrainChunk = grid.try_get_chunk(cpos)
 				if chunk != null and chunk.is_active():
-					_add_chunk_update(chunk, Vector2i(cx, cy), lod)
+					_add_chunk_update(chunk, cpos, lod_index)
 
 
 # Called when a chunk is needed to be seen
-func _cb_make_chunk(cpos_x: int, cpos_y: int, lod: int) -> HTerrainChunk:
+func _cb_make_chunk(cpos_x: int, cpos_y: int, lod_index: int) -> HTerrainChunk:
 	# TODO What if cpos is invalid? _get_chunk_at will return NULL but that's still invalid
 	var cpos := Vector2i(cpos_x, cpos_y)
-	var chunk := _get_chunk_at(cpos, lod)
+	var chunk := _get_chunk_at(cpos, lod_index)
 
 	if chunk == null:
 		# This is the first time this chunk is required at this lod, generate it
 		
-		var lod_factor: int = _lodder.get_lod_factor(lod)
+		var lod_factor: int = _lodder.get_lod_factor(lod_index)
 		var origin_in_cells := cpos * (_chunk_size * lod_factor)
 		
 		var material := _material
@@ -1493,12 +1487,11 @@ func _cb_make_chunk(cpos_x: int, cpos_y: int, lod: int) -> HTerrainChunk:
 		chunk.set_render_layer_mask(_render_layer_mask)
 		chunk.set_cast_shadow_setting(_cast_shadow_setting)
 
-		var grid = _chunks[lod]
-		var row = grid[cpos.y]
-		row[cpos.x] = chunk
+		var grid := _lods[lod_index]
+		grid.set_chunk(cpos, chunk)
 
 	# Make sure it gets updated
-	_add_chunk_update(chunk, cpos, lod)
+	_add_chunk_update(chunk, cpos, lod_index)
 
 	chunk.set_active(true)
 	return chunk
