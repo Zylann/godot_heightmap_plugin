@@ -447,7 +447,7 @@ func _get_pointed_cell_position(mouse_position: Vector2, p_camera: Camera3D):# -
 	# Need to do an extra conversion in case the editor viewport is in half-resolution mode
 	var viewport := p_camera.get_viewport()
 	var viewport_container : Control = viewport.get_parent()
-	var screen_pos = mouse_position * Vector2(viewport.size) / viewport_container.size
+	var screen_pos := mouse_position * Vector2(viewport.size) / viewport_container.size
 	
 	var origin = p_camera.project_ray_origin(screen_pos)
 	var dir = p_camera.project_ray_normal(screen_pos)
@@ -520,9 +520,10 @@ func _forward_3d_gui_input(p_camera: Camera3D, p_event: InputEvent) -> int:
 			and _terrain_painter.get_meta("pick_height"):
 				_terrain_painter.set_meta("pick_height", false)
 				# Pick height
-				var hit_pos_in_cells = _get_pointed_cell_position(mb.position, p_camera)
-				if hit_pos_in_cells != null:
-					var h = _node.get_data().get_height_at(
+				var maybe_hit_pos_in_cells = _get_pointed_cell_position(mb.position, p_camera)
+				if maybe_hit_pos_in_cells != null:
+					var hit_pos_in_cells : Vector2 = maybe_hit_pos_in_cells
+					var h := _node.get_data().get_height_at(
 						int(hit_pos_in_cells.x), int(hit_pos_in_cells.y))
 					_logger.debug("Picking height {0}".format([h]))
 					_terrain_painter.set_flatten_height(h)
@@ -530,8 +531,9 @@ func _forward_3d_gui_input(p_camera: Camera3D, p_event: InputEvent) -> int:
 	var mouse_motion_event := p_event as InputEventMouseMotion
 	if mouse_motion_event != null:
 		var mm := mouse_motion_event
-		var hit_pos_in_cells = _get_pointed_cell_position(mm.position, p_camera)
-		if hit_pos_in_cells != null:
+		var maybe_hit_pos_in_cells = _get_pointed_cell_position(mm.position, p_camera)
+		if maybe_hit_pos_in_cells != null:
+			var hit_pos_in_cells : Vector2 = maybe_hit_pos_in_cells
 			_brush_decal.set_position(Vector3(hit_pos_in_cells.x, 0, hit_pos_in_cells.y))
 			
 			if _mouse_pressed:

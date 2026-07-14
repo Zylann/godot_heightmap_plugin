@@ -303,8 +303,8 @@ static func get_aabb_intersection_with_segment(
 
 
 class HT_GridRaytraceResult2D:
-	var hit_cell_pos: Vector2
-	var prev_cell_pos: Vector2
+	var hit_cell_pos: Vector2i
+	var prev_cell_pos: Vector2i
 
 
 # Iterates through a virtual 2D grid of unit-sized square cells,
@@ -329,13 +329,13 @@ static func grid_raytrace_2d(
 		# Consider the ray is too small to hit anything
 		return null
 	
-	var xi_step := 0
+	var xi_step : int = 0
 	if ray_direction.x > 0:
 		xi_step = 1
 	elif ray_direction.x < 0:
 		xi_step = -1
 
-	var yi_step := 0
+	var yi_step : int = 0
 	if ray_direction.y > 0:
 		yi_step = 1
 	elif ray_direction.y < 0:
@@ -394,8 +394,8 @@ static func grid_raytrace_2d(
 		if yi_step == -1:
 			y -= 1
 	
-	var prev_x := x
-	var prev_y := y
+	var prev_x : int = x
+	var prev_y : int = y
 	var param := 0.0
 	var prev_param := 0.0
 
@@ -423,16 +423,16 @@ static func grid_raytrace_2d(
 			# quad coordinates, enter param, exit/end param
 			if quad_predicate.call(prev_x, prev_y, prev_param, param):
 				var res := HT_GridRaytraceResult2D.new()
-				res.hit_cell_pos = Vector2(x, y)
-				res.prev_cell_pos = Vector2(prev_x, prev_y)
+				res.hit_cell_pos = Vector2i(x, y)
+				res.prev_cell_pos = Vector2i(prev_x, prev_y)
 				return res
 			else:
 				break
 			
 		elif quad_predicate.call(prev_x, prev_y, prev_param, param):
 			var res := HT_GridRaytraceResult2D.new()
-			res.hit_cell_pos = Vector2(x, y)
-			res.prev_cell_pos = Vector2(prev_x, prev_y)
+			res.hit_cell_pos = Vector2i(x, y)
+			res.prev_cell_pos = Vector2i(prev_x, prev_y)
 			return res
 	
 	return null

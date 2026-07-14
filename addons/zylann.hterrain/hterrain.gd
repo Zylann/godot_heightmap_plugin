@@ -1288,12 +1288,14 @@ func _update_viewer_position(camera: Camera3D) -> void:
 		var cam_pos := camera.global_transform.origin
 		var cam_dir := -camera.global_transform.basis.z
 		var max_distance := camera.far * 1.2
-		var hit_cell_pos = cell_raycast(cam_pos, cam_dir, max_distance)
+		var maybe_hit_cell_pos = cell_raycast(cam_pos, cam_dir, max_distance)
 		
-		if hit_cell_pos != null:
+		if maybe_hit_cell_pos != null:
+			var hit_cell_pos_f : Vector2 = maybe_hit_cell_pos
+			var hit_cell_pos : Vector2i = hit_cell_pos_f.floor()
 			var cell_to_world := get_internal_transform()
 			var h := _data.get_height_at(hit_cell_pos.x, hit_cell_pos.y)
-			_viewer_pos_world = cell_to_world * Vector3(hit_cell_pos.x, h, hit_cell_pos.y)
+			_viewer_pos_world = cell_to_world * Vector3(hit_cell_pos_f.x, h, hit_cell_pos_f.y)
 			
 	else:
 		_viewer_pos_world = camera.global_transform.origin
