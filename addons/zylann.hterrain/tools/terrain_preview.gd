@@ -3,7 +3,6 @@ extends SubViewportContainer
 
 const PREVIEW_MESH_LOD = 2
 
-const HTerrainMesher = preload("../hterrain_mesher.gd")
 const HT_Util = preload("../util/util.gd")
 
 signal dragged(relative, button_mask)

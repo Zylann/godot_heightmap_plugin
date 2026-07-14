@@ -1,7 +1,6 @@
 @tool
 extends AcceptDialog
 
-const HTerrainMesher = preload("../../hterrain_mesher.gd")
 const HT_Util = preload("../../util/util.gd")
 const HT_TextureGenerator = preload("./texture_generator.gd")
 const HT_TextureGeneratorPass = preload("./texture_generator_pass.gd")

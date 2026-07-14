@@ -3,7 +3,6 @@ extends AcceptDialog
 
 signal generate_selected(lod)
 
-const HTerrainMesher = preload("../hterrain_mesher.gd")
 const HT_Util = preload("../util/util.gd")
 
 @onready var _preview_label : Label = $VBoxContainer/PreviewLabel

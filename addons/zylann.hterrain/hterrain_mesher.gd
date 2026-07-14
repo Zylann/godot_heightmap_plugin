@@ -1,4 +1,5 @@
 @tool
+class_name HTerrainMesher
 
 #const HT_Logger = preload("./util/logger.gd")
 

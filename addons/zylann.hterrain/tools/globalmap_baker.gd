@@ -5,8 +5,6 @@
 @tool
 extends Node
 
-const HTerrainMesher = preload("../hterrain_mesher.gd")
-
 # Must be power of two
 const DEFAULT_VIEWPORT_SIZE = 512
 
