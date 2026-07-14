@@ -496,10 +496,9 @@ static func get_segment_clipped_by_rect(
 	return hits	
 
 
-static func get_pixel_clamped(im: Image, x: int, y: int) -> Color:
-	x = clampi(x, 0, im.get_width() - 1)
-	y = clampi(y, 0, im.get_height() - 1)
-	return im.get_pixel(x, y)
+static func get_pixel_clamped(im: Image, pos: Vector2i) -> Color:
+	var clamped_pos := pos.clamp(Vector2i(), im.get_size() - Vector2i(1,1))
+	return im.get_pixelv(clamped_pos)
 
 
 static func update_configuration_warning(node: Node, recursive: bool) -> void:

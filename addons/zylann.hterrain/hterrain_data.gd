@@ -349,9 +349,9 @@ func get_height_at(x: int, y: int) -> float:
 	match im.get_format():
 		Image.FORMAT_RF, \
 		Image.FORMAT_RH:
-			return HT_Util.get_pixel_clamped(im, x, y).r
+			return HT_Util.get_pixel_clamped(im, Vector2i(x, y)).r
 		Image.FORMAT_RGB8:
-			return decode_height_from_rgb8_unorm(HT_Util.get_pixel_clamped(im, x, y))
+			return decode_height_from_rgb8_unorm(HT_Util.get_pixel_clamped(im, Vector2i(x, y)))
 		_:
 			_logger.error(str("Invalid heigthmap format ", im.get_format()))
 			return 0.0
@@ -379,19 +379,24 @@ func get_interpolated_height_at(pos: Vector3) -> float:
 	var h01: float
 	var h11: float
 	
+	var p00 := Vector2i(x0, y0)
+	var p10 := Vector2i(x0 + 1, y0)
+	var p01 := Vector2i(x0, y0 + 1)
+	var p11 := Vector2i(x0 + 1, y0 + 1)
+	
 	match im.get_format():
 		Image.FORMAT_RF, \
 		Image.FORMAT_RH:
-			h00 = HT_Util.get_pixel_clamped(im, x0, y0).r
-			h10 = HT_Util.get_pixel_clamped(im, x0 + 1, y0).r
-			h01 = HT_Util.get_pixel_clamped(im, x0, y0 + 1).r
-			h11 = HT_Util.get_pixel_clamped(im, x0 + 1, y0 + 1).r
+			h00 = HT_Util.get_pixel_clamped(im, p00).r
+			h10 = HT_Util.get_pixel_clamped(im, p10).r
+			h01 = HT_Util.get_pixel_clamped(im, p01).r
+			h11 = HT_Util.get_pixel_clamped(im, p11).r
 		
 		Image.FORMAT_RGB8:
-			var c00 := HT_Util.get_pixel_clamped(im, x0, y0)
-			var c10 := HT_Util.get_pixel_clamped(im, x0 + 1, y0)
-			var c01 := HT_Util.get_pixel_clamped(im, x0, y0 + 1)
-			var c11 := HT_Util.get_pixel_clamped(im, x0 + 1, y0 + 1)
+			var c00 := HT_Util.get_pixel_clamped(im, p00)
+			var c10 := HT_Util.get_pixel_clamped(im, p10)
+			var c01 := HT_Util.get_pixel_clamped(im, p01)
+			var c11 := HT_Util.get_pixel_clamped(im, p11)
 
 			h00 = decode_height_from_rgb8_unorm(c00)
 			h10 = decode_height_from_rgb8_unorm(c10)
@@ -1859,20 +1864,25 @@ class HT_CellRaycastContext:
 		dir: Vector3, 
 		decode_func: Callable
 	): # -> ?Vector3
-		var c00 := HT_Util.get_pixel_clamped(heightmap, cx, cz)
-		var c10 := HT_Util.get_pixel_clamped(heightmap, cx + 1, cz)
-		var c01 := HT_Util.get_pixel_clamped(heightmap, cx, cz + 1)
-		var c11 := HT_Util.get_pixel_clamped(heightmap, cx + 1, cz + 1)
+		var pi00 := Vector2i(cx, cz)
+		var pi10 := Vector2i(cx + 1, cz)
+		var pi01 := Vector2i(cx, cz + 1)
+		var pi11 := Vector2i(cx + 1, cz + 1)
+		
+		var c00 := HT_Util.get_pixel_clamped(heightmap, pi00)
+		var c10 := HT_Util.get_pixel_clamped(heightmap, pi10)
+		var c01 := HT_Util.get_pixel_clamped(heightmap, pi01)
+		var c11 := HT_Util.get_pixel_clamped(heightmap, pi11)
 		
 		var h00: float = decode_func.call(c00)
 		var h10: float = decode_func.call(c10)
 		var h01: float = decode_func.call(c01)
 		var h11: float = decode_func.call(c11)
 
-		var p00 := Vector3(cx, h00, cz)
-		var p10 := Vector3(cx + 1, h10, cz)
-		var p01 := Vector3(cx, h01, cz + 1)
-		var p11 := Vector3(cx + 1, h11, cz + 1)
+		var p00 := Vector3(pi00.x, h00, pi00.y)
+		var p10 := Vector3(pi10.x, h10, pi10.y)
+		var p01 := Vector3(pi01.x, h01, pi01.y)
+		var p11 := Vector3(pi11.x, h11, pi11.y)
 
 		var th0 = Geometry3D.ray_intersects_triangle(begin_pos, dir, p00, p10, p11)
 		var th1 = Geometry3D.ray_intersects_triangle(begin_pos, dir, p00, p11, p01)
