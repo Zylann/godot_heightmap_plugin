@@ -842,9 +842,9 @@ func _clear_all_chunks() -> void:
 		_chunks[i].clear()
 
 
-func _get_chunk_at(pos_x: int, pos_y: int, lod: int) -> HTerrainChunk:
+func _get_chunk_at(cpos: Vector2i, lod: int) -> HTerrainChunk:
 	if lod < len(_chunks):
-		return HT_Grid.grid_get_or_default(_chunks[lod], pos_x, pos_y, null)
+		return HT_Grid.grid_get_or_default(_chunks[lod], cpos.x, cpos.y, null)
 	return null
 
 
@@ -1342,34 +1342,31 @@ func _process(delta: float) -> void:
 
 		# In case the chunk got split
 		for d in 4:
-			var ncpos_x = u.pos_x + s_dirs[d].x
-			var ncpos_y = u.pos_y + s_dirs[d].y
+			var ncpos := Vector2i(u.pos_x, u.pos_y) + s_dirs[d]
 
-			var nchunk := _get_chunk_at(ncpos_x, ncpos_y, u.lod)
+			var nchunk := _get_chunk_at(ncpos, u.lod)
 			if nchunk != null and nchunk.is_active():
 				# Note: this will append elements to the array we are iterating on,
 				# but we iterate only on the previous count so it should be fine
-				_add_chunk_update(nchunk, ncpos_x, ncpos_y, u.lod)
+				_add_chunk_update(nchunk, ncpos.x, ncpos.y, u.lod)
 
 		# In case the chunk got joined
 		if u.lod > 0:
-			var cpos_upper_x := u.pos_x * 2
-			var cpos_upper_y := u.pos_y * 2
+			var cpos_upper := Vector2i(u.pos_x, u.pos_y) * 2
 			var nlod := u.lod - 1
 
 			for rd in 8:
-				var ncpos_upper_x = cpos_upper_x + s_rdirs[rd].x
-				var ncpos_upper_y = cpos_upper_y + s_rdirs[rd].y
+				var ncpos_upper := cpos_upper + s_rdirs[rd]
 
-				var nchunk := _get_chunk_at(ncpos_upper_x, ncpos_upper_y, nlod)
+				var nchunk := _get_chunk_at(ncpos_upper, nlod)
 				if nchunk != null and nchunk.is_active():
-					_add_chunk_update(nchunk, ncpos_upper_x, ncpos_upper_y, nlod)
+					_add_chunk_update(nchunk, ncpos_upper.x, ncpos_upper.y, nlod)
 
 	# Update chunks
 	var lvisible := is_visible_in_tree()
 	for i in len(_pending_chunk_updates):
 		var u: HT_PendingChunkUpdate = _pending_chunk_updates[i]
-		var chunk := _get_chunk_at(u.pos_x, u.pos_y, u.lod)
+		var chunk := _get_chunk_at(Vector2i(u.pos_x, u.pos_y), u.lod)
 		assert(chunk != null)
 		_update_chunk(chunk, u.lod, lvisible and chunk.is_active())
 		_updated_chunks += 1
@@ -1391,17 +1388,17 @@ func _update_chunk(chunk: HTerrainChunk, lod: int, p_visible: bool) -> void:
 
 	# Check for my own seams
 	var seams := 0
-	var cpos_x := chunk.cell_origin.x / (_chunk_size << lod)
-	var cpos_y := chunk.cell_origin.y / (_chunk_size << lod)
-	var cpos_lower_x := cpos_x / 2
-	var cpos_lower_y := cpos_y / 2
+	var cpos := Vector2i(
+		chunk.cell_origin.x / (_chunk_size << lod),
+		chunk.cell_origin.y / (_chunk_size << lod)
+	)
+	var cpos_lower := cpos / 2
 
 	# Check for lower-LOD chunks around me
 	for d in 4:
-		var ncpos_lower_x := (cpos_x + s_dirs[d].x) / 2
-		var ncpos_lower_y := (cpos_y + s_dirs[d].y) / 2
-		if ncpos_lower_x != cpos_lower_x or ncpos_lower_y != cpos_lower_y:
-			var nchunk := _get_chunk_at(ncpos_lower_x, ncpos_lower_y, lod + 1)
+		var ncpos_lower := (cpos + s_dirs[d]) / 2
+		if ncpos_lower != cpos_lower:
+			var nchunk := _get_chunk_at(ncpos_lower, lod + 1)
 			if nchunk != null and nchunk.is_active():
 				seams |= (1 << d)
 
@@ -1475,7 +1472,8 @@ func set_area_dirty(rect_pixels: Rect2i) -> void:
 # Called when a chunk is needed to be seen
 func _cb_make_chunk(cpos_x: int, cpos_y: int, lod: int) -> HTerrainChunk:
 	# TODO What if cpos is invalid? _get_chunk_at will return NULL but that's still invalid
-	var chunk := _get_chunk_at(cpos_x, cpos_y, lod)
+	var cpos := Vector2i(cpos_x, cpos_y)
+	var chunk := _get_chunk_at(cpos, lod)
 
 	if chunk == null:
 		# This is the first time this chunk is required at this lod, generate it
