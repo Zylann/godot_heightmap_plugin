@@ -5,8 +5,6 @@
 @tool
 extends Node
 
-const HTerrain = preload("../hterrain.gd")
-const HTerrainData = preload("../hterrain_data.gd")
 const HTerrainMesher = preload("../hterrain_mesher.gd")
 
 # Must be power of two

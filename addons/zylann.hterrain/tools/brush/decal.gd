@@ -4,8 +4,6 @@
 # TODO Use an actual decal node, it wasn't available in Godot 3
 
 const HT_DirectMeshInstance = preload("../../util/direct_mesh_instance.gd")
-const HTerrain = preload("../../hterrain.gd")
-const HTerrainData = preload("../../hterrain_data.gd")
 const HT_Util = preload("../../util/util.gd")
 
 var _mesh_instance : HT_DirectMeshInstance

@@ -1,9 +1,6 @@
 @tool
 extends Control
 
-const HTerrain = preload("../../hterrain.gd")
-const HTerrainData = preload("../../hterrain_data.gd")
-const HTerrainDetailLayer = preload("../../hterrain_detail_layer.gd")
 const HT_ImageFileCache = preload("../../util/image_file_cache.gd")
 const HT_EditorUtil = preload("../util/editor_util.gd")
 const HT_Logger = preload("../../util/logger.gd")

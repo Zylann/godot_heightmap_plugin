@@ -1,7 +1,6 @@
 @tool
 extends EditorResourcePreviewGenerator
 
-const HTerrainData = preload("../hterrain_data.gd")
 const HT_Errors = preload("../util/errors.gd")
 const HT_Logger = preload("../util/logger.gd")
 

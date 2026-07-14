@@ -6,7 +6,6 @@
 @tool
 extends Node
 
-const HTerrainData = preload("../hterrain_data.gd")
 const _bump2normal_shader_path = "res://addons/zylann.hterrain/tools/bump2normal_tex.gdshader"
 
 const VIEWPORT_SIZE = 64

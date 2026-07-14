@@ -1,8 +1,6 @@
 @tool
 extends AcceptDialog
 
-const HTerrain = preload("../../hterrain.gd")
-const HTerrainData = preload("../../hterrain_data.gd")
 const HT_Errors = preload("../../util/errors.gd")
 const HT_Util = preload("../../util/util.gd")
 const HT_Logger = preload("../../util/logger.gd")

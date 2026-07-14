@@ -2,8 +2,6 @@
 extends Control
 
 const HT_Util = preload("../../util/util.gd")
-const HTerrain = preload("../../hterrain.gd")
-const HTerrainData = preload("../../hterrain_data.gd")
 const HT_MinimapOverlay = preload("./minimap_overlay.gd")
 
 const HT_MinimapShader = preload("./minimap_normal.gdshader")

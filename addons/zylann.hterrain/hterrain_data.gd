@@ -2,6 +2,7 @@
 # This is mostly a set of textures using specific formats, some precalculated, and metadata.
 
 @tool
+class_name HTerrainData
 extends Resource
 
 const HT_Util = preload("./util/util.gd")

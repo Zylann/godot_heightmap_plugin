@@ -3,8 +3,6 @@ extends AcceptDialog
 
 const HT_Util = preload("../../util/util.gd")
 const HT_Logger = preload("../../util/logger.gd")
-const HTerrain = preload("../../hterrain.gd")
-const HTerrainData = preload("../../hterrain_data.gd")
 
 const ANCHOR_TOP_LEFT = 0
 const ANCHOR_TOP = 1

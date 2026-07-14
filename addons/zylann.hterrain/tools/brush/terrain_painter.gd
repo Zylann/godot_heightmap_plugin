@@ -2,8 +2,6 @@
 extends Node
 
 const HT_Painter = preload("./painter.gd")
-const HTerrain = preload("../../hterrain.gd")
-const HTerrainData = preload("../../hterrain_data.gd")
 const HT_Logger = preload("../../util/logger.gd")
 const HT_Brush = preload("./brush.gd")
 

@@ -1,10 +1,10 @@
 @tool
+class_name HTerrain
 extends Node3D
 
 const HT_QuadTreeLod = preload("./util/quad_tree_lod.gd")
 const HT_Mesher = preload("./hterrain_mesher.gd")
 const HT_Grid = preload("./util/grid.gd")
-const HTerrainData = preload("./hterrain_data.gd")
 const HTerrainChunk = preload("./hterrain_chunk.gd")
 const HTerrainChunkDebug = preload("./hterrain_chunk_debug.gd")
 const HT_Util = preload("./util/util.gd")
@@ -219,7 +219,7 @@ var _lods : Array[HTerrainChunkGrid] = []
 var _chunk_size: int = 32
 var _pending_chunk_updates : Array[HT_PendingChunkUpdate] = []
 
-var _detail_layers := []
+var _detail_layers : Array[HTerrainDetailLayer] = []
 
 var _collision_enabled := true
 var _collider: HTerrainCollider = null

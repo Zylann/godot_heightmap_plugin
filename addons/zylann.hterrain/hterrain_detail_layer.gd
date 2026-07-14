@@ -1,4 +1,5 @@
 @tool
+class_name HTerrainDetailLayer
 extends Node3D
 
 # Child node of the terrain, used to render numerous small objects on the ground
@@ -11,16 +12,12 @@ extends Node3D
 # and they also do NOT scale with map scale. Indeed, scaling the heightmap
 # doesn't mean we want to scale grass blades (which is not a use case I know of).
 
-const HTerrainData = preload("./hterrain_data.gd")
 const HT_DirectMultiMeshInstance = preload("./util/direct_multimesh_instance.gd")
 const HT_DirectMeshInstance = preload("./util/direct_mesh_instance.gd")
 const HT_Util = preload("./util/util.gd")
 const HT_Logger = preload("./util/logger.gd")
 # TODO Can't preload because it causes the plugin to fail loading if assets aren't imported
 const DEFAULT_MESH_PATH = "res://addons/zylann.hterrain/models/grass_quad.obj"
-
-# Cannot use `const` because `HTerrain` depends on the current script
-var HTerrain = load("res://addons/zylann.hterrain/hterrain.gd")
 
 const CHUNK_SIZE = 32
 const DEFAULT_SHADER_PATH = "res://addons/zylann.hterrain/shaders/detail.gdshader"
@@ -225,7 +222,7 @@ func _init() -> void:
 
 
 func _enter_tree() -> void:
-	var terrain = _get_terrain()
+	var terrain := _get_terrain()
 	if terrain != null:
 		terrain.transform_changed.connect(_on_terrain_transform_changed)
 
@@ -241,7 +238,7 @@ func _enter_tree() -> void:
 
 
 func _exit_tree() -> void:
-	var terrain = _get_terrain()
+	var terrain := _get_terrain()
 	if terrain != null:
 		terrain.transform_changed.disconnect(_on_terrain_transform_changed)
 		# Unregister from terrain
@@ -328,8 +325,7 @@ func set_shader_param(param_name: String, v: Variant) -> void:
 	_material.set_shader_parameter(param_name, v)
 
 
-# TODO Untyped for now due to cyclic refs in older versions of Godot
-func _get_terrain(): # -> HTerrain
+func _get_terrain() -> HTerrain:
 	if is_inside_tree():
 		return get_parent()
 	return null
@@ -457,7 +453,7 @@ func _set_world(w: World3D) -> void:
 func _on_terrain_transform_changed(gt: Transform3D) -> void:
 	_update_material()
 
-	var terrain = _get_terrain()
+	var terrain := _get_terrain()
 	if terrain == null:
 		_logger.error("Detail layer is not child of a terrain!")
 		return
@@ -479,7 +475,7 @@ func _on_terrain_transform_changed(gt: Transform3D) -> void:
 
 
 func process(delta: float, viewer_pos: Vector3) -> void:
-	var terrain = _get_terrain()
+	var terrain := _get_terrain()
 	if terrain == null:
 		_logger.error("DetailLayer processing while terrain is null!")
 		return
@@ -572,7 +568,7 @@ func process(delta: float, viewer_pos: Vector3) -> void:
 	
 	# Update time manually, so we can accelerate the animation when strength is increased,
 	# without causing phase jumps (which would be the case if we just scaled TIME)
-	var ambient_wind_frequency = 1.0 + 3.0 * terrain.ambient_wind
+	var ambient_wind_frequency := 1.0 + 3.0 * terrain.ambient_wind
 	_ambient_wind_time += delta * ambient_wind_frequency
 	var awp = _get_ambient_wind_params()
 	_material.set_shader_parameter("u_ambient_wind", awp)
@@ -651,7 +647,7 @@ func _process_chunk_update(
 ) -> void:
 	var chunk: HT_DetailChunk = _chunks[cpos]
 	
-	var terrain = _get_terrain()
+	var terrain := _get_terrain()
 	var aabb := _get_chunk_aabb(terrain, Vector3(cpos.x, 0, cpos.y) * CHUNK_SIZE)
 	
 	var d := _get_approx_distance_to_chunk_aabb(aabb, local_viewer_pos)
@@ -718,7 +714,7 @@ static func _get_approx_distance_to_chunk_aabb(aabb: AABB, pos: Vector3) -> floa
 
 # Gets local-space AABB of a detail chunk.
 # This only apply map_scale in Y, because details are not affected by X and Z map scale.
-func _get_chunk_aabb(terrain, lpos: Vector3) -> AABB:
+func _get_chunk_aabb(terrain: HTerrain, lpos: Vector3) -> AABB:
 	var terrain_scale : Vector3 = terrain.map_scale
 	var terrain_data: HTerrainData = terrain.get_data()
 	var origin_cells_x := int(lpos.x / terrain_scale.x)
@@ -780,7 +776,7 @@ func _alloc_multimesh_instance() -> HT_DirectMultiMeshInstance:
 
 func _get_ambient_wind_params() -> Vector2:
 	var aw := 0.0
-	var terrain = _get_terrain()
+	var terrain := _get_terrain()
 	if terrain != null:
 		aw = terrain.ambient_wind
 	# amplitude, time
@@ -792,7 +788,7 @@ func _update_material() -> void:
 	_logger.debug("Updating detail layer material")
 
 	var terrain_data: HTerrainData = null
-	var terrain = _get_terrain()
+	var terrain := _get_terrain()
 	var it := Transform3D()
 	var normal_basis := Basis()
 
@@ -884,7 +880,7 @@ func is_layer_index_valid() -> bool:
 	var terrain = _get_terrain()
 	if terrain == null:
 		return false
-	var data = terrain.get_data()
+	var data := terrain.get_data()
 	if data == null:
 		return false
 	return layer_index >= 0 and layer_index < data.get_map_count(HTerrainData.CHANNEL_DETAIL)
@@ -970,7 +966,7 @@ static func _generate_multimesh(
 	
 	# Second pass adds the rest
 	for j in random_instance_count:
-		var pos = Vector3(rng.randf_range(0, resolution), 0, rng.randf_range(0, resolution))
+		var pos := Vector3(rng.randf_range(0, resolution), 0, rng.randf_range(0, resolution))
 		multimesh.set_instance_color(i, Color(1, 1, 1))
 		multimesh.set_instance_transform(i, \
 			Transform3D(_get_random_instance_basis(scale_randomness, rng), pos))

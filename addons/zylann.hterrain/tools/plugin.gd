@@ -2,9 +2,6 @@
 
 extends EditorPlugin
 
-const HTerrain = preload("../hterrain.gd")
-const HTerrainDetailLayer = preload("../hterrain_detail_layer.gd")
-const HTerrainData = preload("../hterrain_data.gd")
 const HTerrainMesher = preload("../hterrain_mesher.gd")
 const HTerrainTextureSet = preload("../hterrain_texture_set.gd")
 const HT_PreviewGenerator = preload("./preview_generator.gd")
