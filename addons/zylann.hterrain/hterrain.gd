@@ -1348,7 +1348,7 @@ func _process(delta: float) -> void:
 			if nchunk != null and nchunk.is_active():
 				# Note: this will append elements to the array we are iterating on,
 				# but we iterate only on the previous count so it should be fine
-				_add_chunk_update(nchunk, ncpos.x, ncpos.y, u.lod)
+				_add_chunk_update(nchunk, ncpos, u.lod)
 
 		# In case the chunk got joined
 		if u.lod > 0:
@@ -1360,7 +1360,7 @@ func _process(delta: float) -> void:
 
 				var nchunk := _get_chunk_at(ncpos_upper, nlod)
 				if nchunk != null and nchunk.is_active():
-					_add_chunk_update(nchunk, ncpos_upper.x, ncpos_upper.y, nlod)
+					_add_chunk_update(nchunk, ncpos_upper, nlod)
 
 	# Update chunks
 	var lvisible := is_visible_in_tree()
@@ -1417,21 +1417,21 @@ func _update_chunk(chunk: HTerrainChunk, lod: int, p_visible: bool) -> void:
 	chunk.set_pending_update(false)
 
 
-func _add_chunk_update(chunk: HTerrainChunk, pos_x: int, pos_y: int, lod: int) -> void:
+func _add_chunk_update(chunk: HTerrainChunk, cpos: Vector2i, lod: int) -> void:
 	if chunk.is_pending_update():
 		#_logger.debug("Chunk update is already pending!")
 		return
 
 	assert(lod < len(_chunks))
-	assert(pos_x >= 0)
-	assert(pos_y >= 0)
-	assert(pos_y < len(_chunks[lod]))
-	assert(pos_x < len(_chunks[lod][pos_y]))
+	assert(cpos.x >= 0)
+	assert(cpos.y >= 0)
+	assert(cpos.y < len(_chunks[lod]))
+	assert(cpos.x < len(_chunks[lod][cpos.y]))
 
 	# No update pending for this chunk, create one
 	var u := HT_PendingChunkUpdate.new()
-	u.pos_x = pos_x
-	u.pos_y = pos_y
+	u.pos_x = cpos.x
+	u.pos_y = cpos.y
 	u.lod = lod
 	_pending_chunk_updates.push_back(u)
 
@@ -1466,7 +1466,7 @@ func set_area_dirty(rect_pixels: Rect2i) -> void:
 			for cx in range(min_x, max_x):
 				var chunk : HTerrainChunk = HT_Grid.grid_get_or_default(grid, cx, cy, null)
 				if chunk != null and chunk.is_active():
-					_add_chunk_update(chunk, cx, cy, lod)
+					_add_chunk_update(chunk, Vector2i(cx, cy), lod)
 
 
 # Called when a chunk is needed to be seen
@@ -1479,10 +1479,7 @@ func _cb_make_chunk(cpos_x: int, cpos_y: int, lod: int) -> HTerrainChunk:
 		# This is the first time this chunk is required at this lod, generate it
 		
 		var lod_factor: int = _lodder.get_lod_factor(lod)
-		var origin_in_cells := Vector2i(
-			cpos_x * _chunk_size * lod_factor,
-			cpos_y * _chunk_size * lod_factor
-		)
+		var origin_in_cells := cpos * (_chunk_size * lod_factor)
 		
 		var material := _material
 		if _lookdev_enabled:
@@ -1498,11 +1495,11 @@ func _cb_make_chunk(cpos_x: int, cpos_y: int, lod: int) -> HTerrainChunk:
 		chunk.set_cast_shadow_setting(_cast_shadow_setting)
 
 		var grid = _chunks[lod]
-		var row = grid[cpos_y]
-		row[cpos_x] = chunk
+		var row = grid[cpos.y]
+		row[cpos.x] = chunk
 
 	# Make sure it gets updated
-	_add_chunk_update(chunk, cpos_x, cpos_y, lod)
+	_add_chunk_update(chunk, cpos, lod)
 
 	chunk.set_active(true)
 	return chunk
