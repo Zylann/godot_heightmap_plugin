@@ -889,7 +889,7 @@ func save_data(data_dir: String) -> bool:
 			_logger.debug(str("Saving map ", get_map_debug_name(map_type, index),
 				" as ", _get_map_filename(map_type, index), "..."))
 
-			all_succeeded = all_succeeded and _save_map(data_dir, map_type, index)
+			all_succeeded = all_succeeded and await _save_map(data_dir, map_type, index)
 
 			map.modified = false
 			pi += 1
@@ -1129,7 +1129,20 @@ func _save_map(dir_path: String, map_type: int, index: int) -> bool:
 	var base_name := _get_map_filename(map_type, index)
 	var fpath := dir_path.path_join(base_name)
 
-	return _save_map_image(fpath, map_type, im)
+	var result: bool = _save_map_image(fpath, map_type, im)
+	var files: PackedStringArray = DirAccess.get_files_at(dir_path)
+	
+	await EditorInterface.get_base_control().get_tree().create_timer(1.0).timeout
+
+	var file_system: EditorFileSystem = EditorInterface.get_resource_filesystem()
+	
+	for file: String in files:
+		file_system.update_file(dir_path.path_join(file))
+			
+	if not file_system.is_scanning():
+		file_system.scan()
+
+	return result
 
 
 func _save_map_image(fpath: String, map_type: int, im: Image) -> bool:
