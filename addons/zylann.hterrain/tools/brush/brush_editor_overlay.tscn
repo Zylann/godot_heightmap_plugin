@@ -1,8 +1,8 @@
 [gd_scene load_steps=5 format=3 uid="uid://d324kwgdf7e6l"]
 
 [ext_resource type="Script" path="res://addons/zylann.hterrain/tools/brush/brush_editor_overlay.gd" id="1_grgos"]
-[ext_resource type="Texture2D" uid="uid://fk2rcx7lsbam" path="res://addons/zylann.hterrain/tools/icons/brush_circle_background.svg" id="2_jeqe2"]
-[ext_resource type="Texture2D" uid="uid://c4ma6f4217y48" path="res://addons/zylann.hterrain/tools/icons/brush_circle.svg" id="3_sw64o"]
+[ext_resource type="Texture2D" uid="uid://cqwad8vijlmih" path="res://addons/zylann.hterrain/tools/icons/brush_circle_background.svg" id="2_jeqe2"]
+[ext_resource type="Texture2D" uid="uid://ctov581w2ttd0" path="res://addons/zylann.hterrain/tools/icons/brush_circle.svg" id="3_sw64o"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_0d2ij"]
 font_size = 32
