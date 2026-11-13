@@ -14,6 +14,9 @@
 /icon.png.import    export-ignore
 /project.godot      export-ignore
 
+# Ignore site docs
+addons/zylann.hterrain/doc/ export-ignore
+
 # Normalize EOL for all files that Git considers text files.
 * text=auto eol=lf
 
